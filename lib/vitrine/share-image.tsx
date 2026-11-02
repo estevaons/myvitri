@@ -1,7 +1,6 @@
 import "server-only";
 import { ImageResponse } from "next/og";
 import QRCode from "qrcode";
-import { couponColor, inkOn, themeOf } from "./look";
 import { couponOff, isActive } from "./pricing";
 import type { VitrineContent } from "./types";
 
@@ -9,17 +8,15 @@ import type { VitrineContent } from "./types";
  * Imagens para divulgar a vitrine: "og" (prévia do link em WhatsApp, X etc.)
  * e "story" (1080×1920 com QR code, para postar nos stories).
  * Só texto e blocos de cor: fotos de loja deixariam a geração lenta e sujeita a falhas.
+ * Mesmo visual fixo da vitrine: branco, cinza claro nos cupons e títulos condensados em caixa alta.
  */
 export const SHARE_SIZES = { og: { width: 1200, height: 630 }, story: { width: 1080, height: 1920 } };
 
 const plain = (headline: string) => headline.replace(/\*/g, "");
 
-/** Fonte dos títulos de cada opção do editor, no Google Fonts. */
-const DISPLAY: Record<VitrineContent["look"]["font"], string> = {
-  moderna: "Bricolage Grotesque",
-  elegante: "Fraunces",
-  classica: "Inter",
-};
+const INK = "#111111";
+const MUTE = "#707072";
+const SOFT = "#F5F5F5";
 
 const fontCache = new Map<string, Promise<ArrayBuffer | null>>();
 
@@ -39,26 +36,25 @@ function googleFont(family: string, weight: number) {
   return fontCache.get(key)!;
 }
 
-async function fonts(look: VitrineContent["look"]) {
-  const display = DISPLAY[look.font];
+async function fonts() {
   const list = [
-    { name: "Display", family: display, weight: 800 as const },
+    { name: "Display", family: "Barlow Condensed", weight: 800 as const },
+    { name: "Logo", family: "Bricolage Grotesque", weight: 800 as const },
     { name: "Body", family: "Inter", weight: 400 as const },
-    { name: "Body", family: "Inter", weight: 700 as const },
+    { name: "Body", family: "Inter", weight: 500 as const },
   ];
   const data = await Promise.all(list.map((f) => googleFont(f.family, f.weight)));
   return list.flatMap((f, i) => (data[i] ? [{ name: f.name, data: data[i], weight: f.weight, style: "normal" as const }] : []));
 }
 
 export async function shareImage(content: VitrineContent, today: string, url: string, format: keyof typeof SHARE_SIZES) {
-  const t = themeOf(content.look);
   const story = format === "story";
   const coupons = content.coupons.filter((c) => isActive(c, today)).slice(0, story ? 3 : 2);
   const headline = plain(content.headline) || `A vitrine de ${content.name}`;
   const qr = story ? await QRCode.toDataURL(url, { width: 360, margin: 1, color: { dark: "#111111", light: "#FFFFFF" } }) : "";
   const shortUrl = url.replace(/^https?:\/\//, "");
 
-  const tickets = coupons.map((c, i) => (
+  const tickets = coupons.map((c) => (
     <div
       key={c.id}
       style={{
@@ -66,26 +62,23 @@ export async function shareImage(content: VitrineContent, today: string, url: st
         alignItems: "center",
         justifyContent: "space-between",
         gap: 24,
-        background: couponColor(content.look, c, i),
-        color: inkOn(couponColor(content.look, c, i)),
-        borderRadius: story ? 36 : 28,
+        background: SOFT,
         padding: story ? "36px 44px" : "26px 34px",
-        transform: `rotate(${["-3deg", "2deg", "-1deg"][i]})`,
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <span style={{ fontSize: story ? 34 : 26, fontWeight: 700 }}>{c.brand}</span>
-        <span style={{ fontFamily: "Display", fontSize: story ? 88 : 56, fontWeight: 800, letterSpacing: -3, lineHeight: 1 }}>{couponOff(c)}</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: story ? 6 : 2 }}>
+        <span style={{ fontSize: story ? 32 : 24, fontWeight: 500 }}>{c.brand}</span>
+        <span style={{ fontFamily: "Display", fontSize: story ? 96 : 60, fontWeight: 800, lineHeight: 0.9, textTransform: "uppercase" }}>{couponOff(c)}</span>
       </div>
       <span
         style={{
-          fontSize: story ? 36 : 24,
-          fontWeight: 700,
-          border: `4px dashed ${inkOn(couponColor(content.look, c, i))}`,
-          borderRadius: 18,
-          padding: story ? "14px 22px" : "10px 18px",
+          fontSize: story ? 34 : 24,
+          fontWeight: 500,
+          letterSpacing: 2,
+          border: "3px dashed #CACACB",
+          borderRadius: 999,
+          padding: story ? "16px 30px" : "10px 22px",
           background: "#FFFFFF",
-          color: "#111111",
         }}
       >
         {c.code}
@@ -94,7 +87,7 @@ export async function shareImage(content: VitrineContent, today: string, url: st
   ));
 
   const logo = (
-    <span style={{ display: "flex", fontFamily: "Display", fontSize: story ? 56 : 40, fontWeight: 800, letterSpacing: -2 }}>
+    <span style={{ display: "flex", fontFamily: "Logo", fontSize: story ? 48 : 34, fontWeight: 800, letterSpacing: -2 }}>
       vitri<span style={{ color: "#FF5A36" }}>.</span>
     </span>
   );
@@ -102,15 +95,15 @@ export async function shareImage(content: VitrineContent, today: string, url: st
   const body = story ? (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", padding: "110px 90px", gap: 56 }}>
       {logo}
-      <span style={{ fontFamily: "Display", fontSize: 112, fontWeight: 800, letterSpacing: -5, lineHeight: 0.95 }}>{headline}</span>
-      <span style={{ fontSize: 40, color: t.muted }}>Os cupons de {content.name}</span>
-      <div style={{ display: "flex", flexDirection: "column", gap: 34, marginTop: 20 }}>{tickets}</div>
+      <span style={{ fontFamily: "Display", fontSize: 132, fontWeight: 800, lineHeight: 0.9, textTransform: "uppercase" }}>{headline}</span>
+      <span style={{ fontSize: 40, color: MUTE }}>Os cupons de {content.name}</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>{tickets}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 40, marginTop: "auto" }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img> */}
-        <img src={qr} width={260} height={260} alt="" style={{ borderRadius: 24 }} />
+        <img src={qr} width={260} height={260} alt="" />
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <span style={{ fontSize: 40, fontWeight: 700 }}>Aponte a câmera</span>
-          <span style={{ fontSize: 34, color: t.muted }}>{shortUrl}</span>
+          <span style={{ fontSize: 40, fontWeight: 500 }}>Aponte a câmera</span>
+          <span style={{ fontSize: 34, color: MUTE }}>{shortUrl}</span>
         </div>
       </div>
     </div>
@@ -118,15 +111,15 @@ export async function shareImage(content: VitrineContent, today: string, url: st
     <div style={{ display: "flex", width: "100%", height: "100%", padding: "64px 72px", gap: 56 }}>
       <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 28 }}>
         {logo}
-        <span style={{ fontFamily: "Display", fontSize: 72, fontWeight: 800, letterSpacing: -3, lineHeight: 0.95 }}>{headline}</span>
-        <span style={{ fontSize: 30, color: t.muted, marginTop: "auto" }}>{shortUrl}</span>
+        <span style={{ fontFamily: "Display", fontSize: 88, fontWeight: 800, lineHeight: 0.9, textTransform: "uppercase" }}>{headline}</span>
+        <span style={{ fontSize: 30, color: MUTE, marginTop: "auto" }}>{shortUrl}</span>
       </div>
-      {tickets.length > 0 && <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 28, width: 560 }}>{tickets}</div>}
+      {tickets.length > 0 && <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, width: 540 }}>{tickets}</div>}
     </div>
   );
 
   return new ImageResponse(
-    <div style={{ display: "flex", width: "100%", height: "100%", background: t.bg, color: t.ink, fontFamily: "Body" }}>{body}</div>,
-    { ...SHARE_SIZES[format], fonts: await fonts(content.look), headers: { "cache-control": "public, max-age=600" } },
+    <div style={{ display: "flex", width: "100%", height: "100%", background: "#FFFFFF", color: INK, fontFamily: "Body" }}>{body}</div>,
+    { ...SHARE_SIZES[format], fonts: await fonts(), headers: { "cache-control": "public, max-age=600" } },
   );
 }

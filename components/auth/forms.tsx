@@ -4,8 +4,10 @@ import { useActionState, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { claimAction, createVitrineAction, signInAction, type FormState } from "@/app/actions";
 
-const field = "h-12 min-w-0 rounded-full border-0 bg-[#F2F0EB] px-4 text-base outline-none focus:ring-2 focus:ring-ink";
-const submit = "min-h-12 rounded-full border-0 bg-ink px-6 text-base font-bold text-white";
+const field = "h-12 min-w-0 rounded-full border-0 bg-white px-4 text-base outline-none focus:ring-2 focus:ring-ink";
+/** Caixa cinza clara que junta os campos e o botão, como os cards da vitrine. */
+const box = "flex flex-col gap-2 rounded-[28px] bg-soft p-2";
+const submit = "min-h-12 rounded-full border-0 bg-ink px-6 text-base font-medium text-white";
 
 function GoogleLogo() {
   return (
@@ -59,8 +61,8 @@ function ClaimFields({ initialName = "" }: { initialName?: string }) {
   const handle = custom ?? toHandle(name);
   return (
     <>
-      <label className="flex min-w-0 flex-1 items-center pl-4 text-lg">
-        <span className="font-semibold text-[#5E5A52]">vitri.me/</span>
+      <label className="flex min-w-0 flex-1 items-center rounded-full bg-white pl-4 text-lg focus-within:ring-2 focus-within:ring-ink">
+        <span className="font-medium text-mute">vitri.me/</span>
         <input
           name="handle"
           required
@@ -76,7 +78,7 @@ function ClaimFields({ initialName = "" }: { initialName?: string }) {
           aria-label="Seu link"
           pattern="[a-z0-9_.]{3,30}"
           title="De 3 a 30 letras, números, ponto ou _"
-          className="h-12 min-w-0 flex-1 border-0 bg-transparent text-lg font-bold outline-none"
+          className="h-12 min-w-0 flex-1 border-0 bg-transparent text-lg font-semibold outline-none"
         />
       </label>
       <input
@@ -98,7 +100,7 @@ export function ClaimForm() {
   const [state, action] = useActionState<FormState, FormData>(claimAction, {});
   return (
     <form action={action} className="flex w-full max-w-[560px] flex-col gap-3">
-      <div className="flex flex-col gap-2 rounded-[28px] border-2 border-ink bg-white p-2">
+      <div className={box}>
         <ClaimFields />
         <GoogleButton label="Criar com Google" />
       </div>
@@ -109,10 +111,10 @@ export function ClaimForm() {
 
 function Panel({ title, text, children }: { title: string; text: string; children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-paper p-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white p-6">
       <div className="flex w-full max-w-[460px] flex-col gap-5">
-        <h1 className="font-display m-0 text-4xl leading-none font-extrabold tracking-[-0.04em]">{title}</h1>
-        <p className="m-0 text-[17px] leading-normal text-[#3A3A3A]">{text}</p>
+        <h1 className="m-0 font-condensed text-5xl leading-[0.92] font-extrabold uppercase">{title}</h1>
+        <p className="m-0 text-[17px] leading-relaxed text-mute">{text}</p>
         {children}
       </div>
     </div>
@@ -136,7 +138,7 @@ export function CreateVitrinePanel({ suggestedName }: { suggestedName: string })
   return (
     <Panel title="Escolha o link da sua vitrine" text="É o endereço que vai na sua bio. Dá para trocar depois.">
       <form action={action} className="flex flex-col gap-3">
-        <div className="flex flex-col gap-2 rounded-[28px] border-2 border-ink bg-white p-2">
+        <div className={box}>
           <ClaimFields initialName={suggestedName} />
           <button type="submit" disabled={pending} className={submit}>
             {pending ? "Criando…" : "Criar vitrine"}

@@ -5,7 +5,7 @@ import { CreateVitrinePanel, SignInPanel } from "@/components/auth/forms";
 import { Editor } from "@/components/editor/Editor";
 import { findDraft, findMine } from "@/lib/vitrine/store";
 
-export const metadata: Metadata = { title: "Personalizar vitrine", robots: { index: false } };
+export const metadata: Metadata = { title: "Editar vitrine", robots: { index: false } };
 
 async function EditorLoader({ searchParams }: Pick<PageProps<"/editor">, "searchParams">) {
   // O editor é sempre por requisição: a sessão entra no App Shell, mas a data

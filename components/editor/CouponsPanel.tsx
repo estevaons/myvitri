@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { couponColor } from "@/lib/vitrine/look";
 import { couponOff, couponStatus, daysLeft, ddmm, expiryLabel } from "@/lib/vitrine/pricing";
 import { COUPON_EXTRA, type Coupon, type VitrineContent } from "@/lib/vitrine/types";
 import type { Update } from "./panels";
-import { AddButton, ColorPicker, Empty, Field, FormActions, Hint, MoneyInput, Row, Segmented, TextInput, inputCls, newId, reorder, useDragSort } from "./ui";
+import { AddButton, Empty, Field, FormActions, Hint, MoneyInput, Row, Segmented, TextInput, inputCls, newId, reorder, useDragSort } from "./ui";
 
 /** Situação do cupom na lista do editor. */
 function statusLabel(c: Coupon, today: string) {
@@ -64,7 +63,7 @@ export function CouponsPanel({ draft, update, today }: { draft: VitrineContent; 
           title={c.brand || "Novo cupom"}
           sub={[c.code, couponOff(c), statusLabel(c, today)].filter(Boolean).join(" · ")}
           thumb={
-            <span aria-hidden="true" className="flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px]" style={{ background: couponColor(draft.look, c, i) }}>
+            <span aria-hidden="true" className="flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] bg-soft">
               {/* eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária */}
               {c.logoUrl && <img src={c.logoUrl} alt="" className="size-7 rounded-full bg-white object-contain" />}
             </span>
@@ -140,16 +139,6 @@ export function CouponsPanel({ draft, update, today }: { draft: VitrineContent; 
           <Field label="Logo da marca (link da imagem, opcional)" hint="Uma imagem quadrada. Aparece ao lado do nome da marca.">
             <TextInput value={c.logoUrl} onChange={(logoUrl) => setCoupon(c.id, { logoUrl })} placeholder="https://…" inputMode="url" />
           </Field>
-          <div className="flex flex-col gap-1.5 text-[13px] font-semibold">
-            Cor do cupom
-            <ColorPicker
-              label="Cor do cupom"
-              look={draft.look}
-              value={c.color}
-              autoColor={couponColor(draft.look, { color: "auto" }, i)}
-              onChange={(color) => setCoupon(c.id, { color })}
-            />
-          </div>
           <FormActions onDone={() => setOpenId(null)} onRemove={() => remove(c.id)} removeLabel="Excluir" />
         </Row>
       ))}

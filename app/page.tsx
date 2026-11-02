@@ -1,141 +1,143 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ClaimForm } from "@/components/auth/forms";
 import { ProductIcon } from "@/components/storefront/ProductIcon";
+import type { IconId } from "@/lib/vitrine/types";
 
-const FEATURES = [
-  {
-    bg: "#FF9EC4",
-    title: "Todos os cupons num link só",
-    text: "Chega de responder “qual é o cupom?” no direct. Cada marca vira um ticket pronto para copiar, com validade e condição.",
-  },
-  {
-    bg: "#FFD84D",
-    title: "Preço com desconto na hora",
-    text: "Cole o link do produto e a gente puxa nome, foto e preço. Seu público vê quanto paga com o seu cupom.",
-  },
-  {
-    bg: "#8FD3FF",
-    title: "Kits que vendem mais",
-    text: "Monte combos como “kit praia” ou “kit treino”, com total e economia somados automaticamente.",
-  },
-];
+/** Mesmo visual das vitrines: branco, cinza claro, títulos condensados em caixa alta e botões em pílula. */
 
+const HERO: IconId[] = ["Shoe", "Bikini", "Bottle"];
+const KIT: IconId[] = ["Hat", "Glasses", "Bag", "Jar"];
 const STEPS = ["Escolha seu link vitri.me", "Cadastre seus cupons e produtos", "Coloque o link na bio e pronto"];
+
+const pad = "px-5 md:px-12";
+const pillDark = "flex min-h-12 items-center justify-center rounded-full bg-ink px-6 text-[15px] font-medium text-white no-underline";
+const pillLight = "flex min-h-11 items-center justify-center rounded-full border border-[#CACACB] bg-white px-5 text-[15px] font-medium text-ink no-underline hover:border-ink";
+
+function Feature({ title, text, children }: { title: string; text: string; children: ReactNode }) {
+  return (
+    <article className="flex min-w-0 flex-col">
+      <div aria-hidden="true" className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-soft">
+        {children}
+      </div>
+      <h3 className="m-0 pt-4 text-[17px] font-medium">{title}</h3>
+      <p className="m-0 pt-1 text-[15px] leading-relaxed text-mute">{text}</p>
+    </article>
+  );
+}
 
 export default function Home() {
   return (
     <div className="overflow-hidden bg-white text-ink">
-      <header className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-6 py-5">
-        <span className="font-display text-[28px] font-extrabold tracking-[-0.04em]">
+      <div className="bg-soft px-5 py-2.5 text-center text-[13px] leading-snug">
+        <span className="font-medium">Grátis para começar.</span>{" "}
+        <Link href="/marinacosta" className="font-medium text-inherit underline underline-offset-2">
+          Ver uma vitrine de exemplo
+        </Link>
+      </div>
+
+      <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 py-3.5 ${pad}`}>
+        <span className="font-display text-[26px] font-extrabold tracking-[-0.04em]">
           vitri<span className="text-coral">.</span>
         </span>
-        <nav className="flex items-center gap-2">
-          <Link href="/marinacosta" className="flex min-h-11 items-center px-3 text-sm font-bold text-ink no-underline max-sm:hidden">
+        <nav className="flex items-center gap-5">
+          <Link href="/marinacosta" className="text-[15px] font-medium text-ink no-underline hover:text-mute max-sm:hidden">
             Ver exemplo
           </Link>
-          <Link href="/editor" className="flex min-h-11 items-center rounded-full border-2 border-ink px-[18px] text-sm font-bold text-ink no-underline">
+          <Link href="/editor" className={pillLight}>
             Minha vitrine
           </Link>
         </nav>
       </header>
 
-      <section className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-12 px-6 pt-8 pb-20">
-        <div className="flex min-w-0 flex-[1_1_520px] flex-col gap-6">
-          <span className="text-sm font-bold tracking-[0.12em] text-[#555555] uppercase">Para creators que divulgam marcas</span>
-          <h1 className="font-display m-0 text-[clamp(48px,7.4vw,104px)] leading-[0.92] font-extrabold tracking-[-0.045em]">
-            {/* texto em camada própria (relative): o fundo laranja da linha de baixo não cobre as letras de cima */}
-            <span className="relative">Todos os seus cupons.</span>{" "}
-            <span className="rounded-[0.12em] bg-coral px-[0.12em] [box-decoration-break:clone]">
-              <span className="relative">Um link só.</span>
-            </span>
-          </h1>
-          <p className="m-0 max-w-[34rem] text-[19px] leading-normal text-[#3A3A3A]">
-            Monte sua vitrine com os produtos que você usa, o preço com o seu desconto e os cupons de todas as marcas que você divulga.
-          </p>
-          <ClaimForm />
-          <span className="pl-4 text-sm text-[#555555]">Grátis para começar. É só entrar com sua conta Google.</span>
-        </div>
-
-        <div aria-hidden="true" className="relative h-[520px] max-w-[560px] min-w-0 flex-[1_1_420px] max-sm:h-[380px]">
-          <div className="absolute top-[8%] left-0 flex h-[56%] w-[56%] -rotate-6 items-center justify-center rounded-[32px] bg-[#C7B5FF]">
-            <ProductIcon icon="Shoe" className="w-[62%]" />
-          </div>
-          <div className="absolute top-0 right-0 flex h-[54%] w-1/2 rotate-[5deg] items-center justify-center rounded-[32px] bg-[#9BE7A8]">
-            <ProductIcon icon="Hat" className="w-[62%]" />
-          </div>
-          <div className="absolute right-[8%] bottom-0 flex h-1/2 w-[52%] -rotate-3 items-center justify-center rounded-[32px] bg-[#FFB38A]">
-            <ProductIcon icon="Jar" className="w-[56%]" />
-          </div>
-          <div className="absolute bottom-[14%] left-[4%] flex rotate-3 rounded-[18px] bg-ink text-white shadow-[0_18px_40px_rgba(17,17,17,0.25)]">
-            <div className="flex flex-col gap-0.5 px-[18px] py-4">
-              <span className="text-xs text-[#CFCFCF]">Sua marca parceira</span>
-              <span className="font-display text-[32px] font-extrabold tracking-[-0.03em] text-coral">20% OFF</span>
+      <section className={`mx-auto max-w-[1440px] ${pad}`}>
+        <div aria-hidden="true" className="grid grid-cols-3 gap-1">
+          {HERO.map((icon) => (
+            <div key={icon} className="flex aspect-square items-center justify-center bg-soft md:aspect-[4/3]">
+              <ProductIcon icon={icon} className="w-[46%]" />
             </div>
-            <div className="flex items-center border-l-2 border-dashed border-[#555555] px-[18px] py-4 font-mono text-[17px] font-bold tracking-[0.08em]">
-              SEUCUPOM
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="overflow-hidden border-y-2 border-ink bg-coral py-[18px]">
-        <div className="vitri-tick font-display flex w-max gap-10 text-[26px] font-extrabold tracking-[-0.02em] whitespace-nowrap">
-          {[0, 1].flatMap((copy) =>
-            ["CUPONS", "PRODUTOS", "KITS", "PREÇO COM DESCONTO", "LINK NA BIO", "CUPONS", "PRODUTOS", "KITS"].flatMap((w, i) => [
-              <span key={`${copy}${i}`} aria-hidden={copy === 1 || undefined}>
-                {w}
-              </span>,
-              <span key={`${copy}${i}s`} aria-hidden="true">
-                ✶
-              </span>,
-            ]),
-          )}
-        </div>
-      </div>
-
-      <section className="mx-auto flex max-w-[1280px] flex-col gap-10 px-6 py-24">
-        <h2 className="font-display m-0 max-w-[48rem] text-[clamp(36px,5vw,64px)] leading-none font-extrabold tracking-[-0.04em]">
-          Feita para quem tem cupom de muita marca
-        </h2>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))] gap-5">
-          {FEATURES.map((f) => (
-            <article key={f.title} className="flex flex-col gap-3 rounded-[28px] p-7" style={{ background: f.bg }}>
-              <h3 className="font-display m-0 text-[28px] leading-[1.05] font-extrabold tracking-[-0.03em]">{f.title}</h3>
-              <p className="m-0 text-base leading-normal text-[#222222]">{f.text}</p>
-            </article>
           ))}
         </div>
-      </section>
-
-      <section className="bg-ink text-white">
-        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-10 px-6 py-24">
-          <h2 className="font-display m-0 max-w-[30rem] text-[clamp(36px,5vw,64px)] leading-none font-extrabold tracking-[-0.04em]">
-            Pronta em 2 minutos
-          </h2>
-          <ol className="m-0 flex list-none flex-col gap-5 p-0">
-            {STEPS.map((s, i) => (
-              <li key={s} className="flex items-center gap-4 text-xl font-semibold">
-                <span className="flex size-11 flex-none items-center justify-center rounded-full bg-coral text-lg font-extrabold text-ink">{i + 1}</span>
-                {s}
-              </li>
-            ))}
-          </ol>
+        <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 pt-10 text-center md:pt-12">
+          <span className="text-[15px] font-medium">Para creators que divulgam marcas</span>
+          <h1 className="m-0 font-condensed text-[clamp(44px,8vw,96px)] leading-[0.9] font-extrabold tracking-[-0.01em] text-balance uppercase">
+            Todos os seus cupons. Um link só.
+          </h1>
+          <p className="m-0 max-w-[36rem] text-[17px] leading-relaxed">
+            Monte sua vitrine com os produtos que você usa, o preço com o seu desconto e os cupons de todas as marcas que você divulga.
+          </p>
+          <div className="mt-3 flex w-full flex-col items-center gap-3">
+            <ClaimForm />
+            <span className="text-[13px] text-mute">É só entrar com sua conta Google.</span>
+          </div>
         </div>
       </section>
 
-      <section className="px-6 py-24">
-        <div className="mx-auto box-border flex max-w-[1232px] flex-col items-center gap-6 rounded-[40px] bg-[#FFD84D] px-10 py-[72px] text-center max-sm:px-6">
-          <h2 className="font-display m-0 max-w-[52rem] text-[clamp(32px,4.6vw,60px)] leading-none font-extrabold tracking-[-0.04em]">
-            Veja como fica uma vitrine de verdade
-          </h2>
-          <Link href="/marinacosta" className="flex min-h-14 items-center rounded-full bg-ink px-8 text-base font-bold text-white no-underline">
+      <section className={`mx-auto flex max-w-[1440px] flex-col gap-6 pt-20 md:pt-28 ${pad}`}>
+        <h2 className="m-0 text-2xl font-medium tracking-[-0.01em]">Feita para quem tem cupom de muita marca</h2>
+        <div className="grid gap-x-4 gap-y-10 md:grid-cols-3">
+          <Feature
+            title="Todos os cupons num link só"
+            text="Chega de responder “qual é o cupom?” no direct. Cada marca vira um cupom pronto para copiar, com validade e condição."
+          >
+            <div className="flex w-[64%] flex-col gap-3 bg-white p-5">
+              <span className="text-[13px] font-medium">Sua marca parceira</span>
+              <span className="font-condensed text-[44px] leading-[0.9] font-extrabold uppercase">20% OFF</span>
+              <span className="flex min-h-10 items-center justify-center rounded-full border border-dashed border-[#CACACB] font-mono text-sm font-bold tracking-[0.08em]">
+                SEUCUPOM
+              </span>
+            </div>
+          </Feature>
+          <Feature title="Preço com desconto na hora" text="Cole o link do produto e a gente puxa nome, foto e preço. Seu público vê quanto paga com o seu cupom.">
+            <div className="flex w-[64%] flex-col">
+              <div className="flex aspect-[4/3] items-center justify-center bg-white">
+                <ProductIcon icon="Shoe" className="w-[54%]" />
+              </div>
+              <div className="flex flex-col gap-0.5 pt-2.5 text-sm leading-snug">
+                <span className="font-medium text-sale">Cupom -15%</span>
+                <span className="font-medium">Tênis de corrida</span>
+                <span>
+                  <span className="font-medium">R$ 339,90</span> <span className="text-mute line-through">R$ 399,90</span>
+                </span>
+              </div>
+            </div>
+          </Feature>
+          <Feature title="Kits que vendem mais" text="Monte combos como “kit praia” ou “kit treino”, com total e economia somados automaticamente.">
+            <div className="grid w-[56%] grid-cols-2 gap-1">
+              {KIT.map((icon) => (
+                <div key={icon} className="flex aspect-square items-center justify-center bg-white">
+                  <ProductIcon icon={icon} className="w-[62%]" strokeWidth={3.4} />
+                </div>
+              ))}
+            </div>
+          </Feature>
+        </div>
+      </section>
+
+      <section className={`mx-auto flex max-w-[1440px] flex-col gap-8 pt-20 md:pt-28 ${pad}`}>
+        <h2 className="m-0 font-condensed text-[clamp(36px,5vw,56px)] leading-[0.92] font-extrabold uppercase">Pronta em 2 minutos</h2>
+        <ol className="m-0 grid list-none gap-0 p-0 md:grid-cols-3 md:gap-4">
+          {STEPS.map((s, i) => (
+            <li key={s} className="flex items-center gap-4 border-t border-line py-5 text-[17px] font-medium md:flex-col md:items-start md:gap-3">
+              <span className="flex size-10 flex-none items-center justify-center rounded-full bg-soft text-[15px] font-semibold">{i + 1}</span>
+              {s}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className={`mx-auto max-w-[1440px] pt-16 md:pt-24 ${pad}`}>
+        <div className="flex flex-col items-center gap-4 bg-soft px-6 py-16 text-center max-md:py-12">
+          <h2 className="m-0 font-condensed text-[clamp(32px,4.4vw,52px)] leading-[0.92] font-extrabold uppercase">Veja como fica uma vitrine de verdade</h2>
+          <p className="m-0 text-[17px]">Produtos, cupons e kits de uma creator de exemplo.</p>
+          <Link href="/marinacosta" className={`${pillDark} mt-2`}>
             Abrir vitrine de exemplo
           </Link>
         </div>
       </section>
 
-      <footer className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-3 px-6 pb-10 text-[13px] text-[#555555]">
-        <span>vitri. — vitrines de cupons para creators</span>
+      <footer className={`mx-auto mt-14 flex max-w-[1440px] flex-wrap items-center justify-between gap-3 border-t border-line py-8 text-[13px] text-mute ${pad}`}>
+        <span>vitri. · vitrines de cupons para creators</span>
         <span>Feito no Brasil</span>
       </footer>
     </div>

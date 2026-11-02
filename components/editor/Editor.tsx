@@ -8,17 +8,15 @@ import type { VitrineContent } from "@/lib/vitrine/types";
 import { couponAlerts, CouponsPanel } from "./CouponsPanel";
 import { KitsPanel } from "./KitsPanel";
 import { MetricsPanel } from "./MetricsPanel";
-import { LookPanel, ProfilePanel, SectionsPanel, type Update } from "./panels";
+import { ProfilePanel, type Update } from "./panels";
 import { ProductsPanel } from "./ProductsPanel";
 import { SharePanel } from "./SharePanel";
 
 const TABS = [
-  ["look", "Aparência"],
   ["profile", "Perfil"],
   ["coupons", "Cupons"],
   ["products", "Produtos"],
   ["kits", "Kits"],
-  ["sections", "Seções"],
   ["share", "Divulgar"],
   ["metrics", "Métricas"],
 ] as const;
@@ -58,7 +56,7 @@ export function Editor({
   // O que já está guardado no servidor (rascunho ou, sem rascunho, a versão publicada).
   const [savedJson, setSavedJson] = useState(() => JSON.stringify(initialDraft ?? initialPublished));
   const [saveFailed, setSaveFailed] = useState(false);
-  const [tab, setTab] = useState<TabId>(draft.coupons.length ? "look" : "coupons");
+  const [tab, setTab] = useState<TabId>(draft.coupons.length ? "profile" : "coupons");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [error, setError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
@@ -111,7 +109,7 @@ export function Editor({
             vitri<span className="text-coral">.</span>
           </Link>
           <span className="h-6 w-px bg-[#E0DCD3]" />
-          <span className="text-[15px] font-semibold">Personalizar vitrine</span>
+          <span className="text-[15px] font-semibold">Editar vitrine</span>
           <div className="flex-1" />
           <div role="group" aria-label="Tamanho da prévia" className="flex gap-0.5 rounded-xl bg-[#F2F0EB] p-[3px] max-sm:hidden">
             {(
@@ -181,7 +179,7 @@ export function Editor({
 
       <div className="flex flex-1 flex-wrap items-stretch lg:min-h-0 lg:flex-nowrap">
         <aside className="flex max-w-full min-w-0 flex-[1_1_400px] flex-col border-r border-[#E0DCD3] bg-white lg:max-w-[440px] lg:overflow-y-auto">
-          <div role="tablist" aria-label="Opções" className="sticky top-0 z-10 grid grid-cols-4 border-b border-[#E0DCD3] bg-white">
+          <div role="tablist" aria-label="Opções" className="sticky top-0 z-10 grid grid-cols-3 border-b border-[#E0DCD3] bg-white">
             {TABS.map(([id, label]) => (
               <button
                 key={id}
@@ -206,12 +204,10 @@ export function Editor({
             ))}
           </div>
           <div role="tabpanel" className="flex flex-col gap-[26px] p-5">
-            {tab === "look" && <LookPanel {...panelProps} />}
             {tab === "profile" && <ProfilePanel {...panelProps} />}
             {tab === "coupons" && <CouponsPanel {...panelProps} today={today} />}
             {tab === "products" && <ProductsPanel {...panelProps} today={today} />}
             {tab === "kits" && <KitsPanel {...panelProps} />}
-            {tab === "sections" && <SectionsPanel {...panelProps} />}
             {tab === "share" && <SharePanel {...panelProps} publishedHandle={published.handle} />}
             {tab === "metrics" && <MetricsPanel draft={draft} today={today} />}
           </div>

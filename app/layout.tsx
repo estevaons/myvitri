@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Fraunces, Inter } from "next/font/google";
+import { Barlow_Condensed, Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: ["latin"] });
-const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"] });
+// Títulos da vitrine das creators, em caixa alta, no estilo das lojas de esporte.
+const barlow = Barlow_Condensed({ variable: "--font-barlow", subsets: ["latin"], weight: ["700", "800"] });
 
 export const metadata: Metadata = {
   title: { default: "vitri. — sua vitrine de cupons", template: "%s · vitri." },
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" data-scroll-behavior="smooth" className={`${inter.variable} ${bricolage.variable} ${fraunces.variable} antialiased`}>
+    <html lang="pt-BR" data-scroll-behavior="smooth" className={`${inter.variable} ${bricolage.variable} ${barlow.variable} antialiased`}>
       <body>{children}</body>
     </html>
   );

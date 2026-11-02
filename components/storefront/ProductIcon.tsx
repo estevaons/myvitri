@@ -102,28 +102,25 @@ export function ProductIcon({ icon, className, strokeWidth = 2.6 }: { icon: Icon
   );
 }
 
-/** Foto do produto quando houver; senão a ilustração. */
+/** Foto do produto quando houver; senão a ilustração. Feita para ficar sobre o cinza claro da vitrine. */
 export function ProductArt({
   product,
   className,
   iconClassName,
   strokeWidth,
-  framed = true,
 }: {
   product: { imageUrl: string; icon: IconId; name: string };
   className?: string;
-  /** Contorno fino em volta da foto; desligue quando o card de fora já tem borda. */
-  framed?: boolean;
   iconClassName?: string;
   strokeWidth?: number;
 }) {
   if (product.imageUrl) {
-    // Foto de loja é quase sempre o produto centrado em fundo claro: fundo branco por trás
-    // e contain mostram o produto inteiro, sem cortar nas laterais do card.
+    // Foto de loja é quase sempre quadrada, com o produto centrado em fundo branco ou cinza claro.
+    // Sem margem e com multiply, o fundo da foto se funde ao cinza do card e não aparece uma "caixa" dentro dele.
     return (
-      <div className={`absolute inset-0 rounded-[inherit] bg-white ${framed ? "shadow-[inset_0_0_0_1px_rgba(17,17,17,0.08)]" : ""}`}>
+      <div className="absolute inset-0">
         {/* eslint-disable-next-line @next/next/no-img-element -- imagens vêm de lojas arbitrárias */}
-        <img src={product.imageUrl} alt="" loading="lazy" className={className ?? "size-full object-contain p-[6%]"} />
+        <img src={product.imageUrl} alt="" loading="lazy" className={className ?? "size-full object-contain mix-blend-multiply"} />
       </div>
     );
   }
