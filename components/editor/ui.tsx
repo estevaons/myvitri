@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { themeOf } from "@/lib/vitrine/look";
 import { centsToInput, parseBRL } from "@/lib/vitrine/pricing";
-import type { ColorChoice, VitrineContent } from "@/lib/vitrine/types";
 
 export const inputCls =
   "h-[46px] w-full box-border rounded-xl border-[1.5px] border-[#D6D0C5] bg-white px-3 text-[15px] text-ink outline-none focus:border-ink";
@@ -273,55 +271,4 @@ export function AddButton({ onClick, children }: { onClick: () => void; children
 
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="m-0 rounded-[14px] bg-[#F7F6F3] p-4 text-sm leading-snug text-[#5E5A52]">{children}</p>;
-}
-
-const swatch = (on: boolean) =>
-  `relative box-border flex size-10 cursor-pointer items-center justify-center rounded-full border-[3px] bg-white p-[3px] ${on ? "border-ink" : "border-transparent"}`;
-
-/** Cor de fundo de um card: automática, uma das cores do tema, a de destaque ou qualquer outra. */
-export function ColorPicker({
-  label,
-  look,
-  value,
-  autoColor,
-  onChange,
-}: {
-  label: string;
-  look: VitrineContent["look"];
-  value: ColorChoice;
-  /** a cor que "Automática" daria agora */
-  autoColor: string;
-  onChange: (value: ColorChoice) => void;
-}) {
-  const custom = typeof value === "string" && value.startsWith("#") ? value : null;
-  const options: [ColorChoice, string, string][] = [
-    ["auto", "Automática", autoColor],
-    ...themeOf(look).tiles.map((c, n): [ColorChoice, string, string] => [n, `Cor ${n + 1} do tema`, c]),
-    ["accent", "Cor de destaque", look.accent],
-  ];
-  return (
-    <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
-      {options.map(([v, name, bg]) => (
-        <button key={String(v)} type="button" aria-label={name} title={name} aria-pressed={value === v} onClick={() => onChange(v)} className={swatch(value === v)}>
-          <span aria-hidden="true" className="flex size-full items-center justify-center rounded-full text-[10px] font-bold" style={{ background: bg }}>
-            {v === "auto" ? "A" : ""}
-          </span>
-        </button>
-      ))}
-      <label title="Escolher outra cor" className={swatch(!!custom)}>
-        <span
-          aria-hidden="true"
-          className="block size-full rounded-full"
-          style={{ background: custom ?? "conic-gradient(#FF5A36, #FFD84D, #7BD389, #7AA7FF, #C7B5FF, #FF5A36)" }}
-        />
-        <input
-          type="color"
-          aria-label="Outra cor"
-          value={custom ?? autoColor}
-          onChange={(e) => onChange(e.target.value.toUpperCase())}
-          className="absolute inset-0 cursor-pointer opacity-0"
-        />
-      </label>
-    </div>
-  );
 }

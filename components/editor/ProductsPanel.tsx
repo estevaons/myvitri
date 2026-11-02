@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { importProductAction, refreshPricesAction } from "@/app/actions";
 import { ICON_LABELS, ProductArt, ProductIcon } from "@/components/storefront/ProductIcon";
-import { tile } from "@/lib/vitrine/look";
 import { couponOff, formatBRL, priceProducts } from "@/lib/vitrine/pricing";
 import { ICONS, PRODUCT_EXTRA, type Coupon, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import type { Update } from "./panels";
@@ -231,7 +230,7 @@ export function ProductsPanel({ draft, update, today }: { draft: VitrineContent;
           title={p.name || "Novo produto"}
           sub={[p.soldOut ? "Esgotado" : "", p.price ? formatBRL(p.final) : "", p.coupon?.code].filter(Boolean).join(" · ")}
           thumb={
-            <span aria-hidden="true" className="relative flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px]" style={{ background: tile(draft.look, i) }}>
+            <span aria-hidden="true" className="relative flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] bg-soft">
               <ProductArt product={p} iconClassName="w-[78%]" strokeWidth={4} />
             </span>
           }
@@ -295,8 +294,7 @@ export function ProductsPanel({ draft, update, today }: { draft: VitrineContent;
                     aria-label={ICON_LABELS[icon]}
                     aria-pressed={p.icon === icon}
                     onClick={() => setProduct(p.id, { icon })}
-                    className={`flex aspect-square items-center justify-center rounded-[10px] border-2 p-0.5 ${p.icon === icon ? "border-ink" : "border-transparent"}`}
-                    style={{ background: tile(draft.look, i) }}
+                    className={`flex aspect-square items-center justify-center rounded-[10px] border-2 bg-soft p-0.5 ${p.icon === icon ? "border-ink" : "border-transparent"}`}
                   >
                     <ProductIcon icon={icon} strokeWidth={5} className="w-full" />
                   </button>

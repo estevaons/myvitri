@@ -1,9 +1,6 @@
 import { z } from "zod";
 
 export const ICONS = ["Bikini", "Glasses", "Jar", "Bottle", "Shoe", "Hat", "Nuts", "Bag"] as const;
-export const THEME_IDS = ["vibrante", "clean", "noite", "pastel", "personalizado"] as const;
-export const FONT_IDS = ["moderna", "elegante", "classica"] as const;
-export const RADIUS_IDS = ["arredondado", "suave", "reto"] as const;
 export const SECTION_IDS = ["ticker", "products", "coupons", "kits", "cta"] as const;
 
 export const RESERVED_HANDLES = new Set([
@@ -21,10 +18,6 @@ const httpUrl = z
 
 const text = (max: number) => z.string().trim().max(max);
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const hex = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
-/** Cor de fundo de um card: "auto" (cor da vez), "accent" (cor de destaque), índice das cores do tema ou uma cor livre. */
-export const colorChoice = z.union([z.enum(["auto", "accent"]), z.number().int().min(0).max(11), hex]);
-export type ColorChoice = z.infer<typeof colorChoice>;
 
 export const couponSchema = z
   .object({
@@ -43,7 +36,6 @@ export const couponSchema = z
     howTo: text(400),
     /** AAAA-MM-DD: antes disso o cupom fica escondido; null = já vale */
     startsAt: date.nullable(),
-    color: colorChoice,
   })
   .refine((c) => !c.startsAt || !c.expiresAt || c.startsAt <= c.expiresAt, { message: "O cupom vence antes de começar", path: ["startsAt"] });
 
@@ -67,21 +59,12 @@ export const productSchema = z.object({
   priceCheckedAt: z.string().max(40).nullable(),
 });
 
-/** Visual do card do kit. */
-export const kitStyleSchema = z.object({
-  color: colorChoice,
-  layout: z.enum(["espalhado", "alinhado"]),
-  label: text(30),
-});
-export const KIT_STYLE: z.infer<typeof kitStyleSchema> = { color: "auto", layout: "espalhado", label: "" };
-
 export const kitSchema = z.object({
   id: z.uuid(),
   name: text(60).min(1, "Dê um nome ao kit"),
   description: text(240),
   signature: text(80),
   productIds: z.array(z.uuid()).max(4),
-  style: kitStyleSchema,
 });
 
 export const vitrineContentSchema = z.object({
@@ -95,19 +78,15 @@ export const vitrineContentSchema = z.object({
   avatarUrl: httpUrl,
   headline: text(90),
   sub: text(240),
+  /**
+   * O visual da vitrine é fixo; a creator só escolhe a capa. Campos antigos (tema, cor, fonte…)
+   * que ainda estejam no banco são descartados na leitura e na publicação.
+   */
   look: z.object({
-    theme: z.enum(THEME_IDS),
-    accent: hex,
-    /** fundo do tema "personalizado" */
-    bg: hex,
     /** foto de capa no topo da vitrine */
     bannerUrl: httpUrl,
-    font: z.enum(FONT_IDS),
-    radius: z.enum(RADIUS_IDS),
-    layout: z.enum(["grade", "lista"]),
-    /** O que ocupa o lado direito do topo da vitrine. */
-    hero: z.enum(["produtos", "cupons"]),
   }),
+  /** Não muda mais nada na vitrine (cada seção aparece quando tem conteúdo); segue aqui porque a publicação grava a coluna. */
   show: z.record(z.enum(SECTION_IDS), z.boolean()),
   /** UTM nos links das lojas, para a marca ver de onde veio a venda */
   tracking: z.object({ utm: z.boolean(), campaign: text(60) }),
@@ -117,7 +96,7 @@ export const vitrineContentSchema = z.object({
 });
 
 /** Campos que chegaram depois: completam rascunhos e linhas antigas. */
-export const COUPON_EXTRA = { logoUrl: "", howTo: "", startsAt: null, color: "auto" } satisfies Partial<z.infer<typeof couponSchema>>;
+export const COUPON_EXTRA = { logoUrl: "", howTo: "", startsAt: null } satisfies Partial<z.infer<typeof couponSchema>>;
 export const PRODUCT_EXTRA = { affiliateUrl: "", videoUrl: "", soldOut: false, priceCheckedAt: null } satisfies Partial<z.infer<typeof productSchema>>;
 export const TRACKING: z.infer<typeof vitrineContentSchema>["tracking"] = { utm: true, campaign: "" };
 
@@ -135,7 +114,7 @@ export function emptyContent(handle: string, name: string): VitrineContent {
     avatarUrl: "",
     headline: "Tudo que eu uso, com o meu desconto.",
     sub: "Escolha o produto, copie o cupom e economize direto na loja oficial da marca.",
-    look: { theme: "vibrante", accent: "#FF5A36", bg: "#FFFFFF", bannerUrl: "", font: "moderna", radius: "arredondado", layout: "grade", hero: "produtos" },
+    look: { bannerUrl: "" },
     show: { ticker: true, products: true, coupons: true, kits: true, cta: true },
     tracking: TRACKING,
     coupons: [],

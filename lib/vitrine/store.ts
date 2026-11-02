@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getUser } from "@/lib/supabase/server";
-import { COUPON_EXTRA, emptyContent, KIT_STYLE, PRODUCT_EXTRA, TRACKING, type Coupon, type IconId, type Kit, type Product, type VitrineContent } from "./types";
+import { COUPON_EXTRA, emptyContent, PRODUCT_EXTRA, TRACKING, type Coupon, type IconId, type Kit, type Product, type VitrineContent } from "./types";
 
 /**
  * Persistência das vitrines no Supabase. Toda leitura/escrita passa por aqui;
@@ -14,6 +14,14 @@ type VitrineRow = Database["public"]["Tables"]["vitrines"]["Row"];
 export class HandleTakenError extends Error {}
 
 const isUniqueViolation = (e: { code?: string } | null) => e?.code === "23505";
+
+/** Cópia sem as chaves que o rascunho ainda pode trazer de versões antigas do editor. */
+const without = <T extends object>(o: T, ...keys: string[]) => Object.fromEntries(Object.entries(o).filter(([k]) => !keys.includes(k))) as T;
+
+/** Só a capa: tema, cor, fonte e cantos de antes do visual fixo ficam para trás. */
+const pickLook = (look: Partial<VitrineContent["look"]> | null | undefined, fallback: VitrineContent["look"]) => ({
+  bannerUrl: look?.bannerUrl ?? fallback.bannerUrl,
+});
 
 async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
   const [coupons, products, kits] = await Promise.all([
@@ -31,7 +39,7 @@ async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
     avatarUrl: v.avatar_url,
     headline: v.headline,
     sub: v.sub,
-    look: { ...base.look, ...(v.look as object) },
+    look: pickLook(v.look as Partial<VitrineContent["look"]>, base.look),
     show: { ...base.show, ...(v.show as object) },
     tracking: { ...TRACKING, ...(v.tracking as object) },
     coupons: (coupons.data ?? []).map(
@@ -47,7 +55,6 @@ async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
         logoUrl: c.logo_url,
         howTo: c.how_to,
         startsAt: c.starts_at,
-        color: c.color as Coupon["color"],
       }),
     ),
     products: (products.data ?? []).map(
@@ -74,7 +81,6 @@ async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
         description: k.description,
         signature: k.signature,
         productIds: k.product_ids,
-        style: { ...KIT_STYLE, ...(k.style as object) },
       }),
     ),
   };
@@ -110,18 +116,18 @@ export async function findDraft(db: Db, ownerId: string, published: VitrineConte
   if (error) throw error;
   const d = data?.content as Partial<VitrineContent> | undefined;
   if (!d || typeof d !== "object" || ![d.coupons, d.products, d.kits].every(Array.isArray)) return null;
-  // kits salvos antes de "nome curto" e "título" virarem um campo só
+  // kits salvos antes de "nome curto" e "título" virarem um campo só; cor e estilo antigos saem
   const kits = d.kits!.map((k) => {
     const old = k as Partial<Kit> & { tab?: string; title?: string };
-    return { ...k, name: old.name ?? (old.title || old.tab || ""), style: { ...KIT_STYLE, ...k.style } };
+    return { ...without(k, "tab", "title", "style"), name: old.name ?? (old.title || old.tab || "") };
   });
   return {
     ...published,
     ...d,
-    coupons: d.coupons!.map((c) => ({ ...COUPON_EXTRA, ...c })),
+    coupons: d.coupons!.map((c) => ({ ...COUPON_EXTRA, ...without(c, "color") })),
     products: d.products!.map((p) => ({ ...PRODUCT_EXTRA, ...p })),
     kits,
-    look: { ...published.look, ...d.look },
+    look: pickLook(d.look, published.look),
     show: { ...published.show, ...d.show },
     tracking: { ...published.tracking, ...d.tracking },
   };

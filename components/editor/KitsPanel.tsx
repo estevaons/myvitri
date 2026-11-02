@@ -2,13 +2,21 @@
 
 import { useState } from "react";
 import { ProductArt } from "@/components/storefront/ProductIcon";
-import { cardColor, tile } from "@/lib/vitrine/look";
-import { formatBRL, kitTotals, priceProducts } from "@/lib/vitrine/pricing";
-import { KIT_STYLE, type Kit, type VitrineContent } from "@/lib/vitrine/types";
+import { formatBRL, kitTotals, priceProducts, type PricedProduct } from "@/lib/vitrine/pricing";
+import type { Kit, VitrineContent } from "@/lib/vitrine/types";
 import type { Update } from "./panels";
-import { AddButton, ColorPicker, Empty, Field, FormActions, H, Hint, Row, Segmented, TextInput, inputCls, newId, reorder, useDragSort } from "./ui";
+import { AddButton, Empty, Field, FormActions, Hint, Row, TextInput, inputCls, newId, reorder, useDragSort } from "./ui";
 
 const MAX_ITEMS = 4;
+
+/** Miniatura do kit na lista: a foto do primeiro produto sobre o cinza da vitrine. */
+function KitThumb({ items }: { items: PricedProduct[] }) {
+  return (
+    <span aria-hidden="true" className="relative flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] bg-soft">
+      {items[0] && <ProductArt product={items[0]} iconClassName="w-[78%]" strokeWidth={4} />}
+    </span>
+  );
+}
 
 export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Update }) {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -17,10 +25,9 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
   const firstName = draft.name.split(" ")[0] || draft.name;
 
   const setKit = (id: string, patch: Partial<Kit>) => update((d) => ({ ...d, kits: d.kits.map((k) => (k.id === id ? { ...k, ...patch } : k)) }));
-  const setStyle = (k: Kit, patch: Partial<Kit["style"]>) => setKit(k.id, { style: { ...k.style, ...patch } });
 
   const add = () => {
-    const k: Kit = { id: newId(), name: "", description: "", signature: "", productIds: [], style: KIT_STYLE };
+    const k: Kit = { id: newId(), name: "", description: "", signature: "", productIds: [] };
     update((d) => ({ ...d, kits: [...d.kits, k] }));
     setOpenId(k.id);
   };
@@ -42,7 +49,7 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
             pos={i + 1}
             title={k.name || "Novo kit"}
             sub={totals.items.length ? `${totals.items.length} itens · ${formatBRL(totals.final)}` : "Sem produtos"}
-            thumb={<span aria-hidden="true" className="size-10 flex-none rounded-[10px]" style={{ background: cardColor(draft.look, k.style.color, 1 + 3 * i) }} />}
+            thumb={<KitThumb items={totals.items} />}
             open={openId === k.id}
             onOpen={() => setOpenId(openId === k.id ? null : k.id)}
             sort={sort}
@@ -67,7 +74,7 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
               <legend className="mb-1.5 text-[13px] font-semibold">
                 Produtos ({k.productIds.length}/{MAX_ITEMS})
               </legend>
-              {priced.map((p, n) => {
+              {priced.map((p) => {
                 const checked = k.productIds.includes(p.id);
                 const full = !checked && k.productIds.length >= MAX_ITEMS;
                 return (
@@ -81,8 +88,8 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
                       }
                       className="size-[18px] flex-none accent-ink"
                     />
-                    <span aria-hidden="true" className="relative flex size-9 flex-none items-center justify-center overflow-hidden rounded-lg" style={{ background: tile(draft.look, n) }}>
-                      <ProductArt product={p} className="size-full object-contain p-[8%]" iconClassName="w-[70%]" strokeWidth={4} />
+                    <span aria-hidden="true" className="relative flex size-9 flex-none items-center justify-center overflow-hidden rounded-lg bg-soft">
+                      <ProductArt product={p} iconClassName="w-[70%]" strokeWidth={4} />
                     </span>
                     <span className="min-w-0 flex-1 truncate font-medium" title={p.name}>{p.name || "Produto sem nome"}</span>
                     {p.price > 0 && <span className="flex-none text-[13px] text-[#5E5A52]">{formatBRL(p.final)}</span>}
@@ -90,33 +97,6 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
                 );
               })}
             </fieldset>
-            <div className="flex flex-col gap-2.5 border-t border-[#ECE8E1] pt-4">
-              <H>Visual do card</H>
-              <ColorPicker
-                label="Cor do card"
-                look={draft.look}
-                value={k.style.color}
-                autoColor={cardColor(draft.look, "auto", 1 + 3 * i)}
-                onChange={(color) => setStyle(k, { color })}
-              />
-              <Segmented
-                label="Arranjo dos produtos"
-                options={[
-                  ["espalhado", "Espalhados"],
-                  ["alinhado", "Alinhados"],
-                ]}
-                value={k.style.layout}
-                onChange={(layout) => setStyle(k, { layout })}
-              />
-              <Field label="Etiqueta" hint="Deixe vazio para mostrar a quantidade de itens.">
-                <TextInput
-                  value={k.style.label}
-                  onChange={(label) => setStyle(k, { label })}
-                  maxLength={30}
-                  placeholder={`KIT · ${totals.items.length} ${totals.items.length === 1 ? "ITEM" : "ITENS"}`}
-                />
-              </Field>
-            </div>
             {totals.save > 0 && (
               <Hint>
                 Total {formatBRL(totals.final)} · economia de {formatBRL(totals.save)}
