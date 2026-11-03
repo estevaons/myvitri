@@ -32,15 +32,16 @@ export function Wordmark({ label = BRAND, ink = "currentColor", ...rest }: Props
   );
 }
 
-const TAG = "M30 8h50q8 0 8 8v64q0 8-8 8H30L6 48ZM33 48a6 6 0 1 0-12 0 6 6 0 1 0 12 0Z";
+const TAG = "M26 14h60q8 0 8 8v52q0 8-8 8H26L2 48ZM25 48a5 5 0 1 0-10 0 5 5 0 1 0 10 0Z";
+const MV = "M33 64V32M33 43.5q0-11.5 6.25-11.5T45.5 40.5V64M45.5 40.5q0-8.5 6.25-8.5T58 40.5V64M68 32l8.5 32 8.5-32";
 
-/** Etiqueta coral com furinho e o "v" — favicon, ícone do app e selos pequenos. */
+/** Etiqueta coral com furinho e o "mv" — favicon, ícone do app e selos pequenos. */
 export function TagMark({ label = BRAND, ...rest }: Props) {
   return (
     <svg viewBox="0 0 96 96" fill="none" {...a11y(label)} {...rest}>
       {/* o furinho é recorte de verdade: mostra o fundo da aba, do celular ou da página */}
       <path d={TAG} fill={CORAL} fillRule="evenodd" />
-      <path d="M42 28 60 68 78 28" stroke={INK} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={MV} stroke={INK} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
