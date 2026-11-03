@@ -61,7 +61,7 @@ function ErrorText({ children }: { children?: string }) {
   );
 }
 
-/** "Marina Costa" → "marinacosta": sem acento, só o que o link aceita. */
+/** "Ana Souza" → "anasouza": sem acento, só o que o link aceita. */
 function toHandle(text: string) {
   return text
     .normalize("NFD")

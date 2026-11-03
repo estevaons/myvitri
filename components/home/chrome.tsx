@@ -61,7 +61,7 @@ const FOOTER: [title: string, links: [href: string, label: string][]][] = [
     [
       ["/criar-vitrine", "Criar minha vitrine"],
       ["/editor", "Entrar"],
-      ["/marinacosta", "Vitrine de exemplo"],
+      ["/#vitrines", "Ver vitrines"],
     ],
   ],
 ];

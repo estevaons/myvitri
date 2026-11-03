@@ -35,8 +35,8 @@ export default function CriarVitrine() {
     <div className="overflow-hidden bg-white text-ink">
       <div className="bg-soft px-5 py-2.5 text-center text-[13px] leading-snug">
         <span className="font-medium">Grátis para começar.</span>{" "}
-        <Link href="/marinacosta" className="font-medium text-inherit underline underline-offset-2">
-          Ver uma vitrine de exemplo
+        <Link href="/#vitrines" className="font-medium text-inherit underline underline-offset-2">
+          Ver vitrines de quem já usa
         </Link>
       </div>
 
