@@ -38,7 +38,7 @@ function FilePick({ onFile, disabled, className, children }: { onFile: (f: File)
 }
 
 /**
- * Foto de capa ou de perfil: enviar do aparelho (tocando ou arrastando) é o caminho principal;
+ * Foto de capa, de perfil ou do produto: enviar do aparelho (tocando ou arrastando) é o caminho principal;
  * colar o link de uma imagem fica como alternativa.
  */
 export function ImageField({
@@ -48,7 +48,7 @@ export function ImageField({
   hint,
   initials = "",
 }: {
-  kind: "cover" | "avatar";
+  kind: "cover" | "avatar" | "product";
   value: string;
   onChange: (url: string) => void;
   hint: string;
@@ -60,7 +60,7 @@ export function ImageField({
   const [pasting, setPasting] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [broken, setBroken] = useState("");
-  const noun = kind === "cover" ? "foto de capa" : "foto de perfil";
+  const noun = { cover: "foto de capa", avatar: "foto de perfil", product: "foto do produto" }[kind];
 
   const send = async (file: File) => {
     setError("");
@@ -129,9 +129,12 @@ export function ImageField({
         <div {...drop} className="flex items-center gap-3.5">
           <span
             aria-hidden="true"
-            className={`flex size-16 flex-none items-center justify-center overflow-hidden rounded-full bg-[#F4F2EE] text-xl font-semibold text-[#8F897E] ${uploading ? "animate-pulse" : ""} ${dragging ? "ring-2 ring-ink ring-offset-2" : ""}`}
+            className={`flex flex-none items-center justify-center overflow-hidden text-xl font-semibold text-[#8F897E] ${
+              kind === "product" ? "relative size-20 rounded-[12px] bg-cream" : "size-16 rounded-full bg-[#F4F2EE]"
+            } ${uploading ? "animate-pulse" : ""} ${dragging ? "ring-2 ring-ink ring-offset-2" : ""}`}
           >
-            {uploading ? null : shown ? img("size-full object-cover") : initials || "?"}
+            {/* produto: igual à vitrine, inteiro e com o fundo branco da foto se fundindo ao card */}
+            {uploading ? null : shown ? img(kind === "product" ? "size-full object-contain mix-blend-multiply" : "size-full object-cover") : initials || (kind === "product" ? <UploadIcon /> : "?")}
           </span>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <FilePick

@@ -16,7 +16,7 @@ const KIT: IconId[] = ["Hat", "Glasses", "Bag", "Jar"];
 /** O resto do que a vitrine faz, sem desenho: os três de cima já mostram como ela é. */
 const MORE: [title: string, text: string][] = [
   ["Veja o que funciona", "Visitas, cliques, produtos mais clicados e cupons mais copiados, dia a dia."],
-  ["Pronta para os stories", "Baixe uma imagem com seus cupons e um QR code que leva direto para a vitrine."],
+  ["Pronta para os stories", "Baixe uma imagem com seus cupons, poste e cole a figurinha de link para a vitrine."],
   ["Links com UTM", "Os links para as lojas levam UTM, para a marca ver que a visita veio da sua vitrine."],
   ["Cupom com data", "Agende quando o cupom começa e quando vence. Vencido, ele sai da vitrine sozinho."],
   ["Review em vídeo", "Junte ao produto o seu Reels, TikTok ou vídeo do YouTube mostrando como ele é."],
@@ -44,7 +44,7 @@ const FAQ: [question: string, answer: string][] = [
     `Posso usar meu link de afiliado?`,
     `Pode. Cada produto tem um campo para o seu link de afiliado, e o botão de compra leva direto para ele, do jeito que você colou. Dá para usar junto com um cupom: seu público tem o desconto e você, a comissão.`,
   ],
-  [`Como divulgo a vitrine?`, `O link já gera uma prévia com os seus cupons no WhatsApp e nas redes, e você baixa uma imagem pronta para os stories, com QR code.`],
+  [`Como divulgo a vitrine?`, `O link já gera uma prévia com os seus cupons no WhatsApp e nas redes, e você baixa uma imagem pronta para os stories com os seus cupons.`],
 ];
 
 export const metadata: Metadata = pageMeta({
