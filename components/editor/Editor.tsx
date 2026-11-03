@@ -266,9 +266,9 @@ export function Editor({
               </>
             )}
             {tab === "coupons" && <CouponsPanel {...panelProps} today={today} />}
-            {tab === "products" && <ProductsPanel {...panelProps} today={today} />}
+            {tab === "products" && <ProductsPanel {...panelProps} />}
             {tab === "kits" && <KitsPanel {...panelProps} />}
-            {tab === "share" && <SharePanel {...panelProps} publishedHandle={published.handle} />}
+            {tab === "share" && <SharePanel {...panelProps} publishedHandle={published.handle} publishedJson={JSON.stringify(published)} />}
             {tab === "metrics" && <MetricsPanel draft={draft} today={today} />}
           </div>
         </aside>

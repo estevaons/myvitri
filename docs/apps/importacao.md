@@ -8,8 +8,10 @@ Funciona como um assistente que abre o link, procura a "etiqueta" que as lojas d
 
 O mesmo assistente:
 
-- **reconfere preço e estoque** de todos os produtos com link ("Conferir na loja");
-- **procura o logo da marca** no site da loja quando a creator preenche o link da loja num cupom.
+- **procura o logo da marca** no site da loja quando a creator preenche o link da loja num cupom;
+- empresta o "baixador seguro" (`fetchPublic`) para as [imagens de divulgação](divulgacao.md) buscarem a foto de perfil e as fotos dos produtos.
+
+Preço e estoque são lidos **uma vez, na importação**. Não existe mais o botão "Conferir na loja": se o preço mudar ou o produto voltar ao estoque, a creator ajusta à mão (preço) ou importa o produto de novo (estoque).
 
 Tudo isso roda **no servidor** e com proteção para que ninguém use o recurso para acessar a rede interna (SSRF).
 
@@ -19,16 +21,17 @@ Tudo isso roda **no servidor** e com proteção para que ninguém use o recurso 
 - Extrair produto de JSON-LD, Open Graph, `<title>` e do próprio endereço.
 - Fallback opcional via Brave Search API.
 - Achar logos candidatos de uma loja.
-- Reconferir preços em lote.
+- Oferecer o download seguro (`fetchPublic`) para outros módulos do servidor.
 
 ## Estrutura de arquivos
 
 | Arquivo | Papel |
 |---|---|
 | [`lib/vitrine/import-link.ts`](../../lib/vitrine/import-link.ts) | Toda a lógica (`server-only`) |
-| [`app/actions.ts`](../../app/actions.ts) | `importProductAction` (155), `findLogoAction` (166), `refreshPricesAction` (206) |
-| [`components/editor/ProductsPanel.tsx`](../../components/editor/ProductsPanel.tsx) | UI de importar (1 ou vários) e "Conferir na loja" |
+| [`app/actions.ts`](../../app/actions.ts) | `importProductAction` (155), `findLogoAction` (166) |
+| [`components/editor/ProductsPanel.tsx`](../../components/editor/ProductsPanel.tsx) | UI de importar (1 ou vários) |
 | [`components/editor/LogoPicker.tsx`](../../components/editor/LogoPicker.tsx) | UI que dispara a busca de logos |
+| [`lib/vitrine/share-image.tsx`](../../lib/vitrine/share-image.tsx) | Usa `fetchPublic` para baixar as fotos das imagens de divulgação (ver [divulgacao.md](divulgacao.md)) |
 
 ### Funções internas
 
@@ -36,7 +39,7 @@ Tudo isso roda **no servidor** e com proteção para que ninguém use o recurso 
 |---|---|---|
 | `isPrivateAddress(ip)` | 20 | IPv4: `0/8`, `10/8`, `127/8`, `≥224`, `100.64/10`, `169.254/16`, `172.16/12`, `192.168/16`. IPv6: `::1`, `::`, `fc…`, `fd…`, `fe80…` e IPv4 mapeado (`::ffff:`) |
 | `assertPublicUrl(raw)` | 37 | Só `http:`/`https:`; resolve o DNS (`lookup all`) e recusa se **algum** IP for privado |
-| `fetchPublic(raw, {accept, maxBytes})` | 46 | `redirect: "manual"`, até 3 redirecionamentos (cada um revalidado), timeout 8 s, user-agent `Mozilla/5.0 (compatible; VitriBot/1.0)`, lê no máximo `maxBytes` |
+| `fetchPublic(raw, {accept, maxBytes, timeoutMs?})` (**exportada**) | 46 | `redirect: "manual"`, até 3 redirecionamentos (cada um revalidado), timeout por requisição de `timeoutMs` (padrão 8 s), user-agent `Mozilla/5.0 (compatible; VitriBot/1.0)`, lê no máximo `maxBytes` e devolve `{ bytes, complete, url }`. Também usada por `share-image.tsx` (fotos, 4 s e 4 MB) |
 | `fetchHtml(raw)` | 79 | `fetchPublic` com `accept: text/html` e 1,5 MB |
 | `decode` / `meta` | 84 / 94 | Entidades HTML; lê `<meta property|name=… content=…>` nas duas ordens de atributo |
 | `findLd(html, test)` | 106 | Percorre todos os `<script type="application/ld+json">`, inclusive arrays e `@graph`, e devolve o 1º nó que passa no teste |
@@ -65,7 +68,9 @@ Não persiste nada. Devolve `ImportedProduct` (`import-link.ts:5-15`):
 | `url` | string | URL final, depois dos redirecionamentos |
 | `source` | `"page"` \| `"search"` \| `"link"` | De onde vieram os dados |
 
-O editor converte isso em `Product` (`fromImport`, `ProductsPanel.tsx:82-95`): `price ?? 0`, `soldOut = available === false`, `priceCheckedAt = agora` se veio preço, e tenta adivinhar o cupom.
+O editor converte isso em `Product` (`fromImport`, `ProductsPanel.tsx:84-97`): `price ?? 0`, `soldOut = available === false`, `priceCheckedAt = agora` se veio preço, e tenta adivinhar o cupom.
+
+`soldOut` **só é definido aqui**: o formulário do produto não tem mais o switch "Esgotado" e mostra só o selo "Esgotado na loja" com a explicação. `priceCheckedAt` continua sendo gravado e publicado (`products.price_checked_at`), mas nada no app lê esse campo hoje.
 
 ## Rotas / ações
 
@@ -73,9 +78,6 @@ O editor converte isso em `Product` (`fromImport`, `ProductsPanel.tsx:82-95`): `
 |---|---|---|---|---|---|
 | `importProductAction(url)` | `app/actions.ts:155` | sim | URL | `{ ok, product }` | "Não conseguimos ler esse link. Preencha os dados à mão." |
 | `findLogoAction(url)` | `app/actions.ts:166` | sim | URL da loja | `{ ok, logos: string[] }` (até 4) | "Não conseguimos abrir o site da loja. Confira o link." |
-| `refreshPricesAction(items)` | `app/actions.ts:206` | sim | `{ id, url }[]` | `{ ok, results: { id, price, available }[] }` | Por item: `null`s quando falha |
-
-`refreshPricesAction` filtra URLs `http(s)`, corta em **60** e processa com **4 workers** concorrentes dentro da mesma requisição.
 
 ## Fluxos principais
 
@@ -126,31 +128,12 @@ graph TD
 
 No editor, a busca é automática 700 ms depois de a creator parar de digitar o link da loja, **só se o cupom ainda não tiver logo**; a creator escolhe um dos círculos (nada é escolhido sozinho).
 
-### Conferir preços
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant UI as ProductsPanel
-    participant A as refreshPricesAction
-    participant W as 4 workers
-    participant L as Lojas
-    UI->>A: produtos com link [{id, url}]
-    A->>A: filtra http(s), corta em 60
-    par worker 1..4
-        W->>L: importProductFromUrl(url)
-        L-->>W: preço / disponibilidade (ou erro → nulls)
-    end
-    A-->>UI: results
-    UI->>UI: atualiza preço, soldOut e priceCheckedAt NO RASCUNHO
-    UI->>UI: resumo: "2 preços mudaram. 1 produto esgotou."
-```
-
 ## Integração com outros módulos
 
 ```mermaid
 graph LR
-    PP[ProductsPanel] -->|importProductAction, refreshPricesAction| IMP[import-link.ts]
+    PP[ProductsPanel] -->|importProductAction| IMP[import-link.ts]
+    SI[share-image.tsx] -->|fetchPublic| IMP
     LP[LogoPicker] -->|findLogoAction| IMP
     IMP --> LOJAS[Sites das lojas]
     IMP -->|BRAVE_SEARCH_API_KEY| BRAVE[Brave Search API]
@@ -162,10 +145,11 @@ graph LR
 
 1. **SSRF com janela de DNS rebinding:** `assertPublicUrl` resolve o DNS e depois o `fetch` resolve **de novo**. Um domínio malicioso pode responder IP público na checagem e privado na conexão. Mitigação típica: conectar no IP já validado (agente HTTP com `lookup` fixo).
 2. **Lista de IPs privados incompleta:** faltam, por exemplo, `198.18.0.0/15`, `192.0.0.0/24`, `::` mapeados de outras formas e prefixos IPv6 como `64:ff9b::/96`. Baixo risco em ambiente serverless, mas vale revisar.
-3. **Qualquer usuário logado pode usar o servidor como "robô"**: até 60 URLs por chamada de `refreshPricesAction`, sem limite de chamadas. Não há rate limit.
+3. **O servidor pode ser usado como "robô"**: qualquer usuário logado chama `importProductAction`/`findLogoAction` quantas vezes quiser, e as imagens de divulgação (rota pública, sem login) disparam `fetchPublic` para as fotos da vitrine a cada geração fora do cache. Não há rate limit.
 4. **HTML cortado em 1,5 MB:** páginas grandes com o JSON-LD no fim não são lidas por completo (`complete` é calculado mas não usado, `import-link.ts:63-74`).
 5. **Decodificação sempre UTF-8** (`new TextDecoder()`); lojas em ISO-8859-1 geram acentos errados no nome.
-6. **Preço lido pode ser o promocional** ou o de outra variação (`offers[0]`), e o "Conferir na loja" sobrescreve o preço cheio do produto com ele.
+6. **Preço lido pode ser o promocional** ou o de outra variação (`offers[0]`), e vira o "preço cheio" do produto.
 7. **Fotos e logos são *hotlink*:** o app guarda a URL da loja/Brave/Google, não a imagem. Podem quebrar ou ser bloqueadas por *hotlink protection*.
 8. **Sem a chave da Brave**, lojas que bloqueiam robôs só rendem o nome deduzido do endereço — o editor mostra "precisa de nome ou preço à mão".
 9. **`readLink` chuta a marca pelo domínio** (`nike.com.br` → "Nike", mas `loja.exemplo.com` → "Loja").
+10. **Preço e estoque congelados na importação.** Sem a antiga reconferência (`refreshPricesAction` foi removida), um produto importado como esgotado **não volta a ficar disponível sozinho** e não há switch para desmarcar: o caminho é remover e importar de novo. Um preço que mudou na loja também só muda à mão.

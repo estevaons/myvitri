@@ -29,7 +29,7 @@ Tudo o que a creator muda é salvo sozinho, em segundos, como **rascunho** — d
 | [`components/editor/panels.tsx`](../../components/editor/panels.tsx) | `ProfilePanel` (aba Perfil) e o tipo `Update` |
 | [`components/editor/CouponsPanel.tsx`](../../components/editor/CouponsPanel.tsx) | Aba Cupons + `couponAlerts()` |
 | [`components/editor/CouponDates.tsx`](../../components/editor/CouponDates.tsx) | Seletor de validade com atalhos e calendário acessível |
-| [`components/editor/ProductsPanel.tsx`](../../components/editor/ProductsPanel.tsx) | Aba Produtos: importar por link (1 ou vários), conferir preços, formulário |
+| [`components/editor/ProductsPanel.tsx`](../../components/editor/ProductsPanel.tsx) | Aba Produtos: importar por link (1 ou vários), lista reordenável, formulário em blocos (Foto, Produto, Preço, Links) |
 | [`components/editor/KitsPanel.tsx`](../../components/editor/KitsPanel.tsx) | Aba Kits |
 | [`components/editor/SharePanel.tsx`](../../components/editor/SharePanel.tsx) | Aba Divulgar → [divulgacao.md](divulgacao.md) |
 | [`components/editor/MetricsPanel.tsx`](../../components/editor/MetricsPanel.tsx) | Aba Métricas → [metricas.md](metricas.md) |
@@ -128,9 +128,9 @@ Ver o diagrama completo em [arquitetura](../architecture.md#fluxo-de-uma-mutaç�
 |---|---|---|
 | **Perfil** | `ProfilePanel` (`panels.tsx:11`) + `DeleteAccount` | Foto de perfil (upload, iniciais como fallback), nome (60), link (sanitizado: minúsculas, sem `@`, só `[a-z0-9_.]`, `panels.tsx:41`), foto de capa (upload), frase de destaque (90, com contador), texto de apoio (240) |
 | **Cupons** | `CouponsPanel` | Lista reordenável com selo de situação; aviso de cupons vencendo; formulário (abaixo) |
-| **Produtos** | `ProductsPanel` | Conferir preços; lista reordenável; formulário; importar por link |
+| **Produtos** | `ProductsPanel` | Lista reordenável; formulário em blocos; importar por link |
 | **Kits** | `KitsPanel` | Só aparece o botão de criar quando há produtos; formulário (abaixo) |
-| **Divulgar** | `SharePanel` | Link, QR code, imagens, UTM → [divulgacao.md](divulgacao.md) |
+| **Divulgar** | `SharePanel` (recebe também `publishedHandle` e `publishedJson`, `Editor.tsx:271`) | Link com cópia em um toque, status de publicação, onde colar por rede, imagens prontas, UTM → [divulgacao.md](divulgacao.md) |
 | **Métricas** | `MetricsPanel` | → [metricas.md](metricas.md) |
 
 A aba inicial é a de `?aba=`; sem ela, **Perfil** se já há cupons, senão **Cupons** (`Editor.tsx:101`). O ícone da aba Cupons mostra um contador de `couponAlerts` (vencidos ou vencendo em até 7 dias).
@@ -153,22 +153,26 @@ Situação na lista (`CouponsPanel.tsx:12-19`): "Entra em DD/MM" (agendado), "Ve
 
 #### Formulário de produto (`ProductsPanel.tsx`)
 
-| Campo | Comportamento |
-|---|---|
-| Nome / Marca / Categoria | 80 / 60 / 30; categoria tem `datalist` com as categorias já usadas |
-| Preço cheio | `MoneyInput` (aceita "189,90", "R$ 1.189,90"); mostra "Com o cupom: R$ X" |
-| Cupom | `select` com os cupons do rascunho |
-| Link do produto / Link de afiliado / Review em vídeo | URLs |
-| Esgotado | `Switch`; continua na vitrine, sem botão de compra, no fim da lista |
-| Foto | URL; sem foto aparece a grade de **ilustrações** (`ICONS`) |
-| Remover | também tira o produto dos kits (`ProductsPanel.tsx:190-197`) |
+O formulário é dividido em quatro blocos com título pequeno (`Group`, `ProductsPanel.tsx:36-43`), na ordem em que a creator costuma conferir um produto importado: a foto, o que é, quanto custa e para onde leva.
+
+| Bloco | Campo | Comportamento |
+|---|---|---|
+| **Foto** | Foto do produto | `ImageField` com `kind="product"`: enviar do aparelho (tocando ou arrastando), trocar, remover ou colar o link. A miniatura é um quadrado creme com a foto inteira (`object-contain` + `mix-blend-multiply`, como na vitrine). Dica: "Use a foto da loja ou envie uma sua." (com foto) ou "Sem foto, usamos uma ilustração." → [uploads.md](uploads.md) |
+| | Ilustração | Só sem foto: grade de **ilustrações** (`ICONS`, `role="group"`) |
+| **Produto** | Nome / Marca / Categoria | 80 / 60 / 30; categoria tem `datalist` com as categorias já usadas |
+| **Preço** | Preço cheio + Cupom | Lado a lado (o cupom mais largo, colunas 5fr/7fr). `MoneyInput` aceita "189,90", "R$ 1.189,90". O `select` mostra "{código} · {desconto} · {marca}" |
+| | "Na vitrine" | Com preço ou esgotado: mostra o preço final (e o cheio riscado se houver desconto) ou o selo **"Esgotado na loja"** |
+| | Aviso de esgotado | Só leitura: "A loja estava sem estoque quando buscamos o produto…". **Não há switch**: `soldOut` só vem da importação por link |
+| **Links** | Link do produto | URL |
+| | Link de afiliado / Review em vídeo | Escondidos atrás de "+ Link de afiliado ou review em vídeo" até a creator pedir (estado `moreId`) ou até um deles estar preenchido |
+| — | Remover | também tira o produto dos kits (`ProductsPanel.tsx:151-158`) |
 
 Importação (detalhes em [importacao.md](importacao.md)):
 
 - **Um link:** `importProductAction` → novo produto já aberto para revisão; se veio sem preço, avisa.
 - **Vários links** (até 20, `BULK_MAX`): um por vez, em sequência, e adiciona tudo no fim com um resumo ("3 produtos adicionados. 1 precisa de nome ou preço à mão.").
-- O cupom é **adivinhado** por domínio da loja ou nome da marca (`guessCoupon`, `ProductsPanel.tsx:31-39`).
-- **Conferir na loja:** `refreshPricesAction` com todos os produtos que têm link; atualiza preço, esgotado e `priceCheckedAt` **no rascunho**. O cabeçalho mostra "Preços conferidos há N dias" pelo produto mais desatualizado.
+- O cupom é **adivinhado** por domínio da loja ou nome da marca (`guessCoupon`, `ProductsPanel.tsx:25-34`).
+- Preço, estoque (`soldOut`) e `priceCheckedAt` são preenchidos **uma única vez**, na importação (`fromImport`, `ProductsPanel.tsx:84-97`). Não há mais "Conferir na loja" nem a prop `today` no `ProductsPanel`.
 
 #### Formulário de kit (`KitsPanel.tsx`)
 
@@ -201,7 +205,7 @@ graph TD
 
 1. **Último que salva vence.** Duas abas ou dois aparelhos editando ao mesmo tempo sobrescrevem o rascunho um do outro, e `publishVitrine` não confere versão (`updatedAt` volta, mas não é usado para detectar conflito).
 2. **Trocar o link (handle) quebra o link antigo** na hora da publicação: não há redirecionamento e o link antigo fica livre para outra pessoa. As métricas continuam (são por `vitrine_id`).
-3. **"Conferir na loja" só altera o rascunho.** A creator precisa publicar para os preços novos irem ao ar — o texto da UI não deixa isso explícito.
+3. **Esgotado não tem volta pelo formulário.** `soldOut` só é definido na importação e o switch manual saiu: um produto importado como esgotado continua "Esgotado na loja" mesmo que volte ao estoque, até a creator removê-lo e importá-lo de novo (ver [importação](importacao.md#pegadinhas-e-dívidas-técnicas)).
 4. **Cupons vencidos ficam na lista** (só somem da vitrine pública) e `couponAlerts` conta vencidos como "vencendo".
 5. **Não dá mais para agendar cupom novo**: o banco e o domínio suportam `startsAt`, mas o `CouponDates` só mostra o início para cupons antigos já agendados, com a opção "Começar agora" (`CouponDates.tsx:187-230`).
 6. **Falhas de rede nas Server Actions não são tratadas**: se `saveDraftAction` lançar (em vez de devolver `{ ok: false }`), o indicador fica preso em "salvando…" até a próxima edição; o mesmo vale para importações e uploads (ver [uploads](uploads.md#pegadinhas-e-dívidas-técnicas)).

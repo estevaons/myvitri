@@ -538,9 +538,9 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
                   key={k.kit.id}
                   aria-hidden={!on}
                   inert={!on}
-                  className={`col-start-1 row-start-1 grid items-start self-start gap-8 transition-[opacity,translate] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none @3xl:grid-cols-[1.1fr_1fr] @3xl:gap-12 ${on ? "opacity-100" : `pointer-events-none opacity-0 ${side}`}`}
+                  className={`col-start-1 row-start-1 grid items-start self-start gap-y-5 transition-[opacity,translate] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none @3xl:grid-cols-[1.1fr_1fr] @3xl:gap-x-12 @3xl:[grid-template-areas:'head_head'_'photos_body'] @min-[88rem]:grid-rows-[auto_1fr] @min-[88rem]:[grid-template-areas:'photos_head'_'photos_body'] ${on ? "opacity-100" : `pointer-events-none opacity-0 ${side}`}`}
                 >
-                <div aria-hidden="true" className={`grid gap-1 ${KIT_GRID[k.items.length - 1]}`}>
+                <div aria-hidden="true" className={`mb-3 grid gap-1 @3xl:mb-0 @3xl:[grid-area:photos] ${KIT_GRID[k.items.length - 1]}`}>
                   {k.items.map((p, i) => (
                     <div
                       key={p.id}
@@ -551,8 +551,10 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
                   ))}
                 </div>
 
-                {/* no desktop a coluna estica até a altura das fotos e o total desce para alinhar com o fim delas */}
-                <div className="flex min-w-0 flex-col gap-5 @3xl:self-stretch">
+                {/* Ao lado das fotos, a lista estica até o fim delas e o total desce para alinhar com a última foto.
+                    Título e texto só cabem ao lado também em tela bem larga; antes disso ficam em cima, na largura toda,
+                    senão a coluna estreita quebra os nomes e a lista passa muito do fim das fotos. */}
+                <div className="flex min-w-0 flex-col gap-5 @3xl:mb-3 @3xl:[grid-area:head] @min-[88rem]:mb-0">
                   <h3 className="m-0 font-display text-[clamp(36px,5cqw,56px)] leading-[1] font-normal text-balance">
                     {k.kit.name || `Os favoritos de ${firstName}`}
                   </h3>
@@ -562,11 +564,14 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
                       “{k.kit.signature}” · {firstName}
                     </p>
                   )}
+                </div>
 
+                <div className="flex min-w-0 flex-col gap-5 @3xl:self-stretch @3xl:[grid-area:body]">
                   <ul className="m-0 flex list-none flex-col border-t border-sand p-0">
                     {k.items.map((p) => (
                       <li key={p.id} className="flex items-center gap-4 border-b border-sand py-2.5">
-                        <div aria-hidden="true" className="relative flex size-16 flex-none items-center justify-center overflow-hidden bg-cream">
+                        {/* com a lista estreita ao lado das fotos, a miniatura repetiria a foto vizinha e espremeria o nome */}
+                        <div aria-hidden="true" className="relative flex size-16 flex-none items-center justify-center overflow-hidden bg-cream @3xl:hidden @min-[88rem]:flex">
                           <ProductArt product={p} iconClassName="w-[64%]" strokeWidth={4} />
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col gap-0.5">

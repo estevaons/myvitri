@@ -131,7 +131,7 @@ graph LR
     N -->|"PostgREST + RLS"| DB[(Supabase Postgres)]
     N -->|login Google| AU[Supabase Auth]
     N -->|uploads| ST[(Supabase Storage)]
-    N -->|ler páginas de produto| L[Sites das lojas]
+    N -->|ler páginas e fotos de produto| L[Sites das lojas]
     N -.->|opcional| BR[Brave Search API]
     U -->|imagens públicas| ST
 ```
