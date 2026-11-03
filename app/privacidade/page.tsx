@@ -116,9 +116,11 @@ export default function Privacidade() {
 
       <Section title="8. Por quanto tempo guardamos">
         <p>
-          Mantemos os dados da sua conta e da sua vitrine enquanto a conta existir. Se você pedir a exclusão, apagamos a conta, a
-          vitrine, os cupons, os produtos e as métricas em até 30 dias, exceto o que a lei nos obrigar a guardar. Registros técnicos são
-          apagados automaticamente pelos provedores em prazos curtos.
+          Mantemos os dados da sua conta e da sua vitrine enquanto a conta existir. Você pode excluir a conta quando quiser, no editor
+          (aba Perfil, “Excluir conta”): na mesma hora apagamos a conta, a vitrine, os cupons, os produtos, os kits, o rascunho e as
+          métricas, e o link fica livre. Se preferir, peça a exclusão por {mail} e fazemos em até 15 dias. Cópias de segurança do banco
+          de dados e registros técnicos dos provedores são apagados automaticamente em prazos curtos. Só guardamos algo depois disso se
+          a lei obrigar.
         </p>
       </Section>
 
@@ -127,13 +129,13 @@ export default function Privacidade() {
         <ul>
           <li>confirmar se tratamos seus dados e pedir acesso a eles;</li>
           <li>corrigir dados incompletos ou desatualizados (a maior parte pode ser editada direto no editor);</li>
-          <li>pedir a exclusão da sua conta e dos seus dados;</li>
+          <li>excluir sua conta e seus dados por conta própria, no editor (aba Perfil, “Excluir conta”);</li>
           <li>pedir a portabilidade dos dados;</li>
           <li>saber com quem compartilhamos seus dados;</li>
           <li>revogar o consentimento, quando ele for a base do tratamento.</li>
         </ul>
         <p>
-          Para isso, escreva para {mail} a partir do e-mail da sua conta. Respondemos em até 15 dias. Você também pode remover o acesso do{" "}
+          Para os demais pedidos, escreva para {mail} a partir do e-mail da sua conta. Respondemos em até 15 dias. Você também pode remover o acesso do{" "}
           {BRAND} à sua conta Google em{" "}
           <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">
             myaccount.google.com/permissions
