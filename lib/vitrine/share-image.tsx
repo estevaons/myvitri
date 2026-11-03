@@ -9,15 +9,17 @@ import type { VitrineContent } from "./types";
  * Imagens para divulgar a vitrine: "og" (prévia do link em WhatsApp, X etc.)
  * e "story" (1080×1920 com QR code, para postar nos stories).
  * Só texto e blocos de cor: fotos de loja deixariam a geração lenta e sujeita a falhas.
- * Mesmo visual fixo da vitrine: branco, cinza claro nos cupons e títulos condensados em caixa alta.
+ * Mesmo visual da vitrine: branco, cupons em off-white com contorno areia e títulos em serifa.
  */
 export const SHARE_SIZES = { og: { width: 1200, height: 630 }, story: { width: 1080, height: 1920 } };
 
 const plain = (headline: string) => headline.replace(/\*/g, "");
 
 const INK = "#111111";
-const MUTE = "#707072";
-const SOFT = "#F5F5F5";
+const MUTE = "#6B665E";
+const CREAM = "#F7F4EF";
+const SAND = "#ECE6DC";
+const GOLD = "#7A5F30";
 
 const fontCache = new Map<string, Promise<ArrayBuffer | null>>();
 
@@ -39,7 +41,7 @@ function googleFont(family: string, weight: number) {
 
 async function fonts() {
   const list = [
-    { name: "Display", family: "Barlow Condensed", weight: 800 as const },
+    { name: "Display", family: "EB Garamond", weight: 400 as const },
     { name: "Body", family: "Inter", weight: 400 as const },
     { name: "Body", family: "Inter", weight: 500 as const },
   ];
@@ -62,21 +64,21 @@ export async function shareImage(content: VitrineContent, today: string, url: st
         alignItems: "center",
         justifyContent: "space-between",
         gap: 24,
-        background: SOFT,
+        background: CREAM,
+        border: `2px solid ${SAND}`,
         padding: story ? "36px 44px" : "26px 34px",
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: story ? 6 : 2 }}>
         <span style={{ fontSize: story ? 32 : 24, fontWeight: 500 }}>{c.brand}</span>
-        <span style={{ fontFamily: "Display", fontSize: story ? 96 : 60, fontWeight: 800, lineHeight: 0.9, textTransform: "uppercase" }}>{couponOff(c)}</span>
+        <span style={{ fontFamily: "Display", fontSize: story ? 100 : 64, fontWeight: 400, lineHeight: 1 }}>{couponOff(c)}</span>
       </div>
       <span
         style={{
           fontSize: story ? 34 : 24,
           fontWeight: 500,
           letterSpacing: 2,
-          border: "3px dashed #CACACB",
-          borderRadius: 999,
+          border: `3px dashed ${GOLD}80`,
           padding: story ? "16px 30px" : "10px 22px",
           background: "#FFFFFF",
         }}
@@ -86,13 +88,13 @@ export async function shareImage(content: VitrineContent, today: string, url: st
     </div>
   ));
 
-  const logoHeight = story ? 66 : 48;
+  const logoHeight = story ? 34 : 24;
   const logo = <Wordmark label="" ink={INK} height={logoHeight} width={Math.round(logoHeight * WORDMARK_RATIO)} />;
 
   const body = story ? (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", padding: "110px 90px", gap: 56 }}>
       {logo}
-      <span style={{ fontFamily: "Display", fontSize: 132, fontWeight: 800, lineHeight: 0.9, textTransform: "uppercase" }}>{headline}</span>
+      <span style={{ fontFamily: "Display", fontSize: 124, fontWeight: 400, lineHeight: 1.02 }}>{headline}</span>
       <span style={{ fontSize: 40, color: MUTE }}>Os cupons de {content.name}</span>
       <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>{tickets}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 40, marginTop: "auto" }}>
@@ -108,7 +110,7 @@ export async function shareImage(content: VitrineContent, today: string, url: st
     <div style={{ display: "flex", width: "100%", height: "100%", padding: "64px 72px", gap: 56 }}>
       <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 28 }}>
         {logo}
-        <span style={{ fontFamily: "Display", fontSize: 88, fontWeight: 800, lineHeight: 0.9, textTransform: "uppercase" }}>{headline}</span>
+        <span style={{ fontFamily: "Display", fontSize: 84, fontWeight: 400, lineHeight: 1.02 }}>{headline}</span>
         <span style={{ fontSize: 30, color: MUTE, marginTop: "auto" }}>{shortUrl}</span>
       </div>
       {tickets.length > 0 && <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, width: 540 }}>{tickets}</div>}

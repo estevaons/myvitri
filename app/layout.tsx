@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Barlow_Condensed, Inter } from "next/font/google";
+import { EB_Garamond, Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-// Títulos da vitrine, em caixa alta, no estilo das lojas de esporte.
-const barlow = Barlow_Condensed({ variable: "--font-barlow", subsets: ["latin"], weight: ["700", "800"] });
+// Títulos: serifa editorial, no tom de joalheria e revista. A Cormorant ficaria parecida, mas no Google Fonts ela desloca os acentos (ê, ú, ç).
+const garamond = EB_Garamond({ variable: "--font-garamond", subsets: ["latin"], style: ["normal", "italic"] });
 
 export const metadata: Metadata = {
   title: { default: "MyVitri | Sua vitrine de cupons", template: "%s · MyVitri" },
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" data-scroll-behavior="smooth" className={`${inter.variable} ${barlow.variable} antialiased`}>
+    <html lang="pt-BR" data-scroll-behavior="smooth" className={`${inter.variable} ${garamond.variable} antialiased`}>
       <body>
         {children}
         <Analytics />
