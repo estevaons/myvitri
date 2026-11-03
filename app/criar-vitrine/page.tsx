@@ -14,7 +14,7 @@ const KIT: IconId[] = ["Hat", "Glasses", "Bag", "Jar"];
 const STEPS = [`Escolha seu link ${HOST}`, "Cadastre seus cupons e produtos", "Coloque o link na bio e pronto"];
 
 export const metadata: Metadata = {
-  title: "Para creators",
+  title: "Crie sua vitrine",
   description: "Monte sua vitrine com todos os seus cupons e produtos favoritos em um link só.",
 };
 
@@ -30,7 +30,7 @@ function Feature({ title, text, children }: { title: string; text: string; child
   );
 }
 
-export default function ParaCreators() {
+export default function CriarVitrine() {
   return (
     <div className="overflow-hidden bg-white text-ink">
       <div className="bg-soft px-5 py-2.5 text-center text-[13px] leading-snug">
@@ -51,7 +51,7 @@ export default function ParaCreators() {
           ))}
         </div>
         <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 pt-10 text-center md:pt-12">
-          <span className="text-[15px] font-medium">Para creators que divulgam marcas</span>
+          <span className="text-[15px] font-medium">Para quem divulga marcas</span>
           <h1 className="m-0 font-condensed text-[clamp(44px,8vw,96px)] leading-[0.9] font-extrabold tracking-[-0.01em] text-balance uppercase">
             Todos os seus cupons. Um link só.
           </h1>

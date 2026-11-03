@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Wordmark } from "@/components/brand/Logo";
 import { BRAND } from "@/lib/brand";
 
-/** Peças comuns da home e da página para creators, no mesmo visual das vitrines. */
+/** Peças comuns da home e da página de criar vitrine, no mesmo visual das vitrines. */
 
 export const pad = "px-5 md:px-12";
 export const pillDark = "flex min-h-12 items-center justify-center rounded-full bg-ink px-6 text-[15px] font-medium text-white no-underline";
@@ -18,7 +18,7 @@ export function SiteHeader({ links }: { links: [href: string, label: string][] }
       </Link>
       <nav className="flex items-center gap-5">
         {links.map(([href, label]) => (
-          <Link key={href} href={href} className="text-[15px] font-medium text-ink no-underline hover:text-mute max-md:hidden">
+          <Link key={href} href={href} className="text-[15px] font-medium whitespace-nowrap text-ink no-underline hover:text-mute max-md:hidden">
             {label}
           </Link>
         ))}
@@ -50,16 +50,16 @@ const FOOTER: [title: string, links: [href: string, label: string][]][] = [
   [
     "Para quem compra",
     [
-      ["/#creators", "Creators"],
+      ["/#vitrines", "Vitrines"],
       ["/#cupons", "Cupons ativos"],
       ["/#categorias", "Categorias"],
       ["/#marcas", "Marcas"],
     ],
   ],
   [
-    "Para creators",
+    "Para quem divulga",
     [
-      ["/para-creators", "Criar minha vitrine"],
+      ["/criar-vitrine", "Criar minha vitrine"],
       ["/editor", "Entrar"],
       ["/marinacosta", "Vitrine de exemplo"],
     ],
@@ -72,7 +72,7 @@ export function SiteFooter() {
       <div className="grid gap-10 border-t border-line py-12 md:grid-cols-[2fr_1fr_1fr]">
         <div className="flex max-w-xs flex-col gap-3">
           <Wordmark className="h-[38px] w-auto self-start text-ink" />
-          <p className="m-0 text-[15px] leading-relaxed text-mute">Os achados de quem você segue, com o cupom já no preço.</p>
+          <p className="m-0 text-[15px] leading-relaxed text-mute">Os achados de quem você segue, cada um na sua vitrine.</p>
         </div>
         {FOOTER.map(([title, links]) => (
           <nav key={title} aria-label={title} className="flex flex-col gap-3">

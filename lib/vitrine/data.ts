@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
-import { couponOff, isActive, priceProducts, type PricedProduct } from "./pricing";
+import { isActive, priceProducts, type PricedProduct } from "./pricing";
 import { findByHandle, listFeed } from "./store";
 import type { Coupon, VitrineContent } from "./types";
 
@@ -28,8 +28,7 @@ export type HomeCreator = By & {
   avatarUrl: string;
   bannerUrl: string;
   coupons: number;
-  /** maior desconto entre os cupons ativos, já no formato do selo ("15% OFF") */
-  best: string;
+  products: number;
   art: PricedProduct[];
 };
 export type HomeCoupon = Coupon & By;
@@ -68,7 +67,7 @@ export async function getHomeFeed(): Promise<HomeFeed> {
       avatarUrl: v.avatarUrl,
       bannerUrl: v.look.bannerUrl,
       coupons: coupons.length,
-      best: coupons[0] ? couponOff(coupons[0]) : "",
+      products: products.length,
       art: products.slice(0, 4),
     }),
   );
