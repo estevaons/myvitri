@@ -7,7 +7,7 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const barlow = Barlow_Condensed({ variable: "--font-barlow", subsets: ["latin"], weight: ["700", "800"] });
 
 export const metadata: Metadata = {
-  title: { default: "MyVitri | sua vitrine de cupons", template: "%s · MyVitri" },
+  title: { default: "MyVitri | Sua vitrine de cupons", template: "%s · MyVitri" },
   description: "Junte todos os seus cupons e produtos favoritos em um link só. Feito para creators.",
 };
 
