@@ -6,7 +6,7 @@ import { ICON_LABELS, ProductArt, ProductIcon } from "@/components/storefront/Pr
 import { couponOff, formatBRL, priceProducts } from "@/lib/vitrine/pricing";
 import { ICONS, PRODUCT_EXTRA, type Coupon, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import type { Update } from "./panels";
-import { AddButton, Empty, Field, FormActions, Hint, MoneyInput, Row, Switch, TextInput, inputCls, newId, reorder, useDragSort } from "./ui";
+import { AddButton, Empty, Field, FormActions, H, Hint, MoneyInput, Row, Switch, TextInput, inputCls, labelCls, newId, reorder, useDragSort } from "./ui";
 
 /** Quantos links dá para colar de uma vez. */
 const BULK_MAX = 20;
@@ -198,7 +198,7 @@ export function ProductsPanel({ draft, update, today }: { draft: VitrineContent;
 
   return (
     <div className="flex flex-col gap-2.5">
-      <h2 className="m-0 text-sm font-bold">Ordem dos produtos</h2>
+      <H>Ordem dos produtos</H>
       <span className="-mt-1 text-[13px] text-[#5E5A52]">O primeiro aparece no topo da vitrine.</span>
       {products.some((p) => p.url) && (
         <div className="flex flex-col gap-1.5 rounded-[14px] bg-[#F7F6F3] p-3">
@@ -210,7 +210,7 @@ export function ProductsPanel({ draft, update, today }: { draft: VitrineContent;
               type="button"
               onClick={refreshPrices}
               disabled={refreshing}
-              className="min-h-10 flex-none rounded-xl border-[1.5px] border-[#D6D0C5] bg-white px-3.5 text-[13px] font-bold"
+              className="min-h-10 flex-none rounded-[10px] border border-[#E6E2DA] bg-white px-3.5 text-[13px] font-semibold transition-colors hover:border-[#D6D0C5] hover:bg-[#FAF9F7]"
             >
               {refreshing ? "Conferindo…" : "Conferir na loja"}
             </button>
@@ -283,7 +283,7 @@ export function ProductsPanel({ draft, update, today }: { draft: VitrineContent;
             <TextInput value={p.imageUrl} onChange={(imageUrl) => setProduct(p.id, { imageUrl })} placeholder="https://…" inputMode="url" />
           </Field>
           {!p.imageUrl && (
-            <div className="flex flex-col gap-1.5 text-[13px] font-semibold">
+            <div className={`flex flex-col gap-1.5 ${labelCls}`}>
               Ilustração
               <div className="grid grid-cols-8 gap-1">
                 {ICONS.map((icon) => (
@@ -317,10 +317,10 @@ export function ProductsPanel({ draft, update, today }: { draft: VitrineContent;
           if (bulk) importMany();
           else importLink();
         }}
-        className="mt-1 flex flex-col gap-2 rounded-[14px] border-2 border-dashed border-[#CFCAC0] p-3"
+        className="mt-1 flex flex-col gap-2 rounded-[12px] border-[1.5px] border-dashed border-[#DDD8CF] p-3"
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-bold text-[#3A3A3A]">{bulk ? "+ Vários links" : "+ Adicionar pelo link"}</span>
+          <span className="text-sm font-semibold text-[#3A3A3A]">{bulk ? "+ Vários links" : "+ Adicionar pelo link"}</span>
           <button
             type="button"
             onClick={() => setBulk(!bulk)}
@@ -340,7 +340,7 @@ export function ProductsPanel({ draft, update, today }: { draft: VitrineContent;
               rows={5}
               className={`${inputCls} h-auto resize-y py-2.5 leading-snug`}
             />
-            <button type="submit" disabled={importing} className="min-h-[46px] rounded-xl border-0 bg-ink px-4 text-sm font-bold text-white">
+            <button type="submit" disabled={importing} className="min-h-11 rounded-[10px] border-0 bg-ink px-4 text-sm font-semibold text-white">
               {progress ?? "Buscar todos"}
             </button>
             <Hint>Um link por linha, até {BULK_MAX} de cada vez.</Hint>
@@ -355,7 +355,7 @@ export function ProductsPanel({ draft, update, today }: { draft: VitrineContent;
               aria-label="Link do produto"
               className={`${inputCls} min-w-0 flex-1`}
             />
-            <button type="submit" disabled={importing} className="min-h-[46px] flex-none rounded-xl border-0 bg-ink px-4 text-sm font-bold text-white">
+            <button type="submit" disabled={importing} className="min-h-11 flex-none rounded-[10px] border-0 bg-ink px-4 text-sm font-semibold text-white">
               {importing ? "Buscando…" : "Buscar"}
             </button>
           </div>

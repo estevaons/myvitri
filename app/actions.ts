@@ -7,7 +7,7 @@ import { HOST } from "@/lib/brand";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
 import { HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
 import { saveClaim, starterContent } from "@/lib/vitrine/claim";
-import { importProductFromUrl, type ImportedProduct } from "@/lib/vitrine/import-link";
+import { findStoreLogos, importProductFromUrl, type ImportedProduct } from "@/lib/vitrine/import-link";
 import { createVitrine, deleteDraft, findMine, HandleTakenError, isHandleTaken, publishVitrine as publish, saveDraft } from "@/lib/vitrine/store";
 import { emptyContent, vitrineContentSchema, type VitrineContent } from "@/lib/vitrine/types";
 
@@ -88,6 +88,13 @@ export async function deleteAccountAction(confirm: string): Promise<{ error: str
   if (!user) return { error: "Sessão expirada. Entre de novo." };
   if (vitrine && confirm.trim().toLowerCase().replace(/^@/, "") !== vitrine.handle) return { error: "O link digitado não confere." };
 
+  // Arquivos não saem na cascata do banco: apaga as imagens enviadas antes da conta.
+  for (const name of ["brand-logos", "vitrine-photos"]) {
+    const bucket = supabase.storage.from(name);
+    const { data: files } = await bucket.list(user.id, { limit: 1000 });
+    if (files?.length) await bucket.remove(files.map((f) => `${user.id}/${f.name}`));
+  }
+
   const { error } = await supabase.rpc("delete_my_account");
   if (error) {
     console.error("delete_my_account", error);
@@ -153,6 +160,44 @@ export async function importProductAction(url: string): Promise<ImportResult> {
   } catch {
     return { ok: false, error: "Não conseguimos ler esse link. Preencha os dados à mão." };
   }
+}
+
+/** Logos encontrados no site da loja do cupom, para a pessoa escolher. */
+export async function findLogoAction(url: string): Promise<{ ok: true; logos: string[] } | { ok: false; error: string }> {
+  const { user } = await getUser();
+  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  try {
+    return { ok: true, logos: await findStoreLogos(url) };
+  } catch {
+    return { ok: false, error: "Não conseguimos abrir o site da loja. Confira o link." };
+  }
+}
+
+/** Para onde vai cada tipo de imagem enviada pelo editor, e o que cada bucket aceita. */
+const UPLOADS = {
+  logo: { bucket: "brand-logos", types: { "image/webp": "webp", "image/png": "png" }, maxBytes: 1_048_576 },
+  cover: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
+  avatar: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
+} satisfies Record<string, { bucket: string; types: Record<string, string>; maxBytes: number }>;
+export type ImageKind = keyof typeof UPLOADS;
+
+/** Guarda a imagem enviada (já reduzida no navegador) na pasta da pessoa e devolve a URL pública. */
+export async function uploadImageAction(kind: ImageKind, form: FormData): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  const target = UPLOADS[kind];
+  const file = form.get("file");
+  const ext = file instanceof File ? (target?.types as Record<string, string> | undefined)?.[file.type] : undefined;
+  if (!target || !(file instanceof File) || !ext || file.size > target.maxBytes) return { ok: false, error: "Use uma imagem PNG, JPG, SVG ou WebP." };
+
+  const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+  const bucket = supabase.storage.from(target.bucket);
+  const { error } = await bucket.upload(path, file, { contentType: file.type, cacheControl: "31536000" });
+  if (error) {
+    console.error("uploadImage", kind, error);
+    return { ok: false, error: "Não deu para enviar a imagem. Tente de novo." };
+  }
+  return { ok: true, url: bucket.getPublicUrl(path).data.publicUrl };
 }
 
 export type PriceCheck = { id: string; price: number | null; available: boolean | null };

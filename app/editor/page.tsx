@@ -12,8 +12,8 @@ async function EditorLoader({ searchParams }: Pick<PageProps<"/editor">, "search
   // de hoje e a validação do login no Supabase não podem ser pré-renderizadas.
   await connection();
   const { supabase, user, vitrine } = await findMine();
+  const { erro, aba } = await searchParams;
   if (!user) {
-    const { erro } = await searchParams;
     return <SignInPanel loginError={erro === "login"} />;
   }
   if (!vitrine) {
@@ -21,7 +21,7 @@ async function EditorLoader({ searchParams }: Pick<PageProps<"/editor">, "search
     return <CreateVitrinePanel suggestedName={meta.name ?? ""} />;
   }
   const draft = await findDraft(supabase, user.id, vitrine);
-  return <Editor published={vitrine} draft={draft} today={new Date().toISOString().slice(0, 10)} email={user.email ?? ""} />;
+  return <Editor published={vitrine} draft={draft} today={new Date().toISOString().slice(0, 10)} email={user.email ?? ""} initialTab={typeof aba === "string" ? aba : undefined} />;
 }
 
 export default function Page({ searchParams }: PageProps<"/editor">) {

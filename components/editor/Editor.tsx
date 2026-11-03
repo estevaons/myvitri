@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { publishVitrine, saveDraftAction, signOutAction } from "@/app/actions";
 import { Wordmark } from "@/components/brand/Logo";
 import { HOST } from "@/lib/brand";
@@ -15,15 +15,51 @@ import { ProfilePanel, type Update } from "./panels";
 import { ProductsPanel } from "./ProductsPanel";
 import { SharePanel } from "./SharePanel";
 
+/** [id, rótulo, nome na URL (?aba=…)] */
 const TABS = [
-  ["profile", "Perfil"],
-  ["coupons", "Cupons"],
-  ["products", "Produtos"],
-  ["kits", "Kits"],
-  ["share", "Divulgar"],
-  ["metrics", "Métricas"],
+  ["profile", "Perfil", "perfil"],
+  ["coupons", "Cupons", "cupons"],
+  ["products", "Produtos", "produtos"],
+  ["kits", "Kits", "kits"],
+  ["share", "Divulgar", "divulgar"],
+  ["metrics", "Métricas", "metricas"],
 ] as const;
 type TabId = (typeof TABS)[number][0];
+
+/** Ícones das abas: traços do Lucide (lucide.dev, licença ISC). */
+const TAB_ICONS: Record<TabId, ReactNode> = {
+  profile: (
+    <>
+      <circle cx="12" cy="8" r="5" />
+      <path d="M20 21a8 8 0 0 0-16 0" />
+    </>
+  ),
+  coupons: (
+    <>
+      <path d="M2 9a3 3 0 1 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+      <path d="M9 9h.01M15 15h.01M15 9l-6 6" />
+    </>
+  ),
+  products: (
+    <>
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+      <path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
+    </>
+  ),
+  kits: (
+    <>
+      <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" />
+      <path d="M12 22V12M3.3 7l7.7 4.73a2 2 0 0 0 2 0L20.7 7M7.5 4.27l9 5.15" />
+    </>
+  ),
+  share: (
+    <>
+      <path d="m3 11 18-5v12L3 14v-3z" />
+      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+    </>
+  ),
+  metrics: <path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3" />,
+};
 
 function DesktopIcon() {
   return (
@@ -48,18 +84,27 @@ export function Editor({
   draft: initialDraft,
   today,
   email,
+  initialTab,
 }: {
   published: VitrineContent;
   draft: VitrineContent | null;
   today: string;
   email: string;
+  /** valor de ?aba= na URL, para voltar à mesma aba ao recarregar */
+  initialTab?: string;
 }) {
   const [draft, setDraft] = useState(initialDraft ?? initialPublished);
   const [published, setPublished] = useState(initialPublished);
   // O que já está guardado no servidor (rascunho ou, sem rascunho, a versão publicada).
   const [savedJson, setSavedJson] = useState(() => JSON.stringify(initialDraft ?? initialPublished));
   const [saveFailed, setSaveFailed] = useState(false);
-  const [tab, setTab] = useState<TabId>(draft.coupons.length ? "profile" : "coupons");
+  const [tab, setTab] = useState<TabId>(() => TABS.find(([, , slug]) => slug === initialTab)?.[0] ?? (draft.coupons.length ? "profile" : "coupons"));
+  const openTab = (id: TabId, slug: string) => {
+    setTab(id);
+    const url = new URL(window.location.href);
+    url.searchParams.set("aba", slug);
+    window.history.replaceState(null, "", url);
+  };
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [error, setError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
@@ -181,24 +226,31 @@ export function Editor({
       </header>
 
       <div className="flex flex-1 flex-wrap items-stretch lg:min-h-0 lg:flex-nowrap">
-        <aside className="flex max-w-full min-w-0 flex-[1_1_400px] flex-col border-r border-[#E0DCD3] bg-white lg:max-w-[440px] lg:overflow-y-auto">
-          <div role="tablist" aria-label="Opções" className="sticky top-0 z-10 grid grid-cols-3 border-b border-[#E0DCD3] bg-white">
-            {TABS.map(([id, label]) => (
+        <aside className="flex max-w-full min-w-0 flex-[1_1_400px] flex-col border-r border-[#EEEBE5] bg-white lg:max-w-[440px] lg:overflow-y-auto">
+          <div
+            role="tablist"
+            aria-label="Opções"
+            className="sticky top-0 z-10 grid grid-cols-6 gap-1 border-b border-[#EEEBE5] bg-white/95 px-3 py-2.5 backdrop-blur"
+          >
+            {TABS.map(([id, label, slug]) => (
               <button
                 key={id}
                 type="button"
                 role="tab"
                 aria-selected={tab === id}
-                onClick={() => setTab(id)}
-                className={`min-h-12 border-0 border-b-[3px] bg-white text-[13px] ${
-                  tab === id ? "border-ink font-bold text-ink" : "border-transparent font-semibold text-[#5E5A52]"
+                onClick={() => openTab(id, slug)}
+                className={`relative flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-1 rounded-[10px] border-0 px-0.5 text-[11.5px] transition-colors ${
+                  tab === id ? "bg-[#F4F2EE] font-semibold text-ink" : "bg-transparent font-medium text-[#8F897E] hover:bg-[#FAF9F7] hover:text-ink"
                 }`}
               >
-                {label}
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === id ? 2 : 1.75} strokeLinecap="round" strokeLinejoin="round">
+                  {TAB_ICONS[id]}
+                </svg>
+                <span className="max-w-full truncate">{label}</span>
                 {id === "coupons" && alerts > 0 && (
                   <span
                     aria-label={`${alerts} ${alerts === 1 ? "cupom vencendo" : "cupons vencendo"}`}
-                    className="ml-1.5 inline-flex size-[18px] items-center justify-center rounded-full bg-[#E8590C] align-[1px] text-[11px] font-bold text-white"
+                    className="absolute top-0.5 right-[calc(50%-24px)] inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#E8590C] px-1 text-[10px] font-bold text-white ring-2 ring-white"
                   >
                     {alerts}
                   </span>
@@ -206,7 +258,7 @@ export function Editor({
               </button>
             ))}
           </div>
-          <div role="tabpanel" className="flex flex-col gap-[26px] p-5">
+          <div role="tabpanel" className="flex flex-col gap-8 px-5 pt-6 pb-10">
             {tab === "profile" && (
               <>
                 <ProfilePanel {...panelProps} />
