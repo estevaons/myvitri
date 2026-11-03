@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { claimAction, createVitrineAction, signInAction, type FormState } from "@/app/actions";
 import { HOST } from "@/lib/brand";
@@ -31,6 +32,23 @@ function GoogleButton({ label }: { label: string }) {
       <GoogleLogo />
       {pending ? "Abrindo o Google…" : label}
     </button>
+  );
+}
+
+/** Aviso de aceite logo abaixo do botão do Google, com os links que a verificação do Google pede. */
+function Consent() {
+  return (
+    <p className="m-0 text-center text-[13px] leading-snug text-mute">
+      Ao continuar, você concorda com os{" "}
+      <Link href="/termos" className="text-inherit underline underline-offset-2">
+        Termos de Uso
+      </Link>{" "}
+      e a{" "}
+      <Link href="/privacidade" className="text-inherit underline underline-offset-2">
+        Política de Privacidade
+      </Link>
+      .
+    </p>
   );
 }
 
@@ -114,6 +132,7 @@ export function ClaimForm() {
         <GoogleButton label="Criar com Google" />
       </div>
       <ErrorText>{state.error}</ErrorText>
+      <Consent />
     </form>
   );
 }
@@ -137,6 +156,7 @@ export function SignInPanel({ loginError }: { loginError?: boolean }) {
       <form action={action} className="flex flex-col gap-3">
         <GoogleButton label="Entrar com Google" />
         <ErrorText>{state.error ?? (loginError ? "O login com o Google não foi concluído. Tente de novo." : undefined)}</ErrorText>
+        <Consent />
       </form>
     </Panel>
   );
