@@ -161,10 +161,13 @@ export default async function Home() {
               <CreatorCard key={c.handle} c={c} />
             ))}
             <Link href="/criar-vitrine" className="group flex min-w-0 flex-col text-ink no-underline">
-              <div className="flex aspect-square flex-col justify-between bg-ink p-4 text-white md:p-6">
+              {/* em telas menores o card é estreito: título sem o "aqui" e tamanhos menores, para caber no quadrado */}
+              <div className="flex aspect-square flex-col justify-between bg-ink p-4 text-white xl:p-6">
                 <span className="text-[13px] font-medium text-white/70">Você cria conteúdo?</span>
-                <span className="font-condensed text-[28px] leading-[0.9] md:text-[clamp(34px,4vw,56px)] font-extrabold uppercase">Sua vitrine aqui</span>
-                <span className="flex min-h-10 items-center justify-center rounded-full bg-white px-4 text-[15px] md:min-h-11 font-medium text-ink group-hover:bg-soft">
+                <span className="font-condensed text-[28px] leading-[0.9] font-extrabold uppercase md:max-lg:text-[24px] xl:text-[clamp(34px,4vw,56px)]">
+                  Sua vitrine<span className="max-xl:hidden"> aqui</span>
+                </span>
+                <span className="flex min-h-10 items-center justify-center rounded-full bg-white px-4 text-[15px] font-medium text-ink group-hover:bg-soft xl:min-h-11">
                   Criar grátis
                 </span>
               </div>
