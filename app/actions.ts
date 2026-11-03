@@ -3,6 +3,7 @@
 import { updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { HOST } from "@/lib/brand";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
 import { HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
 import { saveClaim, starterContent } from "@/lib/vitrine/claim";
@@ -35,7 +36,7 @@ async function createAndOpen(handle: string, name: string, state: FormState): Pr
   try {
     await createVitrine(supabase, user.id, starterContent(user, handle, name));
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ...state, error: `vitri.me/${handle} já está em uso` };
+    if (e instanceof HandleTakenError) return { ...state, error: `${HOST}/${handle} já está em uso` };
     throw e;
   }
   updateTag(vitrineTag(handle));
@@ -52,7 +53,7 @@ export async function claimAction(_prev: FormState, form: FormData): Promise<For
 
   const parsed = vitrineContentSchema.safeParse(emptyContent(handle, name));
   if (!parsed.success) return { ...state, error: parsed.error.issues[0].message };
-  if (await isHandleTaken(createPublicSupabase(), handle)) return { ...state, error: `vitri.me/${handle} já está em uso` };
+  if (await isHandleTaken(createPublicSupabase(), handle)) return { ...state, error: `${HOST}/${handle} já está em uso` };
 
   if (mine.user) return createAndOpen(handle, name, state);
   await saveClaim({ handle, name });
@@ -101,7 +102,7 @@ export async function publishVitrine(content: VitrineContent): Promise<PublishRe
     updateTag(HOME_TAG);
     return { ok: true, updatedAt };
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ok: false, error: `vitri.me/${parsed.data.handle} já está em uso` };
+    if (e instanceof HandleTakenError) return { ok: false, error: `${HOST}/${parsed.data.handle} já está em uso` };
     console.error("publish_vitrine", e);
     return { ok: false, error: "Erro ao salvar. Tente de novo." };
   }

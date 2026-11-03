@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { getPublicVitrine } from "@/lib/vitrine/data";
 import { shareImage, SHARE_SIZES } from "@/lib/vitrine/share-image";
 
-export const alt = "Vitrine de cupons no vitri";
+export const alt = "Vitrine de cupons no MyVitri";
 export const size = SHARE_SIZES.og;
 export const contentType = "image/png";
 

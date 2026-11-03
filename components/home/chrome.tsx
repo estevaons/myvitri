@@ -12,8 +12,8 @@ export const pillLight =
 export function SiteHeader({ links }: { links: [href: string, label: string][] }) {
   return (
     <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 py-3.5 ${pad}`}>
-      <Link href="/" aria-label="vitri — início" className="flex text-ink no-underline">
-        <Wordmark label="" className="h-[30px] w-auto" />
+      <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">
+        <Wordmark label="" className="h-[38px] w-auto" />
       </Link>
       <nav className="flex items-center gap-5">
         {links.map(([href, label]) => (
@@ -70,7 +70,7 @@ export function SiteFooter() {
     <footer className={`mx-auto mt-20 max-w-[1440px] md:mt-28 ${pad}`}>
       <div className="grid gap-10 border-t border-line py-12 md:grid-cols-[2fr_1fr_1fr]">
         <div className="flex max-w-xs flex-col gap-3">
-          <Wordmark className="h-[30px] w-auto self-start text-ink" />
+          <Wordmark className="h-[38px] w-auto self-start text-ink" />
           <p className="m-0 text-[15px] leading-relaxed text-mute">Os achados de quem você segue, com o cupom já no preço.</p>
         </div>
         {FOOTER.map(([title, links]) => (

@@ -86,7 +86,7 @@ export async function shareImage(content: VitrineContent, today: string, url: st
     </div>
   ));
 
-  const logoHeight = story ? 52 : 38;
+  const logoHeight = story ? 66 : 48;
   const logo = <Wordmark label="" ink={INK} height={logoHeight} width={Math.round(logoHeight * WORDMARK_RATIO)} />;
 
   const body = story ? (

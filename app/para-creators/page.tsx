@@ -4,13 +4,14 @@ import type { ReactNode } from "react";
 import { ClaimForm } from "@/components/auth/forms";
 import { pad, pillDark, SiteFooter, SiteHeader } from "@/components/home/chrome";
 import { ProductIcon } from "@/components/storefront/ProductIcon";
+import { HOST } from "@/lib/brand";
 import type { IconId } from "@/lib/vitrine/types";
 
 /** Mesmo visual das vitrines: branco, cinza claro, títulos condensados em caixa alta e botões em pílula. */
 
 const HERO: IconId[] = ["Shoe", "Bikini", "Bottle"];
 const KIT: IconId[] = ["Hat", "Glasses", "Bag", "Jar"];
-const STEPS = ["Escolha seu link vitri.me", "Cadastre seus cupons e produtos", "Coloque o link na bio e pronto"];
+const STEPS = [`Escolha seu link ${HOST}`, "Cadastre seus cupons e produtos", "Coloque o link na bio e pronto"];
 
 export const metadata: Metadata = {
   title: "Para creators",

@@ -3,6 +3,7 @@
 import { useActionState, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { claimAction, createVitrineAction, signInAction, type FormState } from "@/app/actions";
+import { HOST } from "@/lib/brand";
 
 /** Campos em pílula cinza, como a busca da vitrine; no foco ficam brancos com contorno. */
 const field = "box-border flex h-12 w-full min-w-0 items-center rounded-full border border-transparent bg-soft px-5 text-base text-ink outline-none placeholder:text-mute focus:border-ink focus:bg-white";
@@ -79,7 +80,7 @@ function ClaimFields({ initialName = "" }: { initialName?: string }) {
         Seu link
         {/* o prefixo fica dentro da pílula; o contorno de foco vale para o conjunto */}
         <span className={`${field} gap-0 focus-within:border-ink focus-within:bg-white`}>
-          <span className="flex-none text-mute">vitri.me/</span>
+          <span className="flex-none text-mute">{HOST}/</span>
           <input
             name="handle"
             required

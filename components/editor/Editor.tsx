@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { publishVitrine, saveDraftAction, signOutAction } from "@/app/actions";
 import { Wordmark } from "@/components/brand/Logo";
+import { HOST } from "@/lib/brand";
 import { Storefront } from "@/components/storefront/Storefront";
 import type { VitrineContent } from "@/lib/vitrine/types";
 import { couponAlerts, CouponsPanel } from "./CouponsPanel";
@@ -106,8 +107,8 @@ export function Editor({
     <div className="flex min-h-dvh flex-col bg-paper text-ink lg:h-dvh">
       <header className="border-b border-[#E0DCD3] bg-white">
         <div className="flex flex-wrap items-center gap-3.5 px-5 py-3">
-          <Link href="/" aria-label="vitri — início" className="flex text-ink no-underline">
-            <Wordmark label="" className="h-[30px] w-auto" />
+          <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">
+            <Wordmark label="" className="h-[38px] w-auto" />
           </Link>
           <span className="h-6 w-px bg-[#E0DCD3]" />
           <span className="text-[15px] font-semibold">Editar vitrine</span>
@@ -226,7 +227,7 @@ export function Editor({
                   <rect x="5" y="11" width="14" height="10" rx="2" />
                   <path d="M8 11V7a4 4 0 0 1 8 0v4" />
                 </svg>
-                vitri.me/{draft.handle}
+                {HOST}/{draft.handle}
               </span>
             </div>
             {/* A prévia é interativa, mas links não podem tirar a pessoa do editor. */}

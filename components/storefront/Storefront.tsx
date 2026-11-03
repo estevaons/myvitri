@@ -559,7 +559,7 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
       <footer className={`mx-auto mt-14 flex max-w-[1440px] flex-wrap items-center justify-between gap-3 border-t border-line py-8 text-[13px] text-mute ${pad}`}>
         <Link href="/" className="flex items-center gap-1.5 text-inherit no-underline">
           Feito com
-          <Wordmark className="h-[18px] w-auto text-ink" />
+          <Wordmark className="h-[23px] w-auto text-ink" />
         </Link>
         <span>Preços e cupons podem mudar na loja da marca. Links com identificação da creator.</span>
       </footer>
