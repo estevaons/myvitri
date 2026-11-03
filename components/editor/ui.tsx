@@ -3,23 +3,45 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { centsToInput, parseBRL } from "@/lib/vitrine/pricing";
 
-export const inputCls =
-  "h-[46px] w-full box-border rounded-xl border-[1.5px] border-[#D6D0C5] bg-white px-3 text-[15px] text-ink outline-none focus:border-ink";
+/** Borda e foco dos campos; também usado em caixas que embrulham um input (ex.: o link). */
+export const boxCls =
+  "rounded-[10px] border border-[#E6E2DA] bg-[#FAF9F7] transition-[border-color,background-color,box-shadow] hover:border-[#D6D0C5] focus:border-[#B9B2A6] focus:bg-white focus:shadow-[0_0_0_3px_rgba(17,17,17,0.06)] focus-within:border-[#B9B2A6] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(17,17,17,0.06)]";
+
+export const inputCls = `h-11 w-full box-border px-3 text-[15px] font-normal text-ink outline-none placeholder:text-[#ADA79C] ${boxCls}`;
+
+export const labelCls = "text-[13px] font-medium text-[#3A3A3A]";
 
 export const newId = () => crypto.randomUUID();
 
 export function H({ children }: { children: ReactNode }) {
-  return <h2 className="m-0 text-sm font-bold">{children}</h2>;
+  return <h2 className="m-0 text-[15px] font-semibold">{children}</h2>;
 }
 
 export function Hint({ children }: { children: ReactNode }) {
-  return <span className="text-[13px] font-normal text-[#5E5A52]">{children}</span>;
+  return <span className="text-xs leading-snug font-normal text-[#77726A]">{children}</span>;
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+/** Seção de um painel: título curto e os campos logo abaixo. */
+export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <label className="flex min-w-0 flex-col gap-1.5 text-[13px] font-semibold">
-      {label}
+    <section className="flex flex-col gap-4">
+      <h2 className="m-0 text-[11px] font-semibold tracking-[0.08em] text-[#8F897E] uppercase">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+export function Field({ label, hint, count, children }: { label: string; hint?: ReactNode; count?: [number, number]; children: ReactNode }) {
+  return (
+    <label className={`flex min-w-0 flex-col gap-1.5 ${labelCls}`}>
+      <span className="flex items-baseline justify-between gap-2">
+        {label}
+        {count && (
+          <span className={`text-[11px] font-normal tabular-nums ${count[0] >= count[1] ? "text-[#A3361B]" : "text-[#ADA79C]"}`}>
+            {count[0]}/{count[1]}
+          </span>
+        )}
+      </span>
       {children}
       {hint && <Hint>{hint}</Hint>}
     </label>
@@ -39,7 +61,7 @@ export function MoneyInput({ cents, onChange }: { cents: number; onChange: (cent
   const [text, setText] = useState(cents ? centsToInput(cents) : "");
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[15px] text-[#5E5A52]">R$</span>
+      <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[15px] font-normal text-[#8F897E]">R$</span>
       <input
         inputMode="decimal"
         value={text}
@@ -51,6 +73,29 @@ export function MoneyInput({ cents, onChange }: { cents: number; onChange: (cent
         onBlur={() => setText(cents ? centsToInput(cents) : "")}
         className={`${inputCls} pl-10`}
       />
+    </div>
+  );
+}
+
+/** Porcentagem de 1 a 100. O texto fica livre enquanto digita (apagar não vira "1"); só ajusta ao sair do campo. */
+export function PercentInput({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  const [text, setText] = useState(String(value));
+  return (
+    <div className="relative">
+      <input
+        inputMode="numeric"
+        aria-label="Porcentagem de desconto"
+        value={text}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+          setText(digits);
+          const n = Number(digits);
+          if (n >= 1) onChange(Math.min(100, n));
+        }}
+        onBlur={() => setText(String(value))}
+        className={`${inputCls} pr-9`}
+      />
+      <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[15px] font-normal text-[#8F897E]">%</span>
     </div>
   );
 }
@@ -70,7 +115,7 @@ export function Segmented<T extends string>({
     <div
       role="group"
       aria-label={label}
-      className="grid gap-[3px] rounded-xl bg-[#F2F0EB] p-[3px]"
+      className="grid gap-[3px] rounded-[10px] bg-[#F4F2EE] p-[3px]"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map(([id, text]) => (
@@ -79,8 +124,8 @@ export function Segmented<T extends string>({
           type="button"
           aria-pressed={id === value}
           onClick={() => onChange(id)}
-          className={`min-h-10 rounded-[9px] border-0 text-[13px] ${
-            id === value ? "bg-white font-bold shadow-[0_1px_2px_rgba(0,0,0,0.12)]" : "bg-transparent font-semibold text-[#3A3A3A]"
+          className={`min-h-[38px] rounded-[8px] border-0 text-[13px] transition-colors ${
+            id === value ? "bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(0,0,0,0.08)]" : "bg-transparent font-medium text-[#77726A] hover:text-ink"
           }`}
         >
           {text}
@@ -180,6 +225,7 @@ export function Row({
   pos,
   title,
   sub,
+  badge,
   thumb,
   open,
   onOpen,
@@ -190,6 +236,7 @@ export function Row({
   pos: number;
   title: string;
   sub?: string;
+  badge?: ReactNode;
   thumb: ReactNode;
   open: boolean;
   onOpen: () => void;
@@ -209,7 +256,7 @@ export function Row({
       ref={ref}
       data-sort-index={i}
       className={`scroll-mt-16 scroll-mb-5 rounded-[14px] border ${
-        sort.from !== null && sort.over === i && sort.from !== i ? "border-dashed border-ink bg-[#F7F6F3]" : open ? "border-ink" : "border-[#EEEBE5]"
+        sort.from !== null && sort.over === i && sort.from !== i ? "border-dashed border-[#8F897E] bg-[#FAF9F7]" : open ? "border-[#DDD8CF] shadow-[0_4px_16px_rgba(17,17,17,0.06)]" : "border-[#EEEBE5] hover:border-[#DDD8CF]"
       } ${sort.from === i ? "opacity-50" : ""}`}
     >
       <div className="flex items-center gap-2.5 p-1.5">
@@ -235,23 +282,24 @@ export function Row({
           {thumb}
           <span className="flex min-w-0 flex-col">
             <span className="truncate text-sm font-semibold">{title}</span>
-            {sub && <span className="truncate text-xs text-[#5E5A52]">{sub}</span>}
+            {sub && <span className="truncate text-xs text-[#77726A]">{sub}</span>}
           </span>
+          {badge && <span className="ml-auto flex-none pr-1.5">{badge}</span>}
         </button>
       </div>
-      {open && <div className="flex flex-col gap-3.5 border-t border-[#EEEBE5] p-3.5">{children}</div>}
+      {open && <div className="flex flex-col gap-4 border-t border-[#EEEBE5] p-4">{children}</div>}
     </div>
   );
 }
 
 export function FormActions({ onDone, onRemove, removeLabel }: { onDone: () => void; onRemove: () => void; removeLabel: string }) {
   return (
-    <div className="flex gap-2 pt-1">
-      <button type="button" onClick={onDone} className="min-h-11 flex-1 rounded-xl border-0 bg-ink text-sm font-bold text-white">
-        Concluir
-      </button>
-      <button type="button" onClick={onRemove} className="min-h-11 rounded-xl border-[1.5px] border-[#E7B7A8] bg-white px-4 text-sm font-semibold text-[#A3361B]">
+    <div className="flex items-center justify-between gap-2 border-t border-[#F1EEE8] pt-3.5">
+      <button type="button" onClick={onRemove} className="-ml-2 min-h-10 rounded-[10px] border-0 bg-transparent px-2 text-sm font-medium text-[#A3361B] hover:bg-[#FFF1EC]">
         {removeLabel}
+      </button>
+      <button type="button" onClick={onDone} className="min-h-10 rounded-[10px] border-0 bg-ink px-6 text-sm font-semibold text-white">
+        Concluir
       </button>
     </div>
   );
@@ -262,13 +310,25 @@ export function AddButton({ onClick, children }: { onClick: () => void; children
     <button
       type="button"
       onClick={onClick}
-      className="mt-1 min-h-12 rounded-[14px] border-2 border-dashed border-[#CFCAC0] bg-white text-sm font-bold text-[#3A3A3A]"
+      className="mt-1 min-h-11 rounded-[12px] border-[1.5px] border-dashed border-[#DDD8CF] bg-white text-sm font-medium text-[#5E5A52] transition-colors hover:border-[#B9B2A6] hover:bg-[#FAF9F7] hover:text-ink"
     >
       {children}
     </button>
   );
 }
 
+const PILL_TONES = {
+  ok: "bg-[#EAF5EE] text-[#1F6B3A]",
+  warn: "bg-[#FFF1D6] text-[#7A5200]",
+  off: "bg-[#F4F2EE] text-[#77726A]",
+  bad: "bg-[#FDECE7] text-[#A3361B]",
+};
+
+/** Etiqueta curta de situação (vence em breve, agendado…). */
+export function Pill({ tone, children }: { tone: keyof typeof PILL_TONES; children: ReactNode }) {
+  return <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold whitespace-nowrap ${PILL_TONES[tone]}`}>{children}</span>;
+}
+
 export function Empty({ children }: { children: ReactNode }) {
-  return <p className="m-0 rounded-[14px] bg-[#F7F6F3] p-4 text-sm leading-snug text-[#5E5A52]">{children}</p>;
+  return <p className="m-0 rounded-[12px] bg-[#FAF9F7] p-4 text-[13px] leading-snug text-[#77726A]">{children}</p>;
 }

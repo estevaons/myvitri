@@ -10,7 +10,7 @@ const noop = () => () => {};
 /** Origem real do site (localhost, domínio próprio…); vazio no servidor. */
 const useOrigin = () => useSyncExternalStore(noop, () => window.location.origin, () => "");
 
-const btn = "flex min-h-11 items-center justify-center rounded-xl border-[1.5px] border-[#D6D0C5] bg-white px-3.5 text-[13px] font-bold text-ink no-underline";
+const btn = "flex min-h-11 items-center justify-center rounded-[10px] border border-[#E6E2DA] bg-white px-3.5 text-[13px] font-semibold text-ink no-underline transition-colors hover:border-[#D6D0C5] hover:bg-[#FAF9F7]";
 
 function download(href: string, name: string) {
   const a = document.createElement("a");
@@ -52,7 +52,7 @@ export function SharePanel({ draft, update, publishedHandle }: { draft: VitrineC
       <div className="flex flex-col gap-2.5">
         <H>Seu link</H>
         <div className="flex gap-2">
-          <span className="flex h-[46px] min-w-0 flex-1 items-center truncate rounded-xl bg-[#F7F6F3] px-3 text-[15px]">{url.replace(/^https?:\/\//, "")}</span>
+          <span className="flex h-[46px] min-w-0 flex-1 items-center truncate rounded-[10px] bg-[#FAF9F7] px-3 text-[15px]">{url.replace(/^https?:\/\//, "")}</span>
           <button type="button" onClick={copy} className={`${btn} flex-none`}>
             {copied ? "Copiado!" : "Copiar"}
           </button>
@@ -99,7 +99,7 @@ export function SharePanel({ draft, update, publishedHandle }: { draft: VitrineC
       <div className="flex flex-col gap-2.5">
         <div className="flex items-center gap-3">
           <div className="flex flex-1 flex-col gap-0.5">
-            <span className="text-sm font-bold">Identificar minhas vendas (UTM)</span>
+            <span className="text-sm font-semibold">Identificar minhas vendas (UTM)</span>
             <Hint>As marcas veem no analytics delas que a visita veio de você.</Hint>
           </div>
           <Switch on={draft.tracking.utm} label="Adicionar UTM aos links das lojas" onToggle={() => setTracking({ utm: !draft.tracking.utm })} />

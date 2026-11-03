@@ -5,7 +5,7 @@ import { ProductArt } from "@/components/storefront/ProductIcon";
 import { formatBRL, kitTotals, priceProducts, type PricedProduct } from "@/lib/vitrine/pricing";
 import type { Kit, VitrineContent } from "@/lib/vitrine/types";
 import type { Update } from "./panels";
-import { AddButton, Empty, Field, FormActions, Hint, Row, TextInput, inputCls, newId, reorder, useDragSort } from "./ui";
+import { AddButton, Empty, Field, FormActions, H, Hint, Row, TextInput, inputCls, labelCls, newId, reorder, useDragSort } from "./ui";
 
 const MAX_ITEMS = 4;
 
@@ -34,7 +34,7 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
 
   return (
     <div className="flex flex-col gap-2.5">
-      <h2 className="m-0 text-sm font-bold">Kits montados por você</h2>
+      <H>Kits montados por você</H>
       <Hint>Junte até {MAX_ITEMS} produtos num combo. A vitrine soma os preços e mostra quanto a pessoa economiza.</Hint>
       {draft.products.length === 0 ? (
         <Empty>Adicione produtos primeiro para montar um kit.</Empty>
@@ -71,7 +71,7 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
               <TextInput value={k.signature} onChange={(signature) => setKit(k.id, { signature })} maxLength={80} placeholder="Ex.: Uso esse combo todo fim de semana" />
             </Field>
             <fieldset className="m-0 flex min-w-0 flex-col gap-1 border-0 p-0">
-              <legend className="mb-1.5 text-[13px] font-semibold">
+              <legend className={`mb-1.5 ${labelCls}`}>
                 Produtos ({k.productIds.length}/{MAX_ITEMS})
               </legend>
               {priced.map((p) => {
