@@ -1,0 +1,1 @@
+- [Escopo da documentação](feedback-escopo-docs.md) — só README, architecture.md e database.md; sem pegadinhas/dívida técnica

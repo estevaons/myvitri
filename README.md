@@ -1,6 +1,6 @@
 # MyVitri
 
-> 📚 **Documentação completa:** [`docs/`](docs/index.md) — comece pelo [índice e ordem de leitura](docs/index.md).
+> 📚 **Documentação:** [arquitetura](docs/architecture.md) e [banco de dados](docs/database.md).
 
 O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **vitrine pública** com os **cupons de desconto** das marcas que divulgam, os **produtos** que indicam (com o preço já calculado com o cupom) e **kits** de produtos. A vitrine fica num link curto (`myvitri.com/seunome`) para a bio do Instagram/TikTok. O seguidor copia o cupom e vai direto para a loja oficial da marca — o MyVitri não vende nada.
 
@@ -46,7 +46,7 @@ npx supabase db push
 
    Ou cole cada arquivo de `supabase/migrations/` no **SQL Editor**, do mais antigo para o mais novo.
 
-3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. **Atenção:** o `supabase/seed.sql` atual falha (usa as colunas antigas `tab`/`title` de `kits`). Veja a correção em [docs/admin.md → Recriar a vitrine de demonstração](docs/admin.md#8-recriar-a-vitrine-de-demonstração-marinacosta).
+3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. O `supabase/seed.sql` atual usa as colunas antigas `tab`/`title` de `kits` e precisa ser ajustado para `name` antes de rodar.
 
 **Opção B — Supabase local (Docker)**
 
@@ -71,8 +71,6 @@ Detalhes do schema: [docs/database.md](docs/database.md).
 1. No Google Cloud Console, crie um OAuth Client (Web) com o redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`.
 2. No Supabase: **Authentication → Providers → Google** (Client ID e Secret).
 3. No Supabase: **Authentication → URL Configuration**: *Site URL* `http://localhost:3000` e *Redirect URLs* com `http://localhost:3000/auth/callback`.
-
-Passo a passo completo e produção: [docs/admin.md → Configurar o login com Google](docs/admin.md#10-configurar-o-login-com-google).
 
 ### 4. Variáveis de ambiente
 
@@ -108,7 +106,7 @@ Abra [http://localhost:3000](http://localhost:3000).
 2. Depois do login você cai no editor (`/editor`). Cadastre um cupom, um produto e clique em **Publicar**.
 3. Veja a vitrine em `http://localhost:3000/<seu-link>`.
 
-Tarefas administrativas (editar dados, excluir contas, liberar links) são feitas no painel do Supabase — veja [docs/admin.md](docs/admin.md).
+Tarefas administrativas (editar dados, excluir contas, liberar links) são feitas no painel do Supabase.
 
 ### 7. Outros comandos
 
@@ -152,17 +150,6 @@ components/          auth/, editor/, storefront/, home/, brand/
 lib/                 brand.ts, supabase/ (clientes e tipos), vitrine/ (domínio)
 supabase/            migrations/ (SQL em ordem) e seed.sql
 proxy.ts             proxy do Next 16 (sessão e retorno do OAuth)
-docs/                esta documentação
+docs/                architecture.md e database.md
 ```
 
----
-
-## Pegadinhas que todo recém-chegado deve saber
-
-1. **O seed está quebrado** no schema atual — a vitrine `/marinacosta`, linkada no site, não existe num banco novo.
-2. **"Hoje" é calculado em UTC**, mas as métricas usam o fuso de São Paulo: das 21h à meia-noite as datas divergem.
-3. **Editar dados direto no Supabase demora até ~1 hora para aparecer** no site (cache), e a próxima publicação da creator sobrescreve tudo com o rascunho dela.
-4. **Uploads acima de 1 MB falham** por causa do limite padrão das Server Actions, apesar de o bucket aceitar 2 MB.
-5. **Sem testes nem CI**: rode `npm run lint` e teste o fluxo de publicar antes de abrir PR.
-
-Lista completa e priorizada: [docs/divida-tecnica.md](docs/divida-tecnica.md).

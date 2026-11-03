@@ -16,4 +16,4 @@ Isso vale para toda e qualquer modificação: rotas e páginas em `app/`, Server
 
 Nenhuma tarefa de código é considerada concluída antes de a documentação ter sido sincronizada por esse agente.
 
-📚 Documentação do projeto: [`docs/index.md`](docs/index.md).
+📚 Documentação do projeto: [`docs/architecture.md`](docs/architecture.md) e [`docs/database.md`](docs/database.md).
