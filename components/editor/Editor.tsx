@@ -154,7 +154,7 @@ export function Editor({
       <header className="border-b border-[#E0DCD3] bg-white">
         <div className="flex flex-wrap items-center gap-3.5 px-5 py-3">
           <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">
-            <Wordmark label="" className="h-[38px] w-auto" />
+            <Wordmark label="" className="h-[17px] w-auto" />
           </Link>
           <span className="h-6 w-px bg-[#E0DCD3]" />
           <span className="text-[15px] font-semibold">Editar vitrine</span>
@@ -266,9 +266,9 @@ export function Editor({
               </>
             )}
             {tab === "coupons" && <CouponsPanel {...panelProps} today={today} />}
-            {tab === "products" && <ProductsPanel {...panelProps} today={today} />}
+            {tab === "products" && <ProductsPanel {...panelProps} />}
             {tab === "kits" && <KitsPanel {...panelProps} />}
-            {tab === "share" && <SharePanel {...panelProps} publishedHandle={published.handle} />}
+            {tab === "share" && <SharePanel {...panelProps} publishedHandle={published.handle} publishedJson={JSON.stringify(published)} />}
             {tab === "metrics" && <MetricsPanel draft={draft} today={today} />}
           </div>
         </aside>

@@ -95,7 +95,14 @@ export async function findByHandle(db: Db, handle: string) {
   return data ? loadContent(db, data) : null;
 }
 
-export type FeedVitrine = Pick<VitrineContent, "handle" | "name" | "avatarUrl" | "headline" | "look" | "coupons" | "products">;
+/** Todas as vitrines publicadas, só endereço, nome e data da última publicação: para o sitemap e o llms.txt. */
+export async function listHandles(db: Db) {
+  const { data, error } = await db.from("vitrines").select("handle, name, updated_at").order("updated_at", { ascending: false }).limit(5000);
+  if (error) throw error;
+  return data.map((v) => ({ handle: v.handle, name: v.name, updatedAt: v.updated_at }));
+}
+
+export type FeedVitrine =Pick<VitrineContent, "handle" | "name" | "avatarUrl" | "headline" | "look" | "coupons" | "products">;
 
 /** Vitrines publicadas mais recentes com cupons e produtos, para a home. Três consultas, não uma por vitrine. */
 export async function listFeed(db: Db, limit: number): Promise<FeedVitrine[]> {

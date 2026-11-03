@@ -178,6 +178,7 @@ const UPLOADS = {
   logo: { bucket: "brand-logos", types: { "image/webp": "webp", "image/png": "png" }, maxBytes: 1_048_576 },
   cover: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
   avatar: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
+  product: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
 } satisfies Record<string, { bucket: string; types: Record<string, string>; maxBytes: number }>;
 export type ImageKind = keyof typeof UPLOADS;
 
@@ -198,24 +199,6 @@ export async function uploadImageAction(kind: ImageKind, form: FormData): Promis
     return { ok: false, error: "Não deu para enviar a imagem. Tente de novo." };
   }
   return { ok: true, url: bucket.getPublicUrl(path).data.publicUrl };
-}
-
-export type PriceCheck = { id: string; price: number | null; available: boolean | null };
-
-/** Confere preço e estoque na loja de cada produto (no máximo 60, 4 de cada vez). Quem falhar volta com nulls. */
-export async function refreshPricesAction(items: { id: string; url: string }[]): Promise<{ ok: true; results: PriceCheck[] } | { ok: false; error: string }> {
-  const { user } = await getUser();
-  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
-  const queue = items.filter((i) => /^https?:\/\//i.test(i.url)).slice(0, 60);
-  const results: PriceCheck[] = [];
-  const worker = async () => {
-    for (let item = queue.shift(); item; item = queue.shift()) {
-      const found = await importProductFromUrl(item.url).catch(() => null);
-      results.push({ id: item.id, price: found?.price ?? null, available: found?.available ?? null });
-    }
-  };
-  await Promise.all(Array.from({ length: 4 }, worker));
-  return { ok: true, results };
 }
 
 export type Stats = {

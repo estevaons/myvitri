@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, Section } from "@/components/home/LegalPage";
 import { BRAND, CONTACT_EMAIL, HOST } from "@/lib/brand";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Política de Privacidade",
-  description: `Como o ${BRAND} coleta, usa e protege seus dados.`,
-};
+export const metadata: Metadata = pageMeta({ title: "Política de Privacidade", description: `Como o ${BRAND} coleta, usa e protege seus dados.`, path: "/privacidade" });
 
 const mail = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
 
@@ -17,7 +15,7 @@ export default function Privacidade() {
       updated="2 de novembro de 2026"
       intro={
         <p className="m-0">
-          O {BRAND} ({HOST}) é uma plataforma em que creators montam uma vitrine pública com os cupons de desconto e os produtos que
+          O {BRAND} ({HOST}) é uma plataforma em que qualquer pessoa monta uma vitrine pública com os cupons de desconto e os produtos que
           indicam. Esta política explica quais dados coletamos, por que, com quem compartilhamos e como você controla seus dados, de
           acordo com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018, LGPD).
         </p>
@@ -42,8 +40,8 @@ export default function Privacidade() {
           pessoa que abrir sua vitrine.
         </p>
         <p>
-          <strong>Quem visita uma vitrine.</strong> Contamos visitas e cliques (por exemplo, “cupom copiado” ou “clique em comprar”)
-          para mostrar métricas à creator. Cada registro guarda só o tipo do evento, o item clicado e a data e hora. Não guardamos nome,
+          <strong>Quem visita uma vitrine.</strong> Contamos visitas e cliques (por exemplo, “cupom copiado” ou “clique para ir à loja”)
+          para mostrar métricas a quem é dono da vitrine. Cada registro guarda só o tipo do evento, o item clicado e a data e hora. Não guardamos nome,
           e-mail, endereço IP nem qualquer identificador pessoal junto com esses eventos.
         </p>
         <p>
