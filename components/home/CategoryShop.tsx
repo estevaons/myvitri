@@ -24,14 +24,14 @@ export function CategoryShop({ products }: { products: HomeProduct[] }) {
   return (
     <>
       {categories.length > 1 && (
-        <div role="group" aria-label="Filtrar por categoria" className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">
+        <div role="group" aria-label="Filtrar por categoria" className="no-scrollbar -mx-5 flex gap-7 overflow-x-auto border-b border-sand px-5 md:mx-0 md:justify-center md:px-0">
           {[ALL, ...categories].map((c) => (
             <button
               key={c}
               type="button"
               aria-pressed={c === cat}
               onClick={() => pick(c)}
-              className={`min-h-10 flex-none rounded-full border-0 px-4 text-[15px] font-medium whitespace-nowrap ${c === cat ? "bg-ink text-white" : "bg-soft text-ink hover:bg-line"}`}
+              className={`-mb-px min-h-11 flex-none border-0 border-b bg-transparent px-0 text-[12px] font-medium tracking-[0.2em] whitespace-nowrap uppercase ${c === cat ? "border-ink text-ink" : "border-transparent text-mute hover:text-ink"}`}
             >
               {c}
             </button>
@@ -42,12 +42,12 @@ export function CategoryShop({ products }: { products: HomeProduct[] }) {
       <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-4 md:gap-x-4 md:gap-y-12">
         {shown.slice(0, limit).map((p) => (
           <Link key={`${p.handle}:${p.id}`} href={`/${p.handle}#produtos`} className="flex min-w-0 flex-col text-ink no-underline">
-            <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-soft">
+            <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
               <ProductArt product={p} iconClassName="w-[52%]" />
             </div>
             <div className="flex flex-1 flex-col gap-0.5 pt-3 text-[15px] leading-snug max-md:text-sm">
-              {p.coupon && <span className="font-medium text-sale">Cupom {couponBadge(p.coupon)}</span>}
-              <span className="font-medium">{p.name}</span>
+              {p.coupon && <span className="text-[11px] font-medium tracking-[0.18em] text-gold uppercase">Cupom {couponBadge(p.coupon)}</span>}
+              <span>{p.name}</span>
               {p.brand && <span className="text-mute">{p.brand}</span>}
               {p.price > 0 && (
                 <span className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
@@ -64,7 +64,7 @@ export function CategoryShop({ products }: { products: HomeProduct[] }) {
       </div>
 
       {shown.length > limit && (
-        <button type="button" onClick={() => setLimit((n) => n + PAGE)} className="min-h-12 self-center rounded-full border border-[#CACACB] bg-white px-6 text-[15px] font-medium text-ink hover:border-ink">
+        <button type="button" onClick={() => setLimit((n) => n + PAGE)} className="min-h-12 self-center border border-ink bg-transparent px-7 text-[12px] font-medium tracking-[0.18em] text-ink uppercase hover:bg-ink hover:text-white">
           Ver mais achados
         </button>
       )}

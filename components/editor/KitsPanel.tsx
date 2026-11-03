@@ -12,7 +12,7 @@ const MAX_ITEMS = 4;
 /** Miniatura do kit na lista: a foto do primeiro produto sobre o cinza da vitrine. */
 function KitThumb({ items }: { items: PricedProduct[] }) {
   return (
-    <span aria-hidden="true" className="relative flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] bg-soft">
+    <span aria-hidden="true" className="relative flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] bg-cream">
       {items[0] && <ProductArt product={items[0]} iconClassName="w-[78%]" strokeWidth={4} />}
     </span>
   );
@@ -88,7 +88,7 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
                       }
                       className="size-[18px] flex-none accent-ink"
                     />
-                    <span aria-hidden="true" className="relative flex size-9 flex-none items-center justify-center overflow-hidden rounded-lg bg-soft">
+                    <span aria-hidden="true" className="relative flex size-9 flex-none items-center justify-center overflow-hidden rounded-lg bg-cream">
                       <ProductArt product={p} iconClassName="w-[70%]" strokeWidth={4} />
                     </span>
                     <span className="min-w-0 flex-1 truncate font-medium" title={p.name}>{p.name || "Produto sem nome"}</span>

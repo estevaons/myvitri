@@ -230,7 +230,7 @@ export function ProductsPanel({ draft, update, today }: { draft: VitrineContent;
           title={p.name || "Novo produto"}
           sub={[p.soldOut ? "Esgotado" : "", p.price ? formatBRL(p.final) : "", p.coupon?.code].filter(Boolean).join(" · ")}
           thumb={
-            <span aria-hidden="true" className="relative flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] bg-soft">
+            <span aria-hidden="true" className="relative flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] bg-cream">
               <ProductArt product={p} iconClassName="w-[78%]" strokeWidth={4} />
             </span>
           }
@@ -294,7 +294,7 @@ export function ProductsPanel({ draft, update, today }: { draft: VitrineContent;
                     aria-label={ICON_LABELS[icon]}
                     aria-pressed={p.icon === icon}
                     onClick={() => setProduct(p.id, { icon })}
-                    className={`flex aspect-square items-center justify-center rounded-[10px] border-2 bg-soft p-0.5 ${p.icon === icon ? "border-ink" : "border-transparent"}`}
+                    className={`flex aspect-square items-center justify-center rounded-[10px] border-2 bg-cream p-0.5 ${p.icon === icon ? "border-ink" : "border-transparent"}`}
                   >
                     <ProductIcon icon={icon} strokeWidth={5} className="w-full" />
                   </button>
