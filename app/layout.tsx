@@ -4,12 +4,12 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-// Títulos da vitrine das creators, em caixa alta, no estilo das lojas de esporte.
+// Títulos da vitrine, em caixa alta, no estilo das lojas de esporte.
 const barlow = Barlow_Condensed({ variable: "--font-barlow", subsets: ["latin"], weight: ["700", "800"] });
 
 export const metadata: Metadata = {
   title: { default: "MyVitri | Sua vitrine de cupons", template: "%s · MyVitri" },
-  description: "Junte todos os seus cupons e produtos favoritos em um link só. Feito para creators.",
+  description: "Junte todos os seus cupons e produtos favoritos em um link só. Feito para quem divulga marcas.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

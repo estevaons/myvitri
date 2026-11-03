@@ -8,7 +8,7 @@ export function LegalPage({ title, updated, intro, children }: { title: string; 
       <SiteHeader
         links={[
           ["/", "Explorar vitrines"],
-          ["/para-creators", "Para creators"],
+          ["/criar-vitrine", "Criar vitrine"],
         ]}
       />
       <article className={`mx-auto flex max-w-[760px] flex-col gap-10 pt-10 md:pt-16 ${pad}`}>
