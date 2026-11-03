@@ -2,7 +2,7 @@
 
 Bem-vindo(a)! Esta pasta explica o sistema inteiro para quem acabou de chegar. Todo documento começa com uma **visão geral sem jargão** e depois aprofunda nos detalhes técnicos, sempre apontando para arquivos e linhas reais do código.
 
-> Revisado contra o código no commit `6f93ec3` (branch `main`, 3 de novembro de 2026). Se o código mudou desde então, confie no código e atualize o documento.
+> Revisado contra o código no commit `6f93ec3` (branch `main`, 3 de novembro de 2026), mais as mudanças do commit `28d79ca` (branch `editor-produtos-kits-divulgar`, 3 de novembro de 2026: foto e formulário do produto, layout dos kits, aba Divulgar e imagens de divulgação). As PRs #8 a #12 (home, tema editorial, SEO e `/criar-vitrine`) ainda **não** foram conferidas. Se o código mudou desde então, confie no código e atualize o documento.
 
 ## Ordem de leitura sugerida
 
@@ -52,7 +52,7 @@ O projeto é um único app Next.js; os "módulos" são fatias funcionais.
 | Importação por link | [apps/importacao.md](apps/importacao.md) | `lib/vitrine/import-link.ts` | Lê produto/preço/logo de páginas de loja com proteção contra SSRF |
 | Uploads de imagem | [apps/uploads.md](apps/uploads.md) | `components/editor/{upload.ts,ImageField.tsx,LogoPicker.tsx}` | Reduz no navegador e guarda no Supabase Storage |
 | Métricas | [apps/metricas.md](apps/metricas.md) | `app/api/t/route.ts`, `components/editor/MetricsPanel.tsx` | Eventos anônimos e gráficos para a creator |
-| Divulgação | [apps/divulgacao.md](apps/divulgacao.md) | `lib/vitrine/share-image.tsx`, `app/[handle]/opengraph-image.tsx`, `app/[handle]/story/route.ts`, `components/editor/SharePanel.tsx` | Imagens OG e de stories, QR code, link e UTM |
+| Divulgação | [apps/divulgacao.md](apps/divulgacao.md) | `lib/vitrine/share-image.tsx`, `app/[handle]/opengraph-image.tsx`, `app/[handle]/story/route.ts`, `components/editor/SharePanel.tsx` | Imagens OG e de stories com fotos, link com status de publicação, onde colar e UTM |
 
 ## Glossário rápido
 

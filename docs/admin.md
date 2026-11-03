@@ -180,9 +180,9 @@ Todos os erros de servidor são logados com uma etiqueta fixa no primeiro argume
 | `publish_vitrine` | `app/actions.ts:134` | Publicação falhou por erro que não é "link em uso" |
 | `deleteDraft` | `app/actions.ts:127` | Publicou, mas não apagou o rascunho (o rascunho velho volta a aparecer no editor) |
 | `saveDraft` | `app/actions.ts:148` | Autosave falhou (o editor mostra "erro ao salvar rascunho") |
-| `uploadImage` | `app/actions.ts:197` | Upload para o Storage falhou |
+| `uploadImage` | `app/actions.ts:198` | Upload para o Storage falhou |
 | `delete_my_account` | `app/actions.ts:100` | Exclusão de conta falhou (os arquivos já podem ter sido apagados) |
-| `vitrine_stats` | `app/actions.ts:232` | Métricas não carregaram |
+| `vitrine_stats` | `app/actions.ts:215` | Métricas não carregaram |
 | `track` | `app/api/t/route.ts:24` | Insert em `events` falhou |
 | `getHomeFeed` | `app/page.tsx:69` | Home abriu sem dados (banco fora ou erro de consulta) |
 
@@ -200,5 +200,5 @@ Todos os erros de servidor são logados com uma etiqueta fixa no primeiro argume
 - **Edição manual + cache**: mudanças no banco aparecem com até ~1 hora de atraso (ver acima).
 - **Edição manual + rascunho**: a próxima publicação da creator sobrescreve tudo com o rascunho dela.
 - **Excluir usuário pelo painel não apaga os arquivos** do Storage; isso só acontece pelo botão do editor (`deleteAccountAction`), e mesmo assim limitado a 1000 arquivos por bucket.
-- **Arquivos órfãos**: trocar a foto de capa/perfil ou o logo não apaga o arquivo anterior do bucket. Os buckets só crescem.
+- **Arquivos órfãos**: trocar a foto de capa/perfil/produto ou o logo não apaga o arquivo anterior do bucket. Os buckets só crescem.
 - **A Política de Privacidade não menciona a Vercel Web Analytics** (seção 5 diz "Não usamos … ferramentas de rastreamento de terceiros"), embora `<Analytics />` esteja ativo em `app/layout.tsx:20`. Vale alinhar o texto com o jurídico.

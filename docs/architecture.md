@@ -9,7 +9,7 @@ Pense num **shopping**:
 - A **home** (`/`) é o corredor principal: mostra vitrines, cupons ativos, achados por categoria e marcas.
 - Cada **vitrine** (`/{handle}`) é uma loja. O visitante vê os produtos com o preço já calculado com o cupom, copia o código e é levado para a loja oficial da marca. O MyVitri **não vende nada**: só aponta para a loja certa com o cupom certo.
 - O **editor** (`/editor`) é o "estoque" da loja, onde a creator arruma tudo. Ela edita um **rascunho** (salvo sozinho a cada mudança) e, quando gosta do resultado, clica em **Publicar**.
-- A creator ainda tem **métricas** (quantas visitas e cliques a vitrine teve) e **ferramentas de divulgação** (QR code, imagem para stories, UTM nos links).
+- A creator ainda tem **métricas** (quantas visitas e cliques a vitrine teve) e **ferramentas de divulgação** (link com cópia em um toque, passo a passo de onde colar, imagem para stories e prévia do link com a foto dela e dos produtos, UTM nos links).
 
 O fluxo de uso é:
 
@@ -36,7 +36,7 @@ graph LR
 | Estilo | Tailwind CSS v4 | `^4` | Carregado pelo loader `@tailwindcss/turbopack` (`next.config.ts:10-17`), **sem** `postcss.config` |
 | Validação | Zod | `^4.6.7` | Schemas em `lib/vitrine/types.ts` |
 | Banco/Auth/Arquivos | Supabase (`@supabase/supabase-js`, `@supabase/ssr`) | `^2.118.0` / `^0.12.7` | Postgres + RLS, Auth com Google, Storage |
-| QR code | `qrcode` | `^1.5.4` | No editor (SVG/PNG) e na imagem de stories |
+| Imagens (servidor) | `sharp` | `^0.35.5` | Reduz e compõe as fotos de perfil e de produto das imagens OG/stories (`lib/vitrine/share-image.tsx`). Dependência direta desde que o QR code (`qrcode`) saiu |
 | Analytics | `@vercel/analytics` | `^2.0.1` | `<Analytics />` em `app/layout.tsx:20` |
 | Linguagem | TypeScript strict | `^5` | Alias `@/*` → raiz (`tsconfig.json`) |
 
@@ -74,7 +74,7 @@ O projeto não é dividido em "apps" como um monólito Django; os módulos abaix
 | Importação por link | Ler nome/foto/preço/estoque de páginas de loja; achar logos | `lib/vitrine/import-link.ts` | [importacao.md](apps/importacao.md) |
 | Uploads de imagem | Reduzir no navegador e enviar ao Storage | `components/editor/{upload.ts,ImageField.tsx,LogoPicker.tsx}` | [uploads.md](apps/uploads.md) |
 | Métricas | Registrar eventos anônimos e mostrar gráficos | `app/api/t/route.ts`, `components/editor/MetricsPanel.tsx` | [metricas.md](apps/metricas.md) |
-| Divulgação | Imagem OG, imagem de stories, QR, link, UTM | `app/[handle]/opengraph-image.tsx`, `app/[handle]/story/route.ts`, `lib/vitrine/share-image.tsx`, `components/editor/SharePanel.tsx` | [divulgacao.md](apps/divulgacao.md) |
+| Divulgação | Imagem OG e de stories (com fotos), link, status de publicação, onde colar, UTM | `app/[handle]/opengraph-image.tsx`, `app/[handle]/story/route.ts`, `lib/vitrine/share-image.tsx`, `components/editor/SharePanel.tsx` | [divulgacao.md](apps/divulgacao.md) |
 
 ### Dependências entre módulos
 
@@ -94,6 +94,7 @@ graph TD
     ED --> DIV[Divulgação]
     DIV --> DOM
     DIV --> HOME
+    DIV --> IMP
     AUTH --> DOM
     DOM --> SB[(Supabase Postgres)]
     AUTH --> SBA[(Supabase Auth)]
@@ -102,7 +103,7 @@ graph TD
     IMP --> EXT[Sites de loja e Brave Search]
 ```
 
-Leitura das setas: "usa". Exemplos concretos: a home usa `ProductArt` da vitrine pública (`components/storefront/ProductIcon.tsx`) e o `ClaimForm` da autenticação; o editor renderiza o próprio `Storefront` como prévia; a divulgação usa o `Wordmark` da marca (`components/brand/Logo.tsx`).
+Leitura das setas: "usa". Exemplos concretos: a home usa `ProductArt` da vitrine pública (`components/storefront/ProductIcon.tsx`) e o `ClaimForm` da autenticação; o editor renderiza o próprio `Storefront` como prévia; a divulgação usa o `Wordmark` da marca (`components/brand/Logo.tsx`) e o `fetchPublic` da importação para baixar as fotos das imagens.
 
 ### Rotas
 
@@ -114,7 +115,7 @@ Leitura das setas: "usa". Exemplos concretos: a home usa `ProductArt` da vitrine
 | `/editor` | `app/editor/page.tsx` | Página | Sempre por requisição (`connection()`); `?aba=` e `?erro=login` | [editor.md](apps/editor.md) |
 | `/{handle}` | `app/[handle]/page.tsx` | Página | `<Suspense>` + `getPublicVitrine()` (`"use cache"`, tag `vitrine:{handle}`) | [vitrine-publica.md](apps/vitrine-publica.md) |
 | `/{handle}/opengraph-image` | `app/[handle]/opengraph-image.tsx` | Imagem (convenção de metadata) | PNG 1200×630 | [divulgacao.md](apps/divulgacao.md) |
-| `/{handle}/story` | `app/[handle]/story/route.ts` | Route Handler `GET` | PNG 1080×1920 com QR | [divulgacao.md](apps/divulgacao.md) |
+| `/{handle}/story` | `app/[handle]/story/route.ts` | Route Handler `GET` | PNG 1080×1920 (perfil, produtos com foto, cupons) | [divulgacao.md](apps/divulgacao.md) |
 | `/api/t` | `app/api/t/route.ts` | Route Handler `POST` | Grava evento, sempre 204 | [metricas.md](apps/metricas.md) |
 | `/auth/callback` | `app/auth/callback/route.ts` | Route Handler `GET` | Troca `code` por sessão, cria vitrine | [autenticacao.md](apps/autenticacao.md) |
 | `/icon.svg`, `/apple-icon` | `app/icon.svg`, `app/apple-icon.tsx` | Ícones (convenção de metadata) | Estáticos | [home.md](apps/home.md) |
@@ -134,9 +135,8 @@ Todas as mutações passam por Server Actions num único arquivo. Toda action qu
 | `saveDraftAction` | 140 | sim | Autosave: grava ou apaga o rascunho | [editor](apps/editor.md) |
 | `importProductAction` | 155 | sim | Importa produto por link | [importacao](apps/importacao.md) |
 | `findLogoAction` | 166 | sim | Procura logos no site da loja | [importacao](apps/importacao.md) |
-| `uploadImageAction` | 185 | sim | Envia imagem ao Storage | [uploads](apps/uploads.md) |
-| `refreshPricesAction` | 206 | sim | Reconfere preço/estoque de até 60 produtos | [importacao](apps/importacao.md) |
-| `statsAction` | 227 | sim | Chama `vitrine_stats()` | [metricas](apps/metricas.md) |
+| `uploadImageAction` | 186 | sim | Envia imagem (logo, capa, perfil ou produto) ao Storage | [uploads](apps/uploads.md) |
+| `statsAction` | 210 | sim | Chama `vitrine_stats()` | [metricas](apps/metricas.md) |
 
 > Server Actions são endpoints HTTP públicos (POST para a URL da página). A checagem de sessão dentro de cada uma é obrigatória; a RLS do banco é a segunda barreira.
 
@@ -234,15 +234,15 @@ A vitrine pública (`/{handle}`), as imagens e `/api/t` não passam pelo proxy �
 |---|---|---|---|
 | Supabase Postgres (PostgREST) | Dados | `lib/vitrine/store.ts`, `app/api/t/route.ts`, `app/actions.ts` | sim |
 | Supabase Auth + Google OAuth | Login | `app/actions.ts:24-31`, `app/auth/callback/route.ts` | sim |
-| Supabase Storage | Fotos e logos enviados | `app/actions.ts:185-201` | sim (para upload) |
-| Sites das lojas (HTTP) | Importar produto, conferir preço, achar logo | `lib/vitrine/import-link.ts` | não (degrada para preenchimento manual) |
+| Supabase Storage | Fotos (capa, perfil, produto) e logos enviados | `app/actions.ts:177-202` | sim (para upload) |
+| Sites das lojas (HTTP) | Importar produto, achar logo e baixar as fotos das imagens de divulgação | `lib/vitrine/import-link.ts`, `lib/vitrine/share-image.tsx:33-56` | não (degrada para preenchimento manual; a imagem sai sem a foto) |
 | Brave Search API | Fallback quando a loja bloqueia robôs | `lib/vitrine/import-link.ts:207-251` | não (`BRAVE_SEARCH_API_KEY`) |
 | Google Favicons (`google.com/s2/favicons`) | Último recurso de logo | `lib/vitrine/import-link.ts:308` | não |
-| Google Fonts (CSS API, em tempo de execução) | Fontes TTF das imagens OG/stories | `lib/vitrine/share-image.tsx:25-38` | não (cai na fonte padrão) |
+| Google Fonts (CSS API, em tempo de execução) | Fontes TTF das imagens OG/stories | `lib/vitrine/share-image.tsx:58-84` | não (cai na fonte padrão) |
 | Google Fonts (via `next/font`, no build) | Inter e Barlow Condensed do site | `app/layout.tsx:6-8` | sim (no build) |
 | Vercel Web Analytics | Page views | `app/layout.tsx:20` | não |
 
-Imagens de produto e logos achados no site da loja são **hotlink** (URL externa exibida direto no `<img>`); só o que a creator envia vai para o Storage.
+Imagens de produto e logos achados no site da loja são **hotlink** (URL externa exibida direto no `<img>`); só o que a creator envia vai para o Storage. A exceção são as imagens OG/stories: ali o **servidor** baixa as fotos (perfil e produtos) a cada geração, com `fetchPublic` (proteção contra SSRF, 4 s por requisição) e `sharp`.
 
 ### Tarefas assíncronas, filas e "signals"
 
@@ -252,7 +252,6 @@ Imagens de produto e logos achados no site da loja são **hotlink** (URL externa
 |---|---|---|
 | Autosave do rascunho | Debounce de 800 ms no navegador → `saveDraftAction` | `components/editor/Editor.tsx:118-127` |
 | Registro de métricas | `navigator.sendBeacon` (fallback `fetch keepalive`) → `/api/t` | `components/storefront/Storefront.tsx:48-57` |
-| Conferência de preços | 4 "workers" concorrentes **dentro da mesma requisição** da action | `app/actions.ts:206-219` |
 | Busca automática de logo | Debounce de 700 ms no navegador | `components/editor/LogoPicker.tsx:43-47` |
 | Cupom vencer/começar | Não há job: a data é comparada na leitura (`couponStatus`), limitada pela revalidação do cache | `lib/vitrine/pricing.ts:26-30` |
 | Atualização da home | Revalidação do cache (`hours`) ou `updateTag(home)` ao publicar | `lib/vitrine/data.ts:51-55` |
@@ -274,7 +273,7 @@ Não há arquivos de configuração por ambiente; tudo vem de variáveis de ambi
 | Cookie de claim | sem `secure` | `secure` |
 | `redirectTo` do OAuth | montado a partir do header `origin`/`host` da requisição (`app/actions.ts:26`) | idem — cada domínio precisa estar nas Redirect URLs do Supabase |
 | Domínio exibido nos textos | sempre `myvitri.com` (constante `HOST`, `lib/brand.ts:3`) | idem |
-| Links reais (Divulgar, QR) | `window.location.origin` (`components/editor/SharePanel.tsx:11`) | idem |
+| Links reais (Divulgar) | `window.location.origin` (`components/editor/SharePanel.tsx:10`) | idem |
 | `AGENTS.md` | reescrito pelo `next dev` | — |
 
 ### Infraestrutura de produção
@@ -290,7 +289,7 @@ graph LR
     U -->|page views| VA[Vercel Analytics]
     V -->|PostgREST + Auth| SB[(Supabase Postgres + Auth)]
     V -->|upload| ST
-    V -->|scraping HTML| L
+    V -->|scraping HTML e fotos das imagens OG/stories| L
     V -->|fallback| BR[Brave Search API]
     V -->|fontes das imagens| GF[Google Fonts]
     G --> SB
@@ -326,7 +325,7 @@ graph LR
 1. **Sem testes, sem CI.** Nada impede um merge que quebre o build ou a migração. `npm run lint` é a única verificação disponível.
 2. **Fuso horário UTC vs. São Paulo** (ver acima).
 3. **Cache sem invalidação administrativa:** edições feitas direto no banco demoram até ~1 h para aparecer (ver [admin.md](admin.md#ponto-de-atenção-antes-de-qualquer-edição-manual-o-cache)).
-4. **Limite de 1 MB do corpo das Server Actions.** O padrão do Next é 1 MB e `next.config.ts` não define `serverActions.bodySizeLimit`, mas o bucket `vitrine-photos` aceita 2 MB e a action de upload também (`app/actions.ts:179-180`). Fotos de capa entre ~1 MB e 2 MB (mais prováveis no fallback JPEG) são recusadas pelo Next antes de chegar ao código. Ver [uploads.md](apps/uploads.md).
+4. **Limite de 1 MB do corpo das Server Actions.** O padrão do Next é 1 MB e `next.config.ts` não define `serverActions.bodySizeLimit`, mas o bucket `vitrine-photos` aceita 2 MB e a action de upload também (`app/actions.ts:179-181`). Fotos de capa, perfil ou produto entre ~1 MB e 2 MB (mais prováveis no fallback JPEG) são recusadas pelo Next antes de chegar ao código. Ver [uploads.md](apps/uploads.md).
 5. **Chamadas de Server Action sem `try/catch` no cliente.** Se a action lançar (rede, 413, deploy novo), vários componentes ficam presos em "Enviando…"/"Procurando…" porque o `setState(false)` vem depois do `await` (ex.: `components/editor/ImageField.tsx:65-73`, `components/editor/LogoPicker.tsx:35-40`).
 6. **Nome antigo "Vitri"** espalhado: pacote `vitri` (`package.json:2`), cookie `vitri_claim`, chave `vitri:visto:` no `sessionStorage`, user-agent `VitriBot/1.0`, `datalist` `vitri-categories`. Inofensivo, mas confunde buscas.
 7. **`public/` com SVGs do template** não usados.

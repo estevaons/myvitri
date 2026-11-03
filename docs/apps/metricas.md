@@ -19,7 +19,7 @@ No editor, a aba **Métricas** transforma esse caderno em números e gráficos p
 | [`components/storefront/Storefront.tsx`](../../components/storefront/Storefront.tsx) | `track()` (linhas 48-57), `send()` (218-220), visita única por aba (222-233), eventos nos botões |
 | [`app/api/t/route.ts`](../../app/api/t/route.ts) | `POST /api/t`: valida e grava em `events` |
 | [`supabase/migrations/20261102000700_creator_tools.sql`](../../supabase/migrations/20261102000700_creator_tools.sql) | Tabela `events`, policies e função `vitrine_stats()` |
-| [`app/actions.ts`](../../app/actions.ts) | Tipo `Stats` (221-225) e `statsAction(days)` (227-236) |
+| [`app/actions.ts`](../../app/actions.ts) | Tipo `Stats` (204-208) e `statsAction(days)` (210-219) |
 | [`components/editor/MetricsPanel.tsx`](../../components/editor/MetricsPanel.tsx) | Aba Métricas: blocos, gráfico diário, barras, tops |
 
 ## Entidades
@@ -31,7 +31,7 @@ Tabela `public.events` (`id`, `vitrine_id`, `kind`, `item_id`, `created_at`) —
 | `view` | Abrir a vitrine (1x por aba do navegador) | — |
 | `buy` | Foto ou botão de compra do produto | produto |
 | `copy` | Botão do cupom ("Copiar e ir para a loja"/"Copiar código") | cupom |
-| `kit` | Botão "Copiar … cupons do kit" | kit |
+| `kit` | Botão de compra de um item do kit (o mesmo clique também grava `buy` do produto) | kit |
 | `video` | "Ver meu review" | produto |
 
 ## Rotas / endpoints
@@ -39,7 +39,7 @@ Tabela `public.events` (`id`, `vitrine_id`, `kind`, `item_id`, `created_at`) —
 | Rota / Action | Handler | O que faz |
 |---|---|---|
 | `POST /api/t` | `app/api/t/route.ts:11` | Corpo `{ h: handle, k: kind, i?: uuid }`. Ignora user-agents de robô (`bot\|crawl\|spider\|preview\|facebookexternalhit\|whatsapp\|slurp\|headless`), `kind` desconhecido e `i` que não é UUID (vira `null`). Busca o `id` da vitrine pelo handle e insere em `events`. **Sempre responde 204**, mesmo com erro. |
-| `statsAction(days)` | `app/actions.ts:227` | Chama `rpc("vitrine_stats", { days })` com a sessão do usuário |
+| `statsAction(days)` | `app/actions.ts:210` | Chama `rpc("vitrine_stats", { days })` com a sessão do usuário |
 | RPC `vitrine_stats(days)` | migração `000700`, linhas 36-55 | Agrega os últimos `days` (1–90) da vitrine de `auth.uid()` |
 
 ## Fluxos principais
@@ -116,4 +116,5 @@ graph LR
 6. **Inflar métricas é fácil:** o filtro de robôs é só por user-agent e a policy de `events` permite insert anônimo **direto na API do Supabase**, sem passar por `/api/t`. Não há rate limit.
 7. **`/api/t` faz duas idas ao banco por evento** (busca o id pelo handle, depois insere) e engole erros (só `console.error("track", …)`).
 8. **`events` cresce para sempre** e as estatísticas são calculadas na hora a cada abertura da aba (há índice por `vitrine_id, created_at desc`, mas não há agregação prévia).
-9. **Cliques que não geram evento:** o nome da marca no cupom e os nomes dos itens no kit são links diretos para a loja, sem `track`.
+9. **Cliques que não geram evento:** o nome da marca no cupom é link direto para a loja, sem `track`.
+10. **Compra de item do kit conta duas vezes:** o botão grava `buy` (produto) e `kit` (kit); no gráfico diário, que soma os dois em `clicks`, um clique vira 2.
