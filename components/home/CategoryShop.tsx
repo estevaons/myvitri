@@ -9,67 +9,35 @@ import { couponBadge, formatBRL } from "@/lib/vitrine/pricing";
 const PAGE = 8;
 const ALL = "Todos";
 
-/** Categorias em destaque viram atalhos; o filtro escolhido (nelas ou nos chips) vale para a grade de achados logo abaixo. */
+/** Os chips filtram a grade de achados logo abaixo; o título da seção já diz que é por categoria. */
 export function CategoryShop({ products }: { products: HomeProduct[] }) {
-  const categories = useMemo(() => {
-    const first = new Map<string, HomeProduct>();
-    for (const p of products) if (p.category && !first.has(p.category)) first.set(p.category, p);
-    return [...first];
-  }, [products]);
+  const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))], [products]);
   const [cat, setCat] = useState(ALL);
   const [limit, setLimit] = useState(PAGE);
 
   const shown = cat === ALL ? products : products.filter((p) => p.category === cat);
-  // destaques em linhas cheias de 4 no computador; os chips abaixo têm todas
-  const tiles = categories.length < 4 ? categories : categories.slice(0, categories.length >= 8 ? 8 : 4);
   const pick = (c: string) => {
-    setCat(c === cat ? ALL : c);
+    setCat(c);
     setLimit(PAGE);
   };
 
   return (
     <>
-      {tiles.length > 0 && (
-        <div role="group" aria-label="Categorias em destaque" className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 md:mx-0 md:grid md:grid-cols-4 md:gap-4 md:px-0">
-          {tiles.map(([c, p]) => (
+      {categories.length > 1 && (
+        <div role="group" aria-label="Filtrar por categoria" className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">
+          {[ALL, ...categories].map((c) => (
             <button
               key={c}
               type="button"
               aria-pressed={c === cat}
               onClick={() => pick(c)}
-              className="group flex w-[42%] flex-none flex-col items-start border-0 bg-transparent p-0 text-left text-ink md:w-auto"
+              className={`min-h-10 flex-none rounded-full border-0 px-4 text-[15px] font-medium whitespace-nowrap ${c === cat ? "bg-ink text-white" : "bg-soft text-ink hover:bg-line"}`}
             >
-              <span
-                aria-hidden="true"
-                className={`relative flex aspect-square w-full items-center justify-center overflow-hidden bg-soft ${c === cat ? "outline-2 -outline-offset-2 outline-ink" : ""}`}
-              >
-                <ProductArt product={p} iconClassName="w-[46%] transition-transform duration-300 group-hover:scale-105" />
-              </span>
-              <span className="pt-3 text-[13px] text-mute">Achados de</span>
-              <span className="font-condensed text-[clamp(28px,3vw,40px)] leading-[0.95] font-extrabold uppercase group-hover:underline group-hover:underline-offset-4">{c}</span>
+              {c}
             </button>
           ))}
         </div>
       )}
-
-      <div className="flex flex-col gap-4 pt-4">
-        <h3 className="m-0 text-2xl font-medium tracking-[-0.01em]">{cat === ALL ? "Achados com desconto" : `Achados de ${cat}`}</h3>
-        {categories.length > 1 && (
-          <div role="group" aria-label="Filtrar por categoria" className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">
-            {[ALL, ...categories.map(([c]) => c)].map((c) => (
-              <button
-                key={c}
-                type="button"
-                aria-pressed={c === cat}
-                onClick={() => pick(c)}
-                className={`min-h-10 flex-none rounded-full border-0 px-4 text-[15px] font-medium whitespace-nowrap ${c === cat ? "bg-ink text-white" : "bg-soft text-ink hover:bg-line"}`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-4 md:gap-x-4 md:gap-y-12">
         {shown.slice(0, limit).map((p) => (
