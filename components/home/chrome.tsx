@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Wordmark } from "@/components/brand/Logo";
 
 /** Peças comuns da home e da página para creators, no mesmo visual das vitrines. */
 
@@ -8,19 +9,11 @@ export const pillDark = "flex min-h-12 items-center justify-center rounded-full 
 export const pillLight =
   "flex min-h-11 items-center justify-center rounded-full border border-[#CACACB] bg-white px-5 text-[15px] font-medium text-ink no-underline hover:border-ink";
 
-export function Logo({ className = "text-[26px]" }: { className?: string }) {
-  return (
-    <span className={`font-display font-extrabold tracking-[-0.04em] ${className}`}>
-      vitri<span className="text-coral">.</span>
-    </span>
-  );
-}
-
 export function SiteHeader({ links }: { links: [href: string, label: string][] }) {
   return (
     <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 py-3.5 ${pad}`}>
-      <Link href="/" aria-label="vitri. — início" className="text-ink no-underline">
-        <Logo />
+      <Link href="/" aria-label="vitri — início" className="flex text-ink no-underline">
+        <Wordmark label="" className="h-[30px] w-auto" />
       </Link>
       <nav className="flex items-center gap-5">
         {links.map(([href, label]) => (
@@ -77,7 +70,7 @@ export function SiteFooter() {
     <footer className={`mx-auto mt-20 max-w-[1440px] md:mt-28 ${pad}`}>
       <div className="grid gap-10 border-t border-line py-12 md:grid-cols-[2fr_1fr_1fr]">
         <div className="flex max-w-xs flex-col gap-3">
-          <Logo />
+          <Wordmark className="h-[30px] w-auto self-start text-ink" />
           <p className="m-0 text-[15px] leading-relaxed text-mute">Os achados de quem você segue, com o cupom já no preço.</p>
         </div>
         {FOOTER.map(([title, links]) => (

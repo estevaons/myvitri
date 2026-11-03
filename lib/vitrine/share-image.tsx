@@ -1,6 +1,7 @@
 import "server-only";
 import { ImageResponse } from "next/og";
 import QRCode from "qrcode";
+import { WORDMARK_RATIO, Wordmark } from "@/components/brand/Logo";
 import { couponOff, isActive } from "./pricing";
 import type { VitrineContent } from "./types";
 
@@ -39,7 +40,6 @@ function googleFont(family: string, weight: number) {
 async function fonts() {
   const list = [
     { name: "Display", family: "Barlow Condensed", weight: 800 as const },
-    { name: "Logo", family: "Bricolage Grotesque", weight: 800 as const },
     { name: "Body", family: "Inter", weight: 400 as const },
     { name: "Body", family: "Inter", weight: 500 as const },
   ];
@@ -86,11 +86,8 @@ export async function shareImage(content: VitrineContent, today: string, url: st
     </div>
   ));
 
-  const logo = (
-    <span style={{ display: "flex", fontFamily: "Logo", fontSize: story ? 48 : 34, fontWeight: 800, letterSpacing: -2 }}>
-      vitri<span style={{ color: "#FF5A36" }}>.</span>
-    </span>
-  );
+  const logoHeight = story ? 52 : 38;
+  const logo = <Wordmark label="" ink={INK} height={logoHeight} width={Math.round(logoHeight * WORDMARK_RATIO)} />;
 
   const body = story ? (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", padding: "110px 90px", gap: 56 }}>

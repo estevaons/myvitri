@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Wordmark } from "@/components/brand/Logo";
 import { productHref, withUtm } from "@/lib/vitrine/links";
 import {
   couponBadge,
@@ -556,11 +557,9 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
       </section>
 
       <footer className={`mx-auto mt-14 flex max-w-[1440px] flex-wrap items-center justify-between gap-3 border-t border-line py-8 text-[13px] text-mute ${pad}`}>
-        <Link href="/" className="flex items-baseline gap-1.5 text-inherit no-underline">
+        <Link href="/" className="flex items-center gap-1.5 text-inherit no-underline">
           Feito com
-          <span className="font-display text-lg font-extrabold tracking-[-0.04em] text-ink">
-            vitri<span className="text-coral">.</span>
-          </span>
+          <Wordmark className="h-[18px] w-auto text-ink" />
         </Link>
         <span>Preços e cupons podem mudar na loja da marca. Links com identificação da creator.</span>
       </footer>

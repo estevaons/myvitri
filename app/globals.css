@@ -14,10 +14,6 @@
   --color-sale: #007d48;
 }
 
-@utility font-display {
-  font-family: var(--font-bricolage), sans-serif;
-}
-
 /* Carrossel que rola de lado sem mostrar a barra (os botões e o arraste fazem o papel dela). */
 @utility no-scrollbar {
   scrollbar-width: none;
