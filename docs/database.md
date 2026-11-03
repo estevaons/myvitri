@@ -119,7 +119,7 @@ erDiagram
 |---|---|---|
 | 1 | `20261102000000_vitrines.sql` | Cria `vitrines`, `coupons`, `products`, `kits`, índices, RLS, `owns_vitrine()` e a 1ª versão de `publish_vitrine()`. Kits tinham `tab` + `title`. |
 | 2 | `20261102000100_split_owner_policies.sql` | Troca as policies `for all` do dono por policies separadas de `insert`/`update`/`delete` (o `for all` também cobria `select` e duplicava a policy pública). |
-| — | *(000200 e 000300)* | **Não existem no repositório.** A numeração pula de `000100` para `000400`. Ver [pegadinhas](#pegadinhas-e-dívidas-de-modelagem). |
+| — | *(000200 e 000300)* | **Não existem no repositório.** A numeração pula de `000100` para `000400`. |
 | 3 | `20261102000400_vitrine_drafts.sql` | Cria `vitrine_drafts` (rascunho do editor) com RLS só do dono. |
 | 4 | `20261102000500_kit_name.sql` | Kit passa a ter um nome só: renomeia `tab` → `name`, copia `title` para `name` quando existia, apaga `title`, migra rascunhos antigos e recria `publish_vitrine()`. |
 | 5 | `20261102000600_kit_style.sql` | Adiciona `kits.style jsonb` e recria `publish_vitrine()`. |
@@ -128,7 +128,7 @@ erDiagram
 | 8 | `20261102000900_delete_account.sql` | Cria `delete_my_account()` (`security definer`). |
 | 9 | `20261103000000_brand_logos.sql` | Cria o bucket `brand-logos` e as policies de `storage.objects`. |
 | 10 | `20261103000100_vitrine_photos.sql` | Cria o bucket `vitrine-photos` e as policies. |
-| — | `supabase/seed.sql` | Vitrine de demonstração `/marinacosta`. **Quebrada** no schema atual (ver pegadinhas). |
+| — | `supabase/seed.sql` | Vitrine de demonstração `/marinacosta`. Insere em `kits` pelas colunas antigas `tab`/`title`. |
 
 ## Tabelas
 
@@ -171,7 +171,7 @@ Cupons de desconto de uma vitrine. `20261102000000_vitrines.sql:18-30` + colunas
 | `store_url` | `text` | não | `''` | Link da loja (recebe UTM na vitrine). |
 | `logo_url` | `text` | não | `''` | Logo da marca (bucket `brand-logos` ou URL externa). |
 | `how_to` | `text` | não | `''` | `CHECK char_length <= 400`. Passos, um por linha. |
-| `starts_at` | `date` | sim | — | Antes dessa data o cupom fica "agendado" e escondido. O editor atual não deixa criar agendamentos novos (ver [editor](apps/editor.md)). |
+| `starts_at` | `date` | sim | — | Antes dessa data o cupom fica "agendado" e escondido. O editor atual não deixa criar agendamentos novos. |
 | `color` | `jsonb` | não | `'"auto"'` | `CHECK jsonb_typeof(color) in ('string','number') and pg_column_size(color) <= 40`. **Legado:** o schema Zod não tem `color`, então toda publicação grava `"auto"`. |
 
 **Índices:** `coupons_vitrine_idx (vitrine_id, position)`.
@@ -251,7 +251,6 @@ Significado de `kind`:
 | `kit` | Botão de compra de um item do kit (dispara também o `buy` do produto) | id do kit |
 | `video` | Link "Ver meu review" | id do produto |
 
-Detalhes em [apps/metricas.md](apps/metricas.md).
 
 ## Storage (arquivos)
 
@@ -367,15 +366,3 @@ O app trabalha em `camelCase` (`VitrineContent`), o banco em `snake_case`. A con
 | `VitrineContent` → banco | RPC `publish_vitrine` (o próprio SQL converte) | `lib/vitrine/store.ts:195` |
 | rascunho → `VitrineContent` | `findDraft` (completa campos novos, remove legados) | `lib/vitrine/store.ts:145` |
 
-## Pegadinhas e dívidas de modelagem
-
-1. **O seed está quebrado.** `supabase/seed.sql:38` insere em `kits (…, tab, title, …)`, mas a migração `000500` renomeou `tab` para `name` e apagou `title`. Como o seed é um único comando com CTEs, ele falha inteiro e a vitrine `/marinacosta` não é criada num banco novo — e ela é linkada no rodapé, na home e na landing. Correção sugerida: trocar `tab, title` por `name` e passar `x.title` no `select`.
-2. **Buraco na numeração das migrações** (`000200` e `000300` não existem). Se o banco de produção recebeu migrações com esses números que depois saíram do repositório, `supabase db push` pode reclamar de histórico divergente. Confira `supabase_migrations.schema_migrations` antes de aplicar.
-3. **Colunas legadas** gravadas mas não usadas: `vitrines.show`, quase todo `vitrines.look` (só `bannerUrl` vale), `coupons.color`, `kits.style`. O default de `look` ainda traz o tema antigo.
-4. **`publish_vitrine` apaga e reinsere tudo** a cada publicação. Simples e atômico, mas: (a) qualquer trigger/auditoria futura veria um "delete + insert" e não um "update"; (b) se um `id` enviado colidir com o de outra vitrine (PK global), o erro `23505` é traduzido erradamente como "link já está em uso", porque `isUniqueViolation` não olha o nome da constraint (`lib/vitrine/store.ts:19`).
-5. **Integridade entre vitrines não é garantida:** `products.coupon_id` só exige que o cupom exista, não que seja da mesma vitrine. A vitrine pública ignora cupons de fora (`priceProducts` só usa os cupons da própria vitrine), mas o dado fica inconsistente.
-6. **`events` aceita insert direto via PostgREST** com a chave publicável (policy para `anon`). O filtro de bots da rota `/api/t` não protege contra quem chama a API do Supabase direto; dá para inflar métricas de qualquer vitrine. Não há limite de taxa nem expurgo: a tabela cresce para sempre.
-7. **`vitrines` é pública por inteiro:** `owner_id` (UUID do usuário no Auth) e `tracking` saem para qualquer visitante que consulte a API.
-8. **Fuso horário misto:** `vitrine_stats` agrupa por dia em `America/Sao_Paulo`, mas o app calcula "hoje" em UTC (`new Date().toISOString().slice(0, 10)`). Entre 21h e 0h (horário de Brasília) os dois discordam — cupons vencem/entram ~3h antes e o gráfico de métricas desloca o dia. Ver [arquitetura](architecture.md#datas-e-fuso-horário).
-9. **`database.types.ts` diz "Gerado… Não editar à mão"**, mas as colunas novas aparecem no fim de cada bloco (fora de ordem alfabética), sugerindo edição manual. Regere com `supabase gen types typescript` depois de cada migração.
-10. **Sem `supabase/config.toml`** no repositório: o projeto não traz configuração para Supabase local (ver [README](../README.md#2-banco-supabase)).

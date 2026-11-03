@@ -62,19 +62,19 @@ Não há testes automatizados, CI, Dockerfile nem filas/jobs no repositório.
 
 ### Mapa dos módulos
 
-O projeto não é dividido em "apps" como um monólito Django; os módulos abaixo são **fatias funcionais**. Cada uma tem seu documento em [`docs/apps/`](apps/).
+O projeto não é dividido em "apps" como um monólito Django; os módulos abaixo são **fatias funcionais**.
 
-| Módulo | Responsabilidade | Principais arquivos | Doc |
-|---|---|---|---|
-| Domínio | Tipos, schemas, preço com cupom, UTM, leitura/gravação no Supabase, cache de leitura pública | `lib/vitrine/{types,pricing,links,store,data}.ts` | [dominio.md](apps/dominio.md) |
-| Autenticação | Login com Google, sessão, criação da vitrine, sair, excluir conta | `proxy.ts`, `app/auth/callback/route.ts`, `lib/supabase/server.ts`, `lib/vitrine/claim.ts`, `components/auth/forms.tsx` | [autenticacao.md](apps/autenticacao.md) |
-| Editor | Rascunho com autosave, painéis, prévia, publicação | `app/editor/page.tsx`, `components/editor/*` | [editor.md](apps/editor.md) |
-| Vitrine pública | Página `/{handle}` | `app/[handle]/page.tsx`, `components/storefront/*` | [vitrine-publica.md](apps/vitrine-publica.md) |
-| Home e páginas institucionais | Home de descoberta, landing de creators, privacidade, termos, marca | `app/page.tsx`, `app/para-creators/`, `app/privacidade/`, `app/termos/`, `components/home/*`, `components/brand/*` | [home.md](apps/home.md) |
-| Importação por link | Ler nome/foto/preço/estoque de páginas de loja; achar logos | `lib/vitrine/import-link.ts` | [importacao.md](apps/importacao.md) |
-| Uploads de imagem | Reduzir no navegador e enviar ao Storage | `components/editor/{upload.ts,ImageField.tsx,LogoPicker.tsx}` | [uploads.md](apps/uploads.md) |
-| Métricas | Registrar eventos anônimos e mostrar gráficos | `app/api/t/route.ts`, `components/editor/MetricsPanel.tsx` | [metricas.md](apps/metricas.md) |
-| Divulgação | Imagem OG e de stories (com fotos), link, status de publicação, onde colar, UTM | `app/[handle]/opengraph-image.tsx`, `app/[handle]/story/route.ts`, `lib/vitrine/share-image.tsx`, `components/editor/SharePanel.tsx` | [divulgacao.md](apps/divulgacao.md) |
+| Módulo | Responsabilidade | Principais arquivos |
+|---|---|---|
+| Domínio | Tipos, schemas, preço com cupom, UTM, leitura/gravação no Supabase, cache de leitura pública | `lib/vitrine/{types,pricing,links,store,data}.ts` |
+| Autenticação | Login com Google, sessão, criação da vitrine, sair, excluir conta | `proxy.ts`, `app/auth/callback/route.ts`, `lib/supabase/server.ts`, `lib/vitrine/claim.ts`, `components/auth/forms.tsx` |
+| Editor | Rascunho com autosave, painéis, prévia, publicação | `app/editor/page.tsx`, `components/editor/*` |
+| Vitrine pública | Página `/{handle}` | `app/[handle]/page.tsx`, `components/storefront/*` |
+| Home e páginas institucionais | Home de descoberta, landing de creators, privacidade, termos, marca | `app/page.tsx`, `app/para-creators/`, `app/privacidade/`, `app/termos/`, `components/home/*`, `components/brand/*` |
+| Importação por link | Ler nome/foto/preço/estoque de páginas de loja; achar logos | `lib/vitrine/import-link.ts` |
+| Uploads de imagem | Reduzir no navegador e enviar ao Storage | `components/editor/{upload.ts,ImageField.tsx,LogoPicker.tsx}` |
+| Métricas | Registrar eventos anônimos e mostrar gráficos | `app/api/t/route.ts`, `components/editor/MetricsPanel.tsx` |
+| Divulgação | Imagem OG e de stories (com fotos), link, status de publicação, onde colar, UTM | `app/[handle]/opengraph-image.tsx`, `app/[handle]/story/route.ts`, `lib/vitrine/share-image.tsx`, `components/editor/SharePanel.tsx` |
 
 ### Dependências entre módulos
 
@@ -107,36 +107,36 @@ Leitura das setas: "usa". Exemplos concretos: a home usa `ProductArt` da vitrine
 
 ### Rotas
 
-| Rota | Arquivo | Tipo | Renderização | Detalhe |
-|---|---|---|---|---|
-| `/` | `app/page.tsx` | Página | Dados via `getHomeFeed()` (`"use cache"`, tag `home`) | [home.md](apps/home.md) |
-| `/para-creators` | `app/para-creators/page.tsx` | Página | Estática + formulário cliente | [home.md](apps/home.md) |
-| `/privacidade`, `/termos` | `app/privacidade/page.tsx`, `app/termos/page.tsx` | Páginas | Estáticas | [home.md](apps/home.md) |
-| `/editor` | `app/editor/page.tsx` | Página | Sempre por requisição (`connection()`); `?aba=` e `?erro=login` | [editor.md](apps/editor.md) |
-| `/{handle}` | `app/[handle]/page.tsx` | Página | `<Suspense>` + `getPublicVitrine()` (`"use cache"`, tag `vitrine:{handle}`) | [vitrine-publica.md](apps/vitrine-publica.md) |
-| `/{handle}/opengraph-image` | `app/[handle]/opengraph-image.tsx` | Imagem (convenção de metadata) | PNG 1200×630 | [divulgacao.md](apps/divulgacao.md) |
-| `/{handle}/story` | `app/[handle]/story/route.ts` | Route Handler `GET` | PNG 1080×1920 (perfil, produtos com foto, cupons) | [divulgacao.md](apps/divulgacao.md) |
-| `/api/t` | `app/api/t/route.ts` | Route Handler `POST` | Grava evento, sempre 204 | [metricas.md](apps/metricas.md) |
-| `/auth/callback` | `app/auth/callback/route.ts` | Route Handler `GET` | Troca `code` por sessão, cria vitrine | [autenticacao.md](apps/autenticacao.md) |
-| `/icon.svg`, `/apple-icon` | `app/icon.svg`, `app/apple-icon.tsx` | Ícones (convenção de metadata) | Estáticos | [home.md](apps/home.md) |
+| Rota | Arquivo | Tipo | Renderização |
+|---|---|---|---|
+| `/` | `app/page.tsx` | Página | Dados via `getHomeFeed()` (`"use cache"`, tag `home`) |
+| `/para-creators` | `app/para-creators/page.tsx` | Página | Estática + formulário cliente |
+| `/privacidade`, `/termos` | `app/privacidade/page.tsx`, `app/termos/page.tsx` | Páginas | Estáticas |
+| `/editor` | `app/editor/page.tsx` | Página | Sempre por requisição (`connection()`); `?aba=` e `?erro=login` |
+| `/{handle}` | `app/[handle]/page.tsx` | Página | `<Suspense>` + `getPublicVitrine()` (`"use cache"`, tag `vitrine:{handle}`) |
+| `/{handle}/opengraph-image` | `app/[handle]/opengraph-image.tsx` | Imagem (convenção de metadata) | PNG 1200×630 |
+| `/{handle}/story` | `app/[handle]/story/route.ts` | Route Handler `GET` | PNG 1080×1920 (perfil, produtos com foto, cupons) |
+| `/api/t` | `app/api/t/route.ts` | Route Handler `POST` | Grava evento, sempre 204 |
+| `/auth/callback` | `app/auth/callback/route.ts` | Route Handler `GET` | Troca `code` por sessão, cria vitrine |
+| `/icon.svg`, `/apple-icon` | `app/icon.svg`, `app/apple-icon.tsx` | Ícones (convenção de metadata) | Estáticos |
 
 ### Server Actions (`app/actions.ts`)
 
 Todas as mutações passam por Server Actions num único arquivo. Toda action que mexe em dados chama `getUser()` e devolve erro amigável sem sessão.
 
-| Action | Linha | Precisa de login? | O que faz | Doc |
-|---|---|---|---|---|
-| `claimAction` | 47 | não | Landing: valida link/nome, guarda cookie e manda para o Google (ou cria direto se já logado) | [autenticacao](apps/autenticacao.md) |
-| `signInAction` | 64 | não | Inicia login Google a partir do editor | [autenticacao](apps/autenticacao.md) |
-| `createVitrineAction` | 69 | sim | Cria a vitrine para quem logou sem uma | [autenticacao](apps/autenticacao.md) |
-| `signOutAction` | 76 | — | Encerra a sessão e volta para `/` | [autenticacao](apps/autenticacao.md) |
-| `deleteAccountAction` | 86 | sim | Apaga arquivos, chama `delete_my_account()` e invalida caches | [autenticacao](apps/autenticacao.md) |
-| `publishVitrine` | 114 | sim | Valida com Zod, chama `publish_vitrine()`, apaga rascunho, invalida caches | [editor](apps/editor.md) |
-| `saveDraftAction` | 140 | sim | Autosave: grava ou apaga o rascunho | [editor](apps/editor.md) |
-| `importProductAction` | 155 | sim | Importa produto por link | [importacao](apps/importacao.md) |
-| `findLogoAction` | 166 | sim | Procura logos no site da loja | [importacao](apps/importacao.md) |
-| `uploadImageAction` | 186 | sim | Envia imagem (logo, capa, perfil ou produto) ao Storage | [uploads](apps/uploads.md) |
-| `statsAction` | 210 | sim | Chama `vitrine_stats()` | [metricas](apps/metricas.md) |
+| Action | Linha | Precisa de login? | O que faz |
+|---|---|---|---|
+| `claimAction` | 47 | não | Landing: valida link/nome, guarda cookie e manda para o Google (ou cria direto se já logado) |
+| `signInAction` | 64 | não | Inicia login Google a partir do editor |
+| `createVitrineAction` | 69 | sim | Cria a vitrine para quem logou sem uma |
+| `signOutAction` | 76 | — | Encerra a sessão e volta para `/` |
+| `deleteAccountAction` | 86 | sim | Apaga arquivos, chama `delete_my_account()` e invalida caches |
+| `publishVitrine` | 114 | sim | Valida com Zod, chama `publish_vitrine()`, apaga rascunho, invalida caches |
+| `saveDraftAction` | 140 | sim | Autosave: grava ou apaga o rascunho |
+| `importProductAction` | 155 | sim | Importa produto por link |
+| `findLogoAction` | 166 | sim | Procura logos no site da loja |
+| `uploadImageAction` | 186 | sim | Envia imagem (logo, capa, perfil ou produto) ao Storage |
+| `statsAction` | 210 | sim | Chama `vitrine_stats()` |
 
 > Server Actions são endpoints HTTP públicos (POST para a URL da página). A checagem de sessão dentro de cada uma é obrigatória; a RLS do banco é a segunda barreira.
 
@@ -226,7 +226,7 @@ A vitrine pública (`/{handle}`), as imagens e `/api/t` não passam pelo proxy �
 
 - Login **só com Google**, via Supabase Auth (`signInWithOAuth`), fluxo com `code` trocado em `/auth/callback`.
 - Três clientes Supabase no servidor (`lib/supabase/server.ts`): `createSupabase()` (com cookies, para actions e páginas dinâmicas), `createPublicSupabase()` (anônimo, para cache) e `getUser()` (atalho que devolve cliente + usuário).
-- **Autorização é do banco**: RLS + `owns_vitrine()`. O app nunca usa chave de serviço. Detalhes em [database.md](database.md#políticas-rls-estado-final) e [autenticacao.md](apps/autenticacao.md).
+- **Autorização é do banco**: RLS + `owns_vitrine()`. O app nunca usa chave de serviço. Detalhes em [database.md](database.md#políticas-rls-estado-final).
 
 ### Integrações externas
 
@@ -296,7 +296,7 @@ graph LR
 ```
 
 - **Deploy do app:** presumivelmente pela integração Git da Vercel (push na `main` / PRs com preview). Não há `vercel.json`.
-- **Deploy do banco:** manual, com `supabase db push` (ver [admin.md](admin.md#9-aplicar-migrações-em-produção)).
+- **Deploy do banco:** manual, com `supabase db push`.
 - **Segredos:** só no painel da Vercel e no Supabase. `.env*` está no `.gitignore` (exceto `.env.example`). Nenhum segredo versionado foi encontrado.
 
 ### Estilo e design
@@ -310,7 +310,6 @@ graph LR
 - Datas de cupom são strings `AAAA-MM-DD` comparadas como texto (`lib/vitrine/pricing.ts:26-30`).
 - "Hoje" é calculado em **UTC** no servidor: `new Date().toISOString().slice(0, 10)` em `lib/vitrine/data.ts:23`, `lib/vitrine/data.ts:56` e `app/editor/page.tsx:24`.
 - As métricas agrupam por dia em **`America/Sao_Paulo`** (`supabase/migrations/20261102000700_creator_tools.sql:39`).
-- Resultado: das 21h à meia-noite (horário de Brasília) o app já está "no dia seguinte". Cupons vencem/entram até 3 h antes do esperado e o último ponto do gráfico de métricas ("hoje") fica vazio nesse intervalo.
 
 ### Convenções de código
 
@@ -320,16 +319,3 @@ graph LR
 - Erros para o usuário são **strings prontas em PT-BR** devolvidas pelas actions (`{ ok: false, error }`), nunca exceções.
 - Nada de `next/image`: imagens são `<img>` com `eslint-disable` explicando que a URL é arbitrária.
 
-## Pegadinhas de arquitetura
-
-1. **Sem testes, sem CI.** Nada impede um merge que quebre o build ou a migração. `npm run lint` é a única verificação disponível.
-2. **Fuso horário UTC vs. São Paulo** (ver acima).
-3. **Cache sem invalidação administrativa:** edições feitas direto no banco demoram até ~1 h para aparecer (ver [admin.md](admin.md#ponto-de-atenção-antes-de-qualquer-edição-manual-o-cache)).
-4. **Limite de 1 MB do corpo das Server Actions.** O padrão do Next é 1 MB e `next.config.ts` não define `serverActions.bodySizeLimit`, mas o bucket `vitrine-photos` aceita 2 MB e a action de upload também (`app/actions.ts:179-181`). Fotos de capa, perfil ou produto entre ~1 MB e 2 MB (mais prováveis no fallback JPEG) são recusadas pelo Next antes de chegar ao código. Ver [uploads.md](apps/uploads.md).
-5. **Chamadas de Server Action sem `try/catch` no cliente.** Se a action lançar (rede, 413, deploy novo), vários componentes ficam presos em "Enviando…"/"Procurando…" porque o `setState(false)` vem depois do `await` (ex.: `components/editor/ImageField.tsx:65-73`, `components/editor/LogoPicker.tsx:35-40`).
-6. **Nome antigo "Vitri"** espalhado: pacote `vitri` (`package.json:2`), cookie `vitri_claim`, chave `vitri:visto:` no `sessionStorage`, user-agent `VitriBot/1.0`, `datalist` `vitri-categories`. Inofensivo, mas confunde buscas.
-7. **`public/` com SVGs do template** não usados.
-8. **README original era o padrão do `create-next-app`** (substituído por esta documentação).
-9. **Política de Privacidade x código:** a política diz que não há ferramentas de rastreamento de terceiros, mas a Vercel Web Analytics está ativa.
-
-A lista consolidada, com prioridade, está em [divida-tecnica.md](divida-tecnica.md).
