@@ -4,7 +4,7 @@ import { updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
-import { vitrineTag } from "@/lib/vitrine/data";
+import { HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
 import { saveClaim, starterContent } from "@/lib/vitrine/claim";
 import { importProductFromUrl, type ImportedProduct } from "@/lib/vitrine/import-link";
 import { createVitrine, deleteDraft, findMine, HandleTakenError, isHandleTaken, publishVitrine as publish, saveDraft } from "@/lib/vitrine/store";
@@ -98,6 +98,7 @@ export async function publishVitrine(content: VitrineContent): Promise<PublishRe
     await deleteDraft(supabase, user.id).catch((e) => console.error("deleteDraft", e));
     updateTag(vitrineTag(prevHandle));
     if (prevHandle !== parsed.data.handle) updateTag(vitrineTag(parsed.data.handle));
+    updateTag(HOME_TAG);
     return { ok: true, updatedAt };
   } catch (e) {
     if (e instanceof HandleTakenError) return { ok: false, error: `vitri.me/${parsed.data.handle} já está em uso` };

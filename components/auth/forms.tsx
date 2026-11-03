@@ -4,9 +4,10 @@ import { useActionState, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { claimAction, createVitrineAction, signInAction, type FormState } from "@/app/actions";
 
-const field = "h-12 min-w-0 rounded-full border-0 bg-white px-4 text-base outline-none focus:ring-2 focus:ring-ink";
-/** Caixa cinza clara que junta os campos e o botão, como os cards da vitrine. */
-const box = "flex flex-col gap-2 rounded-[28px] bg-soft p-2";
+/** Campos em pílula cinza, como a busca da vitrine; no foco ficam brancos com contorno. */
+const field = "box-border flex h-12 w-full min-w-0 items-center rounded-full border border-transparent bg-soft px-5 text-base text-ink outline-none placeholder:text-mute focus:border-ink focus:bg-white";
+const label = "flex flex-col gap-1.5 text-left text-[13px] font-medium";
+const box = "flex flex-col gap-4";
 const submit = "min-h-12 rounded-full border-0 bg-ink px-6 text-base font-medium text-white";
 
 function GoogleLogo() {
@@ -52,7 +53,7 @@ function toHandle(text: string) {
 }
 
 /**
- * Link + nome. O link acompanha o nome enquanto a pessoa não mexe nele;
+ * Nome + link. O link acompanha o nome enquanto a pessoa não mexe nele;
  * se ela apagar o link, volta a acompanhar.
  */
 function ClaimFields({ initialName = "" }: { initialName?: string }) {
@@ -61,36 +62,43 @@ function ClaimFields({ initialName = "" }: { initialName?: string }) {
   const handle = custom ?? toHandle(name);
   return (
     <>
-      <label className="flex min-w-0 flex-1 items-center rounded-full bg-white pl-4 text-lg focus-within:ring-2 focus-within:ring-ink">
-        <span className="font-medium text-mute">vitri.me/</span>
+      <label className={label}>
+        Seu nome
         <input
-          name="handle"
+          name="name"
           required
-          value={handle}
-          onChange={(e) => {
-            const v = toHandle(e.target.value.replace(/^@/, ""));
-            setCustom(v || null);
-          }}
-          placeholder="seunome"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          aria-label="Seu link"
-          pattern="[a-z0-9_.]{3,30}"
-          title="De 3 a 30 letras, números, ponto ou _"
-          className="h-12 min-w-0 flex-1 border-0 bg-transparent text-lg font-semibold outline-none"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Como aparece na vitrine"
+          autoComplete="name"
+          maxLength={60}
+          className={field}
         />
       </label>
-      <input
-        name="name"
-        required
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Seu nome"
-        aria-label="Seu nome"
-        maxLength={60}
-        className={field}
-      />
+      <label className={label}>
+        Seu link
+        {/* o prefixo fica dentro da pílula; o contorno de foco vale para o conjunto */}
+        <span className={`${field} gap-0 focus-within:border-ink focus-within:bg-white`}>
+          <span className="flex-none text-mute">vitri.me/</span>
+          <input
+            name="handle"
+            required
+            value={handle}
+            onChange={(e) => {
+              const v = toHandle(e.target.value.replace(/^@/, ""));
+              setCustom(v || null);
+            }}
+            placeholder="seunome"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            pattern="[a-z0-9_.]{3,30}"
+            title="De 3 a 30 letras, números, ponto ou _"
+            className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink outline-none placeholder:text-[#B5B5B5]"
+          />
+        </span>
+      </label>
+      <span className="-mt-2.5 pl-5 text-left text-[13px] text-mute">É o endereço que vai na sua bio.</span>
     </>
   );
 }
