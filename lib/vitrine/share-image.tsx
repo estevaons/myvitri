@@ -39,7 +39,7 @@ function googleFont(family: string, weight: number) {
   return fontCache.get(key)!;
 }
 
-async function fonts() {
+export async function fonts() {
   const list = [
     { name: "Display", family: "EB Garamond", weight: 400 as const },
     { name: "Body", family: "Inter", weight: 400 as const },

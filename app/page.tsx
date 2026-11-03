@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { CategoryShop } from "@/components/home/CategoryShop";
 import { kicker, pad, pillDark, SectionHead, SiteFooter, SiteHeader } from "@/components/home/chrome";
 import { ProductArt, ProductIcon } from "@/components/storefront/ProductIcon";
-import { HOST } from "@/lib/brand";
+import { BRAND, HOST } from "@/lib/brand";
+import { DESCRIPTION, JsonLd, pageMeta, siteJsonLd } from "@/lib/seo";
 import { getHomeFeed, type HomeCreator, type HomeFeed } from "@/lib/vitrine/data";
 import { couponOff, expiryLabel } from "@/lib/vitrine/pricing";
 import type { IconId } from "@/lib/vitrine/types";
@@ -11,6 +13,10 @@ import type { IconId } from "@/lib/vitrine/types";
  * Home de quem compra: descobrir vitrines, cupons ativos, achados por categoria e marcas.
  * A página de venda para quem divulga fica em /criar-vitrine.
  */
+
+const TITLE = `${BRAND} | Cupons e achados de quem você segue`;
+// título absoluto: na home o nome do site vem primeiro, sem o sufixo do template
+export const metadata: Metadata = { ...pageMeta({ title: TITLE, description: DESCRIPTION, path: "/" }), title: { absolute: TITLE } };
 
 const EMPTY: HomeFeed = { creators: [], coupons: [], products: [], brands: [], today: "" };
 const HERO_ICONS: IconId[] = ["Shoe", "Bikini", "Glasses", "Bottle"];
@@ -96,6 +102,7 @@ export default async function Home() {
 
   return (
     <div className="overflow-hidden bg-white text-ink">
+      <JsonLd data={siteJsonLd} />
       <SiteHeader
         links={[
           ["#vitrines", "Vitrines"],

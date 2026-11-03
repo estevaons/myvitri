@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, Section } from "@/components/home/LegalPage";
 import { BRAND, CONTACT_EMAIL, HOST } from "@/lib/brand";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Política de Privacidade",
-  description: `Como o ${BRAND} coleta, usa e protege seus dados.`,
-};
+export const metadata: Metadata = pageMeta({ title: "Política de Privacidade", description: `Como o ${BRAND} coleta, usa e protege seus dados.`, path: "/privacidade" });
 
 const mail = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
 
