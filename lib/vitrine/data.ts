@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
 import { isActive, priceProducts, type PricedProduct } from "./pricing";
-import { findByHandle, listFeed } from "./store";
+import { findByHandle, listFeed, listHandles } from "./store";
 import type { Coupon, VitrineContent } from "./types";
 
 export const vitrineTag = (handle: string) => `vitrine:${handle}`;
@@ -21,6 +21,14 @@ export async function getPublicVitrine(handle: string): Promise<PublicVitrine | 
   const content = await findByHandle(createPublicSupabase(), handle);
   if (!content) return null;
   return { content, today: new Date().toISOString().slice(0, 10) };
+}
+
+/** Endereços das vitrines para o sitemap e o llms.txt; segue a home, que já é invalidada a cada publicação. */
+export async function getPublicHandles() {
+  "use cache";
+  cacheTag(HOME_TAG);
+  cacheLife("hours");
+  return listHandles(createPublicSupabase());
 }
 
 type By = { handle: string; creator: string };
