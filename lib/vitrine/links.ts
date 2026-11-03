@@ -9,7 +9,7 @@ export function withUtm(url: string, content: Pick<VitrineContent, "handle" | "t
   try {
     const u = new URL(url);
     if ([...u.searchParams.keys()].some((k) => k.startsWith("utm_"))) return url;
-    u.searchParams.set("utm_source", "vitri");
+    u.searchParams.set("utm_source", "myvitri");
     u.searchParams.set("utm_medium", "creator");
     u.searchParams.set("utm_campaign", content.tracking.campaign || content.handle);
     return u.toString();

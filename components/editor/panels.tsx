@@ -1,5 +1,6 @@
 "use client";
 
+import { HOST } from "@/lib/brand";
 import type { VitrineContent } from "@/lib/vitrine/types";
 import { Field, TextInput, inputCls } from "./ui";
 
@@ -15,7 +16,7 @@ export function ProfilePanel({ draft, update }: PanelProps) {
       </Field>
       <Field label="Seu link" hint="O endereço da sua vitrine.">
         <div className="flex items-center rounded-xl border-[1.5px] border-[#D6D0C5] bg-white pl-3 focus-within:border-ink">
-          <span className="text-[15px] text-[#5E5A52]">vitri.me/</span>
+          <span className="text-[15px] text-[#5E5A52]">{HOST}/</span>
           <input
             value={draft.handle}
             onChange={(e) => set({ handle: e.target.value.toLowerCase().replace(/^@/, "").replace(/[^a-z0-9_.]/g, "") })}

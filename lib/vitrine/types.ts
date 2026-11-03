@@ -5,7 +5,7 @@ export const SECTION_IDS = ["ticker", "products", "coupons", "kits", "cta"] as c
 
 export const RESERVED_HANDLES = new Set([
   "editor", "api", "admin", "login", "entrar", "sair", "cadastro", "app", "www",
-  "vitri", "ajuda", "termos", "privacidade", "_next", "favicon.ico",
+  "vitri", "myvitri", "ajuda", "termos", "privacidade", "_next", "favicon.ico",
 ]);
 
 export const HANDLE_RE = /^[a-z0-9_.]{3,30}$/;

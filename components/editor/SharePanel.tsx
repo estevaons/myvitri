@@ -109,7 +109,7 @@ export function SharePanel({ draft, update, publishedHandle }: { draft: VitrineC
             label="Nome da campanha"
             hint={
               <>
-                Os links ganham <span className="break-all">utm_source=vitri&amp;utm_medium=creator&amp;utm_campaign={campaign}</span>. Links de afiliado
+                Os links ganham <span className="break-all">utm_source=myvitri&amp;utm_medium=creator&amp;utm_campaign={campaign}</span>. Links de afiliado
                 ficam como estão.
               </>
             }

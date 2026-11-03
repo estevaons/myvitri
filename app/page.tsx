@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CategoryShop } from "@/components/home/CategoryShop";
 import { pad, pillDark, pillLight, SectionHead, SiteFooter, SiteHeader } from "@/components/home/chrome";
 import { ProductArt, ProductIcon } from "@/components/storefront/ProductIcon";
+import { HOST } from "@/lib/brand";
 import { getHomeFeed, type HomeCreator, type HomeFeed } from "@/lib/vitrine/data";
 import { couponBadge, couponOff, expiryLabel } from "@/lib/vitrine/pricing";
 import type { IconId } from "@/lib/vitrine/types";
@@ -140,7 +141,7 @@ export default async function Home() {
                 </span>
               </div>
               <span className="pt-3 text-[17px] font-medium">Monte a sua em 2 minutos</span>
-              <span className="text-[15px] text-mute">vitri.me/seunome</span>
+              <span className="text-[15px] text-mute">{HOST}/seunome</span>
             </Link>
           </div>
         </section>
