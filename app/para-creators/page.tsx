@@ -60,7 +60,6 @@ export default function ParaCreators() {
           </p>
           <div id="criar" className="mt-3 flex w-full scroll-mt-24 flex-col items-center gap-3">
             <ClaimForm />
-            <span className="text-[13px] text-mute">É só entrar com sua conta Google.</span>
           </div>
         </div>
       </section>

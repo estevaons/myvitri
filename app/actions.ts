@@ -79,6 +79,27 @@ export async function signOutAction() {
   redirect("/");
 }
 
+/**
+ * Apaga a conta de quem está logado, com vitrine, itens, métricas e rascunho (cascata no banco).
+ * `confirm` precisa ser o link publicado da vitrine, digitado pela pessoa.
+ */
+export async function deleteAccountAction(confirm: string): Promise<{ error: string }> {
+  const { supabase, user, vitrine } = await findMine();
+  if (!user) return { error: "Sessão expirada. Entre de novo." };
+  if (vitrine && confirm.trim().toLowerCase().replace(/^@/, "") !== vitrine.handle) return { error: "O link digitado não confere." };
+
+  const { error } = await supabase.rpc("delete_my_account");
+  if (error) {
+    console.error("delete_my_account", error);
+    return { error: "Não deu para excluir a conta. Tente de novo." };
+  }
+  // A conta já não existe: só limpamos os cookies da sessão.
+  await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+  if (vitrine) updateTag(vitrineTag(vitrine.handle));
+  updateTag(HOME_TAG);
+  redirect("/");
+}
+
 const ITEM_LABELS: Record<string, string> = { coupons: "Cupom", products: "Produto", kits: "Kit" };
 
 export type PublishResult = { ok: true; updatedAt: string } | { ok: false; error: string };

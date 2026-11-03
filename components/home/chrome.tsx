@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Wordmark } from "@/components/brand/Logo";
+import { BRAND } from "@/lib/brand";
 
 /** Peças comuns da home e da página para creators, no mesmo visual das vitrines. */
 
@@ -84,9 +85,19 @@ export function SiteFooter() {
           </nav>
         ))}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-6 text-[13px] text-mute">
-        <span>Preços e cupons podem mudar na loja da marca.</span>
-        <span>Feito no Brasil</span>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-line py-6 text-[13px] text-mute">
+        <span>
+          © {BRAND} · Preços e cupons podem mudar na loja da marca.
+        </span>
+        <nav aria-label="Informações legais" className="flex gap-5">
+          <Link href="/privacidade" className="text-inherit no-underline hover:text-ink">
+            Privacidade
+          </Link>
+          <Link href="/termos" className="text-inherit no-underline hover:text-ink">
+            Termos
+          </Link>
+          <span>Feito no Brasil</span>
+        </nav>
       </div>
     </footer>
   );

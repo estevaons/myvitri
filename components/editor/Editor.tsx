@@ -8,6 +8,7 @@ import { HOST } from "@/lib/brand";
 import { Storefront } from "@/components/storefront/Storefront";
 import type { VitrineContent } from "@/lib/vitrine/types";
 import { couponAlerts, CouponsPanel } from "./CouponsPanel";
+import { DeleteAccount } from "./DeleteAccount";
 import { KitsPanel } from "./KitsPanel";
 import { MetricsPanel } from "./MetricsPanel";
 import { ProfilePanel, type Update } from "./panels";
@@ -206,7 +207,12 @@ export function Editor({
             ))}
           </div>
           <div role="tabpanel" className="flex flex-col gap-[26px] p-5">
-            {tab === "profile" && <ProfilePanel {...panelProps} />}
+            {tab === "profile" && (
+              <>
+                <ProfilePanel {...panelProps} />
+                <DeleteAccount handle={published.handle} />
+              </>
+            )}
             {tab === "coupons" && <CouponsPanel {...panelProps} today={today} />}
             {tab === "products" && <ProductsPanel {...panelProps} today={today} />}
             {tab === "kits" && <KitsPanel {...panelProps} />}

@@ -282,6 +282,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_my_account: { Args: never; Returns: undefined }
       owns_vitrine: { Args: { v: string }; Returns: boolean }
       publish_vitrine: { Args: { content: Json }; Returns: string }
       vitrine_stats: { Args: { days?: number }; Returns: Json }
