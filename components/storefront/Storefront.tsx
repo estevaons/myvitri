@@ -549,7 +549,7 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
         <div className="flex flex-col items-center gap-4 bg-soft px-6 py-16 text-center @max-md:py-12">
           <h2 className="m-0 font-condensed text-[clamp(32px,4.4cqw,52px)] leading-[0.92] font-extrabold uppercase">Você também cria conteúdo?</h2>
           <p className="m-0 text-[17px]">Monte sua vitrine de cupons em 2 minutos.</p>
-          <Link href="/" className={`${pillDark} mt-2`}>
+          <Link href="/para-creators" className={`${pillDark} mt-2`}>
             Criar minha vitrine grátis
           </Link>
         </div>

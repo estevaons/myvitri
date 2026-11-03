@@ -1,145 +1,232 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { ClaimForm } from "@/components/auth/forms";
-import { ProductIcon } from "@/components/storefront/ProductIcon";
+import { CategoryShop } from "@/components/home/CategoryShop";
+import { pad, pillDark, pillLight, SectionHead, SiteFooter, SiteHeader } from "@/components/home/chrome";
+import { ProductArt, ProductIcon } from "@/components/storefront/ProductIcon";
+import { getHomeFeed, type HomeCreator, type HomeFeed } from "@/lib/vitrine/data";
+import { couponBadge, couponOff, expiryLabel } from "@/lib/vitrine/pricing";
 import type { IconId } from "@/lib/vitrine/types";
 
-/** Mesmo visual das vitrines: branco, cinza claro, títulos condensados em caixa alta e botões em pílula. */
+/**
+ * Home de quem compra: descobrir creators, cupons ativos, achados por categoria e marcas.
+ * A página de venda para creators fica em /para-creators.
+ */
 
-const HERO: IconId[] = ["Shoe", "Bikini", "Bottle"];
-const KIT: IconId[] = ["Hat", "Glasses", "Bag", "Jar"];
-const STEPS = ["Escolha seu link vitri.me", "Cadastre seus cupons e produtos", "Coloque o link na bio e pronto"];
+const EMPTY: HomeFeed = { creators: [], coupons: [], products: [], brands: [], today: "" };
+const HERO_ICONS: IconId[] = ["Shoe", "Bikini", "Glasses", "Bottle"];
 
-const pad = "px-5 md:px-12";
-const pillDark = "flex min-h-12 items-center justify-center rounded-full bg-ink px-6 text-[15px] font-medium text-white no-underline";
-const pillLight = "flex min-h-11 items-center justify-center rounded-full border border-[#CACACB] bg-white px-5 text-[15px] font-medium text-ink no-underline hover:border-ink";
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
 
-function Feature({ title, text, children }: { title: string; text: string; children: ReactNode }) {
+function Avatar({ name, url, className }: { name: string; url: string; className: string }) {
+  if (url) {
+    // eslint-disable-next-line @next/next/no-img-element -- avatar vem de URL arbitrária
+    return <img src={url} alt="" className={`${className} object-cover`} />;
+  }
   return (
-    <article className="flex min-w-0 flex-col">
-      <div aria-hidden="true" className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-soft">
-        {children}
-      </div>
-      <h3 className="m-0 pt-4 text-[17px] font-medium">{title}</h3>
-      <p className="m-0 pt-1 text-[15px] leading-relaxed text-mute">{text}</p>
-    </article>
+    <span aria-hidden="true" className={`${className} flex items-center justify-center bg-white font-semibold text-ink`}>
+      {initials(name) || "?"}
+    </span>
   );
 }
 
-export default function Home() {
+function CreatorCard({ c }: { c: HomeCreator }) {
+  return (
+    <Link href={`/${c.handle}`} className="group flex min-w-0 flex-col text-ink no-underline">
+      <div aria-hidden="true" className="relative aspect-[3/4] overflow-hidden bg-soft">
+        {c.bannerUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- capa vem de URL arbitrária
+          <img src={c.bannerUrl} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+        ) : (
+          <div className="grid size-full grid-cols-2 grid-rows-2 gap-px bg-white">
+            {Array.from({ length: 4 }, (_, i) => c.art[i]).map((p, i) => (
+              <div key={p?.id ?? i} className="relative flex items-center justify-center overflow-hidden bg-soft">
+                {p && <ProductArt product={p} iconClassName="w-[56%]" strokeWidth={3.6} />}
+              </div>
+            ))}
+          </div>
+        )}
+        {c.best && <span className="absolute top-3 left-3 rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-sale">Até {c.best}</span>}
+        <Avatar name={c.creator} url={c.avatarUrl} className="absolute bottom-3 left-3 box-border size-12 rounded-full border-2 border-white text-sm" />
+      </div>
+      <span className="pt-3 text-[17px] font-medium group-hover:underline group-hover:underline-offset-2">{c.creator}</span>
+      <span className="text-[15px] text-mute">
+        @{c.handle}
+        {c.coupons > 0 && ` · ${c.coupons} ${c.coupons === 1 ? "cupom" : "cupons"}`}
+      </span>
+    </Link>
+  );
+}
+
+export default async function Home() {
+  const feed = await getHomeFeed().catch((e) => {
+    // sem banco a home ainda abre, só sem as seções com dados
+    console.error("getHomeFeed", e);
+    return EMPTY;
+  });
+  const { creators, coupons, products, brands, today } = feed;
+  const hero = products.slice(0, 4);
+  const best = Math.max(0, ...coupons.filter((c) => c.kind === "percent").map((c) => c.value));
+
   return (
     <div className="overflow-hidden bg-white text-ink">
       <div className="bg-soft px-5 py-2.5 text-center text-[13px] leading-snug">
-        <span className="font-medium">Grátis para começar.</span>{" "}
-        <Link href="/marinacosta" className="font-medium text-inherit underline underline-offset-2">
-          Ver uma vitrine de exemplo
+        <span className="font-medium">{best ? `Até ${best}% OFF com os cupons de quem você segue.` : "Cupons de desconto de quem você segue."}</span>{" "}
+        <Link href={coupons.length ? "#cupons" : "/marinacosta"} className="font-medium text-inherit underline underline-offset-2">
+          {coupons.length ? "Ver cupons ativos" : "Ver uma vitrine"}
         </Link>
       </div>
 
-      <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 py-3.5 ${pad}`}>
-        <span className="font-display text-[26px] font-extrabold tracking-[-0.04em]">
-          vitri<span className="text-coral">.</span>
-        </span>
-        <nav className="flex items-center gap-5">
-          <Link href="/marinacosta" className="text-[15px] font-medium text-ink no-underline hover:text-mute max-sm:hidden">
-            Ver exemplo
-          </Link>
-          <Link href="/editor" className={pillLight}>
-            Minha vitrine
-          </Link>
-        </nav>
-      </header>
+      <SiteHeader
+        links={[
+          ["#creators", "Creators"],
+          ["#categorias", "Categorias"],
+          ["/para-creators", "Para creators"],
+        ]}
+      />
 
-      <section className={`mx-auto max-w-[1440px] ${pad}`}>
-        <div aria-hidden="true" className="grid grid-cols-3 gap-1">
-          {HERO.map((icon) => (
-            <div key={icon} className="flex aspect-square items-center justify-center bg-soft md:aspect-[4/3]">
-              <ProductIcon icon={icon} className="w-[46%]" />
-            </div>
-          ))}
-        </div>
-        <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 pt-10 text-center md:pt-12">
-          <span className="text-[15px] font-medium">Para creators que divulgam marcas</span>
-          <h1 className="m-0 font-condensed text-[clamp(44px,8vw,96px)] leading-[0.9] font-extrabold tracking-[-0.01em] text-balance uppercase">
-            Todos os seus cupons. Um link só.
+      <section className={`mx-auto grid max-w-[1440px] items-center gap-10 pt-6 md:grid-cols-[1.1fr_1fr] md:gap-12 md:pt-10 ${pad}`}>
+        <div className="flex flex-col items-start gap-5">
+          <span className="text-[15px] font-medium">Achados de quem usa de verdade</span>
+          <h1 className="m-0 font-condensed text-[clamp(52px,8.4vw,120px)] leading-[0.96] font-extrabold tracking-[-0.01em] text-balance uppercase">
+            Indicado por gente. Não pelo algoritmo.
           </h1>
-          <p className="m-0 max-w-[36rem] text-[17px] leading-relaxed">
-            Monte sua vitrine com os produtos que você usa, o preço com o seu desconto e os cupons de todas as marcas que você divulga.
+          <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed">
+            Os produtos favoritos de quem você segue, com o preço já calculado com o cupom.
           </p>
-          <div className="mt-3 flex w-full flex-col items-center gap-3">
-            <ClaimForm />
-            <span className="text-[13px] text-mute">É só entrar com sua conta Google.</span>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link href={creators.length ? "#creators" : "/marinacosta"} className={pillDark}>
+              Explorar vitrines
+            </Link>
+            <Link href="/para-creators" className={`${pillLight} min-h-12`}>
+              Sou creator
+            </Link>
           </div>
         </div>
-      </section>
-
-      <section className={`mx-auto flex max-w-[1440px] flex-col gap-6 pt-20 md:pt-28 ${pad}`}>
-        <h2 className="m-0 text-2xl font-medium tracking-[-0.01em]">Feita para quem tem cupom de muita marca</h2>
-        <div className="grid gap-x-4 gap-y-10 md:grid-cols-3">
-          <Feature
-            title="Todos os cupons num link só"
-            text="Chega de responder “qual é o cupom?” no direct. Cada marca vira um cupom pronto para copiar, com validade e condição."
-          >
-            <div className="flex w-[64%] flex-col gap-3 bg-white p-5">
-              <span className="text-[13px] font-medium">Sua marca parceira</span>
-              <span className="font-condensed text-[44px] leading-[0.9] font-extrabold uppercase">20% OFF</span>
-              <span className="flex min-h-10 items-center justify-center rounded-full border border-dashed border-[#CACACB] font-mono text-sm font-bold tracking-[0.08em]">
-                SEUCUPOM
-              </span>
-            </div>
-          </Feature>
-          <Feature title="Preço com desconto na hora" text="Cole o link do produto e a gente puxa nome, foto e preço. Seu público vê quanto paga com o seu cupom.">
-            <div className="flex w-[64%] flex-col">
-              <div className="flex aspect-[4/3] items-center justify-center bg-white">
-                <ProductIcon icon="Shoe" className="w-[54%]" />
+        <div aria-hidden="true" className="grid grid-cols-2 gap-1">
+          {HERO_ICONS.map((icon, i) => {
+            const p = hero[i];
+            return (
+              <div key={p?.id ?? icon} className="relative flex aspect-square items-center justify-center overflow-hidden bg-soft">
+                {p ? <ProductArt product={p} iconClassName="w-[52%]" /> : <ProductIcon icon={icon} className="w-[52%]" />}
+                {p?.coupon && (
+                  <span className="absolute bottom-3 left-3 rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-sale">
+                    {couponBadge(p.coupon)} com {p.creator.split(" ")[0]}
+                  </span>
+                )}
               </div>
-              <div className="flex flex-col gap-0.5 pt-2.5 text-sm leading-snug">
-                <span className="font-medium text-sale">Cupom -15%</span>
-                <span className="font-medium">Tênis de corrida</span>
-                <span>
-                  <span className="font-medium">R$ 339,90</span> <span className="text-mute line-through">R$ 399,90</span>
-                </span>
-              </div>
-            </div>
-          </Feature>
-          <Feature title="Kits que vendem mais" text="Monte combos como “kit praia” ou “kit treino”, com total e economia somados automaticamente.">
-            <div className="grid w-[56%] grid-cols-2 gap-1">
-              {KIT.map((icon) => (
-                <div key={icon} className="flex aspect-square items-center justify-center bg-white">
-                  <ProductIcon icon={icon} className="w-[62%]" strokeWidth={3.4} />
-                </div>
-              ))}
-            </div>
-          </Feature>
+            );
+          })}
         </div>
       </section>
 
-      <section className={`mx-auto flex max-w-[1440px] flex-col gap-8 pt-20 md:pt-28 ${pad}`}>
-        <h2 className="m-0 font-condensed text-[clamp(36px,5vw,56px)] leading-[0.92] font-extrabold uppercase">Pronta em 2 minutos</h2>
-        <ol className="m-0 grid list-none gap-0 p-0 md:grid-cols-3 md:gap-4">
-          {STEPS.map((s, i) => (
-            <li key={s} className="flex items-center gap-4 border-t border-line py-5 text-[17px] font-medium md:flex-col md:items-start md:gap-3">
-              <span className="flex size-10 flex-none items-center justify-center rounded-full bg-soft text-[15px] font-semibold">{i + 1}</span>
-              {s}
-            </li>
-          ))}
-        </ol>
-      </section>
+      {creators.length > 0 && (
+        <section id="creators" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`}>
+          <SectionHead kicker="Compre por" title="Creators" text="Entre na vitrine de quem você confia e veja tudo o que essa pessoa usa, com os cupons de cada marca." />
+          <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-4">
+            {creators.map((c) => (
+              <CreatorCard key={c.handle} c={c} />
+            ))}
+            <Link href="/para-creators" className="group flex min-w-0 flex-col text-ink no-underline">
+              <div className="flex aspect-[3/4] flex-col justify-between bg-ink p-5 text-white md:p-6">
+                <span className="text-[13px] font-medium text-white/70">Você cria conteúdo?</span>
+                <span className="font-condensed text-[clamp(34px,4vw,56px)] leading-[0.9] font-extrabold uppercase">Sua vitrine aqui</span>
+                <span className="flex min-h-11 items-center justify-center rounded-full bg-white px-4 text-[15px] font-medium text-ink group-hover:bg-soft">
+                  Criar grátis
+                </span>
+              </div>
+              <span className="pt-3 text-[17px] font-medium">Monte a sua em 2 minutos</span>
+              <span className="text-[15px] text-mute">vitri.me/seunome</span>
+            </Link>
+          </div>
+        </section>
+      )}
 
-      <section className={`mx-auto max-w-[1440px] pt-16 md:pt-24 ${pad}`}>
-        <div className="flex flex-col items-center gap-4 bg-soft px-6 py-16 text-center max-md:py-12">
-          <h2 className="m-0 font-condensed text-[clamp(32px,4.4vw,52px)] leading-[0.92] font-extrabold uppercase">Veja como fica uma vitrine de verdade</h2>
-          <p className="m-0 text-[17px]">Produtos, cupons e kits de uma creator de exemplo.</p>
-          <Link href="/marinacosta" className={`${pillDark} mt-2`}>
-            Abrir vitrine de exemplo
+      {coupons.length > 0 && (
+        <section id="cupons" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`}>
+          <SectionHead kicker="Compre com" title="Cupons ativos" text="Os descontos que estão valendo agora. Abra a vitrine para copiar o código." />
+          <div className="no-scrollbar -mx-5 flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 md:mx-0 md:grid md:grid-cols-4 md:gap-4 md:px-0">
+            {coupons.map((c) => (
+              <Link
+                key={`${c.handle}:${c.id}`}
+                href={`/${c.handle}#cupons`}
+                className="box-border flex min-h-[260px] w-[78%] flex-none snap-start flex-col gap-4 bg-soft p-6 text-ink no-underline hover:bg-line md:w-auto"
+              >
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <span className="flex min-w-0 items-center gap-2">
+                    {c.logoUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária
+                      <img src={c.logoUrl} alt="" loading="lazy" className="size-8 flex-none rounded-full bg-white object-contain" />
+                    )}
+                    <span className="truncate text-[15px] font-medium">{c.brand}</span>
+                  </span>
+                  <span className="flex-none text-[13px] text-mute">{expiryLabel(c, today)}</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-condensed text-[56px] leading-[0.9] font-extrabold uppercase">{couponOff(c)}</span>
+                  {c.condition && <span className="text-[15px] leading-snug text-mute">{c.condition}</span>}
+                </div>
+                <span className="mt-auto flex items-center justify-between gap-3 border-t border-[#DADADA] pt-4 text-[13px]">
+                  <span className="truncate">
+                    com <span className="font-medium">{c.creator}</span>
+                  </span>
+                  <span className="flex-none font-medium underline underline-offset-2">Pegar cupom</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className={`mx-auto max-w-[1440px] pt-24 md:pt-32 ${pad}`}>
+        <div className="flex flex-col items-center gap-5 bg-ink px-6 py-20 text-center text-white max-md:py-14">
+          <h2 className="m-0 max-w-[14ch] font-condensed text-[clamp(44px,6.4vw,88px)] leading-[0.88] font-extrabold text-balance uppercase">
+            O que é bom merece ser dividido
+          </h2>
+          <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-white/75">
+            Junte seus cupons e produtos favoritos num link só e pare de responder “qual é o cupom?” no direct.
+          </p>
+          <Link href="/para-creators" className="mt-2 flex min-h-12 items-center justify-center rounded-full bg-white px-6 text-[15px] font-medium text-ink no-underline hover:bg-soft">
+            Criar minha vitrine
           </Link>
         </div>
       </section>
 
-      <footer className={`mx-auto mt-14 flex max-w-[1440px] flex-wrap items-center justify-between gap-3 border-t border-line py-8 text-[13px] text-mute ${pad}`}>
-        <span>vitri. · vitrines de cupons para creators</span>
-        <span>Feito no Brasil</span>
-      </footer>
+      {products.length > 0 && (
+        <section id="categorias" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`}>
+          <SectionHead kicker="Compre por" title="Categoria" text="Escolha uma categoria e veja os achados de cada vitrine, com o desconto já no preço." />
+          <CategoryShop products={products} />
+        </section>
+      )}
+
+      {brands.length > 0 && (
+        <section id="marcas" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`}>
+          <SectionHead kicker="Compre por" title="Marca" text="As marcas mais indicadas e o melhor cupom de cada uma." />
+          <div className="grid grid-cols-2 gap-1 md:grid-cols-4">
+            {brands.map((b) => (
+              <Link key={b.brand} href={`/${b.handle}#cupons`} className="group flex aspect-[4/3] flex-col justify-between bg-soft p-4 text-ink no-underline hover:bg-line md:p-6">
+                <span className="text-[13px] text-mute">
+                  {b.creators > 1 ? `${b.creators} creators indicam` : b.creator}
+                </span>
+                <span className="flex min-w-0 items-center gap-3">
+                  {b.logoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária
+                    <img src={b.logoUrl} alt="" loading="lazy" className="size-10 flex-none rounded-full bg-white object-contain" />
+                  )}
+                  <span className="font-condensed text-[clamp(24px,2.6vw,36px)] leading-[0.95] font-extrabold uppercase">{b.brand}</span>
+                </span>
+                <span className="text-[15px] font-medium text-sale">Até {couponOff(b.best)}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <SiteFooter />
     </div>
   );
 }
