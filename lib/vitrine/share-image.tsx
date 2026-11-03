@@ -1,23 +1,59 @@
 import "server-only";
 import { ImageResponse } from "next/og";
-import QRCode from "qrcode";
+import sharp from "sharp";
 import { WORDMARK_RATIO, Wordmark } from "@/components/brand/Logo";
-import { couponOff, isActive } from "./pricing";
+import { fetchPublic } from "./import-link";
+import { couponBadge, couponOff, formatBRL, isActive, priceProducts, type PricedProduct } from "./pricing";
 import type { VitrineContent } from "./types";
 
 /**
  * Imagens para divulgar a vitrine: "og" (prévia do link em WhatsApp, X etc.)
- * e "story" (1080×1920 com QR code, para postar nos stories).
- * Só texto e blocos de cor: fotos de loja deixariam a geração lenta e sujeita a falhas.
- * Mesmo visual fixo da vitrine: branco, cinza claro nos cupons e títulos condensados em caixa alta.
+ * e "story" (1080×1920, para postar nos stories com a figurinha de link por cima).
+ * Trazem a cara da pessoa: foto de perfil, nome, os primeiros produtos com foto e os cupons.
+ * Mesmo visual da vitrine: branco, cupons em off-white com contorno areia e títulos em serifa.
  */
 export const SHARE_SIZES = { og: { width: 1200, height: 630 }, story: { width: 1080, height: 1920 } };
 
 const plain = (headline: string) => headline.replace(/\*/g, "");
 
 const INK = "#111111";
-const MUTE = "#707072";
-const SOFT = "#F5F5F5";
+const MUTE = "#6B665E";
+const CREAM = "#F7F4EF";
+const SAND = "#ECE6DC";
+const GOLD = "#7A5F30";
+
+/** Tempo máximo para baixar cada foto: a que não chegar fica de fora e a imagem sai sem ela. */
+const PHOTO_TIMEOUT = 4000;
+
+/**
+ * Baixa a foto (só endereço público, como na importação de produtos), reduz e devolve um data URL jpeg.
+ * Produto: inteiro no quadrado creme, com o fundo branco da foto se fundindo ao creme (o multiply da vitrine).
+ * Perfil: recortado no quadrado. Qualquer falha vira null e a foto é pulada.
+ */
+async function photo(raw: string, size: number, kind: "product" | "avatar") {
+  if (!/^https:\/\//i.test(raw)) return null;
+  try {
+    const { bytes, complete } = await fetchPublic(raw, { accept: "image/*", maxBytes: 4_000_000, timeoutMs: PHOTO_TIMEOUT });
+    if (!complete) return null;
+    let img = sharp(bytes, { limitInputPixels: 40_000_000 });
+    if (kind === "avatar") img = img.resize(size, size, { fit: "cover" }).flatten({ background: "#ffffff" });
+    else {
+      const fitted = await img.resize(size, size, { fit: "contain", background: "#ffffff" }).flatten({ background: "#ffffff" }).toBuffer();
+      img = sharp({ create: { width: size, height: size, channels: 3, background: CREAM } }).composite([{ input: fitted, blend: "multiply" }]);
+    }
+    const out = await img.jpeg({ quality: 82 }).toBuffer();
+    return `data:image/jpeg;base64,${out.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+/** Os primeiros produtos à venda que têm foto, na ordem da vitrine; tenta alguns a mais para cobrir fotos que falharem. */
+async function productPhotos(products: PricedProduct[], count: number, size: number) {
+  const candidates = products.filter((p) => !p.soldOut && p.imageUrl).slice(0, count + 2);
+  const photos = await Promise.all(candidates.map((p) => photo(p.imageUrl, size, "product")));
+  return candidates.flatMap((p, i) => (photos[i] ? [{ product: p, src: photos[i] }] : [])).slice(0, count);
+}
 
 const fontCache = new Map<string, Promise<ArrayBuffer | null>>();
 
@@ -37,9 +73,9 @@ function googleFont(family: string, weight: number) {
   return fontCache.get(key)!;
 }
 
-async function fonts() {
+export async function fonts() {
   const list = [
-    { name: "Display", family: "Barlow Condensed", weight: 800 as const },
+    { name: "Display", family: "EB Garamond", weight: 400 as const },
     { name: "Body", family: "Inter", weight: 400 as const },
     { name: "Body", family: "Inter", weight: 500 as const },
   ];
@@ -49,10 +85,19 @@ async function fonts() {
 
 export async function shareImage(content: VitrineContent, today: string, url: string, format: keyof typeof SHARE_SIZES) {
   const story = format === "story";
-  const coupons = content.coupons.filter((c) => isActive(c, today)).slice(0, story ? 3 : 2);
+  const active = content.coupons.filter((c) => isActive(c, today));
   const headline = plain(content.headline) || `A vitrine de ${content.name}`;
-  const qr = story ? await QRCode.toDataURL(url, { width: 360, margin: 1, color: { dark: "#111111", light: "#FFFFFF" } }) : "";
   const shortUrl = url.replace(/^https?:\/\//, "");
+  const tile = story ? 286 : 250;
+  const [avatar, products] = await Promise.all([
+    content.avatarUrl ? photo(content.avatarUrl, story ? 240 : 144, "avatar") : null,
+    productPhotos(priceProducts(content.products, active), story ? 3 : 4, tile * 2),
+  ]);
+  // no story, com produtos sobra espaço para 2 cupons; na prévia do link, os produtos só entram se fecharem a grade 2×2
+  const showProducts = story ? products.length > 0 : products.length === 4;
+  const coupons = active.slice(0, story ? (showProducts ? 2 : 3) : showProducts ? 0 : 2);
+  const best = Math.max(0, ...active.filter((c) => c.kind === "percent").map((c) => c.value));
+  const brands = [...new Set(active.map((c) => c.brand).filter(Boolean))];
 
   const tickets = coupons.map((c) => (
     <div
@@ -62,22 +107,22 @@ export async function shareImage(content: VitrineContent, today: string, url: st
         alignItems: "center",
         justifyContent: "space-between",
         gap: 24,
-        background: SOFT,
-        padding: story ? "36px 44px" : "26px 34px",
+        background: CREAM,
+        border: `2px solid ${SAND}`,
+        padding: story ? "30px 40px" : "26px 34px",
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: story ? 6 : 2 }}>
-        <span style={{ fontSize: story ? 32 : 24, fontWeight: 500 }}>{c.brand}</span>
-        <span style={{ fontFamily: "Display", fontSize: story ? 96 : 60, fontWeight: 800, lineHeight: 0.9, textTransform: "uppercase" }}>{couponOff(c)}</span>
+        <span style={{ fontSize: story ? 30 : 24, fontWeight: 500 }}>{c.brand}</span>
+        <span style={{ fontFamily: "Display", fontSize: story ? 84 : 64, fontWeight: 400, lineHeight: 1 }}>{couponOff(c)}</span>
       </div>
       <span
         style={{
-          fontSize: story ? 34 : 24,
+          fontSize: story ? 32 : 24,
           fontWeight: 500,
           letterSpacing: 2,
-          border: "3px dashed #CACACB",
-          borderRadius: 999,
-          padding: story ? "16px 30px" : "10px 22px",
+          border: `3px dashed ${GOLD}80`,
+          padding: story ? "14px 28px" : "10px 22px",
           background: "#FFFFFF",
         }}
       >
@@ -86,32 +131,113 @@ export async function shareImage(content: VitrineContent, today: string, url: st
     </div>
   ));
 
-  const logoHeight = story ? 66 : 48;
+  const tiles = products.map(({ product: p, src }) => (
+    <div key={p.id} style={{ display: "flex", flexDirection: "column", gap: 14, width: tile }}>
+      <div style={{ display: "flex", position: "relative", width: tile, height: tile }}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img> */}
+        <img src={src} width={tile} height={tile} alt="" />
+        {p.coupon && (
+          <span
+            style={{
+              position: "absolute",
+              top: 14,
+              left: 14,
+              background: INK,
+              color: "#FFFFFF",
+              fontSize: story ? 24 : 20,
+              fontWeight: 500,
+              padding: story ? "6px 14px" : "4px 12px",
+            }}
+          >
+            {couponBadge(p.coupon)}
+          </span>
+        )}
+      </div>
+      {story && p.price > 0 && (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+          <span style={{ fontSize: 30, fontWeight: 500 }}>{formatBRL(p.final)}</span>
+          {p.final < p.price && <span style={{ fontSize: 22, color: MUTE, textDecoration: "line-through" }}>{formatBRL(p.price)}</span>}
+        </div>
+      )}
+    </div>
+  ));
+
+  const logoHeight = story ? 30 : 22;
   const logo = <Wordmark label="" ink={INK} height={logoHeight} width={Math.round(logoHeight * WORDMARK_RATIO)} />;
 
-  const body = story ? (
-    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", padding: "110px 90px", gap: 56 }}>
-      {logo}
-      <span style={{ fontFamily: "Display", fontSize: 132, fontWeight: 800, lineHeight: 0.9, textTransform: "uppercase" }}>{headline}</span>
-      <span style={{ fontSize: 40, color: MUTE }}>Os cupons de {content.name}</span>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>{tickets}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 40, marginTop: "auto" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img> */}
-        <img src={qr} width={260} height={260} alt="" />
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <span style={{ fontSize: 40, fontWeight: 500 }}>Aponte a câmera</span>
-          <span style={{ fontSize: 34, color: MUTE }}>{shortUrl}</span>
+  const avatarSize = story ? 120 : 72;
+  const person = (
+    <div style={{ display: "flex", alignItems: "center", gap: story ? 28 : 20 }}>
+      {avatar ? (
+        // eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img>
+        <img src={avatar} width={avatarSize} height={avatarSize} alt="" style={{ borderRadius: avatarSize }} />
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: avatarSize,
+            height: avatarSize,
+            borderRadius: avatarSize,
+            background: SAND,
+            fontSize: story ? 48 : 30,
+            fontWeight: 500,
+            color: MUTE,
+          }}
+        >
+          {(content.name || content.handle).slice(0, 1).toUpperCase()}
         </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: story ? 4 : 2 }}>
+        <span style={{ fontSize: story ? 44 : 30, fontWeight: 500 }}>{content.name}</span>
+        <span style={{ fontSize: story ? 30 : 22, color: MUTE }}>@{content.handle}</span>
+      </div>
+    </div>
+  );
+
+  // "Até 30% OFF em Nike e Adidas": o resumo dos cupons quando eles não aparecem um a um
+  const offer =
+    active.length > 0 ? (
+      <span style={{ fontSize: 28, fontWeight: 500, color: GOLD }}>
+        {best ? `Até ${best}% OFF` : "Cupons"}
+        {brands.length ? ` em ${new Intl.ListFormat("pt-BR").format(brands.slice(0, 3))}` : ""}
+      </span>
+    ) : null;
+
+  const body = story ? (
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", padding: "110px 96px", gap: 52 }}>
+      {person}
+      <span style={{ fontFamily: "Display", fontSize: 104, fontWeight: 400, lineHeight: 1.02 }}>{headline}</span>
+      {showProducts && <div style={{ display: "flex", gap: 15 }}>{tiles}</div>}
+      {tickets.length > 0 && <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>{tickets}</div>}
+      {/* quem vê o story está no celular: em vez de QR, o endereço e espaço livre para a figurinha de link */}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: "auto", borderTop: `2px solid ${SAND}`, paddingTop: 40 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <span style={{ fontSize: 40, fontWeight: 500 }}>Todos os cupons no link</span>
+          <span style={{ fontSize: 32, color: MUTE }}>{shortUrl}</span>
+        </div>
+        {logo}
       </div>
     </div>
   ) : (
-    <div style={{ display: "flex", width: "100%", height: "100%", padding: "64px 72px", gap: 56 }}>
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 28 }}>
-        {logo}
-        <span style={{ fontFamily: "Display", fontSize: 88, fontWeight: 800, lineHeight: 0.9, textTransform: "uppercase" }}>{headline}</span>
-        <span style={{ fontSize: 30, color: MUTE, marginTop: "auto" }}>{shortUrl}</span>
+    <div style={{ display: "flex", width: "100%", height: "100%", padding: "56px 64px", gap: 52 }}>
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 30 }}>
+        {person}
+        <span style={{ fontFamily: "Display", fontSize: showProducts ? 72 : 76, fontWeight: 400, lineHeight: 1.02 }}>{headline}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: "auto" }}>
+          {showProducts && offer}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 26, color: MUTE }}>{shortUrl}</span>
+            {logo}
+          </div>
+        </div>
       </div>
-      {tickets.length > 0 && <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, width: 540 }}>{tickets}</div>}
+      {showProducts ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, width: tile * 2 + 12, alignContent: "center" }}>{tiles}</div>
+      ) : (
+        tickets.length > 0 && <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, width: 520 }}>{tickets}</div>
+      )}
     </div>
   );
 

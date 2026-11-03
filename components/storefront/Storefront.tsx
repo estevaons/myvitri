@@ -19,18 +19,25 @@ import { ProductArt } from "./ProductIcon";
 
 /**
  * Vitrine pública com visual fixo, no espírito das lojas de esporte: branco, cinza claro atrás dos produtos,
- * títulos em caixa alta e botões em pílula. A creator só muda o conteúdo e a capa.
+ * títulos em caixa alta e botões em pílula. Quem é dono da vitrine só muda o conteúdo e a capa.
  */
 
-/** Grade das fotos do kit conforme o número de itens (1 a 4); com 3, a primeira ocupa a coluna inteira. */
-const KIT_GRID = ["grid-cols-1", "grid-cols-2", "grid-cols-2 grid-rows-2", "grid-cols-2 grid-rows-2"];
+/**
+ * Grade das fotos do kit conforme o número de itens (1 a 4). Toda célula é quadrada como a foto de loja;
+ * célula de outro formato sobra faixa do cinza em volta, que não bate com o fundo da foto.
+ * Com 3, a primeira ocupa 2×2 e as outras duas ficam empilhadas ao lado.
+ */
+const KIT_GRID = ["grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-2"];
 /** Proporção das fotos do topo (sem capa) conforme quantas são (1 a 3). */
 const STRIP_ASPECT = ["aspect-[21/9] @max-2xl:aspect-[4/3]", "aspect-[4/3]", "aspect-square"];
 const STRIP_COLS = ["grid-cols-1", "grid-cols-2", "grid-cols-3"];
 
 const pad = "px-5 @3xl:px-12";
-const pillDark = "flex min-h-12 items-center justify-center rounded-full border-0 bg-ink px-6 text-[15px] font-medium text-white no-underline";
-const pillLight = "flex min-h-12 items-center justify-center rounded-full border border-[#CACACB] bg-white px-6 text-[15px] font-medium text-ink no-underline";
+// botões retos em caixa alta espaçada, os mesmos da home
+const pillDark =
+  "flex min-h-12 items-center justify-center border-0 bg-ink px-7 text-[12px] font-medium tracking-[0.18em] text-white uppercase no-underline hover:bg-[#2b2925]";
+const pillLight =
+  "flex min-h-12 items-center justify-center border border-ink bg-transparent px-7 text-[12px] font-medium tracking-[0.18em] text-ink uppercase no-underline hover:bg-ink hover:text-white";
 
 function copyText(text: string) {
   try {
@@ -84,7 +91,7 @@ function Avatar({ content, className }: { content: VitrineContent; className: st
     return <img src={content.avatarUrl} alt="" className={`${className} object-cover`} />;
   }
   return (
-    <div aria-hidden="true" className={`${className} flex items-center justify-center bg-soft font-semibold text-ink`}>
+    <div aria-hidden="true" className={`${className} flex items-center justify-center bg-cream font-semibold text-ink`}>
       {initials || "?"}
     </div>
   );
@@ -96,14 +103,14 @@ function BrandLogo({ url, className }: { url: string; className: string }) {
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="m-0 text-2xl font-medium tracking-[-0.01em]">{children}</h2>;
+  return <h2 className="m-0 font-display text-[clamp(32px,4cqw,44px)] leading-[1.05] font-normal lining-nums">{children}</h2>;
 }
 
 function Chip({ active, children, ...rest }: { active: boolean; children: ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...rest}
-      className={`min-h-10 flex-none rounded-full border-0 px-4 text-[15px] font-medium whitespace-nowrap ${active ? "bg-ink text-white" : "bg-soft text-ink hover:bg-line"}`}
+      className={`relative min-h-10 flex-none border px-4 text-[12px] font-medium tracking-[0.18em] whitespace-nowrap uppercase ${active ? "border-ink bg-ink text-white" : "border-sand bg-transparent text-ink hover:border-ink"}`}
     >
       {children}
     </button>
@@ -156,7 +163,7 @@ function Carousel({ title, label, children }: { title: string; label: string; ch
                 aria-label={dir < 0 ? "Anterior" : "Próximo"}
                 disabled={dir < 0 ? atStart : atEnd}
                 onClick={() => go(dir)}
-                className="flex size-12 items-center justify-center rounded-full border-0 bg-soft text-ink hover:bg-line"
+                className="flex size-12 items-center justify-center border border-sand bg-transparent text-ink hover:border-ink"
               >
                 <Chevron left={dir < 0} />
               </button>
@@ -204,6 +211,32 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
   const [kitIdx, setKitIdx] = useState(0);
   const current = kits[Math.min(kitIdx, kits.length - 1)];
 
+  // Com mais de um kit, eles se revezam sozinhos até a pessoa escolher um. Pausa com o mouse ou o foco
+  // na seção e fora da tela; no editor não roda, para não trocar o kit que está sendo editado.
+  const [kitPicked, setKitPicked] = useState(false);
+  const [kitHover, setKitHover] = useState(false);
+  const [kitFocus, setKitFocus] = useState(false);
+  const [kitSeen, setKitSeen] = useState(false);
+  const kitRef = useRef<HTMLElement>(null);
+  const kitTabs = useRef<HTMLDivElement>(null);
+  const kitAuto = !preview && kits.length > 1 && !kitPicked;
+  const kitPaused = kitHover || kitFocus || !kitSeen;
+  const hasKits = kits.length > 0;
+  useEffect(() => {
+    const el = kitRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setKitSeen(e.isIntersecting), { threshold: 0.4 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasKits]);
+  // no celular os chips rolam de lado: traz o chip do kit que entrou para a vista
+  useEffect(() => {
+    if (!kitAuto) return;
+    const list = kitTabs.current;
+    const chip = list?.children[kitIdx] as HTMLElement | undefined;
+    if (list && chip) list.scrollTo({ left: chip.offsetLeft - 20, behavior: "smooth" });
+  }, [kitAuto, kitIdx]);
+
   const [copied, flash] = useFlash();
 
   // Sem capa, o topo mostra as fotos dos primeiros produtos em estoque.
@@ -239,11 +272,23 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
     send("buy", p.id);
     if (!preview) openStore(productHref(p, content));
   };
+  // item do kit se compra como na lista de produtos: copia o cupom dele e abre a loja; o clique também conta para o kit
+  const kitBuy = (kitId: string, p: PricedProduct) => (
+    <BuyButton
+      compact
+      p={p}
+      copied={copied === `p:${p.id}`}
+      onClick={() => {
+        buy(p);
+        send("kit", kitId);
+      }}
+    />
+  );
 
   return (
     <div className="@container w-full overflow-hidden bg-white font-sans text-ink">
       {coupons.length > 0 && (
-        <div className="bg-soft px-5 py-2.5 text-center text-[13px] leading-snug">
+        <div className="bg-cream px-5 py-2.5 text-center text-[13px] leading-snug">
           <span className="font-medium">{bestPercent ? `Até ${bestPercent}% OFF com os cupons de ${firstName}` : `Cupons de desconto de ${firstName}`}</span>{" "}
           <a href="#cupons" className="font-medium text-inherit underline underline-offset-2">
             Ver cupons
@@ -251,18 +296,18 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
         </div>
       )}
 
-      <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 py-3.5 ${pad}`}>
+      <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-3.5 ${pad}`}>
         <div className="flex min-w-0 items-center gap-3">
           <Avatar content={content} className="box-border size-10 flex-none rounded-full text-sm" />
           <div className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate text-[15px] font-semibold">{content.name}</span>
+            <span className="truncate font-display text-[20px] leading-tight font-medium">{content.name}</span>
             <span className="truncate text-[13px] text-mute">@{content.handle}</span>
           </div>
         </div>
         <nav aria-label="Seções" className="flex gap-6 @max-2xl:hidden">
           {nav.map(([href, label, on]) =>
             on ? (
-              <a key={href} href={href} className="text-[15px] font-medium text-ink no-underline hover:text-mute">
+              <a key={href} href={href} className="text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold">
                 {label}
               </a>
             ) : null,
@@ -273,12 +318,12 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
       <section className={`mx-auto max-w-[1440px] ${pad}`}>
         {banner ? (
           // eslint-disable-next-line @next/next/no-img-element -- capa vem de URL arbitrária
-          <img src={banner} alt="" className="block aspect-[21/9] w-full bg-soft object-cover @max-2xl:aspect-[4/3]" />
+          <img src={banner} alt="" className="block aspect-[21/9] w-full bg-cream object-cover @max-2xl:aspect-[4/3]" />
         ) : (
           strip.length > 0 && (
             <div aria-hidden="true" className={`grid gap-1 ${STRIP_COLS[strip.length - 1]}`}>
               {strip.map((p) => (
-                <div key={p.id} className={`relative flex items-center justify-center overflow-hidden bg-soft ${STRIP_ASPECT[strip.length - 1]}`}>
+                <div key={p.id} className={`relative flex items-center justify-center overflow-hidden bg-cream ${STRIP_ASPECT[strip.length - 1]}`}>
                   <ProductArt product={p} iconClassName="w-[46%]" />
                 </div>
               ))}
@@ -286,8 +331,8 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
           )
         )}
         <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 pt-10 pb-2 text-center @3xl:pt-12">
-          <h1 className="m-0 font-condensed text-[clamp(44px,8cqw,96px)] leading-[0.9] font-extrabold tracking-[-0.01em] text-balance uppercase">{headline}</h1>
-          {content.sub && <p className="m-0 max-w-[36rem] text-[17px] leading-relaxed">{content.sub}</p>}
+          <h1 className="m-0 font-display text-[clamp(44px,8cqw,96px)] leading-[1] font-normal text-balance">{headline}</h1>
+          {content.sub && <p className="m-0 max-w-[36rem] text-[17px] leading-relaxed text-mute">{content.sub}</p>}
           {(products.length > 0 || coupons.length > 0) && (
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               {products.length > 0 && (
@@ -309,7 +354,7 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
         <section id="cupons" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
           <Carousel title="Cupons" label="Cupons ativos">
             {coupons.map((c) => (
-              <article key={c.id} className="box-border flex min-h-[290px] w-[300px] flex-none snap-start flex-col gap-4 bg-soft p-6 @max-md:w-[82%]">
+              <article key={c.id} className="box-border flex min-h-[290px] w-[300px] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-6 @max-md:w-[82%]">
                 <div className="flex min-w-0 items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
                     <BrandLogo url={c.logoUrl} className="size-8" />
@@ -324,7 +369,7 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
                   <span className="flex-none text-[13px] text-mute">{expiryLabel(c, today)}</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <span className="font-condensed text-[56px] leading-[0.9] font-extrabold uppercase">{couponOff(c)}</span>
+                  <span className="font-display text-[56px] leading-[1] font-normal lining-nums">{couponOff(c)}</span>
                   {c.condition && <span className="text-[15px] leading-snug text-mute">{c.condition}</span>}
                   {c.howTo && (
                     <details className="text-sm">
@@ -342,7 +387,7 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
                   )}
                 </div>
                 <div className="mt-auto flex flex-col gap-2">
-                  <span className="flex min-h-12 items-center justify-center rounded-full border border-dashed border-[#CACACB] bg-white px-4 text-center font-mono text-[15px] font-bold tracking-[0.08em] break-all">
+                  <span className="flex min-h-12 items-center justify-center border border-dashed border-gold/50 bg-white px-4 text-center font-mono text-[15px] font-bold tracking-[0.08em] break-all">
                     {c.code}
                   </span>
                   <button
@@ -353,7 +398,7 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
                       if (!preview) openStore(withUtm(c.storeUrl, content));
                     }}
                     aria-label={c.storeUrl ? `Copiar cupom ${c.code} e abrir a loja ${c.brand}` : `Copiar cupom ${c.code}`}
-                    className={pillDark}
+                    className="flex min-h-12 items-center justify-center border-0 bg-ink px-3 text-[11px] font-medium tracking-[0.14em] whitespace-nowrap text-white uppercase hover:bg-[#2b2925]"
                   >
                     {copied === `c:${c.id}` ? "Copiado!" : c.storeUrl ? "Copiar e ir para a loja" : "Copiar código"}
                   </button>
@@ -382,7 +427,7 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Buscar"
                   aria-label="Buscar produto ou marca"
-                  className="box-border h-11 w-full rounded-full border-0 bg-soft pr-4 pl-11 text-[15px] text-ink outline-none placeholder:text-mute focus:bg-line"
+                  className="box-border h-11 w-full border border-sand bg-white pr-4 pl-11 text-[15px] text-ink outline-none placeholder:text-mute focus:border-ink"
                 />
               </div>
             )}
@@ -405,7 +450,7 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
                 {/* a foto também leva à compra; o botão de baixo é o caminho acessível */}
                 <Tile
                   onClick={!p.soldOut && (p.coupon || p.url || p.affiliateUrl) ? () => buy(p) : undefined}
-                  className="relative flex aspect-square w-full items-center justify-center overflow-hidden border-0 bg-soft p-0"
+                  className="relative flex aspect-square w-full items-center justify-center overflow-hidden border-0 bg-cream p-0"
                 >
                   <ProductArt
                     product={p}
@@ -418,7 +463,7 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
                   {p.soldOut ? (
                     <span className="font-medium text-mute">Esgotado</span>
                   ) : (
-                    p.coupon && <span className="font-medium text-sale">Cupom {couponBadge(p.coupon)}</span>
+                    p.coupon && <span className="text-[11px] font-medium tracking-[0.18em] text-gold uppercase">Cupom {couponBadge(p.coupon)}</span>
                   )}
                   <h3 className="m-0 text-[length:inherit] font-medium">{p.name}</h3>
                   {p.brand && <span className="text-mute">{p.brand}</span>}
@@ -438,130 +483,159 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
       )}
 
       {current && (
-        <section id="kits" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-6 pt-16 @3xl:pt-24 ${pad}`}>
+        <section
+          id="kits"
+          ref={kitRef}
+          onMouseEnter={() => setKitHover(true)}
+          onMouseLeave={() => setKitHover(false)}
+          onFocus={() => setKitFocus(true)}
+          onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setKitFocus(false)}
+          className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-6 pt-16 @3xl:pt-24 ${pad}`}
+        >
           <SectionTitle>Kits</SectionTitle>
           {kits.length > 1 && (
-            <div role="tablist" aria-label="Escolher kit" className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0">
+            <div
+              ref={kitTabs}
+              role="tablist"
+              aria-label="Escolher kit"
+              className="no-scrollbar relative -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0"
+            >
               {kits.map((k, i) => (
-                <Chip key={k.kit.id} role="tab" aria-selected={k === current} active={k === current} onClick={() => setKitIdx(i)}>
+                <Chip
+                  key={k.kit.id}
+                  role="tab"
+                  aria-selected={k === current}
+                  active={k === current}
+                  onClick={() => {
+                    setKitIdx(i);
+                    setKitPicked(true);
+                  }}
+                >
                   {k.kit.name || `Kit ${i + 1}`}
+                  {kitAuto && k === current && (
+                    // a troca acontece quando a barra enche; com movimento reduzido ela some e os kits não trocam sozinhos
+                    <span aria-hidden="true" className="absolute inset-x-4 bottom-1.5 h-0.5 overflow-hidden bg-white/25 motion-reduce:hidden">
+                      <span
+                        onAnimationEnd={() => setKitIdx((n) => (n + 1) % kits.length)}
+                        style={{ animationPlayState: kitPaused ? "paused" : "running" }}
+                        className="block h-full origin-left animate-kit-progress bg-white"
+                      />
+                    </span>
+                  )}
                 </Chip>
               ))}
             </div>
           )}
 
-          <div className="grid items-start gap-8 @3xl:grid-cols-[1.1fr_1fr] @3xl:gap-12">
-            <div aria-hidden="true" className={`grid aspect-[4/5] gap-1 ${KIT_GRID[current.items.length - 1]}`}>
-              {current.items.map((p, i) => (
+          {/* Todos os kits ficam na mesma célula da grade: a área tem sempre a altura do maior, a página não pula na troca
+              e o kit que sai se desfaz enquanto o próximo entra deslizando. */}
+          <div className="grid">
+            {kits.map((k, i) => {
+              const on = k === current;
+              const side = i < kitIdx ? "-translate-x-4" : "translate-x-4";
+              return (
                 <div
-                  key={p.id}
-                  className={`relative flex min-h-0 items-center justify-center overflow-hidden bg-soft ${current.items.length === 3 && i === 0 ? "row-span-2" : ""}`}
+                  key={k.kit.id}
+                  aria-hidden={!on}
+                  inert={!on}
+                  className={`col-start-1 row-start-1 grid items-start self-start gap-y-5 transition-[opacity,translate] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none @3xl:grid-cols-[1.1fr_1fr] @3xl:gap-x-12 @3xl:[grid-template-areas:'head_head'_'photos_body'] @min-[88rem]:grid-rows-[auto_1fr] @min-[88rem]:[grid-template-areas:'photos_head'_'photos_body'] ${on ? "opacity-100" : `pointer-events-none opacity-0 ${side}`}`}
                 >
-                  <ProductArt product={p} iconClassName="w-[52%]" />
+                <div aria-hidden="true" className={`mb-3 grid gap-1 @3xl:mb-0 @3xl:[grid-area:photos] ${KIT_GRID[k.items.length - 1]}`}>
+                  {k.items.map((p, i) => (
+                    <div
+                      key={p.id}
+                      className={`relative flex aspect-square items-center justify-center overflow-hidden bg-cream ${k.items.length === 3 && i === 0 ? "col-span-2 row-span-2" : ""}`}
+                    >
+                      <ProductArt product={p} iconClassName="w-[52%]" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="flex min-w-0 flex-col gap-5">
-              <h3 className="m-0 font-condensed text-[clamp(36px,5cqw,56px)] leading-[0.92] font-extrabold text-balance uppercase">
-                {current.kit.name || `Os favoritos de ${firstName}`}
-              </h3>
-              {current.kit.description && <p className="m-0 text-[17px] leading-relaxed">{current.kit.description}</p>}
-              {current.kit.signature && (
-                <p className="m-0 text-[15px] text-mute">
-                  “{current.kit.signature}” · {firstName}
-                </p>
-              )}
-
-              <ul className="m-0 flex list-none flex-col border-t border-line p-0">
-                {current.items.map((p) => (
-                  <li key={p.id} className="flex items-center gap-4 border-b border-line py-3">
-                    <div aria-hidden="true" className="relative flex size-16 flex-none items-center justify-center overflow-hidden bg-soft">
-                      <ProductArt product={p} iconClassName="w-[64%]" strokeWidth={4} />
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      {p.url || p.affiliateUrl ? (
-                        <a href={productHref(p, content)} target="_blank" rel="noopener noreferrer" className="text-[15px] font-medium text-inherit no-underline hover:underline">
-                          {p.name}
-                        </a>
-                      ) : (
-                        <span className="text-[15px] font-medium">{p.name}</span>
-                      )}
-                      <span className="text-[13px] text-mute">
-                        {p.brand}
-                        {p.coupon && (
-                          <>
-                            {p.brand && " · "}cupom <span className="font-mono font-semibold text-ink">{p.coupon.code}</span>
-                          </>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end gap-0.5 text-[15px]">
-                      <span className="font-medium">{formatBRL(p.final)}</span>
-                      {p.final !== p.price && <span className="text-[13px] text-mute line-through">{formatBRL(p.price)}</span>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-[15px] text-mute">{current.save > 0 ? "Total do kit com cupom" : "Total do kit"}</span>
-                <div className="flex flex-wrap items-baseline gap-x-3">
-                  <span className="text-[28px] font-medium tracking-[-0.01em]">{formatBRL(current.final)}</span>
-                  {current.save > 0 && <span className="text-[17px] text-mute line-through">{formatBRL(current.total)}</span>}
+                {/* Ao lado das fotos, a lista estica até o fim delas e o total desce para alinhar com a última foto.
+                    Título e texto só cabem ao lado também em tela bem larga; antes disso ficam em cima, na largura toda,
+                    senão a coluna estreita quebra os nomes e a lista passa muito do fim das fotos. */}
+                <div className="flex min-w-0 flex-col gap-5 @3xl:mb-3 @3xl:[grid-area:head] @min-[88rem]:mb-0">
+                  <h3 className="m-0 font-display text-[clamp(36px,5cqw,56px)] leading-[1] font-normal text-balance">
+                    {k.kit.name || `Os favoritos de ${firstName}`}
+                  </h3>
+                  {k.kit.description && <p className="m-0 text-[17px] leading-relaxed">{k.kit.description}</p>}
+                  {k.kit.signature && (
+                    <p className="m-0 text-[15px] text-mute">
+                      “{k.kit.signature}” · {firstName}
+                    </p>
+                  )}
                 </div>
-                {current.save > 0 && <span className="text-[15px] font-medium text-sale">Você economiza {formatBRL(current.save)}</span>}
-              </div>
 
-              {current.codes.length > 0 && (
-                <>
-                  <button
-                    onClick={() => {
-                      copyText(current.codes.join(" "));
-                      flash(`k:${current.kit.id}`);
-                      send("kit", current.kit.id);
-                    }}
-                    className={`${pillDark} min-h-14 text-base`}
-                  >
-                    {copied === `k:${current.kit.id}`
-                      ? current.codes.length === 1
-                        ? `${current.codes[0]} copiado! Agora é só abrir os itens`
-                        : `${current.codes.length} cupons copiados! Agora é só abrir os itens`
-                      : current.codes.length === 1
-                        ? `Copiar ${current.codes[0]} e montar o kit`
-                        : `Copiar os ${current.codes.length} cupons do kit`}
-                  </button>
-                  <ol className="m-0 grid list-none grid-cols-3 gap-3 p-0">
-                    {["Copie o cupom aqui", "Abra cada item na loja", "Cole no checkout e pronto"].map((step, i) => (
-                      <li key={step} className="flex flex-col gap-1.5 text-[13px] leading-snug text-mute">
-                        <span className="flex size-6 items-center justify-center rounded-full bg-soft text-xs font-semibold text-ink">{i + 1}</span>
-                        {step}
+                <div className="flex min-w-0 flex-col gap-5 @3xl:self-stretch @3xl:[grid-area:body]">
+                  <ul className="m-0 flex list-none flex-col border-t border-sand p-0">
+                    {k.items.map((p) => (
+                      <li key={p.id} className="flex items-center gap-4 border-b border-sand py-2.5">
+                        {/* com a lista estreita ao lado das fotos, a miniatura repetiria a foto vizinha e espremeria o nome */}
+                        <div aria-hidden="true" className="relative flex size-16 flex-none items-center justify-center overflow-hidden bg-cream @3xl:hidden @min-[88rem]:flex">
+                          <ProductArt product={p} iconClassName="w-[64%]" strokeWidth={4} />
+                        </div>
+                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <span className="text-[15px] font-medium">{p.name}</span>
+                          <span className="text-[13px] text-mute">
+                            {p.brand}
+                            {p.coupon && (
+                              <>
+                                {p.brand && " · "}cupom <span className="font-mono font-semibold text-ink">{p.coupon.code}</span>
+                              </>
+                            )}
+                          </span>
+                          {/* no celular o botão fica embaixo do nome; no desktop vai para o fim da linha */}
+                          <div className="mt-2 @3xl:hidden">{kitBuy(k.kit.id, p)}</div>
+                        </div>
+                        <div className="flex flex-col items-end gap-0.5 self-start text-[15px] @3xl:self-center">
+                          <span className="font-medium">{formatBRL(p.final)}</span>
+                          {p.final !== p.price && <span className="text-[13px] text-mute line-through">{formatBRL(p.price)}</span>}
+                        </div>
+                        <div className="hidden flex-none @3xl:block">{kitBuy(k.kit.id, p)}</div>
                       </li>
                     ))}
-                  </ol>
-                </>
-              )}
-            </div>
+                  </ul>
+
+                  {/* total numa linha só, como o fechamento de uma nota: preço à direita, na coluna dos preços dos itens */}
+                  <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1 @3xl:mt-auto">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[15px] text-mute">{k.save > 0 ? "Total do kit com cupom" : "Total do kit"}</span>
+                      {k.save > 0 && <span className="text-[15px] font-medium text-gold">Você economiza {formatBRL(k.save)}</span>}
+                    </div>
+                    <div className="flex items-baseline gap-x-3">
+                      {k.save > 0 && <span className="text-[17px] text-mute line-through">{formatBRL(k.total)}</span>}
+                      <span className="text-[28px] leading-none font-medium tracking-[-0.01em]">{formatBRL(k.final)}</span>
+                    </div>
+                  </div>
+                </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
 
       <section className={`mx-auto max-w-[1440px] pt-20 @3xl:pt-28 ${pad}`}>
-        <div className="flex flex-col items-center gap-4 bg-soft px-6 py-16 text-center @max-md:py-12">
-          <h2 className="m-0 font-condensed text-[clamp(32px,4.4cqw,52px)] leading-[0.92] font-extrabold uppercase">Você também cria conteúdo?</h2>
-          <p className="m-0 text-[17px]">Monte sua vitrine de cupons em 2 minutos.</p>
-          <Link href="/para-creators" className={`${pillDark} mt-2`}>
-            Criar minha vitrine grátis
+        <div className="flex flex-col items-center gap-4 bg-sand px-6 py-16 text-center @max-md:py-12">
+          {/* quem chega aqui acabou de ver a vitrine de alguém: o convite parte dela */}
+          <span className="text-[12px] font-medium tracking-[0.22em] text-gold uppercase">Para quem cria conteúdo</span>
+          <h2 className="m-0 font-display text-[clamp(32px,4.4cqw,52px)] leading-[1.05] font-normal text-balance">
+            Gostou desta vitrine? <em>Crie a sua.</em>
+          </h2>
+          <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">
+            Reúna seus cupons e produtos favoritos num link só para a bio. É grátis e fica pronta em 2 minutos.
+          </p>
+          <Link href="/criar-vitrine" className={`${pillDark} mt-2`}>
+            Criar minha vitrine
           </Link>
         </div>
       </section>
 
-      <footer className={`mx-auto mt-14 flex max-w-[1440px] flex-wrap items-center justify-between gap-3 border-t border-line py-8 text-[13px] text-mute ${pad}`}>
-        <Link href="/" className="flex items-center gap-1.5 text-inherit no-underline">
-          Feito com
-          <Wordmark className="h-[23px] w-auto text-ink" />
+      <footer className={`mx-auto mt-14 flex max-w-[1440px] flex-wrap items-center justify-between gap-3 border-t border-sand py-8 text-[13px] text-mute ${pad}`}>
+        <Link href="/" aria-label="MyVitri" className="flex items-center text-inherit no-underline">
+          <Wordmark className="h-[14px] w-auto text-ink" />
         </Link>
-        <span>Preços e cupons podem mudar na loja da marca. Links com identificação da creator.</span>
+        <span>Preços e cupons podem mudar na loja da marca. Links com identificação desta vitrine.</span>
       </footer>
     </div>
   );
@@ -579,14 +653,17 @@ function Tile({ onClick, className, children }: { onClick?: () => void; classNam
   );
 }
 
-function BuyButton({ p, copied, onClick }: { p: PricedProduct; copied: boolean; onClick: () => void }) {
+function BuyButton({ p, copied, onClick, compact }: { p: PricedProduct; copied: boolean; onClick: () => void; compact?: boolean }) {
   if (!p.coupon && !p.url && !p.affiliateUrl) return null;
-  const base = "mt-3 flex min-h-11 items-center justify-center gap-2 rounded-full px-3 text-sm font-medium @max-2xl:text-[13px]";
-  if (p.soldOut) return <span className={`${base} bg-soft text-mute`}>Esgotado na loja</span>;
+  // compacto: dentro da linha do item no kit, do tamanho do texto em vez da largura do card
+  const base = compact
+    ? "flex min-h-9 w-fit items-center justify-center gap-2 px-4 text-[11px] font-medium tracking-[0.16em] uppercase"
+    : "mt-3 flex min-h-11 items-center justify-center gap-2 px-3 text-[11px] font-medium tracking-[0.16em] uppercase";
+  if (p.soldOut) return <span className={`${base} bg-cream text-mute`}>Esgotado na loja</span>;
   return (
     <button
       onClick={onClick}
-      className={`${base} border ${copied ? "border-ink bg-ink text-white" : "border-[#CACACB] bg-white text-ink hover:border-ink"}`}
+      className={`${base} border ${copied ? "border-ink bg-ink text-white" : "border-ink bg-white text-ink hover:bg-ink hover:text-white"}`}
     >
       {copied && p.coupon ? (
         <>
@@ -596,7 +673,7 @@ function BuyButton({ p, copied, onClick }: { p: PricedProduct; copied: boolean; 
           <span>Cupom copiado!</span>
         </>
       ) : (
-        <span>{p.coupon ? "Comprar com cupom" : "Ver na loja"}</span>
+        <span>Ver na loja</span>
       )}
     </button>
   );

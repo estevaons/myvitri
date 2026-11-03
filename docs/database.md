@@ -191,12 +191,12 @@ Produtos indicados. `20261102000000_vitrines.sql:32-46` + colunas de `000700`.
 | `price` | `int` | não | `0` | `CHECK price >= 0`. **Centavos.** Preço cheio (sem cupom). |
 | `coupon_id` | `uuid` | sim | — | FK → `coupons(id)` **on delete set null** |
 | `url` | `text` | não | `''` | Link da loja (recebe UTM) |
-| `image_url` | `text` | não | `''` | Foto (normalmente URL externa da loja — *hotlink*) |
+| `image_url` | `text` | não | `''` | Foto: URL externa da loja (*hotlink*, vinda da importação ou colada) ou foto enviada pelo editor para o bucket `vitrine-photos` |
 | `icon` | `text` | não | `'Bag'` | Ilustração quando não há foto. Zod restringe a `ICONS` (`lib/vitrine/types.ts:3`): `Bikini, Glasses, Jar, Bottle, Shoe, Hat, Nuts, Bag`. O banco não tem `CHECK`. |
 | `affiliate_url` | `text` | não | `''` | Se preenchido, o botão de compra usa ele **sem UTM** |
 | `video_url` | `text` | não | `''` | Review em vídeo (Reels/TikTok/YouTube) |
-| `sold_out` | `boolean` | não | `false` | Esgotado: fica no fim da lista, sem botão de compra |
-| `price_checked_at` | `timestamptz` | sim | — | Última conferência de preço na loja |
+| `sold_out` | `boolean` | não | `false` | Esgotado: fica no fim da lista, sem botão de compra. Hoje só é definido pela importação por link (o editor não tem mais switch) |
+| `price_checked_at` | `timestamptz` | sim | — | Quando o preço foi lido na loja (gravado na importação por link). Nada no app lê esse campo hoje |
 
 **Índices:** `products_vitrine_idx (vitrine_id, position)`, `products_coupon_idx (coupon_id)`.
 
@@ -248,7 +248,7 @@ Significado de `kind`:
 | `view` | Abrir a vitrine (1x por aba, via `sessionStorage`) | `null` |
 | `buy` | Botão/foto de compra de um produto | id do produto |
 | `copy` | Botão "Copiar" de um cupom | id do cupom |
-| `kit` | Botão "Copiar cupons do kit" | id do kit |
+| `kit` | Botão de compra de um item do kit (dispara também o `buy` do produto) | id do kit |
 | `video` | Link "Ver meu review" | id do produto |
 
 
@@ -257,9 +257,9 @@ Significado de `kind`:
 | Bucket | Público? | Limite | MIME aceitos | Quem usa | Migração |
 |---|---|---|---|---|---|
 | `brand-logos` | sim | 1 MiB (`1048576`) | `image/webp`, `image/png` | Logo de marca no cupom | `20261103000000_brand_logos.sql` |
-| `vitrine-photos` | sim | 2 MiB (`2097152`) | `image/webp`, `image/jpeg` | Foto de capa e de perfil | `20261103000100_vitrine_photos.sql` |
+| `vitrine-photos` | sim | 2 MiB (`2097152`) | `image/webp`, `image/jpeg` | Foto de capa, de perfil e do produto | `20261103000100_vitrine_photos.sql` |
 
-Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:193`). As policies de `storage.objects` (insert, select, delete) só deixam o usuário mexer na pasta cujo primeiro segmento é o próprio `uid` (`storage.foldername(name)[1] = auth.uid()::text`). Leitura pública é pela URL do bucket público, sem policy.
+Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:194`). As policies de `storage.objects` (insert, select, delete) só deixam o usuário mexer na pasta cujo primeiro segmento é o próprio `uid` (`storage.foldername(name)[1] = auth.uid()::text`). Leitura pública é pela URL do bucket público, sem policy.
 
 ## Funções (RPC)
 
@@ -267,7 +267,7 @@ Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:193`). As pol
 |---|---|---|---|---|
 | `owns_vitrine(v uuid) → boolean` | SQL, `stable`, `security invoker`, `search_path = ''` | revogada de `public` e `anon` | `true` se a vitrine `v` pertence a `auth.uid()`. Usada nas policies. | Só nas policies |
 | `publish_vitrine(content jsonb) → timestamptz` | plpgsql, `security invoker` | `authenticated` | Atualiza a vitrine do usuário, **apaga** todos os cupons/produtos/kits dela e **reinsere** a partir do JSON, numa transação. Retorna `updated_at`. Versão atual: `20261102000800_coupon_color.sql:6-57`. | `lib/vitrine/store.ts:198` |
-| `vitrine_stats(days int default 30) → jsonb` | SQL, `stable`, `security invoker` | `authenticated` | Agrega `events` da vitrine de quem chama nos últimos `days` (limitado a 1–90), por dia no fuso `America/Sao_Paulo` e por item. | `app/actions.ts:230` |
+| `vitrine_stats(days int default 30) → jsonb` | SQL, `stable`, `security invoker` | `authenticated` | Agrega `events` da vitrine de quem chama nos últimos `days` (limitado a 1–90), por dia no fuso `America/Sao_Paulo` e por item. | `app/actions.ts:213` |
 | `delete_my_account() → void` | plpgsql, **`security definer`** | `authenticated` | Apaga `auth.users` do próprio usuário; o resto sai em cascata. | `app/actions.ts:98` |
 
 ### `publish_vitrine` passo a passo

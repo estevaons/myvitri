@@ -3,15 +3,28 @@
 @theme inline {
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono: ui-monospace, Menlo, monospace;
-  --font-condensed: var(--font-barlow), "Arial Narrow", sans-serif;
+  --font-display: var(--font-garamond), Georgia, serif;
   --color-ink: #111111;
   --color-paper: #eceae4;
-  --color-coral: #ff5a36;
-  /* vitrine das creators: visual fixo, branco com cinzas suaves */
-  --color-mute: #707072;
-  --color-soft: #f5f5f5;
-  --color-line: #e5e5e5;
-  --color-sale: #007d48;
+  /* visual editorial do app todo: fundos quentes, cinza puxado para o bege e um dourado discreto no lugar do verde de liquidação */
+  --color-mute: #6b665e;
+  --color-cream: #f7f4ef;
+  --color-sand: #ece6dc;
+  --color-gold: #7a5f30;
+}
+
+/* Kits da vitrine: a barra no chip ativo mede o tempo até o próximo kit entrar. */
+@theme {
+  --animate-kit-progress: kit-progress 7s linear;
+
+  @keyframes kit-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
 }
 
 /* Carrossel que rola de lado sem mostrar a barra (os botões e o arraste fazem o papel dela). */

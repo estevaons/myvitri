@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, Section } from "@/components/home/LegalPage";
 import { BRAND, CONTACT_EMAIL, HOST } from "@/lib/brand";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Termos de Uso",
-  description: `As regras para usar o ${BRAND}.`,
-};
+export const metadata: Metadata = pageMeta({ title: "Termos de Uso", description: `As regras para usar o ${BRAND}.`, path: "/termos" });
 
 const mail = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
 
@@ -24,7 +22,7 @@ export default function Termos() {
     >
       <Section title="1. O que é o MyVitri">
         <p>
-          O {BRAND} permite que creators montem uma vitrine pública, com um link próprio, reunindo os cupons de desconto, os produtos e
+          O {BRAND} permite que qualquer pessoa monte uma vitrine pública, com um link próprio, reunindo os cupons de desconto, os produtos e
           os kits que indicam. Quem visita a vitrine pode copiar cupons e seguir para a loja da marca. Hoje o serviço é gratuito; se
           algum recurso passar a ser pago, avisaremos antes.
         </p>
@@ -60,7 +58,7 @@ export default function Termos() {
 
       <Section title="4. Cupons, preços e compras">
         <p>
-          O {BRAND} não vende produtos e não participa das compras. Cupons, preços e disponibilidade são informados pelas creators e
+          O {BRAND} não vende produtos e não participa das compras. Cupons, preços e disponibilidade são informados por quem é dono de cada vitrine e
           podem mudar ou deixar de valer na loja da marca a qualquer momento. A compra, o pagamento, a entrega, as trocas e as
           devoluções são de responsabilidade da loja onde você comprar. Confira sempre o preço final antes de pagar.
         </p>
@@ -68,9 +66,9 @@ export default function Termos() {
 
       <Section title="5. Links de afiliado e métricas">
         <p>
-          Os links para lojas podem ser links de afiliado da creator ou levar parâmetros de campanha (UTM) que identificam a vitrine de
-          origem. A creator pode receber comissão pelas vendas. Contamos visitas e cliques de forma anônima para mostrar métricas à
-          creator, como explicado na <Link href="/privacidade">Política de Privacidade</Link>.
+          Os links para lojas podem ser links de afiliado de quem é dono da vitrine ou levar parâmetros de campanha (UTM) que identificam a vitrine de
+          origem. Quem é dono da vitrine pode receber comissão pelas vendas. Contamos visitas e cliques de forma anônima para mostrar métricas a
+          quem é dono da vitrine, como explicado na <Link href="/privacidade">Política de Privacidade</Link>.
         </p>
       </Section>
 
@@ -79,7 +77,7 @@ export default function Termos() {
           <li>Publicar conteúdo ilegal, enganoso, ofensivo ou que viole direitos de terceiros, como marcas e direitos autorais.</li>
           <li>Divulgar cupons falsos ou preços que você sabe estarem errados.</li>
           <li>Usar links que levem a golpes, malware ou páginas que tentem coletar dados de forma indevida.</li>
-          <li>Se passar por outra pessoa, creator ou marca.</li>
+          <li>Se passar por outra pessoa ou marca.</li>
           <li>Tentar acessar contas de outras pessoas, sobrecarregar o site ou coletar dados dele de forma automatizada sem autorização.</li>
         </ul>
       </Section>
@@ -96,7 +94,7 @@ export default function Termos() {
       <Section title="8. Responsabilidade">
         <p>
           Trabalhamos para manter o site disponível e funcionando bem, mas ele é oferecido no estado em que se encontra e pode ter
-          interrupções. Na medida permitida pela lei, o {BRAND} não responde por cupons, preços ou produtos divulgados pelas creators,
+          interrupções. Na medida permitida pela lei, o {BRAND} não responde por cupons, preços ou produtos divulgados nas vitrines,
           nem por compras feitas nas lojas. Nada nestes termos limita direitos que a lei garante ao consumidor.
         </p>
       </Section>

@@ -6,11 +6,11 @@ import { useFormStatus } from "react-dom";
 import { claimAction, createVitrineAction, signInAction, type FormState } from "@/app/actions";
 import { HOST } from "@/lib/brand";
 
-/** Campos em pílula cinza, como a busca da vitrine; no foco ficam brancos com contorno. */
-const field = "box-border flex h-12 w-full min-w-0 items-center rounded-full border border-transparent bg-soft px-5 text-base text-ink outline-none placeholder:text-mute focus:border-ink focus:bg-white";
+/** Campos retos com contorno areia, como a busca da vitrine; no foco o contorno escurece. */
+const field = "box-border flex h-12 w-full min-w-0 items-center border border-sand bg-white px-4 text-base text-ink outline-none placeholder:text-mute focus:border-ink";
 const label = "flex flex-col gap-1.5 text-left text-[13px] font-medium";
 const box = "flex flex-col gap-4";
-const submit = "min-h-12 rounded-full border-0 bg-ink px-6 text-base font-medium text-white";
+const submit = "min-h-12 border-0 bg-ink px-6 text-[12px] font-medium tracking-[0.18em] text-white uppercase hover:bg-[#2b2925]";
 
 function GoogleLogo() {
   return (
@@ -61,7 +61,7 @@ function ErrorText({ children }: { children?: string }) {
   );
 }
 
-/** "Marina Costa" → "marinacosta": sem acento, só o que o link aceita. */
+/** "Ana Souza" → "anasouza": sem acento, só o que o link aceita. */
 function toHandle(text: string) {
   return text
     .normalize("NFD")
@@ -141,7 +141,7 @@ function Panel({ title, text, children }: { title: string; text: string; childre
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white p-6">
       <div className="flex w-full max-w-[460px] flex-col gap-5">
-        <h1 className="m-0 font-condensed text-5xl leading-[0.92] font-extrabold uppercase">{title}</h1>
+        <h1 className="m-0 font-display text-5xl leading-[1] font-normal">{title}</h1>
         <p className="m-0 text-[17px] leading-relaxed text-mute">{text}</p>
         {children}
       </div>

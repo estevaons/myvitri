@@ -1,7 +1,7 @@
 import { getPublicVitrine } from "@/lib/vitrine/data";
 import { shareImage } from "@/lib/vitrine/share-image";
 
-/** Imagem 1080×1920 da vitrine publicada, com QR code, para postar nos stories. */
+/** Imagem 1080×1920 da vitrine publicada, para postar nos stories. */
 export async function GET(request: Request, { params }: RouteContext<"/[handle]/story">) {
   const { handle } = await params;
   const vitrine = await getPublicVitrine(decodeURIComponent(handle).toLowerCase());

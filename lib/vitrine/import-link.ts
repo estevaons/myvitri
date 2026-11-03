@@ -43,12 +43,12 @@ async function assertPublicUrl(raw: string) {
 }
 
 /** Baixa uma URL pública (sem rede interna), seguindo redirects com a mesma checagem e lendo no máximo maxBytes. */
-async function fetchPublic(raw: string, { accept, maxBytes }: { accept: string; maxBytes: number }) {
+export async function fetchPublic(raw: string, { accept, maxBytes, timeoutMs = 8000 }: { accept: string; maxBytes: number; timeoutMs?: number }) {
   let url = await assertPublicUrl(raw);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const res = await fetch(url, {
       redirect: "manual",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(timeoutMs),
       headers: { "user-agent": "Mozilla/5.0 (compatible; VitriBot/1.0)", accept },
     });
     const next = res.headers.get("location");

@@ -1,7 +1,7 @@
 import { uploadImageAction, type ImageKind } from "@/app/actions";
 
-/** Maior lado depois de reduzir: a capa ocupa a largura da vitrine; logo e perfil aparecem pequenos. */
-const MAX_SIDE: Record<ImageKind, number> = { logo: 512, cover: 1600, avatar: 512 };
+/** Maior lado depois de reduzir: a capa ocupa a largura da vitrine; logo e perfil aparecem pequenos; o produto fica no meio. */
+const MAX_SIDE: Record<ImageKind, number> = { logo: 512, cover: 1600, avatar: 512, product: 1000 };
 
 const encode = (canvas: HTMLCanvasElement, type: string, quality: number) =>
   new Promise<Blob | null>((done) => canvas.toBlob(done, type, quality));
