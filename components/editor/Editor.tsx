@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { publishVitrine, saveDraftAction, signOutAction } from "@/app/actions";
+import { Wordmark } from "@/components/brand/Logo";
 import { Storefront } from "@/components/storefront/Storefront";
 import type { VitrineContent } from "@/lib/vitrine/types";
 import { couponAlerts, CouponsPanel } from "./CouponsPanel";
@@ -105,8 +106,8 @@ export function Editor({
     <div className="flex min-h-dvh flex-col bg-paper text-ink lg:h-dvh">
       <header className="border-b border-[#E0DCD3] bg-white">
         <div className="flex flex-wrap items-center gap-3.5 px-5 py-3">
-          <Link href="/" className="font-display text-[26px] font-extrabold tracking-[-0.04em] text-ink no-underline">
-            vitri<span className="text-coral">.</span>
+          <Link href="/" aria-label="vitri — início" className="flex text-ink no-underline">
+            <Wordmark label="" className="h-[30px] w-auto" />
           </Link>
           <span className="h-6 w-px bg-[#E0DCD3]" />
           <span className="text-[15px] font-semibold">Editar vitrine</span>
