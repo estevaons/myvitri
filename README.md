@@ -1,36 +1,168 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MyVitri
 
-## Getting Started
+> 📚 **Documentação completa:** [`docs/`](docs/index.md) — comece pelo [índice e ordem de leitura](docs/index.md).
 
-First, run the development server:
+O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **vitrine pública** com os **cupons de desconto** das marcas que divulgam, os **produtos** que indicam (com o preço já calculado com o cupom) e **kits** de produtos. A vitrine fica num link curto (`myvitri.com/seunome`) para a bio do Instagram/TikTok. O seguidor copia o cupom e vai direto para a loja oficial da marca — o MyVitri não vende nada.
+
+| | |
+|---|---|
+| **Stack** | Next.js 16 (App Router, Cache Components) · React 19 · TypeScript · Tailwind CSS v4 · Zod 4 |
+| **Backend** | Supabase: Postgres com RLS, Auth (login Google), Storage |
+| **Hospedagem** | Vercel (inferido: Web Analytics + integração) |
+| **Idioma do produto e do código** | Português do Brasil |
+
+> ⚠️ **Este projeto usa Next.js 16**, que mudou APIs e convenções (ex.: `proxy.ts` no lugar de `middleware.ts`, `updateTag`, `"use cache"`). Antes de escrever código, leia o guia correspondente em `node_modules/next/dist/docs/` — veja [`AGENTS.md`](AGENTS.md).
+
+---
+
+## Como rodar o projeto
+
+### 1. Pré-requisitos
+
+| Ferramenta | Versão / observação |
+|---|---|
+| Node.js | `>= 20.9.0` (exigência do Next 16) |
+| npm | o repositório tem `package-lock.json` |
+| Conta no [Supabase](https://supabase.com) | um projeto para desenvolvimento (recomendado) — ou Docker + Supabase CLI para rodar local |
+| Projeto no Google Cloud | OAuth Client "Web" para o login com Google |
+| Chave da [Brave Search API](https://brave.com/search/api/) | **opcional** (melhora a importação de produtos por link) |
+
+### 2. Banco (Supabase)
+
+O repositório traz as migrações em `supabase/migrations/` e um seed em `supabase/seed.sql`, mas **não** traz `supabase/config.toml`. O caminho mais simples é usar um projeto Supabase na nuvem só para desenvolvimento.
+
+**Opção A — projeto na nuvem (recomendado)**
+
+1. Crie um projeto no Supabase.
+2. Aplique as migrações **em ordem de nome**. Pelo CLI (pode pedir `npx supabase init` antes, por causa da falta do `config.toml`):
+
+```bash
+npx supabase link --project-ref <project-ref>
+```
+
+```bash
+npx supabase db push
+```
+
+   Ou cole cada arquivo de `supabase/migrations/` no **SQL Editor**, do mais antigo para o mais novo.
+
+3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. **Atenção:** o `supabase/seed.sql` atual falha (usa as colunas antigas `tab`/`title` de `kits`). Veja a correção em [docs/admin.md → Recriar a vitrine de demonstração](docs/admin.md#8-recriar-a-vitrine-de-demonstração-marinacosta).
+
+**Opção B — Supabase local (Docker)**
+
+```bash
+npx supabase init
+```
+
+```bash
+npx supabase start
+```
+
+```bash
+npx supabase db reset
+```
+
+O `start` imprime a URL da API e a chave publicável para o `.env.local`. O `db reset` aplica as migrações e roda o seed — que hoje falha (veja acima); corrija o seed antes. Para o login com Google funcionar localmente, configure `[auth.external.google]`, `site_url` e `additional_redirect_urls` no `supabase/config.toml` gerado.
+
+Detalhes do schema: [docs/database.md](docs/database.md).
+
+### 3. Login com Google
+
+1. No Google Cloud Console, crie um OAuth Client (Web) com o redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. No Supabase: **Authentication → Providers → Google** (Client ID e Secret).
+3. No Supabase: **Authentication → URL Configuration**: *Site URL* `http://localhost:3000` e *Redirect URLs* com `http://localhost:3000/auth/callback`.
+
+Passo a passo completo e produção: [docs/admin.md → Configurar o login com Google](docs/admin.md#10-configurar-o-login-com-google).
+
+### 4. Variáveis de ambiente
+
+Copie o exemplo e preencha:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variável | Obrigatória | Onde achar | Para quê |
+|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | sim | Supabase → Project Settings → API | URL do projeto (`https://<ref>.supabase.co`) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | sim | Supabase → Project Settings → API Keys | Chave publicável (`sb_publishable_…`). Não existe chave de serviço no projeto. |
+| `BRAVE_SEARCH_API_KEY` | não | brave.com/search/api | Fallback quando a loja bloqueia a leitura da página do produto |
+
+### 5. Instalar e subir o servidor
+
+```bash
+npm ci
+```
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 6. Primeiro acesso ("usuário admin")
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Não existe usuário administrador nem painel admin** no app. Para ter uma vitrine de teste:
 
-## Learn More
+1. Acesse [http://localhost:3000/para-creators](http://localhost:3000/para-creators), escolha nome e link e clique em **Criar com Google**.
+2. Depois do login você cai no editor (`/editor`). Cadastre um cupom, um produto e clique em **Publicar**.
+3. Veja a vitrine em `http://localhost:3000/<seu-link>`.
 
-To learn more about Next.js, take a look at the following resources:
+Tarefas administrativas (editar dados, excluir contas, liberar links) são feitas no painel do Supabase — veja [docs/admin.md](docs/admin.md).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 7. Outros comandos
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | Servidor de desenvolvimento (Turbopack). Também reescreve o bloco do `AGENTS.md` (`experimental.agentFeedback`). |
+| `npm run build` | Build de produção |
+| `npm start` | Sobe o build de produção |
+| `npm run lint` | ESLint (`eslint-config-next` core-web-vitals + TypeScript) |
 
-## Deploy on Vercel
+Não há testes automatizados, CI, Docker, filas ou workers. O único serviço auxiliar é o Supabase.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Arquitetura e infraestrutura (resumo)
+
+```mermaid
+graph LR
+    U[Navegador] --> N["Next.js 16 na Vercel"]
+    N -->|"PostgREST + RLS"| DB[(Supabase Postgres)]
+    N -->|login Google| AU[Supabase Auth]
+    N -->|uploads| ST[(Supabase Storage)]
+    N -->|ler páginas de produto| L[Sites das lojas]
+    N -.->|opcional| BR[Brave Search API]
+    U -->|imagens públicas| ST
+```
+
+- **Páginas:** home de descoberta (`/`), landing de creators (`/para-creators`), vitrine pública (`/{handle}`), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
+- **Mutações:** todas em Server Actions (`app/actions.ts`); a autorização é feita pelo banco (RLS), o app nunca usa chave de serviço.
+- **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")`; a publicação invalida com `updateTag`.
+- **Editor:** rascunho salvo automaticamente em `vitrine_drafts`; **Publicar** grava tudo de uma vez pela função `publish_vitrine()` do Postgres.
+- **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()`.
+
+Mais em [docs/architecture.md](docs/architecture.md).
+
+### Estrutura de pastas
+
+```text
+app/                 rotas (páginas, route handlers, imagens OG) + actions.ts + layout
+components/          auth/, editor/, storefront/, home/, brand/
+lib/                 brand.ts, supabase/ (clientes e tipos), vitrine/ (domínio)
+supabase/            migrations/ (SQL em ordem) e seed.sql
+proxy.ts             proxy do Next 16 (sessão e retorno do OAuth)
+docs/                esta documentação
+```
+
+---
+
+## Pegadinhas que todo recém-chegado deve saber
+
+1. **O seed está quebrado** no schema atual — a vitrine `/marinacosta`, linkada no site, não existe num banco novo.
+2. **"Hoje" é calculado em UTC**, mas as métricas usam o fuso de São Paulo: das 21h à meia-noite as datas divergem.
+3. **Editar dados direto no Supabase demora até ~1 hora para aparecer** no site (cache), e a próxima publicação da creator sobrescreve tudo com o rascunho dela.
+4. **Uploads acima de 1 MB falham** por causa do limite padrão das Server Actions, apesar de o bucket aceitar 2 MB.
+5. **Sem testes nem CI**: rode `npm run lint` e teste o fluxo de publicar antes de abrir PR.
+
+Lista completa e priorizada: [docs/divida-tecnica.md](docs/divida-tecnica.md).
