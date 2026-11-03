@@ -126,11 +126,7 @@ export default async function Home() {
 
       {creators.length > 0 && (
         <section id="creators" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`}>
-          <SectionHead kicker="Compre por" title="Creators" text="Entre na vitrine de quem você confia e veja tudo o que essa pessoa usa, com os cupons de cada marca.">
-            <Link href="/marinacosta" className={pillDark}>
-              Ver uma vitrine
-            </Link>
-          </SectionHead>
+          <SectionHead kicker="Compre por" title="Creators" text="Entre na vitrine de quem você confia e veja tudo o que essa pessoa usa, com os cupons de cada marca." />
           <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-4">
             {creators.map((c) => (
               <CreatorCard key={c.handle} c={c} />
