@@ -10,7 +10,6 @@ import type { VitrineContent } from "@/lib/vitrine/types";
 import { couponAlerts, CouponsPanel } from "./CouponsPanel";
 import { DeleteAccount } from "./DeleteAccount";
 import { KitsPanel } from "./KitsPanel";
-import { MetricsPanel } from "./MetricsPanel";
 import { ProfilePanel, type Update } from "./panels";
 import { ProductsPanel } from "./ProductsPanel";
 import { SharePanel } from "./SharePanel";
@@ -22,7 +21,6 @@ const TABS = [
   ["products", "Produtos", "produtos"],
   ["kits", "Kits", "kits"],
   ["share", "Divulgar", "divulgar"],
-  ["metrics", "Métricas", "metricas"],
 ] as const;
 type TabId = (typeof TABS)[number][0];
 
@@ -58,8 +56,16 @@ const TAB_ICONS: Record<TabId, ReactNode> = {
       <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
     </>
   ),
-  metrics: <path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3" />,
 };
+
+/** Gráfico de barras do Lucide, o mesmo da antiga aba Métricas. */
+function ChartIcon() {
+  return (
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3" />
+    </svg>
+  );
+}
 
 function DesktopIcon() {
   return (
@@ -159,6 +165,18 @@ export function Editor({
           <span className="h-6 w-px bg-[#E0DCD3]" />
           <span className="text-[15px] font-semibold">Editar vitrine</span>
           <div className="flex-1" />
+          {/* as métricas ganharam página própria, no visual da home */}
+          <Link
+            href="/metricas"
+            onClick={(e) => {
+              // a navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso
+              if (unsaved && !confirm("Ainda estamos salvando suas alterações. Sair mesmo assim?")) e.preventDefault();
+            }}
+            className="flex min-h-10 items-center gap-1.5 rounded-[9px] px-3 text-[13px] font-semibold text-[#3A3A3A] no-underline hover:bg-[#F2F0EB] hover:text-ink"
+          >
+            <ChartIcon />
+            Métricas
+          </Link>
           <div role="group" aria-label="Tamanho da prévia" className="flex gap-0.5 rounded-xl bg-[#F2F0EB] p-[3px] max-sm:hidden">
             {(
               [
@@ -230,7 +248,7 @@ export function Editor({
           <div
             role="tablist"
             aria-label="Opções"
-            className="sticky top-0 z-10 grid grid-cols-6 gap-1 border-b border-[#EEEBE5] bg-white/95 px-3 py-2.5 backdrop-blur"
+            className="sticky top-0 z-10 grid grid-cols-5 gap-1 border-b border-[#EEEBE5] bg-white/95 px-3 py-2.5 backdrop-blur"
           >
             {TABS.map(([id, label, slug]) => (
               <button
@@ -269,7 +287,6 @@ export function Editor({
             {tab === "products" && <ProductsPanel {...panelProps} />}
             {tab === "kits" && <KitsPanel {...panelProps} />}
             {tab === "share" && <SharePanel {...panelProps} publishedHandle={published.handle} publishedJson={JSON.stringify(published)} />}
-            {tab === "metrics" && <MetricsPanel draft={draft} today={today} />}
           </div>
         </aside>
 

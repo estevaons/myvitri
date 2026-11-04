@@ -200,20 +200,3 @@ export async function uploadImageAction(kind: ImageKind, form: FormData): Promis
   }
   return { ok: true, url: bucket.getPublicUrl(path).data.publicUrl };
 }
-
-export type Stats = {
-  totals: Partial<Record<"view" | "buy" | "copy" | "kit" | "video", number>>;
-  days: { day: string; views: number; clicks: number }[];
-  items: { id: string; kind: string; n: number }[];
-};
-
-export async function statsAction(days: number): Promise<{ ok: true; stats: Stats } | { ok: false; error: string }> {
-  const { supabase, user } = await getUser();
-  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
-  const { data, error } = await supabase.rpc("vitrine_stats", { days });
-  if (error) {
-    console.error("vitrine_stats", error);
-    return { ok: false, error: "Não deu para carregar as métricas." };
-  }
-  return { ok: true, stats: data as unknown as Stats };
-}
