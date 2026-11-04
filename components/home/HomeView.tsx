@@ -95,6 +95,56 @@ function CreateVitrine() {
   );
 }
 
+const PERKS: [title: string, text: string][] = [
+  ["Um link só", "Cupons, produtos e kits na bio, no lugar de dez links soltos."],
+  ["Preço com desconto", "Cada produto já mostra quanto fica com o seu cupom."],
+  ["Métricas de verdade", "Veja quem visitou, o que clicou e qual cupom foi copiado."],
+];
+
+/**
+ * Para quem ainda não entrou: o convite para criar a própria vitrine, em destaque (fundo tinta, o único
+ * bloco escuro da página) logo antes das abas, para aparecer em qualquer aba.
+ */
+function GuestInvite() {
+  return (
+    <section aria-labelledby="crie-sua-vitrine" className={`mx-auto max-w-[1440px] pt-16 md:pt-24 ${pad}`}>
+      <div className="grid gap-10 bg-ink px-6 py-12 text-white md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] md:items-center md:gap-16 md:px-14 md:py-16">
+        <div className="flex flex-col items-start gap-5">
+          <span className={`${kicker} text-gold`}>Você cria conteúdo?</span>
+          <h2 id="crie-sua-vitrine" className="m-0 font-display text-[clamp(40px,5.2vw,72px)] leading-[1.02] font-normal text-balance">
+            Crie a sua vitrine <em>em 2 minutos</em>
+          </h2>
+          <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-white/70">
+            Junte os cupons e produtos que você usa e indica num link para a bio. É grátis.
+          </p>
+          <span className="text-[16px] text-white/60">
+            {HOST}/<em className="font-display text-[1.35em] leading-none text-white">seunome</em>
+          </span>
+          <Link
+            href="/criar-vitrine"
+            className="mt-1 flex min-h-12 items-center justify-center bg-white px-7 text-[12px] font-medium tracking-[0.18em] text-ink uppercase no-underline hover:bg-cream"
+          >
+            Criar minha vitrine
+          </Link>
+        </div>
+        <ul className="m-0 flex list-none flex-col p-0">
+          {PERKS.map(([title, text], i) => (
+            <li key={title} className="flex gap-5 border-t border-white/15 py-5 last:border-b">
+              <span aria-hidden="true" className="font-display text-[28px] leading-none text-gold lining-nums">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="flex flex-col gap-1">
+                <span className="font-display text-[24px] leading-tight">{title}</span>
+                <span className="text-[15px] leading-relaxed text-white/60">{text}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 /** "Para você": a própria vitrine (ou o convite) e os carrosséis. */
 export type ForYou = { vitrine: VitrineContent | null; ranked: boolean; creators: HomeCreator[]; kits: HomeKit[] };
 
@@ -175,11 +225,13 @@ export function HomeView({
         </div>
       </section>
 
+      {guest && <GuestInvite />}
+
       {/* espaço antes das abas como irmão, não em volta: o sticky só prende dentro do próprio pai */}
       <div aria-hidden="true" className="h-16 md:h-24" />
       <TabNav current={tab} />
 
-      {tab === "para-voce" && forYou && <ForYouTab {...forYou} />}
+      {tab === "para-voce" && forYou && <ForYouTab {...forYou} guest={guest} />}
       {tab === "vitrines" && <VitrinesTab params={params} guest={guest} />}
       {tab === "produtos" && <ProdutosTab params={params} guest={guest} />}
       {tab === "kits" && <KitsTab params={params} guest={guest} />}
@@ -190,10 +242,11 @@ export function HomeView({
   );
 }
 
-function ForYouTab({ vitrine, ranked, creators, kits }: ForYou) {
+function ForYouTab({ vitrine, ranked, creators, kits, guest }: ForYou & { guest: boolean }) {
   return (
     <>
-      {vitrine ? <YourVitrine vitrine={vitrine} /> : <CreateVitrine />}
+      {/* o visitante já viu o convite em destaque antes das abas */}
+      {vitrine ? <YourVitrine vitrine={vitrine} /> : !guest && <CreateVitrine />}
 
       {creators.length > 0 && (
         <section className={`${section} gap-10`}>
