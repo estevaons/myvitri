@@ -131,6 +131,7 @@ erDiagram
 | 9 | `20261103000000_brand_logos.sql` | Cria o bucket `brand-logos` e as policies de `storage.objects`. |
 | 10 | `20261103000100_vitrine_photos.sql` | Cria o bucket `vitrine-photos` e as policies. |
 | 11 | `20261104000000_landing_home.sql` | Extensões `unaccent` e `pg_trgm` (schema `extensions`); função `fold()`; índices trigram de busca; `kits.published_at`; `events.visitor` e `events_day_idx`; recria `publish_vitrine()` (preserva `published_at`, versão **atual**); cria `top_creators_today()` e `search_catalog()`. Está no repositório, mas precisa ser aplicada no Supabase: a busca (`/api/busca`) e os carrosséis de `/inicio` (creators do dia e últimos kits) dependem de `search_catalog()`, `top_creators_today()` e `kits.published_at`. Sem a migração, a busca responde 500 e os carrosséis não aparecem. |
+| 12 | `20261105000000_metrics_previous.sql` | `create or replace` de `vitrine_stats(days)`: mantém `totals`, `days` e `items` e acrescenta `previous` (totais por `kind` dos `days` dias imediatamente anteriores à janela atual, mais `buy_coupon`). Alimenta a variação contra o período anterior de `/metricas`. Está no repositório e precisa ser aplicada no Supabase; sem ela a RPC continua devolvendo o formato antigo e a página funciona sem as variações. |
 | — | `supabase/seed.sql` | Vitrine de demonstração `/marinacosta`. Insere em `kits` pelas colunas antigas `tab`/`title`. |
 
 ## Tabelas
@@ -272,10 +273,10 @@ Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:194`). As pol
 |---|---|---|---|---|
 | `owns_vitrine(v uuid) → boolean` | SQL, `stable`, `security invoker`, `search_path = ''` | revogada de `public` e `anon` | `true` se a vitrine `v` pertence a `auth.uid()`. Usada nas policies. | Só nas policies |
 | `publish_vitrine(content jsonb) → timestamptz` | plpgsql, `security invoker` | `authenticated` | Atualiza a vitrine do usuário, **apaga** todos os cupons/produtos/kits dela e **reinsere** a partir do JSON, numa transação. Retorna `updated_at`. Versão atual: `20261104000000_landing_home.sql` (preserva `kits.published_at` por `id`). | `lib/vitrine/store.ts:285` |
-| `vitrine_stats(days int default 30) → jsonb` | SQL, `stable`, `security invoker` | `authenticated` | Agrega `events` da vitrine de quem chama nos últimos `days` (limitado a 1–90), por dia no fuso `America/Sao_Paulo` e por item. | `app/actions.ts:213` |
+| `vitrine_stats(days int default 30) → jsonb` | SQL, `stable`, `security invoker` | `authenticated` | Agrega `events` da vitrine de quem chama nos últimos `days` (limitado a 1–90), por dia no fuso `America/Sao_Paulo` e por item. Também devolve `previous`: os totais da janela anterior de mesma duração. Versão atual: `20261105000000_metrics_previous.sql` (lê as duas janelas de uma vez, `now() - 2 * days`). | `loadStats` em `app/metricas/page.tsx:13` |
 | `delete_my_account() → void` | plpgsql, **`security definer`** | `authenticated` | Apaga `auth.users` do próprio usuário; o resto sai em cascata. | `app/actions.ts:98` |
 | `fold(t text) → text` | SQL, `immutable`, `parallel safe`, `search_path = ''` | padrão | Minúsculas e sem acento (`unaccent` com dicionário explícito, para poder entrar em índice). Base dos índices trigram e da busca. | Índices e `search_catalog()` |
-| `top_creators_today(lim int default 12) → table(handle text)` | SQL, `stable`, **`security definer`** | `anon`, `authenticated` | Handles das vitrines (com ao menos um cupom ou produto) ordenados pelos cliques do dia no fuso `America/Sao_Paulo` (`buy`, `copy`, `kit`, `video`), deduplicando visitante + tipo + item; desempate por `vitrines.updated_at`. Devolve só a ordem, nunca contagens (a RLS de `events` segue só para o dono). `lim` limitado a 1–50. | `topCreatorsToday` (`lib/vitrine/store.ts:150`), via `getTopCreators()` em `/inicio` |
+| `top_creators_today(lim int default 12) → table(handle text)` | SQL, `stable`, **`security definer`** | `anon`, `authenticated` | Handles das vitrines (com ao menos um cupom ou produto) ordenados pelos cliques do dia no fuso `America/Sao_Paulo` (`buy`, `copy`, `kit`, `video`), deduplicando visitante + tipo + item; desempate por `vitrines.updated_at`. Devolve só a ordem, nunca contagens (a RLS de `events` segue só para o dono). `lim` limitado a 1–50. | `topCreatorsToday` (`lib/vitrine/store.ts:150`), via `getTopCreators()` em `/inicio`, `getTrendingHandles()` (ordem "Em alta hoje" da aba Vitrines) e `loadPosition` em `/metricas` (lim 50) |
 | `search_catalog(q text, lim int default 5) → jsonb` | SQL, `stable`, `security invoker` | `anon`, `authenticated` | Busca sem acento (mínimo 2 caracteres) em creators (nome/handle), cupons (marca) e produtos (nome). Retorna `{ creators, coupons, products }`; ordena por igual, começa com, contém e depois por semelhança. Lê só o que a RLS já torna público. `lim` limitado a 1–20 (cupons e produtos: até 6x). Cada produto vem com o cupom ligado a ele (`coupon`) e cada cupom/produto com `handle` e `creator` de quem indica. | `searchCatalog` (`lib/vitrine/store.ts:197`), via `searchHome()` e `GET /api/busca` |
 
 ### `publish_vitrine` passo a passo
@@ -323,11 +324,12 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
 {
   "totals": { "view": 120, "buy": 30, "copy": 12 },
   "days":   [{ "day": "2026-11-01", "views": 40, "clicks": 9 }],
-  "items":  [{ "id": "uuid-do-item", "kind": "buy", "n": 7 }]
+  "items":  [{ "id": "uuid-do-item", "kind": "buy", "n": 7 }],
+  "previous": { "view": 95, "buy": 22, "copy": 10, "buy_coupon": 8 }
 }
 ```
 
-`clicks` = todos os eventos que não são `view`.
+`clicks` = todos os eventos que não são `view`. `previous` soma os eventos por `kind` dos `days` dias imediatamente anteriores à janela (só os `kind` que tiveram eventos aparecem) e inclui `buy_coupon`: cliques `buy` em produtos que têm cupom (`products.coupon_id` não nulo), que também copiam o código. Assim a variação de "Cupons copiados" usa a mesma conta do período atual, na qual a página soma `copy` aos cliques em produto com cupom. O campo é opcional no tipo `Stats` (`components/metrics/stats.ts`): sem a migração aplicada ele não vem.
 
 ## Políticas RLS (estado final)
 
@@ -368,9 +370,12 @@ O app trabalha em `camelCase` (`VitrineContent`), o banco em `snake_case`. A con
 
 | Direção | Função | Arquivo |
 |---|---|---|
-| linha → `Coupon` | `toCoupon` | `lib/vitrine/store.ts:29` |
-| linha → `Product` | `toProduct` | `lib/vitrine/store.ts:43` |
-| linhas → `VitrineContent` | `loadContent` | `lib/vitrine/store.ts:59` |
-| `VitrineContent` → banco | RPC `publish_vitrine` (o próprio SQL converte) | `lib/vitrine/store.ts:282` |
+| linha → `Coupon` | `toCoupon` | `lib/vitrine/store.ts:32` |
+| linha → `Product` | `toProduct` | `lib/vitrine/store.ts:46` |
+| linhas → `VitrineContent` | `loadContent` | `lib/vitrine/store.ts:70` |
+| `VitrineContent` → banco | RPC `publish_vitrine` (o próprio SQL converte) | `lib/vitrine/store.ts:285` |
 | rascunho → `VitrineContent` | `findDraft` (completa campos novos, remove legados) | `lib/vitrine/store.ts:232` |
+| linha → `Kit` | `toKit` | `lib/vitrine/store.ts:62` |
+
+`toCoupon`, `toProduct` e `toKit` são exportados e também usados pelos catálogos das abas de `/inicio` (`lib/vitrine/catalog/*`), que leem `vitrines`, `coupons`, `products` e `kits` com o cliente público (sem cookies), pela mesma RLS de leitura aberta.
 

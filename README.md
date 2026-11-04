@@ -46,7 +46,10 @@ npx supabase db push
 
    Ou cole cada arquivo de `supabase/migrations/` no **SQL Editor**, do mais antigo para o mais novo.
 
-   Aplique também a mais recente, `20261104000000_landing_home.sql`: a busca da home logada (`GET /api/busca`) e os carrosséis de `/inicio` ("Creators do dia" e "Últimos kits") dependem dela. Sem ela, a busca responde 500 e a página abre sem os carrosséis.
+   Aplique também as duas mais recentes:
+
+   - `20261104000000_landing_home.sql`: a busca da home logada (`GET /api/busca`), os carrosséis de `/inicio` ("Creators do dia" e "Últimos kits") e a ordem "Em alta hoje" da aba Vitrines dependem dela. Sem ela, a busca responde 500 e a página abre sem os carrosséis.
+   - `20261105000000_metrics_previous.sql`: faz `vitrine_stats()` devolver também o período anterior, usado para a variação ("↑ 18% vs. 30 dias anteriores") em `/metricas`. Sem ela a página de métricas funciona, só sem as variações.
 
 3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. O `supabase/seed.sql` atual usa as colunas antigas `tab`/`title` de `kits` e precisa ser ajustado para `name` antes de rodar.
 
@@ -137,11 +140,11 @@ graph LR
     U -->|imagens públicas| ST
 ```
 
-- **Páginas:** landing com hero de um look ilustrado (`LookHero`, imagens em `public/hero/`), vitrines, cupons, categorias e marcas (`/`, estática; quem tem sessão é redirecionado para `/inicio`), home logada (`/inicio`, com saudação, busca de creators, marcas e produtos, o bloco da própria vitrine e carrosséis de creators do dia e últimos kits; sem sessão mostra o login em página cheia; o **Entrar** do site abre o login num modal, `LoginButton`), criação de conta/vitrine (`/criar-vitrine`, só o formulário com prévia ao vivo; a venda e o FAQ ficam no fim da landing), vitrine pública (`/{handle}`), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
+- **Páginas:** landing com hero de um look ilustrado (`LookHero`, imagens em `public/hero/`), vitrines, cupons, categorias e marcas (`/`, estática; quem tem sessão é redirecionado para `/inicio`), home logada (`/inicio`, com saudação, busca de creators, marcas e produtos e cinco abas cujo estado fica na URL, `?aba=`: **Para você**, com o bloco da própria vitrine e os carrosséis de creators do dia e últimos kits, e os catálogos **Vitrines**, **Produtos**, **Kits** e **Marcas**, com filtros, ordem e "Ver mais"; sem sessão mostra o login em página cheia; o **Entrar** do site abre o login num modal, `LoginButton`), métricas da vitrine (`/metricas`, só logado), criação de conta/vitrine (`/criar-vitrine`, só o formulário com prévia ao vivo; a venda e o FAQ ficam no fim da landing), vitrine pública (`/{handle}`), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
 - **Mutações:** todas em Server Actions (`app/actions.ts`); a autorização é feita pelo banco (RLS), o app nunca usa chave de serviço.
-- **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")` (`"minutes"` para o ranking e a busca da home logada, que passa por `GET /api/busca`); a publicação invalida com `updateTag`.
+- **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")` (`"minutes"` para o ranking e a busca da home logada, que passa por `GET /api/busca`); os catálogos das abas de `/inicio` (`lib/vitrine/catalog/`) usam a tag `home` e filtram em memória a partir da URL; a publicação invalida com `updateTag`.
 - **Editor:** rascunho salvo automaticamente em `vitrine_drafts`; **Publicar** grava tudo de uma vez pela função `publish_vitrine()` do Postgres.
-- **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()`.
+- **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()` e mostrados na página `/metricas` (a antiga aba do editor foi removida; `/editor?aba=metricas` redireciona).
 
 Mais em [docs/architecture.md](docs/architecture.md).
 
@@ -149,10 +152,10 @@ Mais em [docs/architecture.md](docs/architecture.md).
 
 ```text
 app/                 rotas (páginas, route handlers, imagens OG) + actions.ts + layout
-components/          auth/, editor/, storefront/, home/, brand/
-lib/                 brand.ts, supabase/ (clientes e tipos), vitrine/ (domínio)
+components/          auth/, editor/, storefront/, home/ (com catalog/ e tabs/), metrics/, brand/
+lib/                 brand.ts, supabase/ (clientes e tipos), vitrine/ (domínio, com catalog/)
 supabase/            migrations/ (SQL em ordem) e seed.sql
-proxy.ts             proxy do Next 16 (sessão, retorno do OAuth, / → /inicio logado)
+proxy.ts             proxy do Next 16 (sessão, retorno do OAuth, / → /inicio logado, /editor?aba=metricas → /metricas)
 docs/                architecture.md e database.md
 ```
 
