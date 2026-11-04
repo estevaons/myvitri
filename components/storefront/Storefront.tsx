@@ -39,6 +39,18 @@ const pillDark =
 const pillLight =
   "flex min-h-12 items-center justify-center border border-ink bg-transparent px-7 text-[12px] font-medium tracking-[0.18em] text-ink uppercase no-underline hover:bg-ink hover:text-white";
 
+// voltar para a home: só a seta no celular, seta e "Início" com mais espaço
+const backLink =
+  "flex min-h-10 min-w-10 flex-none items-center justify-center gap-2 border-r border-sand pr-3 text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold";
+
+function BackIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.8}>
+      <path d="M19 12H5m6-6-6 6 6 6" />
+    </svg>
+  );
+}
+
 function copyText(text: string) {
   try {
     navigator.clipboard?.writeText(text).catch(() => {});
@@ -298,6 +310,19 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
 
       <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-3.5 ${pad}`}>
         <div className="flex min-w-0 items-center gap-3">
+          {/* "/" serve aos dois: o proxy leva quem entrou para /inicio e quem não entrou fica na landing.
+              Na prévia do editor é só a aparência, para o clique não tirar a pessoa do editor. */}
+          {preview ? (
+            <span aria-hidden="true" className={backLink}>
+              <BackIcon />
+              <span className="@max-2xl:hidden">Início</span>
+            </span>
+          ) : (
+            <Link href="/" aria-label="Voltar para o início" className={backLink}>
+              <BackIcon />
+              <span className="@max-2xl:hidden">Início</span>
+            </Link>
+          )}
           <Avatar content={content} className="box-border size-10 flex-none rounded-full text-sm" />
           <div className="flex min-w-0 flex-col leading-tight">
             <span className="truncate font-display text-[20px] leading-tight font-medium">{content.name}</span>

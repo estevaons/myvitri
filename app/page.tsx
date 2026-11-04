@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LoginButton } from "@/components/auth/forms";
 import { CategoryShop } from "@/components/home/CategoryShop";
-import { kicker, pad, pillDark, SectionHead, SiteFooter, SiteHeader } from "@/components/home/chrome";
-import { ProductArt, ProductIcon } from "@/components/storefront/ProductIcon";
+import { CreatorCard } from "@/components/home/CreatorCard";
+import { CreatorPitch, FAQ } from "@/components/home/CreatorPitch";
+import { kicker, pad, pillDark, pillLight, SectionHead, SiteFooter, SiteHeader } from "@/components/home/chrome";
+import { LookHero } from "@/components/home/LookHero";
 import { BRAND, HOST } from "@/lib/brand";
-import { DESCRIPTION, JsonLd, pageMeta, siteJsonLd } from "@/lib/seo";
-import { getHomeFeed, type HomeCreator, type HomeFeed } from "@/lib/vitrine/data";
+import { appJsonLd, DESCRIPTION, JsonLd, pageMeta, siteJsonLd } from "@/lib/seo";
+import { getHomeFeed, type HomeFeed } from "@/lib/vitrine/data";
 import { couponOff, expiryLabel } from "@/lib/vitrine/pricing";
-import type { IconId } from "@/lib/vitrine/types";
 
 /**
- * Home de quem compra: descobrir vitrines, cupons ativos, achados por categoria e marcas.
- * A página de venda para quem divulga fica em /criar-vitrine.
+ * Landing: descobrir vitrines, cupons ativos, achados por categoria e marcas e, no fim, o que a
+ * vitrine faz para quem divulga (com o FAQ). Quem já entrou não vê esta página: o proxy leva
+ * para /inicio. /criar-vitrine é só o formulário de criar a conta.
  */
 
 const TITLE = `${BRAND} | Cupons e achados de quem você segue`;
@@ -19,77 +22,6 @@ const TITLE = `${BRAND} | Cupons e achados de quem você segue`;
 export const metadata: Metadata = { ...pageMeta({ title: TITLE, description: DESCRIPTION, path: "/" }), title: { absolute: TITLE } };
 
 const EMPTY: HomeFeed = { creators: [], coupons: [], products: [], brands: [], today: "" };
-const HERO_ICONS: IconId[] = ["Shoe", "Bikini", "Glasses", "Bottle"];
-
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
-    .join("");
-
-function Avatar({ name, url, className }: { name: string; url: string; className: string }) {
-  if (url) {
-    // eslint-disable-next-line @next/next/no-img-element -- avatar vem de URL arbitrária
-    return <img src={url} alt="" className={`${className} object-cover`} />;
-  }
-  return (
-    <span aria-hidden="true" className={`${className} flex items-center justify-center bg-white font-semibold text-ink`}>
-      {initials(name) || "?"}
-    </span>
-  );
-}
-
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-
-function CreatorCard({ c }: { c: HomeCreator }) {
-  // Foto de loja é quadrada: o card também é, e cada célula do mosaico fica quadrada como a foto.
-  // Célula de outro formato sobra faixa do cinza do card em volta, que não bate com o fundo da foto.
-  // Por isso é 2×2 com 4 produtos ou mais; com menos, só o primeiro ocupando o card todo.
-  const art = c.art.slice(0, c.art.length >= 4 ? 4 : 1);
-  const cover = Boolean(c.bannerUrl || art.length);
-  const stats = [c.products > 0 && count(c.products, "produto", "produtos"), c.coupons > 0 && count(c.coupons, "cupom", "cupons")]
-    .filter(Boolean)
-    .join(" · ");
-  return (
-    <Link href={`/${c.handle}`} className="group flex min-w-0 flex-col text-ink no-underline">
-      <div className="relative aspect-square overflow-hidden bg-cream">
-        {c.bannerUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- capa vem de URL arbitrária
-          <img src={c.bannerUrl} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-        ) : (
-          art.length > 0 && (
-            <div aria-hidden="true" className={`grid size-full gap-px bg-white ${art.length === 4 ? "grid-cols-2 grid-rows-2" : "grid-cols-1"}`}>
-              {art.map((p) => (
-                <div key={p.id} className="relative flex items-center justify-center overflow-hidden bg-cream">
-                  <ProductArt product={p} iconClassName={art.length === 1 ? "w-[50%]" : "w-[56%]"} strokeWidth={3.6} />
-                </div>
-              ))}
-            </div>
-          )
-        )}
-        {/* A pessoa vem na frente, como na capa de uma revista: rosto e nome sobre a imagem; os produtos ficam de fundo. */}
-        <div
-          className={`absolute inset-x-0 bottom-0 flex flex-col items-start gap-1.5 p-3 md:gap-3 md:p-5 ${cover ? "bg-linear-to-t from-black/75 via-black/35 to-transparent pt-10 text-white md:pt-20" : ""}`}
-        >
-          <Avatar name={c.creator} url={c.avatarUrl} className="box-border size-9 rounded-full border-2 border-white text-xs md:size-14 md:text-sm" />
-          <span className="font-display text-[22px] leading-[1.05] font-medium break-words md:text-[clamp(26px,2.4vw,36px)]">{c.creator}</span>
-        </div>
-      </div>
-      {/* no celular o card é estreito: os números descem para a linha de baixo em vez de cortar */}
-      <span className="flex min-w-0 flex-col pt-3 text-[14px] text-mute group-hover:text-ink md:flex-row md:text-[15px]">
-        <span className="truncate">@{c.handle}</span>
-        {stats && (
-          <span className="truncate">
-            <span className="max-md:hidden">&nbsp;·&nbsp;</span>
-            {stats}
-          </span>
-        )}
-      </span>
-    </Link>
-  );
-}
 
 export default async function Home() {
   const feed = await getHomeFeed().catch((e) => {
@@ -98,53 +30,56 @@ export default async function Home() {
     return EMPTY;
   });
   const { creators, coupons, products, brands, today } = feed;
-  const hero = products.slice(0, 4);
 
   return (
     <div className="overflow-hidden bg-white text-ink">
       <JsonLd data={siteJsonLd} />
+      {/* o FAQ de quem divulga fica no fim desta página: os dados estruturados vêm junto */}
+      <JsonLd data={appJsonLd(FAQ)} />
       <SiteHeader
         links={[
           ["#vitrines", "Vitrines"],
           ["#categorias", "Categorias"],
           ["#marcas", "Marcas"],
           ["#cupons", "Cupons"],
-          ["/criar-vitrine", "Criar vitrine"],
         ]}
+        action={
+          // no celular os dois encolhem (espaçamento das letras menor) para caber ao lado da marca
+          <div className="flex items-center gap-3 md:gap-2">
+            <LoginButton className={`${kicker} whitespace-nowrap text-ink hover:text-gold max-md:text-[11px] max-md:tracking-[0.12em] md:px-2`} />
+            <Link href="/criar-vitrine" className={`${pillDark} whitespace-nowrap max-md:min-h-10 max-md:px-3.5 max-md:text-[11px] max-md:tracking-[0.12em]`}>
+              Criar conta
+            </Link>
+          </div>
+        }
       />
 
-      <section className={`mx-auto grid max-w-[1440px] items-center gap-10 pt-6 md:grid-cols-[1.1fr_1fr] md:gap-12 md:pt-10 ${pad}`}>
+      {/* o hero ocupa a primeira tela inteira (menos o header): o bloco seguinte não aparece cortado embaixo */}
+      <section className={`mx-auto grid min-h-[calc(100svh-81px)] max-w-[1440px] items-center gap-10 pt-6 pb-10 md:grid-cols-[1.1fr_1fr] md:gap-12 md:pt-10 ${pad}`}>
         <div className="flex flex-col items-start gap-5">
           <span className={`${kicker} text-gold`}>Achados de quem usa de verdade</span>
           <h1 className="m-0 font-display text-[clamp(48px,6.8vw,100px)] leading-[1] font-normal tracking-[-0.01em] text-balance">
             Indicado por gente. <em className="font-normal">Não pelo algoritmo.</em>
           </h1>
           <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-mute">
-            Os produtos que as pessoas que você segue usam de verdade, reunidos na vitrine de cada uma.
+            {/* "vitri" em serifa itálica dourada: o nome da marca escondido na palavra */}
+            Veja o que quem você segue usa de verdade, reunido na{" "}
+            <span className="whitespace-nowrap">
+              <em className="font-display text-[1.34em] leading-none text-gold">vitri</em>ne
+            </span>{" "}
+            de cada um.
           </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link href="/criar-vitrine" className={pillDark}>
+              Criar vitrine
+            </Link>
+            {/* a home logada também abre sem login: lá estão todas as vitrines, com filtros */}
+            <Link href="/inicio?aba=vitrines" className={pillLight}>
+              Explorar vitrines
+            </Link>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-1">
-          {HERO_ICONS.map((icon, i) => {
-            const p = hero[i];
-            const tile = "relative flex aspect-square items-center justify-center overflow-hidden bg-cream";
-            if (!p) {
-              return (
-                <div key={icon} aria-hidden="true" className={tile}>
-                  <ProductIcon icon={icon} className="w-[52%]" />
-                </div>
-              );
-            }
-            // cada achado leva aos produtos da vitrine de quem indicou
-            return (
-              <Link key={p.id} href={`/${p.handle}#produtos`} aria-label={`${p.name}, indicado por ${p.creator}`} className={`${tile} group text-ink no-underline`}>
-                <ProductArt product={p} iconClassName="w-[52%]" />
-                <span className={`absolute bottom-3 left-3 max-w-[calc(100%-24px)] truncate bg-white px-3 py-1.5 ${kicker} text-[11px] group-hover:text-gold`}>
-                  por {p.creator.split(" ")[0]}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
+        <LookHero />
       </section>
 
       {/* Fecha a primeira tela: o mesmo bloco areia do convite para criar, aqui falando com quem compra e sem botão. */}
@@ -221,20 +156,6 @@ export default async function Home() {
         </section>
       )}
 
-      <section className={`mx-auto max-w-[1440px] pt-24 md:pt-32 ${pad}`}>
-        <div className="flex flex-col items-center gap-5 bg-sand px-6 py-20 text-center max-md:py-14">
-          <h2 className="m-0 max-w-[16ch] font-display text-[clamp(40px,5.6vw,76px)] leading-[1.04] font-normal text-balance">
-            O que é bom <em>merece ser dividido</em>
-          </h2>
-          <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">
-            Junte seus cupons e produtos favoritos num link só e pare de responder “qual é o cupom?” no direct.
-          </p>
-          <Link href="/criar-vitrine" className={`${pillDark} mt-2`}>
-            Criar minha vitrine
-          </Link>
-        </div>
-      </section>
-
       {products.length > 0 && (
         <section id="categorias" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`}>
           <SectionHead kicker="Compre por" title="Categoria" text="Escolha uma categoria e veja o que cada vitrine indica." />
@@ -264,6 +185,8 @@ export default async function Home() {
           </div>
         </section>
       )}
+
+      <CreatorPitch />
 
       <SiteFooter />
     </div>

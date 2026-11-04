@@ -1,6 +1,6 @@
 # MyVitri
 
-> 📚 **Documentação completa:** [`docs/`](docs/index.md) — comece pelo [índice e ordem de leitura](docs/index.md).
+> 📚 **Documentação:** [arquitetura](docs/architecture.md) e [banco de dados](docs/database.md).
 
 O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **vitrine pública** com os **cupons de desconto** das marcas que divulgam, os **produtos** que indicam (com o preço já calculado com o cupom) e **kits** de produtos. A vitrine fica num link curto (`myvitri.com/seunome`) para a bio do Instagram/TikTok. O seguidor copia o cupom e vai direto para a loja oficial da marca — o MyVitri não vende nada.
 
@@ -46,7 +46,12 @@ npx supabase db push
 
    Ou cole cada arquivo de `supabase/migrations/` no **SQL Editor**, do mais antigo para o mais novo.
 
-3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. **Atenção:** o `supabase/seed.sql` atual falha (usa as colunas antigas `tab`/`title` de `kits`). Veja a correção em [docs/admin.md → Recriar a vitrine de demonstração](docs/admin.md#8-recriar-a-vitrine-de-demonstração-marinacosta).
+   Aplique também as duas mais recentes:
+
+   - `20261104000000_landing_home.sql`: a busca da home logada (`GET /api/busca`), os carrosséis de `/inicio` ("Creators do dia" e "Últimos kits") e a ordem "Em alta hoje" da aba Vitrines dependem dela. Sem ela, a busca responde 500 e a página abre sem os carrosséis.
+   - `20261105000000_metrics_previous.sql`: faz `vitrine_stats()` devolver também o período anterior, usado para a variação ("↑ 18% vs. 30 dias anteriores") em `/metricas`. Sem ela a página de métricas funciona, só sem as variações.
+
+3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. O `supabase/seed.sql` atual usa as colunas antigas `tab`/`title` de `kits` e precisa ser ajustado para `name` antes de rodar.
 
 **Opção B — Supabase local (Docker)**
 
@@ -72,8 +77,6 @@ Detalhes do schema: [docs/database.md](docs/database.md).
 2. No Supabase: **Authentication → Providers → Google** (Client ID e Secret).
 3. No Supabase: **Authentication → URL Configuration**: *Site URL* `http://localhost:3000` e *Redirect URLs* com `http://localhost:3000/auth/callback`.
 
-Passo a passo completo e produção: [docs/admin.md → Configurar o login com Google](docs/admin.md#10-configurar-o-login-com-google).
-
 ### 4. Variáveis de ambiente
 
 Copie o exemplo e preencha:
@@ -87,6 +90,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | sim | Supabase → Project Settings → API | URL do projeto (`https://<ref>.supabase.co`) |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | sim | Supabase → Project Settings → API Keys | Chave publicável (`sb_publishable_…`). Não existe chave de serviço no projeto. |
 | `BRAVE_SEARCH_API_KEY` | não | brave.com/search/api | Fallback quando a loja bloqueia a leitura da página do produto |
+| `TRACK_SALT` | não em dev, recomendada em produção | string aleatória longa, só do servidor | Reservada para o hash diário anônimo de visitante (`events.visitor`). O código de `/api/t` ainda não a usa. |
 
 ### 5. Instalar e subir o servidor
 
@@ -104,11 +108,11 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 **Não existe usuário administrador nem painel admin** no app. Para ter uma vitrine de teste:
 
-1. Acesse [http://localhost:3000/para-creators](http://localhost:3000/para-creators), escolha nome e link e clique em **Criar com Google**.
-2. Depois do login você cai no editor (`/editor`). Cadastre um cupom, um produto e clique em **Publicar**.
+1. Acesse [http://localhost:3000/criar-vitrine](http://localhost:3000/criar-vitrine), escolha nome e link e clique em **Criar com Google**.
+2. Depois do login você cai no editor (`/editor`). Em logins seguintes (botão **Entrar** do site, que abre um modal com "Entrar com Google"), o Google devolve você à página em que clicou em **Entrar** (ou, sem ela, à home `/inicio`), de onde se chega ao editor. Cadastre um cupom, um produto e clique em **Publicar**.
 3. Veja a vitrine em `http://localhost:3000/<seu-link>`.
 
-Tarefas administrativas (editar dados, excluir contas, liberar links) são feitas no painel do Supabase — veja [docs/admin.md](docs/admin.md).
+Tarefas administrativas (editar dados, excluir contas, liberar links) são feitas no painel do Supabase.
 
 ### 7. Outros comandos
 
@@ -136,11 +140,11 @@ graph LR
     U -->|imagens públicas| ST
 ```
 
-- **Páginas:** home de descoberta (`/`), landing de creators (`/para-creators`), vitrine pública (`/{handle}`), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
+- **Páginas:** landing com hero de um look ilustrado (`LookHero`, imagens em `public/hero/`), vitrines, cupons, categorias e marcas (`/`, estática; quem tem sessão é redirecionado para `/inicio`), home (`/inicio`, aberta também a visitantes sem login, com saudação, busca de creators, marcas e produtos, um card de destaque "Crie a sua vitrine em 2 minutos" só para o visitante e cinco abas cujo estado fica na URL, `?aba=`: **Para você**, com o bloco da própria vitrine e os carrosséis de creators do dia e últimos kits, e os catálogos **Vitrines**, **Produtos**, **Kits** e **Marcas**, com filtros, ordem e "Ver mais"; visitante vê o mesmo catálogo até 48 itens por aba e depois o convite para entrar; o **Entrar** do site abre o login num modal, `LoginButton`, e depois do Google volta à mesma página), métricas da vitrine (`/metricas`, só logado), criação de conta/vitrine (`/criar-vitrine`, só o formulário com prévia ao vivo; a venda e o FAQ ficam no fim da landing), vitrine pública (`/{handle}`), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
 - **Mutações:** todas em Server Actions (`app/actions.ts`); a autorização é feita pelo banco (RLS), o app nunca usa chave de serviço.
-- **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")`; a publicação invalida com `updateTag`.
+- **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")` (`"minutes"` para o ranking e a busca da home logada, que passa por `GET /api/busca`); os catálogos das abas de `/inicio` (`lib/vitrine/catalog/`) usam a tag `home` e filtram em memória a partir da URL; a publicação invalida com `updateTag`.
 - **Editor:** rascunho salvo automaticamente em `vitrine_drafts`; **Publicar** grava tudo de uma vez pela função `publish_vitrine()` do Postgres.
-- **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()`.
+- **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()` e mostrados na página `/metricas` (a antiga aba do editor foi removida; `/editor?aba=metricas` redireciona).
 
 Mais em [docs/architecture.md](docs/architecture.md).
 
@@ -148,21 +152,10 @@ Mais em [docs/architecture.md](docs/architecture.md).
 
 ```text
 app/                 rotas (páginas, route handlers, imagens OG) + actions.ts + layout
-components/          auth/, editor/, storefront/, home/, brand/
-lib/                 brand.ts, supabase/ (clientes e tipos), vitrine/ (domínio)
+components/          auth/, editor/, storefront/, home/ (com catalog/ e tabs/), metrics/, brand/
+lib/                 brand.ts, supabase/ (clientes e tipos), vitrine/ (domínio, com catalog/)
 supabase/            migrations/ (SQL em ordem) e seed.sql
-proxy.ts             proxy do Next 16 (sessão e retorno do OAuth)
-docs/                esta documentação
+proxy.ts             proxy do Next 16 (sessão, retorno do OAuth, / → /inicio logado, /editor?aba=metricas → /metricas)
+docs/                architecture.md e database.md
 ```
 
----
-
-## Pegadinhas que todo recém-chegado deve saber
-
-1. **O seed está quebrado** no schema atual — a vitrine `/marinacosta`, linkada no site, não existe num banco novo.
-2. **"Hoje" é calculado em UTC**, mas as métricas usam o fuso de São Paulo: das 21h à meia-noite as datas divergem.
-3. **Editar dados direto no Supabase demora até ~1 hora para aparecer** no site (cache), e a próxima publicação da creator sobrescreve tudo com o rascunho dela.
-4. **Uploads acima de 1 MB falham** por causa do limite padrão das Server Actions, apesar de o bucket aceitar 2 MB.
-5. **Sem testes nem CI**: rode `npm run lint` e teste o fluxo de publicar antes de abrir PR.
-
-Lista completa e priorizada: [docs/divida-tecnica.md](docs/divida-tecnica.md).
