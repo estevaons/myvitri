@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LoginButton } from "@/components/auth/forms";
 import { Wordmark } from "@/components/brand/Logo";
 import { BRAND } from "@/lib/brand";
 
@@ -14,7 +15,8 @@ export const pillLight =
 /** Rótulo pequeno em caixa alta, usado acima dos títulos e nos cabeçalhos do rodapé. */
 export const kicker = "text-[12px] font-medium tracking-[0.22em] uppercase";
 
-export function SiteHeader({ links }: { links: [href: string, label: string][] }) {
+/** `action` substitui o botão da direita (padrão: Entrar, que abre o login num modal). */
+export function SiteHeader({ links, action }: { links: [href: string, label: string][]; action?: ReactNode }) {
   return (
     <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-4 ${pad}`}>
       <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">
@@ -26,9 +28,9 @@ export function SiteHeader({ links }: { links: [href: string, label: string][] }
             {label}
           </Link>
         ))}
-        <Link href="/editor" className={pillLight}>
-          Minha vitrine
-        </Link>
+        {action ?? (
+          <LoginButton className={pillLight} />
+        )}
       </nav>
     </header>
   );
@@ -60,7 +62,8 @@ const FOOTER: [title: string, links: [href: string, label: string][]][] = [
     "Para quem divulga",
     [
       ["/criar-vitrine", "Criar minha vitrine"],
-      ["/editor", "Entrar"],
+      // não é link: abre o modal de login
+      ["#entrar", "Entrar"],
       ["/#vitrines", "Ver vitrines"],
     ],
   ],
@@ -77,11 +80,17 @@ export function SiteFooter() {
         {FOOTER.map(([title, links]) => (
           <nav key={title} aria-label={title} className="flex flex-col gap-3">
             <span className={kicker}>{title}</span>
-            {links.map(([href, label]) => (
-              <Link key={href} href={href} className="text-[15px] text-mute no-underline hover:text-ink">
-                {label}
-              </Link>
-            ))}
+            {links.map(([href, label]) =>
+              href === "#entrar" ? (
+                <LoginButton key={href} className="self-start text-left text-[15px] text-mute hover:text-ink">
+                  {label}
+                </LoginButton>
+              ) : (
+                <Link key={href} href={href} className="text-[15px] text-mute no-underline hover:text-ink">
+                  {label}
+                </Link>
+              ),
+            )}
           </nav>
         ))}
       </div>

@@ -85,6 +85,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | sim | Supabase → Project Settings → API | URL do projeto (`https://<ref>.supabase.co`) |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | sim | Supabase → Project Settings → API Keys | Chave publicável (`sb_publishable_…`). Não existe chave de serviço no projeto. |
 | `BRAVE_SEARCH_API_KEY` | não | brave.com/search/api | Fallback quando a loja bloqueia a leitura da página do produto |
+| `TRACK_SALT` | não em dev, recomendada em produção | string aleatória longa, só do servidor | Reservada para o hash diário anônimo de visitante (`events.visitor`). O código de `/api/t` ainda não a usa. |
 
 ### 5. Instalar e subir o servidor
 
@@ -102,8 +103,8 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 **Não existe usuário administrador nem painel admin** no app. Para ter uma vitrine de teste:
 
-1. Acesse [http://localhost:3000/para-creators](http://localhost:3000/para-creators), escolha nome e link e clique em **Criar com Google**.
-2. Depois do login você cai no editor (`/editor`). Cadastre um cupom, um produto e clique em **Publicar**.
+1. Acesse [http://localhost:3000/criar-vitrine](http://localhost:3000/criar-vitrine), escolha nome e link e clique em **Criar com Google**.
+2. Depois do login você cai no editor (`/editor`). Em logins seguintes (botão **Entrar** do site, que abre um modal com "Entrar com Google"), o destino padrão é a home logada (`/inicio`), de onde se chega ao editor. Cadastre um cupom, um produto e clique em **Publicar**.
 3. Veja a vitrine em `http://localhost:3000/<seu-link>`.
 
 Tarefas administrativas (editar dados, excluir contas, liberar links) são feitas no painel do Supabase.
@@ -134,7 +135,7 @@ graph LR
     U -->|imagens públicas| ST
 ```
 
-- **Páginas:** home de descoberta (`/`), landing de creators (`/para-creators`), vitrine pública (`/{handle}`), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
+- **Páginas:** landing com hero de um look ilustrado (`LookHero`, imagens em `public/hero/`), vitrines, cupons, categorias e marcas (`/`, estática; quem tem sessão é redirecionado para `/inicio`), home logada (`/inicio`, que sem sessão mostra o login em página cheia; o **Entrar** do site abre o login num modal, `LoginButton`), criação de conta/vitrine (`/criar-vitrine`, só o formulário com prévia ao vivo; a venda e o FAQ ficam no fim da landing), vitrine pública (`/{handle}`), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
 - **Mutações:** todas em Server Actions (`app/actions.ts`); a autorização é feita pelo banco (RLS), o app nunca usa chave de serviço.
 - **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")`; a publicação invalida com `updateTag`.
 - **Editor:** rascunho salvo automaticamente em `vitrine_drafts`; **Publicar** grava tudo de uma vez pela função `publish_vitrine()` do Postgres.
@@ -149,7 +150,7 @@ app/                 rotas (páginas, route handlers, imagens OG) + actions.ts +
 components/          auth/, editor/, storefront/, home/, brand/
 lib/                 brand.ts, supabase/ (clientes e tipos), vitrine/ (domínio)
 supabase/            migrations/ (SQL em ordem) e seed.sql
-proxy.ts             proxy do Next 16 (sessão e retorno do OAuth)
+proxy.ts             proxy do Next 16 (sessão, retorno do OAuth, / → /inicio logado)
 docs/                architecture.md e database.md
 ```
 

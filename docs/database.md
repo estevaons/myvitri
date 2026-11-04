@@ -17,8 +17,8 @@ Quem cuida da segurança é o próprio banco: regras chamadas **RLS** (Row Level
 ## Visão técnica
 
 - **SGBD:** PostgreSQL gerenciado pelo [Supabase](https://supabase.com) (PostgREST 14.18, segundo `database.types.ts:12`).
-- **Schemas usados:** `public` (tabelas do app), `auth` (usuários, gerenciado pelo Supabase Auth) e `storage` (buckets e objetos).
-- **Acesso:** sempre via `@supabase/supabase-js` com a **chave publicável** (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Não existe `service_role` no código. Toda autorização é RLS + funções `security invoker`, com uma única exceção `security definer` (`delete_my_account`).
+- **Schemas usados:** `public` (tabelas do app), `auth` (usuários, gerenciado pelo Supabase Auth), `storage` (buckets e objetos) e `extensions` (`unaccent` e `pg_trgm`, usadas na busca).
+- **Acesso:** sempre via `@supabase/supabase-js` com a **chave publicável** (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Não existe `service_role` no código. Toda autorização é RLS + funções `security invoker`, com duas exceções `security definer` (`delete_my_account` e `top_creators_today`, que só devolve a ordem do ranking).
 - **IDs dos itens** (`coupons.id`, `products.id`, `kits.id`) **não têm default**: são UUIDs gerados no navegador (`crypto.randomUUID()` em `components/editor/ui.tsx:14`) e enviados na publicação. Isso mantém o ID estável entre publicações, o que permite que as métricas (`events.item_id`) continuem apontando para o item certo.
 - **Dinheiro em centavos** (`int`): `products.price` e `coupons.value` quando `kind = 'fixed'`.
 
@@ -96,6 +96,7 @@ erDiagram
         text signature
         uuid_array product_ids
         jsonb style "legado"
+        timestamptz published_at "1a publicacao do kit"
     }
     VITRINE_DRAFTS {
         uuid owner_id PK,FK
@@ -107,6 +108,7 @@ erDiagram
         uuid vitrine_id FK
         text kind
         uuid item_id
+        text visitor "hash diario 16 hex, opcional"
         timestamptz created_at
     }
 ```
@@ -128,6 +130,7 @@ erDiagram
 | 8 | `20261102000900_delete_account.sql` | Cria `delete_my_account()` (`security definer`). |
 | 9 | `20261103000000_brand_logos.sql` | Cria o bucket `brand-logos` e as policies de `storage.objects`. |
 | 10 | `20261103000100_vitrine_photos.sql` | Cria o bucket `vitrine-photos` e as policies. |
+| 11 | `20261104000000_landing_home.sql` | Extensões `unaccent` e `pg_trgm` (schema `extensions`); função `fold()`; índices trigram de busca; `kits.published_at`; `events.visitor` e `events_day_idx`; recria `publish_vitrine()` (preserva `published_at`, versão **atual**); cria `top_creators_today()` e `search_catalog()`. Está no repositório, mas precisa ser aplicada no Supabase. |
 | — | `supabase/seed.sql` | Vitrine de demonstração `/marinacosta`. Insere em `kits` pelas colunas antigas `tab`/`title`. |
 
 ## Tabelas
@@ -214,8 +217,9 @@ Combos de até 4 produtos. `20261102000000_vitrines.sql:48-58`, renomeado em `00
 | `signature` | `text` | não | `''` | Zod: até 80 ("assinatura" da creator) |
 | `product_ids` | `uuid[]` | não | `'{}'` | IDs de `products`. **Sem FK** (array). Zod: no máximo 4. |
 | `style` | `jsonb` | não | `'{}'` | `CHECK pg_column_size(style) <= 2000`. **Legado:** sempre `{}` hoje. |
+| `published_at` | `timestamptz` | não | `now()` | Primeira publicação do kit (`20261104000000_landing_home.sql`). Kits já existentes foram preenchidos com `vitrines.updated_at`. `publish_vitrine()` reinsere os kits, mas preserva o valor pelo `id`; kit novo recebe `now()`. |
 
-**Índices:** `kits_vitrine_idx (vitrine_id, position)`.
+**Índices:** `kits_vitrine_idx (vitrine_id, position)`, `kits_published_idx (published_at desc)`.
 
 ### `public.vitrine_drafts`
 
@@ -238,8 +242,9 @@ Eventos anônimos da vitrine pública (métricas). `20261102000700_creator_tools
 | `kind` | `text` | não | — | `CHECK kind in ('view','buy','copy','kit','video')` |
 | `item_id` | `uuid` | sim | — | ID do cupom/produto/kit clicado. **Sem FK** (o item pode ter sido apagado). |
 | `created_at` | `timestamptz` | não | `now()` | A policy de insert exige `now() ± 1 minuto`. |
+| `visitor` | `text` | sim | — | `CHECK visitor is null or visitor ~ '^[0-9a-f]{16}$'`: hash diário anônimo do visitante (sem IP guardado), pensado para deduplicar cliques em `top_creators_today()`. Eventos sem `visitor` contam um a um. O código de `/api/t` ainda não preenche o campo. |
 
-**Índices:** `events_vitrine_idx (vitrine_id, created_at desc)`.
+**Índices:** `events_vitrine_idx (vitrine_id, created_at desc)`, `events_day_idx (created_at desc) where kind <> 'view'` (parcial, para o ranking do dia).
 
 Significado de `kind`:
 
@@ -266,9 +271,12 @@ Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:194`). As pol
 | Função | Linguagem / segurança | Quem pode executar | O que faz | Chamada em |
 |---|---|---|---|---|
 | `owns_vitrine(v uuid) → boolean` | SQL, `stable`, `security invoker`, `search_path = ''` | revogada de `public` e `anon` | `true` se a vitrine `v` pertence a `auth.uid()`. Usada nas policies. | Só nas policies |
-| `publish_vitrine(content jsonb) → timestamptz` | plpgsql, `security invoker` | `authenticated` | Atualiza a vitrine do usuário, **apaga** todos os cupons/produtos/kits dela e **reinsere** a partir do JSON, numa transação. Retorna `updated_at`. Versão atual: `20261102000800_coupon_color.sql:6-57`. | `lib/vitrine/store.ts:198` |
+| `publish_vitrine(content jsonb) → timestamptz` | plpgsql, `security invoker` | `authenticated` | Atualiza a vitrine do usuário, **apaga** todos os cupons/produtos/kits dela e **reinsere** a partir do JSON, numa transação. Retorna `updated_at`. Versão atual: `20261104000000_landing_home.sql` (preserva `kits.published_at` por `id`). | `lib/vitrine/store.ts:198` |
 | `vitrine_stats(days int default 30) → jsonb` | SQL, `stable`, `security invoker` | `authenticated` | Agrega `events` da vitrine de quem chama nos últimos `days` (limitado a 1–90), por dia no fuso `America/Sao_Paulo` e por item. | `app/actions.ts:213` |
 | `delete_my_account() → void` | plpgsql, **`security definer`** | `authenticated` | Apaga `auth.users` do próprio usuário; o resto sai em cascata. | `app/actions.ts:98` |
+| `fold(t text) → text` | SQL, `immutable`, `parallel safe`, `search_path = ''` | padrão | Minúsculas e sem acento (`unaccent` com dicionário explícito, para poder entrar em índice). Base dos índices trigram e da busca. | Índices e `search_catalog()` |
+| `top_creators_today(lim int default 12) → table(handle text)` | SQL, `stable`, **`security definer`** | `anon`, `authenticated` | Handles das vitrines (com ao menos um cupom ou produto) ordenados pelos cliques do dia no fuso `America/Sao_Paulo` (`buy`, `copy`, `kit`, `video`), deduplicando visitante + tipo + item; desempate por `vitrines.updated_at`. Devolve só a ordem, nunca contagens (a RLS de `events` segue só para o dono). `lim` limitado a 1–50. | ainda sem chamada no app |
+| `search_catalog(q text, lim int default 5) → jsonb` | SQL, `stable`, `security invoker` | `anon`, `authenticated` | Busca sem acento (mínimo 2 caracteres) em creators (nome/handle), cupons (marca) e produtos (nome). Retorna `{ creators, coupons, products }`; ordena por igual, começa com, contém e depois por semelhança. Lê só o que a RLS já torna público. `lim` limitado a 1–20 (cupons e produtos: até 6x). | ainda sem chamada no app |
 
 ### `publish_vitrine` passo a passo
 
@@ -333,7 +341,7 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
 | `coupons` / `products` / `kits` | insert / update / delete | `authenticated` | `owns_vitrine(vitrine_id)` |
 | `vitrine_drafts` | select / insert / update / delete | `authenticated` | `owner_id = auth.uid()` |
 | `events` | insert | `anon`, `authenticated` | `created_at` entre `now() - 1 min` e `now() + 1 min` **e** a vitrine existe |
-| `events` | select | `authenticated` | `owns_vitrine(vitrine_id)` |
+| `events` | select | `authenticated` | `owns_vitrine(vitrine_id)` (o ranking público passa por `top_creators_today()`, `security definer`, que só expõe a ordem) |
 | `storage.objects` (`brand-logos`, `vitrine-photos`) | insert / select / delete | `authenticated` | primeira pasta do caminho = `auth.uid()` |
 
 ## Regras de exclusão (o que apaga o quê)

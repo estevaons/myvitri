@@ -6,7 +6,7 @@ O **MyVitri** é um site onde **creators** (influenciadoras, criadores de conte�
 
 Pense num **shopping**:
 
-- A **home** (`/`) é o corredor principal: mostra vitrines, cupons ativos, achados por categoria e marcas.
+- A **landing** (`/`) é a fachada do shopping: mostra as vitrines de creators, os cupons ativos, as categorias e as marcas para quem compra, e convida quem divulga a criar a própria vitrine (botões **Criar vitrine** e **Criar conta**). Quem já entrou com a conta é levado direto para a **home logada** (`/inicio`), que mostra os atalhos da própria vitrine (editar, ver, copiar o link) ou o convite para criar uma.
 - Cada **vitrine** (`/{handle}`) é uma loja. O visitante vê os produtos com o preço já calculado com o cupom, copia o código e é levado para a loja oficial da marca. O MyVitri **não vende nada**: só aponta para a loja certa com o cupom certo.
 - O **editor** (`/editor`) é o "estoque" da loja, onde a creator arruma tudo. Ela edita um **rascunho** (salvo sozinho a cada mudança) e, quando gosta do resultado, clica em **Publicar**.
 - A creator ainda tem **métricas** (quantas visitas e cliques a vitrine teve) e **ferramentas de divulgação** (link com cópia em um toque, passo a passo de onde colar, imagem para stories e prévia do link com a foto dela e dos produtos, UTM nos links).
@@ -15,7 +15,7 @@ O fluxo de uso é:
 
 ```mermaid
 graph LR
-    A["Creator abre /para-creators"] --> B["Escolhe nome e link"]
+    A["Creator abre /criar-vitrine (ou o fim da landing)"] --> B["Escolhe nome e link"]
     B --> C["Entra com Google"]
     C --> D["Editor: cadastra cupons, produtos, kits"]
     D --> E["Publica"]
@@ -33,7 +33,7 @@ graph LR
 |---|---|---|---|
 | Framework | Next.js (App Router) | `16.4.4` | Com `cacheComponents`, `partialPrefetching` e `proxy.ts` (o antigo *middleware*). Leia `node_modules/next/dist/docs/` antes de mexer — APIs mudaram (ver `AGENTS.md`). |
 | UI | React | `19.3.0` | Server Components + Client Components; `useActionState`, `useTransition` |
-| Estilo | Tailwind CSS v4 | `^4` | Carregado pelo loader `@tailwindcss/turbopack` (`next.config.ts:10-17`), **sem** `postcss.config` |
+| Estilo | Tailwind CSS v4 | `^4` | Carregado pelo loader `@tailwindcss/turbopack` (`next.config.ts:14-21`), **sem** `postcss.config` |
 | Validação | Zod | `^4.6.7` | Schemas em `lib/vitrine/types.ts` |
 | Banco/Auth/Arquivos | Supabase (`@supabase/supabase-js`, `@supabase/ssr`) | `^2.118.0` / `^0.12.7` | Postgres + RLS, Auth com Google, Storage |
 | Imagens (servidor) | `sharp` | `^0.35.5` | Reduz e compõe as fotos de perfil e de produto das imagens OG/stories (`lib/vitrine/share-image.tsx`). Dependência direta desde que o QR code (`qrcode`) saiu |
@@ -47,17 +47,17 @@ Não há testes automatizados, CI, Dockerfile nem filas/jobs no repositório.
 | Caminho | Papel |
 |---|---|
 | `app/` | Rotas do App Router (páginas, route handlers, imagens OG), `actions.ts` (todas as Server Actions), `layout.tsx`, `globals.css` |
-| `components/auth/` | Formulários de login/criação de vitrine |
+| `components/auth/` | Formulários de login/criação de vitrine e `LoginButton` (modal de login) |
 | `components/editor/` | Editor (painéis, campos, upload) — tudo Client Component |
 | `components/storefront/` | A vitrine pública (`Storefront.tsx`) e as ilustrações de produto |
-| `components/home/` | Peças da home, landing e páginas legais |
+| `components/home/` | Peças da landing, da home logada e das páginas legais (cabeçalho/rodapé, `LookHero`, `Marquee`, `CopyLinkButton`) |
 | `components/brand/` | Logotipo e ícone (SVG puro) |
 | `lib/brand.ts` | Nome, domínio e e-mail de contato |
 | `lib/supabase/` | Clientes Supabase do servidor e tipos gerados |
 | `lib/vitrine/` | Domínio: tipos/schemas, preços, links/UTM, persistência, cache de leitura, importação por link, imagens de divulgação, cookie de "claim" |
-| `proxy.ts` | Proxy do Next (renova sessão, corrige retorno do OAuth) |
+| `proxy.ts` | Proxy do Next (renova sessão, corrige retorno do OAuth, leva quem tem sessão de `/` para `/inicio`) |
 | `supabase/` | Migrações SQL e seed |
-| `public/` | Só os SVGs padrão do `create-next-app`, **não usados** |
+| `public/` | `hero/`: imagens do `LookHero` em WebP (`retrato.webp` 2400×1792 e `blazer`, `bolsa`, `brincos`, `calca` 2048×2048, WebP qualidade 92 na resolução original, geradas por IA; o `next/image` gera e serve versões redimensionadas com `quality={90}`), mais os SVGs padrão do `create-next-app`, **não usados** |
 | `.claude/launch.json` | Configuração de preview (`npm run dev`, porta 3000) para o Claude Code |
 
 ### Mapa dos módulos
@@ -70,7 +70,7 @@ O projeto não é dividido em "apps" como um monólito Django; os módulos abaix
 | Autenticação | Login com Google, sessão, criação da vitrine, sair, excluir conta | `proxy.ts`, `app/auth/callback/route.ts`, `lib/supabase/server.ts`, `lib/vitrine/claim.ts`, `components/auth/forms.tsx` |
 | Editor | Rascunho com autosave, painéis, prévia, publicação | `app/editor/page.tsx`, `components/editor/*` |
 | Vitrine pública | Página `/{handle}` | `app/[handle]/page.tsx`, `components/storefront/*` |
-| Home e páginas institucionais | Home de descoberta, landing de creators, privacidade, termos, marca | `app/page.tsx`, `app/para-creators/`, `app/privacidade/`, `app/termos/`, `components/home/*`, `components/brand/*` |
+| Landing, home logada e páginas institucionais | Landing para os dois públicos (`/`), home de quem entrou (`/inicio`), página de criação de vitrine, privacidade, termos, marca | `app/page.tsx`, `app/inicio/page.tsx`, `app/criar-vitrine/`, `app/privacidade/`, `app/termos/`, `components/home/*`, `components/brand/*` |
 | Importação por link | Ler nome/foto/preço/estoque de páginas de loja; achar logos | `lib/vitrine/import-link.ts` |
 | Uploads de imagem | Reduzir no navegador e enviar ao Storage | `components/editor/{upload.ts,ImageField.tsx,LogoPicker.tsx}` |
 | Métricas | Registrar eventos anônimos e mostrar gráficos | `app/api/t/route.ts`, `components/editor/MetricsPanel.tsx` |
@@ -103,21 +103,22 @@ graph TD
     IMP --> EXT[Sites de loja e Brave Search]
 ```
 
-Leitura das setas: "usa". Exemplos concretos: a home usa `ProductArt` da vitrine pública (`components/storefront/ProductIcon.tsx`) e o `ClaimForm` da autenticação; o editor renderiza o próprio `Storefront` como prévia; a divulgação usa o `Wordmark` da marca (`components/brand/Logo.tsx`) e o `fetchPublic` da importação para baixar as fotos das imagens.
+Leitura das setas: "usa". Exemplos concretos: a home usa `ProductArt` da vitrine pública (`components/storefront/ProductIcon.tsx`) e o `SignupForm` da autenticação (em `/criar-vitrine`); o editor renderiza o próprio `Storefront` como prévia; a divulgação usa o `Wordmark` da marca (`components/brand/Logo.tsx`) e o `fetchPublic` da importação para baixar as fotos das imagens.
 
 ### Rotas
 
 | Rota | Arquivo | Tipo | Renderização |
 |---|---|---|---|
-| `/` | `app/page.tsx` | Página | Dados via `getHomeFeed()` (`"use cache"`, tag `home`) |
-| `/para-creators` | `app/para-creators/page.tsx` | Página | Estática + formulário cliente |
+| `/` | `app/page.tsx` | Página | Landing: cabeçalho (`SiteHeader` com `action`: Vitrines, Categorias, Marcas, Cupons, **Entrar** (`LoginButton`, abre o login num modal) e **Criar conta** → `/criar-vitrine`), hero com altura mínima da primeira tela (`min-h-[calc(100svh-81px)]`, descontando o header) e `LookHero` (`components/home/LookHero.tsx`: foto editorial `public/hero/retrato.webp` via `next/image` com `priority` e `sizes` que consideram a foto deitada recortada num quadro em pé (aparece ~1,7× mais larga que o quadro), com quatro cards de produto sobrepostos — blazer, bolsa, brincos e pantalona — no estilo da vitrine (com animação no hover: o card sobe, cresce levemente, ganha sombra maior e passa para a frente, a foto do produto aproxima e o código do cupom destaca; desligada com `prefers-reduced-motion`): "Cupom -X%", nome, preço com desconto, preço cheio riscado e código; é ilustração estática com marcas e cupons fictícios na constante `LOOK`, sem links nem dados do banco; no celular aparecem só 2 cards) e botões **Criar vitrine** (`/criar-vitrine`) e **Explorar vitrines** (`#vitrines`, ou `#cupons` se não houver vitrines), `#vitrines` (grade de creators + card "Sua vitrine aqui"), bloco "Cada vitrine é uma pessoa", `#cupons`, `#categorias`, `#marcas`, o bloco de venda `CreatorPitch` (`#para-quem-divulga`, `components/home/CreatorPitch.tsx`: "Seu público pergunta. A vitrine responde.", "Feita para quem tem cupom de muita marca" (3 cards), "E ainda" (6 itens), "Pronta em 2 minutos", "Perguntas frequentes" (`FAQ`, 7 itens) e CTA "Seu link na bio, pronto hoje" → `/criar-vitrine`) e rodapé ("Para quem compra" e "Para quem divulga", esta com **Entrar** que também abre o modal). Renderiza dois JSON-LD: `siteJsonLd` e `appJsonLd(FAQ)` (WebApplication + FAQPage). Dados via `getHomeFeed()` (`"use cache"`, tag `home`); não lê cookies, então continua estática (quem tem sessão é redirecionado pelo proxy) |
+| `/inicio` | `app/inicio/page.tsx` | Página | Home logada, sempre por requisição (`connection()` dentro de `<Suspense>`), `noindex` e `Disallow` no `robots.ts`. Sem sessão: `SignInPanel`, o login em página cheia (`?erro=login` mostra o aviso); é para onde o callback volta, mas nenhum link do site leva a `/inicio` como forma de entrar (o **Entrar** abre o modal). Com vitrine: Editar / Ver / Copiar link (`CopyLinkButton`). Sem vitrine: card "Monte sua vitrine também" → `/criar-vitrine`. Cabeçalho sem links de navegação (com sessão o proxy redireciona `/` para `/inicio`, então âncoras da landing voltariam para a home), só o botão **Sair** (`signOutAction`) |
+| `/criar-vitrine` | `app/criar-vitrine/page.tsx` | Página | Só a tela de criar conta, sem cabeçalho de navegação nem rodapé (apenas a marca, que volta para `/`). `SignupForm` (`components/auth/forms.tsx`): título "Crie sua vitrine", nome + link (hook `useClaim`, campos em `ClaimFields`), botão "Criar com Google" (`claimAction`), aceite dos termos e "Já tem conta? Entrar" (`LoginButton`, abre o modal; o parágrafo fica fora do `<form>` do cadastro). No desktop a metade direita (fundo areia) mostra `VitrinePreview`, prévia ao vivo com iniciais, nome e `myvitri.com/handle` conforme a pessoa digita, com cupons de exemplo; no celular só o formulário. FAQ e JSON-LD da aplicação ficam na landing |
 | `/privacidade`, `/termos` | `app/privacidade/page.tsx`, `app/termos/page.tsx` | Páginas | Estáticas |
 | `/editor` | `app/editor/page.tsx` | Página | Sempre por requisição (`connection()`); `?aba=` e `?erro=login` |
 | `/{handle}` | `app/[handle]/page.tsx` | Página | `<Suspense>` + `getPublicVitrine()` (`"use cache"`, tag `vitrine:{handle}`) |
 | `/{handle}/opengraph-image` | `app/[handle]/opengraph-image.tsx` | Imagem (convenção de metadata) | PNG 1200×630 |
 | `/{handle}/story` | `app/[handle]/story/route.ts` | Route Handler `GET` | PNG 1080×1920 (perfil, produtos com foto, cupons) |
 | `/api/t` | `app/api/t/route.ts` | Route Handler `POST` | Grava evento, sempre 204 |
-| `/auth/callback` | `app/auth/callback/route.ts` | Route Handler `GET` | Troca `code` por sessão, cria vitrine |
+| `/auth/callback` | `app/auth/callback/route.ts` | Route Handler `GET` | Troca `code` por sessão. Destino padrão: `/inicio` (erros: `/inicio?erro=login`). Só vai para `/editor` quando o login veio do claim (`/criar-vitrine`) e a vitrine foi criada nesta chamada |
 | `/icon.svg`, `/apple-icon` | `app/icon.svg`, `app/apple-icon.tsx` | Ícones (convenção de metadata) | Estáticos |
 
 ### Server Actions (`app/actions.ts`)
@@ -129,7 +130,7 @@ Todas as mutações passam por Server Actions num único arquivo. Toda action qu
 | `claimAction` | 47 | não | Landing: valida link/nome, guarda cookie e manda para o Google (ou cria direto se já logado) |
 | `signInAction` | 64 | não | Inicia login Google a partir do editor |
 | `createVitrineAction` | 69 | sim | Cria a vitrine para quem logou sem uma |
-| `signOutAction` | 76 | — | Encerra a sessão e volta para `/` |
+| `signOutAction` | 76 | — | Encerra a sessão e volta para `/` (botão **Sair** do editor e de `/inicio`) |
 | `deleteAccountAction` | 86 | sim | Apaga arquivos, chama `delete_my_account()` e invalida caches |
 | `publishVitrine` | 114 | sim | Valida com Zod, chama `publish_vitrine()`, apaga rascunho, invalida caches |
 | `saveDraftAction` | 140 | sim | Autosave: grava ou apaga o rascunho |
@@ -150,7 +151,7 @@ sequenceDiagram
     participant C as Cache "use cache"
     participant S as Supabase (PostgREST)
     B->>N: GET /marinacosta
-    Note over N: proxy.ts NÃO roda (matcher só cobre /, /para-creators e /editor)
+    Note over N: proxy.ts NÃO roda (matcher só cobre /, /criar-vitrine, /inicio e /editor)
     N->>N: Page envolve VitrinePage em Suspense
     N->>C: getPublicVitrine("marinacosta")
     alt cache válido (tag vitrine:marinacosta)
@@ -192,12 +193,13 @@ sequenceDiagram
 
 ### Renderização e cache
 
-O `next.config.ts` liga três opções que mudam o comportamento padrão:
+O `next.config.ts` liga quatro opções que mudam o comportamento padrão:
 
 | Opção | Linha | Efeito no projeto |
 |---|---|---|
-| `cacheComponents: true` | `next.config.ts:8` | Ativa o modelo de *Cache Components*: dados só são cacheados quando marcados com `"use cache"`; o que depende da requisição precisa estar dentro de `<Suspense>`. Por isso `app/[handle]/page.tsx` e `app/editor/page.tsx` envolvem o conteúdo em `<Suspense>`. |
-| `partialPrefetching: true` | `next.config.ts:9` | Um `<Link>` pré-carrega só a "casca" (App Shell) da rota de destino, reaproveitada por todos os links para ela. |
+| `cacheComponents: true` | `next.config.ts:8` | Ativa o modelo de *Cache Components*: dados só são cacheados quando marcados com `"use cache"`; o que depende da requisição precisa estar dentro de `<Suspense>`. Por isso `app/[handle]/page.tsx`, `app/editor/page.tsx` e `app/inicio/page.tsx` envolvem o conteúdo em `<Suspense>`. |
+| `partialPrefetching: true` | `next.config.ts:13` | Um `<Link>` pré-carrega só a "casca" (App Shell) da rota de destino, reaproveitada por todos os links para ela. |
+| `images.qualities: [75, 90]` | `next.config.ts:10` | No Next 16, `next/image` só aceita `quality` listada em `qualities`. 75 é o padrão; 90 é usada apenas nas imagens do `LookHero`. |
 | `experimental.agentFeedback: true` | `next.config.ts:5-7` | Faz o `next dev` escrever/restaurar o bloco do `AGENTS.md` (instruções para agentes de IA). Não afeta produção. |
 
 **Dados cacheados** (`lib/vitrine/data.ts`):
@@ -211,20 +213,22 @@ O perfil `hours` do Next 16 é: *stale* 5 min, revalidação 1 h, expiração 1 
 
 As leituras cacheadas usam `createPublicSupabase()` (`lib/supabase/server.ts:28`), um cliente **sem cookies** — obrigatório, porque o resultado do cache é compartilhado entre todos os visitantes.
 
-O **editor** chama `await connection()` (`app/editor/page.tsx:13`) para nunca ser pré-renderizado: depende da sessão e da data de hoje.
+O **editor** chama `await connection()` (`app/editor/page.tsx:13`) para nunca ser pré-renderizado: depende da sessão e da data de hoje. `/inicio` faz o mesmo (`HomeLoader` em `app/inicio/page.tsx`) pelo mesmo motivo (depende da sessão).
 
 ### Proxy (o antigo middleware)
 
-`proxy.ts` roda **antes** das rotas do `matcher` (`/`, `/para-creators`, `/editor` e subrotas):
+`proxy.ts` roda **antes** das rotas do `matcher` (`/`, `/criar-vitrine`, `/inicio`, `/editor` e subrotas):
 
 1. **Corrige o retorno do OAuth** (`proxy.ts:11-15`): se o Supabase devolver o usuário para `/?code=…` (acontece quando o `redirectTo` não está na lista de Redirect URLs), redireciona para `/auth/callback` com a mesma query.
 2. **Renova a sessão** (`proxy.ts:17-29`): cria um cliente Supabase ligado aos cookies da requisição/resposta e chama `auth.getClaims()`. Se o token estiver para expirar, os cookies novos vão na resposta. Server Components não conseguem gravar cookies (o `setAll` de `lib/supabase/server.ts:17-21` engole o erro de propósito), então é o proxy que mantém a sessão viva.
+3. **Leva quem já entrou para a home logada**: se a requisição é para `/` e `getClaims()` devolve claims, responde com redirect para `/inicio`, copiando para o redirect os cookies de sessão recém-renovados. Assim a landing não precisa ler cookies e segue estática.
 
 A vitrine pública (`/{handle}`), as imagens e `/api/t` não passam pelo proxy — não precisam de sessão.
 
 ### Autenticação e autorização (resumo)
 
 - Login **só com Google**, via Supabase Auth (`signInWithOAuth`), fluxo com `code` trocado em `/auth/callback`.
+- Todo **Entrar** do site é o `LoginButton` (`components/auth/forms.tsx`): botão client que abre um `<dialog>` nativo num modal (renderizado por `createPortal` no `<body>`, só no navegador; Esc ou clique fora fecham; animação de entrada desligada com `prefers-reduced-motion`) com "Entrar na sua vitrine", "Entrar com Google" (`signInAction`, via `SignInForm`), aceite dos termos e "Ainda não tem conta? Criar conta" (→ `/criar-vitrine`). Aparece no header da landing, no `SiteHeader` padrão (sem `action`), no rodapé e em `/criar-vitrine`. O `SignInPanel` (login em página cheia de `/inicio`) reaproveita o mesmo `SignInForm`. Após o Google, o callback leva a `/inicio`.
 - Três clientes Supabase no servidor (`lib/supabase/server.ts`): `createSupabase()` (com cookies, para actions e páginas dinâmicas), `createPublicSupabase()` (anônimo, para cache) e `getUser()` (atalho que devolve cliente + usuário).
 - **Autorização é do banco**: RLS + `owns_vitrine()`. O app nunca usa chave de serviço. Detalhes em [database.md](database.md#políticas-rls-estado-final).
 
@@ -265,6 +269,7 @@ Não há arquivos de configuração por ambiente; tudo vem de variáveis de ambi
 | `NEXT_PUBLIC_SUPABASE_URL` | sim | `lib/supabase/server.ts:7`, `proxy.ts:18` | URL do projeto Supabase |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | sim | `lib/supabase/server.ts:8`, `proxy.ts:18` | Chave publicável (`sb_publishable_…`) |
 | `BRAVE_SEARCH_API_KEY` | não | `lib/vitrine/import-link.ts:208` | Fallback da importação por link |
+| `TRACK_SALT` | não em dev (recomendada em produção) | ainda não lida no código | Reservada para o hash diário anônimo de visitante em `events.visitor`; `/api/t` ainda não preenche esse campo |
 | `NODE_ENV` | automática | `lib/vitrine/claim.ts:16` | Cookie `vitri_claim` com `secure` só em produção |
 
 | Aspecto | Desenvolvimento | Produção |
