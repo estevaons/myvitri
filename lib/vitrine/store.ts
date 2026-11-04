@@ -8,7 +8,7 @@ import { COUPON_EXTRA, emptyContent, PRODUCT_EXTRA, TRACKING, type Coupon, type 
  * Persistência das vitrines no Supabase. Toda leitura/escrita passa por aqui;
  * a autorização de escrita é garantida pelas policies RLS (dono = auth.uid()).
  */
-type Db = SupabaseClient<Database>;
+export type Db = SupabaseClient<Database>;
 type Tables = Database["public"]["Tables"];
 type VitrineRow = Tables["vitrines"]["Row"];
 type CouponRow = Tables["coupons"]["Row"];
@@ -27,9 +27,9 @@ const pickLook = (look: Partial<VitrineContent["look"]> | null | undefined, fall
 });
 
 /** Sem vitrine_id e position: a busca devolve as linhas assim. */
-type Fields<T> = Omit<T, "vitrine_id" | "position">;
+export type Fields<T> = Omit<T, "vitrine_id" | "position">;
 
-const toCoupon = (c: Fields<CouponRow>): Coupon => ({
+export const toCoupon = (c: Fields<CouponRow>): Coupon => ({
   id: c.id,
   brand: c.brand,
   code: c.code,
@@ -43,7 +43,7 @@ const toCoupon = (c: Fields<CouponRow>): Coupon => ({
   startsAt: c.starts_at,
 });
 
-const toProduct = (p: Fields<ProductRow>): Product => ({
+export const toProduct = (p: Fields<ProductRow>): Product => ({
   id: p.id,
   name: p.name,
   brand: p.brand,
@@ -59,7 +59,7 @@ const toProduct = (p: Fields<ProductRow>): Product => ({
   priceCheckedAt: p.price_checked_at,
 });
 
-const toKit = (k: Tables["kits"]["Row"]): Kit => ({
+export const toKit = (k: Tables["kits"]["Row"]): Kit => ({
   id: k.id,
   name: k.name,
   description: k.description,
@@ -153,7 +153,7 @@ export async function topCreatorsToday(db: Db, limit: number) {
   return data.map((r) => r.handle);
 }
 
-type By = { handle: string; creator: string };
+export type By = { handle: string; creator: string };
 export type FeedKit = By & { kit: Kit; coupons: Coupon[]; products: Product[] };
 
 /** Kits publicados mais recentes, com os produtos deles e os cupons da vitrine (para o preço com desconto). */

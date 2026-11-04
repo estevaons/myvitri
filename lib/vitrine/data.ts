@@ -54,19 +54,19 @@ export type HomeBrand = By & { brand: string; logoUrl: string; best: Coupon; cre
 export type HomeFeed = { creators: HomeCreator[]; coupons: HomeCoupon[]; products: HomeProduct[]; brands: HomeBrand[]; today: string };
 
 /** Percentual sempre na frente de valor fixo; dentro de cada tipo, o maior. */
-const rank = (c: Coupon) => (c.kind === "percent" ? 1_000_000 + c.value : c.value);
+export const rank = (c: Coupon) => (c.kind === "percent" ? 1_000_000 + c.value : c.value);
 
 /** Intercala as listas (1º de cada, 2º de cada…) para uma creator não tomar a seção inteira. */
-function interleave<T>(lists: T[][]): T[] {
+export function interleave<T>(lists: T[][]): T[] {
   const out: T[] = [];
   for (let i = 0; lists.some((l) => i < l.length); i++) for (const l of lists) if (i < l.length) out.push(l[i]);
   return out;
 }
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+export const todayISO = () => new Date().toISOString().slice(0, 10);
 
 /** Cupons ativos (o melhor primeiro) e produtos à venda com o preço já com o cupom. */
-function live(v: FeedVitrine, today: string) {
+export function live(v: FeedVitrine, today: string) {
   const by = { handle: v.handle, creator: v.name };
   const coupons = v.coupons.filter((c) => isActive(c, today)).sort((a, b) => rank(b) - rank(a));
   const products = priceProducts(v.products, coupons).filter((p) => !p.soldOut);
@@ -87,7 +87,7 @@ const toHomeCreator = ({ v, by, coupons, products }: ReturnType<typeof live>): H
 });
 
 /** Uma marca por nome; o selo mostra o melhor cupom dela e leva à vitrine de quem o oferece. Mantém a ordem de chegada. */
-function groupBrands(coupons: HomeCoupon[]): HomeBrand[] {
+export function groupBrands(coupons: HomeCoupon[]): HomeBrand[] {
   const brands = new Map<string, HomeBrand>();
   const brandCreators = new Map<string, Set<string>>();
   for (const c of coupons) {

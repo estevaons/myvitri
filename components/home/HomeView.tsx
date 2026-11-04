@@ -9,6 +9,12 @@ import { CreatorCard, CreatorCover } from "./CreatorCard";
 import { HomeSearch } from "./HomeSearch";
 import { KitCard } from "./KitCard";
 import { Marquee } from "./Marquee";
+import type { TabId, TabParams } from "./catalog/params";
+import { TabNav } from "./catalog/ui";
+import { KitsTab } from "./tabs/KitsTab";
+import { MarcasTab } from "./tabs/MarcasTab";
+import { ProdutosTab } from "./tabs/ProdutosTab";
+import { VitrinesTab } from "./tabs/VitrinesTab";
 
 /** Espaço entre as seções, o mesmo da landing. */
 const section = `mx-auto flex max-w-[1440px] flex-col pt-24 md:pt-32`;
@@ -57,6 +63,9 @@ function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
               Ver vitrine
             </a>
             <CopyLinkButton handle={vitrine.handle} />
+            <Link href="/metricas" className={pillLight}>
+              Ver métricas
+            </Link>
           </div>
         </div>
       </div>
@@ -85,22 +94,17 @@ function CreateVitrine() {
   );
 }
 
-/** Home de quem entrou: saudação e busca, a própria vitrine (ou o convite) e os carrosséis. */
-export function HomeView({
-  name,
-  vitrine,
-  ranked,
-  creators,
-  kits,
-}: {
-  name: string;
-  vitrine: VitrineContent | null;
-  ranked: boolean;
-  creators: HomeCreator[];
-  kits: HomeKit[];
-}) {
+/** "Para você": a própria vitrine (ou o convite) e os carrosséis. */
+export type ForYou = { vitrine: VitrineContent | null; ranked: boolean; creators: HomeCreator[]; kits: HomeKit[] };
+
+/**
+ * Home de quem entrou: saudação e busca, as abas e o conteúdo da aba atual. `forYou` só vem
+ * carregado na aba "Para você"; as outras buscam os próprios dados a partir dos filtros da URL.
+ */
+export function HomeView({ name, tab, params, forYou }: { name: string; tab: TabId; params: TabParams; forYou: ForYou | null }) {
   return (
-    <div className="overflow-hidden bg-white text-ink">
+    // clip, e não hidden: hidden faz desta div a área de rolagem e as abas param de ficar presas no topo
+    <div className="overflow-x-clip bg-white text-ink">
       {/* sem links para a landing: com sessão, o proxy traz quem abre / de volta para cá */}
       <SiteHeader
         links={[]}
@@ -128,8 +132,25 @@ export function HomeView({
         </div>
       </section>
 
+      {/* espaço antes das abas como irmão, não em volta: o sticky só prende dentro do próprio pai */}
+      <div aria-hidden="true" className="h-16 md:h-24" />
+      <TabNav current={tab} />
+
+      {tab === "para-voce" && forYou && <ForYouTab {...forYou} />}
+      {tab === "vitrines" && <VitrinesTab params={params} />}
+      {tab === "produtos" && <ProdutosTab params={params} />}
+      {tab === "kits" && <KitsTab params={params} />}
+      {tab === "marcas" && <MarcasTab params={params} />}
+
+      <SiteFooter />
+    </div>
+  );
+}
+
+function ForYouTab({ vitrine, ranked, creators, kits }: ForYou) {
+  return (
+    <>
       {vitrine ? <YourVitrine vitrine={vitrine} /> : <CreateVitrine />}
-      {/* métricas dos últimos 7 dias e avisos de cupom (quem tem vitrine) entram aqui */}
 
       {creators.length > 0 && (
         <section className={`${section} gap-10`}>
@@ -160,8 +181,6 @@ export function HomeView({
           </Marquee>
         </section>
       )}
-
-      <SiteFooter />
-    </div>
+    </>
   );
 }

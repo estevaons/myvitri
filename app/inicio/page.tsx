@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { SignInPanel } from "@/components/auth/forms";
-import { HomeView } from "@/components/home/HomeView";
+import { flatParams, tabOf } from "@/components/home/catalog/params";
+import { HomeView, type ForYou } from "@/components/home/HomeView";
 import { getHomeFeed, getRecentKits, getTopCreators, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
 import { findMine } from "@/lib/vitrine/store";
 
@@ -32,21 +33,23 @@ async function loadCreators(): Promise<{ ranked: boolean; creators: HomeCreator[
 async function HomeLoader({ searchParams }: Pick<PageProps<"/inicio">, "searchParams">) {
   // por requisição: depende da sessão, como o editor
   await connection();
-  const [{ user, vitrine }, { erro }, { ranked, creators }, kits] = await Promise.all([
+  const params = flatParams(await searchParams);
+  const tab = tabOf(params);
+  // os carrosséis só são lidos na aba "Para você"; as outras abas buscam os próprios dados
+  const [{ user, vitrine }, rows] = await Promise.all([
     findMine(),
-    searchParams,
-    loadCreators(),
-    getRecentKits().catch(orEmpty<HomeKit>("getRecentKits")),
+    tab === "para-voce" ? Promise.all([loadCreators(), getRecentKits().catch(orEmpty<HomeKit>("getRecentKits"))]) : null,
   ]);
   if (!user) {
     // depois do Google, o callback volta para cá
-    return <SignInPanel loginError={erro === "login"} />;
+    return <SignInPanel loginError={params.erro === "login"} />;
   }
 
   const meta = user.user_metadata as { name?: string };
   const name = firstName(vitrine?.name || meta.name || "") || user.email?.split("@")[0] || "";
 
-  return <HomeView name={name} vitrine={vitrine} ranked={ranked} creators={creators} kits={kits} />;
+  const forYou: ForYou | null = rows && { vitrine, ranked: rows[0].ranked, creators: rows[0].creators, kits: rows[1] };
+  return <HomeView name={name} tab={tab} params={params} forYou={forYou} />;
 }
 
 export default function Page({ searchParams }: PageProps<"/inicio">) {
