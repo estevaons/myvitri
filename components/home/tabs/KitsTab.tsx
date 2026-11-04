@@ -9,7 +9,7 @@ const FILTERS = ["preco", "cat", "creator"] as const;
  * Aba "Kits" do /inicio: todos os kits publicados com algum produto à venda, com o total já com cupom.
  * Os dados vêm de um cache só; filtro, ordem e "Ver mais" são feitos aqui, a partir da URL.
  */
-export async function KitsTab({ params }: { params: TabParams }) {
+export async function KitsTab({ params, guest = false }: { params: TabParams; guest?: boolean }) {
   const { kits, categories, creators } = await getKitCatalog();
   const shown = queryKits(kits, params);
   const limit = limitOf(params);
@@ -39,7 +39,7 @@ export async function KitsTab({ params }: { params: TabParams }) {
               </li>
             ))}
           </ul>
-          <LoadMore params={params} shown={Math.min(limit, shown.length)} total={shown.length} />
+          <LoadMore params={params} guest={guest} shown={Math.min(limit, shown.length)} total={shown.length} />
         </>
       ) : filtered ? (
         <CatalogEmpty

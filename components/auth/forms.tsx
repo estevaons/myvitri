@@ -216,11 +216,19 @@ function Panel({ title, text, children }: { title: string; text: string; childre
 
 const noop = () => () => {};
 
+/** A página atual, sem o aviso de erro do login, para voltar a ela depois do Google. */
+function herePath() {
+  const url = new URL(location.href);
+  url.searchParams.delete("erro");
+  return url.pathname + url.search;
+}
+
 /** Botão do Google para entrar (quem já tem conta). Usado na página e no modal de login. */
-function SignInForm({ loginError }: { loginError?: boolean }) {
+function SignInForm({ loginError, next }: { loginError?: boolean; next: string }) {
   const [state, action] = useActionState<FormState, FormData>(signInAction, {});
   return (
     <form action={action} className="flex flex-col gap-3">
+      <input type="hidden" name="next" value={next} />
       <GoogleButton label="Entrar com Google" />
       <ErrorText>{state.error ?? (loginError ? "O login com o Google não foi concluído. Tente de novo." : undefined)}</ErrorText>
       <Consent />
@@ -230,16 +238,19 @@ function SignInForm({ loginError }: { loginError?: boolean }) {
 
 /** /inicio sem sessão (e a volta do Google com erro): o login ocupa a página. */
 export function SignInPanel({ loginError }: { loginError?: boolean }) {
+  // a página que pediu o login (/editor, /metricas…): depois do Google, volta para ela
+  const next = useSyncExternalStore(noop, herePath, () => "");
   return (
     <Panel title="Entrar na sua vitrine" text="Use sua conta Google. Sem senha nova para lembrar.">
-      <SignInForm loginError={loginError} />
+      <SignInForm loginError={loginError} next={next} />
     </Panel>
   );
 }
 
 /**
  * "Entrar" de qualquer página: abre o login num modal (<dialog> nativo: Esc fecha, o foco fica dentro)
- * em vez de levar a outra página. Clicar fora também fecha. Depois do Google, o callback leva a /inicio.
+ * em vez de levar a outra página. Clicar fora também fecha. Depois do Google, o callback volta para a
+ * página em que a pessoa estava (com aba e filtros), lida no clique.
  * O <dialog> vai direto para o <body> (portal): assim o botão pode ficar até dentro de um <p>.
  */
 export function LoginButton({ className, children = "Entrar" }: { className?: string; children?: ReactNode }) {
@@ -247,9 +258,18 @@ export function LoginButton({ className, children = "Entrar" }: { className?: st
   const title = useId();
   // só no navegador: no servidor não há <body> para o portal, e o modal começa fechado de qualquer jeito
   const mounted = useSyncExternalStore(noop, () => true, () => false);
+  // lido no clique, e não na renderização: entre uma e outra a pessoa pode ter trocado de aba ou filtro
+  const [next, setNext] = useState("");
   return (
     <>
-      <button type="button" onClick={() => dialog.current?.showModal()} className={`cursor-pointer ${className ?? ""}`}>
+      <button
+        type="button"
+        onClick={() => {
+          setNext(herePath());
+          dialog.current?.showModal();
+        }}
+        className={`cursor-pointer ${className ?? ""}`}
+      >
         {children}
       </button>
       {mounted &&
@@ -275,7 +295,7 @@ export function LoginButton({ className, children = "Entrar" }: { className?: st
                 Entrar na sua vitrine
               </h2>
               <p className="m-0 text-[16px] leading-relaxed text-mute">Use sua conta Google. Sem senha nova para lembrar.</p>
-              <SignInForm />
+              <SignInForm next={next} />
               <p className="m-0 text-center text-[15px] text-mute">
                 Ainda não tem conta?{" "}
                 <Link href="/criar-vitrine" className="font-medium text-ink underline underline-offset-2">

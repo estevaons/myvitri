@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/actions";
+import { LoginButton } from "@/components/auth/forms";
 import { HOST } from "@/lib/brand";
 import { summarizeVitrine, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
 import type { VitrineContent } from "@/lib/vitrine/types";
@@ -101,7 +102,22 @@ export type ForYou = { vitrine: VitrineContent | null; ranked: boolean; creators
  * Home de quem entrou: saudação e busca, as abas e o conteúdo da aba atual. `forYou` só vem
  * carregado na aba "Para você"; as outras buscam os próprios dados a partir dos filtros da URL.
  */
-export function HomeView({ name, tab, params, forYou }: { name: string; tab: TabId; params: TabParams; forYou: ForYou | null }) {
+export function HomeView({
+  name,
+  tab,
+  params,
+  forYou,
+  loginError = false,
+}: {
+  /** null: quem ainda não entrou (visitante, vindo do "Explorar vitrines" da landing) */
+  name: string | null;
+  tab: TabId;
+  params: TabParams;
+  forYou: ForYou | null;
+  /** a volta do Google falhou (?erro=login) */
+  loginError?: boolean;
+}) {
+  const guest = name === null;
   return (
     // clip, e não hidden: hidden faz desta div a área de rolagem e as abas param de ficar presas no topo
     <div className="overflow-x-clip bg-white text-ink">
@@ -109,22 +125,49 @@ export function HomeView({ name, tab, params, forYou }: { name: string; tab: Tab
       <SiteHeader
         links={[]}
         action={
-          <form action={signOutAction}>
-            <button type="submit" className={pillLight}>
-              Sair
-            </button>
-          </form>
+          guest ? (
+            // o mesmo par da landing; no celular os dois encolhem para caber ao lado da marca
+            <div className="flex items-center gap-3 md:gap-2">
+              <LoginButton className={`${kicker} whitespace-nowrap text-ink hover:text-gold max-md:text-[11px] max-md:tracking-[0.12em] md:px-2`} />
+              <Link href="/criar-vitrine" className={`${pillDark} whitespace-nowrap max-md:min-h-10 max-md:px-3.5 max-md:text-[11px] max-md:tracking-[0.12em]`}>
+                Criar conta
+              </Link>
+            </div>
+          ) : (
+            <form action={signOutAction}>
+              <button type="submit" className={pillLight}>
+                Sair
+              </button>
+            </form>
+          )
         }
       />
 
+      {loginError && (
+        <div role="alert" className={`mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 bg-cream py-3 text-[15px] ${pad}`}>
+          <span>O login com o Google não foi concluído.</span>
+          <LoginButton className={`${kicker} text-[11px] text-ink underline underline-offset-4 hover:text-gold`}>Tentar de novo</LoginButton>
+        </div>
+      )}
+
       <section className={`mx-auto flex max-w-[1440px] flex-col gap-14 pt-16 md:gap-20 md:pt-28 ${pad}`}>
         <div className="flex flex-col gap-5">
-          <span className={`${kicker} text-gold`}>Sua home</span>
+          <span className={`${kicker} text-gold`}>{guest ? "Explorar" : "Sua home"}</span>
           <h1 className="m-0 font-display text-[clamp(48px,6.8vw,100px)] leading-[1] font-normal tracking-[-0.01em]">
-            Olá, <em>{name}</em>
+            {guest ? (
+              <>
+                Achados de <em>quem você segue</em>
+              </>
+            ) : (
+              <>
+                Olá, <em>{name}</em>
+              </>
+            )}
           </h1>
           <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-mute">
-            Encontre os achados de quem você segue: busque por uma pessoa, uma marca ou um produto.
+            {guest
+              ? "Vitrines, produtos, kits e os cupons de cada marca, reunidos num lugar só. Busque por uma pessoa, uma marca ou um produto."
+              : "Encontre os achados de quem você segue: busque por uma pessoa, uma marca ou um produto."}
           </p>
         </div>
         <div className="max-w-[60rem]">
@@ -137,10 +180,10 @@ export function HomeView({ name, tab, params, forYou }: { name: string; tab: Tab
       <TabNav current={tab} />
 
       {tab === "para-voce" && forYou && <ForYouTab {...forYou} />}
-      {tab === "vitrines" && <VitrinesTab params={params} />}
-      {tab === "produtos" && <ProdutosTab params={params} />}
-      {tab === "kits" && <KitsTab params={params} />}
-      {tab === "marcas" && <MarcasTab params={params} />}
+      {tab === "vitrines" && <VitrinesTab params={params} guest={guest} />}
+      {tab === "produtos" && <ProdutosTab params={params} guest={guest} />}
+      {tab === "kits" && <KitsTab params={params} guest={guest} />}
+      {tab === "marcas" && <MarcasTab params={params} guest={guest} />}
 
       <SiteFooter />
     </div>

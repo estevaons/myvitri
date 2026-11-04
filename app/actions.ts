@@ -3,6 +3,7 @@
 import { updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { safePath, saveReturn } from "@/lib/auth/return-to";
 import { HOST } from "@/lib/brand";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
 import { HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
@@ -18,6 +19,19 @@ function readClaim(form: FormData) {
     handle: String(form.get("handle") ?? "").trim().toLowerCase().replace(/^@/, ""),
     name: String(form.get("name") ?? "").trim(),
   };
+}
+
+/** Caminho da página que fez a requisição, só se for deste site (sem o aviso de erro do login). */
+async function refererPath() {
+  const h = await headers();
+  try {
+    const ref = new URL(h.get("referer") ?? "");
+    if (ref.host !== h.get("host")) return null;
+    ref.searchParams.delete("erro");
+    return safePath(ref.pathname + ref.search);
+  } catch {
+    return null;
+  }
 }
 
 /** Leva ao login do Google; a volta passa por /auth/callback. */
@@ -60,8 +74,11 @@ export async function claimAction(_prev: FormState, form: FormData): Promise<For
   return startGoogle(state);
 }
 
-/** Editor sem sessão. */
-export async function signInAction(): Promise<FormState> {
+/** "Entrar" de qualquer página: depois do Google, volta para `next` (a página em que a pessoa estava). */
+export async function signInAction(_prev: FormState, form: FormData): Promise<FormState> {
+  // o campo vem vazio se o clique foi antes de a página hidratar: aí vale a página que enviou o formulário
+  const next = safePath(form.get("next")) ?? (await refererPath());
+  if (next) await saveReturn(next);
   return startGoogle({});
 }
 

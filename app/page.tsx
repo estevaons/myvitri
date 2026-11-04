@@ -73,7 +73,8 @@ export default async function Home() {
             <Link href="/criar-vitrine" className={pillDark}>
               Criar vitrine
             </Link>
-            <Link href={creators.length ? "#vitrines" : "#cupons"} className={pillLight}>
+            {/* a home logada também abre sem login: lá estão todas as vitrines, com filtros */}
+            <Link href="/inicio?aba=vitrines" className={pillLight}>
               Explorar vitrines
             </Link>
           </div>

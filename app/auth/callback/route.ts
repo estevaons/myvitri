@@ -1,5 +1,6 @@
 import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
+import { takeReturn } from "@/lib/auth/return-to";
 import { getUser } from "@/lib/supabase/server";
 import { starterContent, takeClaim } from "@/lib/vitrine/claim";
 import { createVitrine, HandleTakenError } from "@/lib/vitrine/store";
@@ -7,8 +8,9 @@ import { vitrineContentSchema } from "@/lib/vitrine/types";
 import { vitrineTag } from "@/lib/vitrine/data";
 
 /**
- * Volta do Google: troca o código pela sessão e leva à home (/inicio). Se o login veio do
- * "escolher o link" em /criar-vitrine, cria a vitrine e abre o editor para terminar de montá-la.
+ * Volta do Google: troca o código pela sessão e leva de volta à página em que a pessoa clicou em
+ * "Entrar" (ou à home, /inicio). Se o login veio do "escolher o link" em /criar-vitrine, cria a
+ * vitrine e abre o editor para terminar de montá-la.
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { data: existing } = await supabase.from("vitrines").select("id").eq("owner_id", data.user.id).maybeSingle();
-  const claim = await takeClaim();
+  const [claim, back] = await Promise.all([takeClaim(), takeReturn()]);
   const parsed = claim && vitrineContentSchema.safeParse(starterContent(data.user, claim.handle, claim.name));
   if (!existing && parsed?.success) {
     try {
@@ -41,5 +43,5 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.redirect(editor);
   }
-  return NextResponse.redirect(home);
+  return NextResponse.redirect(back ? new URL(back, request.url) : home);
 }

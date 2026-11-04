@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { SignInPanel } from "@/components/auth/forms";
-import { flatParams, tabOf } from "@/components/home/catalog/params";
+import { flatParams, GUEST_LIMIT, tabOf } from "@/components/home/catalog/params";
 import { HomeView, type ForYou } from "@/components/home/HomeView";
 import { getHomeFeed, getRecentKits, getTopCreators, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
 import { findMine } from "@/lib/vitrine/store";
@@ -40,16 +39,15 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/inicio">, "searchPa
     findMine(),
     tab === "para-voce" ? Promise.all([loadCreators(), getRecentKits().catch(orEmpty<HomeKit>("getRecentKits"))]) : null,
   ]);
-  if (!user) {
-    // depois do Google, o callback volta para cá
-    return <SignInPanel loginError={params.erro === "login"} />;
-  }
 
-  const meta = user.user_metadata as { name?: string };
-  const name = firstName(vitrine?.name || meta.name || "") || user.email?.split("@")[0] || "";
+  // sem sessão a home abre do mesmo jeito (o "Explorar vitrines" da landing traz para cá), com até 2
+  // páginas por aba: mesmo um ?limite= maior digitado na URL para em GUEST_LIMIT
+  if (!user && Number(params.limite) > GUEST_LIMIT) params.limite = String(GUEST_LIMIT);
+  const meta = user?.user_metadata as { name?: string } | undefined;
+  const name = user ? firstName(vitrine?.name || meta?.name || "") || user.email?.split("@")[0] || "" : null;
 
   const forYou: ForYou | null = rows && { vitrine, ranked: rows[0].ranked, creators: rows[0].creators, kits: rows[1] };
-  return <HomeView name={name} tab={tab} params={params} forYou={forYou} />;
+  return <HomeView name={name} tab={tab} params={params} forYou={forYou} loginError={params.erro === "login"} />;
 }
 
 export default function Page({ searchParams }: PageProps<"/inicio">) {
