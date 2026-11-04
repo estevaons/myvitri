@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LoginButton } from "@/components/auth/forms";
 import { CategoryShop } from "@/components/home/CategoryShop";
+import { CreatorCard } from "@/components/home/CreatorCard";
 import { CreatorPitch, FAQ } from "@/components/home/CreatorPitch";
 import { kicker, pad, pillDark, pillLight, SectionHead, SiteFooter, SiteHeader } from "@/components/home/chrome";
 import { LookHero } from "@/components/home/LookHero";
-import { ProductArt } from "@/components/storefront/ProductIcon";
 import { BRAND, HOST } from "@/lib/brand";
 import { appJsonLd, DESCRIPTION, JsonLd, pageMeta, siteJsonLd } from "@/lib/seo";
-import { getHomeFeed, type HomeCreator, type HomeFeed } from "@/lib/vitrine/data";
+import { getHomeFeed, type HomeFeed } from "@/lib/vitrine/data";
 import { couponOff, expiryLabel } from "@/lib/vitrine/pricing";
 
 /**
@@ -22,76 +22,6 @@ const TITLE = `${BRAND} | Cupons e achados de quem você segue`;
 export const metadata: Metadata = { ...pageMeta({ title: TITLE, description: DESCRIPTION, path: "/" }), title: { absolute: TITLE } };
 
 const EMPTY: HomeFeed = { creators: [], coupons: [], products: [], brands: [], today: "" };
-
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
-    .join("");
-
-function Avatar({ name, url, className }: { name: string; url: string; className: string }) {
-  if (url) {
-    // eslint-disable-next-line @next/next/no-img-element -- avatar vem de URL arbitrária
-    return <img src={url} alt="" className={`${className} object-cover`} />;
-  }
-  return (
-    <span aria-hidden="true" className={`${className} flex items-center justify-center bg-white font-semibold text-ink`}>
-      {initials(name) || "?"}
-    </span>
-  );
-}
-
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-
-function CreatorCard({ c }: { c: HomeCreator }) {
-  // Foto de loja é quadrada: o card também é, e cada célula do mosaico fica quadrada como a foto.
-  // Célula de outro formato sobra faixa do cinza do card em volta, que não bate com o fundo da foto.
-  // Por isso é 2×2 com 4 produtos ou mais; com menos, só o primeiro ocupando o card todo.
-  const art = c.art.slice(0, c.art.length >= 4 ? 4 : 1);
-  const cover = Boolean(c.bannerUrl || art.length);
-  const stats = [c.products > 0 && count(c.products, "produto", "produtos"), c.coupons > 0 && count(c.coupons, "cupom", "cupons")]
-    .filter(Boolean)
-    .join(" · ");
-  return (
-    <Link href={`/${c.handle}`} className="group flex min-w-0 flex-col text-ink no-underline">
-      <div className="relative aspect-square overflow-hidden bg-cream">
-        {c.bannerUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- capa vem de URL arbitrária
-          <img src={c.bannerUrl} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-        ) : (
-          art.length > 0 && (
-            <div aria-hidden="true" className={`grid size-full gap-px bg-white ${art.length === 4 ? "grid-cols-2 grid-rows-2" : "grid-cols-1"}`}>
-              {art.map((p) => (
-                <div key={p.id} className="relative flex items-center justify-center overflow-hidden bg-cream">
-                  <ProductArt product={p} iconClassName={art.length === 1 ? "w-[50%]" : "w-[56%]"} strokeWidth={3.6} />
-                </div>
-              ))}
-            </div>
-          )
-        )}
-        {/* A pessoa vem na frente, como na capa de uma revista: rosto e nome sobre a imagem; os produtos ficam de fundo. */}
-        <div
-          className={`absolute inset-x-0 bottom-0 flex flex-col items-start gap-1.5 p-3 md:gap-3 md:p-5 ${cover ? "bg-linear-to-t from-black/75 via-black/35 to-transparent pt-10 text-white md:pt-20" : ""}`}
-        >
-          <Avatar name={c.creator} url={c.avatarUrl} className="box-border size-9 rounded-full border-2 border-white text-xs md:size-14 md:text-sm" />
-          <span className="font-display text-[22px] leading-[1.05] font-medium break-words md:text-[clamp(26px,2.4vw,36px)]">{c.creator}</span>
-        </div>
-      </div>
-      {/* no celular o card é estreito: os números descem para a linha de baixo em vez de cortar */}
-      <span className="flex min-w-0 flex-col pt-3 text-[14px] text-mute group-hover:text-ink md:flex-row md:text-[15px]">
-        <span className="truncate">@{c.handle}</span>
-        {stats && (
-          <span className="truncate">
-            <span className="max-md:hidden">&nbsp;·&nbsp;</span>
-            {stats}
-          </span>
-        )}
-      </span>
-    </Link>
-  );
-}
 
 export default async function Home() {
   const feed = await getHomeFeed().catch((e) => {

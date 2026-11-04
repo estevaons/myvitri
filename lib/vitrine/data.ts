@@ -1,8 +1,17 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
-import { isActive, priceProducts, type PricedProduct } from "./pricing";
-import { findByHandle, listFeed, listHandles } from "./store";
+import { applyCoupon, isActive, kitTotals, priceProducts, type PricedProduct } from "./pricing";
+import {
+  findByHandle,
+  listFeed,
+  listFeedByHandles,
+  listHandles,
+  listRecentKits,
+  searchCatalog,
+  topCreatorsToday,
+  type FeedVitrine,
+} from "./store";
 import type { Coupon, VitrineContent } from "./types";
 
 export const vitrineTag = (handle: string) => `vitrine:${handle}`;
@@ -54,36 +63,31 @@ function interleave<T>(lists: T[][]): T[] {
   return out;
 }
 
-/** Tudo o que a home mostra, a partir das vitrines publicadas mais recentes. */
-export async function getHomeFeed(): Promise<HomeFeed> {
-  "use cache";
-  cacheTag(HOME_TAG);
-  cacheLife("hours");
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const feed = (await listFeed(createPublicSupabase(), 24)).map((v) => {
-    const by = { handle: v.handle, creator: v.name };
-    const coupons = v.coupons.filter((c) => isActive(c, today)).sort((a, b) => rank(b) - rank(a));
-    const products = priceProducts(v.products, coupons).filter((p) => !p.soldOut);
-    return { v, by, coupons, products };
-  });
-  const live = feed.filter((f) => f.coupons.length > 0 || f.products.length > 0);
+/** Cupons ativos (o melhor primeiro) e produtos à venda com o preço já com o cupom. */
+function live(v: FeedVitrine, today: string) {
+  const by = { handle: v.handle, creator: v.name };
+  const coupons = v.coupons.filter((c) => isActive(c, today)).sort((a, b) => rank(b) - rank(a));
+  const products = priceProducts(v.products, coupons).filter((p) => !p.soldOut);
+  return { v, by, coupons, products };
+}
 
-  const creators = live.slice(0, 8).map(
-    ({ v, by, coupons, products }): HomeCreator => ({
-      ...by,
-      avatarUrl: v.avatarUrl,
-      bannerUrl: v.look.bannerUrl,
-      coupons: coupons.length,
-      products: products.length,
-      art: products.slice(0, 4),
-    }),
-  );
+/** Só as vitrines com algum cupom ativo ou produto à venda. */
+const liveFeed = (vitrines: FeedVitrine[], today: string) =>
+  vitrines.map((v) => live(v, today)).filter((f) => f.coupons.length > 0 || f.products.length > 0);
 
-  const coupons = interleave(live.map((f) => f.coupons.map((c): HomeCoupon => ({ ...c, ...f.by }))));
-  const products = interleave(live.map((f) => f.products.map((p): HomeProduct => ({ ...p, ...f.by }))));
+const toHomeCreator = ({ v, by, coupons, products }: ReturnType<typeof live>): HomeCreator => ({
+  ...by,
+  avatarUrl: v.avatarUrl,
+  bannerUrl: v.look.bannerUrl,
+  coupons: coupons.length,
+  products: products.length,
+  art: products.slice(0, 4),
+});
 
-  // uma marca por nome; o selo mostra o melhor cupom dela e leva à vitrine de quem o oferece
+/** Uma marca por nome; o selo mostra o melhor cupom dela e leva à vitrine de quem o oferece. Mantém a ordem de chegada. */
+function groupBrands(coupons: HomeCoupon[]): HomeBrand[] {
   const brands = new Map<string, HomeBrand>();
   const brandCreators = new Map<string, Set<string>>();
   for (const c of coupons) {
@@ -94,12 +98,88 @@ export async function getHomeFeed(): Promise<HomeFeed> {
     if (!b || rank(c) > rank(b.best)) brands.set(key, { brand: c.brand, logoUrl: c.logoUrl || b?.logoUrl || "", best: c, handle: c.handle, creator: c.creator, creators: 0 });
     else if (!b.logoUrl) b.logoUrl = c.logoUrl;
   }
+  return [...brands].map(([key, b]) => ({ ...b, creators: brandCreators.get(key)!.size }));
+}
+
+/** Tudo o que a home mostra, a partir das vitrines publicadas mais recentes. */
+export async function getHomeFeed(): Promise<HomeFeed> {
+  "use cache";
+  cacheTag(HOME_TAG);
+  cacheLife("hours");
+
+  const today = todayISO();
+  const live = liveFeed(await listFeed(createPublicSupabase(), 24), today);
+
+  const coupons = interleave(live.map((f) => f.coupons.map((c): HomeCoupon => ({ ...c, ...f.by }))));
+  const products = interleave(live.map((f) => f.products.map((p): HomeProduct => ({ ...p, ...f.by }))));
 
   return {
-    creators,
+    creators: live.slice(0, 8).map(toHomeCreator),
     coupons: coupons.slice(0, 8),
     products: products.slice(0, 48),
-    brands: [...brands].map(([key, b]) => ({ ...b, creators: brandCreators.get(key)!.size })).slice(0, 8),
+    brands: groupBrands(coupons).slice(0, 8),
     today,
+  };
+}
+
+/** A vitrine de quem entrou no formato dos cards da home, mesmo sem nada ativo ainda. Sem cache: vem da leitura com a sessão. */
+export const summarizeVitrine = (v: FeedVitrine): HomeCreator => toHomeCreator(live(v, todayISO()));
+
+/** Creators com mais cliques hoje, no formato dos cards da home. Vazio enquanto ninguém clicou em nada no dia. */
+export async function getTopCreators(): Promise<HomeCreator[]> {
+  "use cache";
+  cacheTag(HOME_TAG);
+  // o ranking muda ao longo do dia, a cada clique
+  cacheLife("minutes");
+
+  const db = createPublicSupabase();
+  const handles = await topCreatorsToday(db, 12);
+  return liveFeed(await listFeedByHandles(db, handles), todayISO()).map(toHomeCreator);
+}
+
+export type HomeKit = By & { id: string; name: string; description: string; items: PricedProduct[]; total: number; final: number; save: number };
+
+/** Últimos kits publicados, com o total e quanto o cupom economiza. Kits sem nenhum produto à venda ficam de fora. */
+export async function getRecentKits(): Promise<HomeKit[]> {
+  "use cache";
+  cacheTag(HOME_TAG);
+  cacheLife("hours");
+
+  const today = todayISO();
+  return (await listRecentKits(createPublicSupabase(), 12))
+    .map(({ kit, handle, creator, coupons, products }): HomeKit => {
+      const priced = priceProducts(products.filter((p) => !p.soldOut), coupons.filter((c) => isActive(c, today)));
+      const { items, total, final, save } = kitTotals(kit, priced);
+      return { handle, creator, id: kit.id, name: kit.name, description: kit.description, items, total, final, save };
+    })
+    .filter((k) => k.items.length > 0);
+}
+
+export type SearchCreator = { handle: string; name: string; avatarUrl: string };
+export type SearchResults = { creators: SearchCreator[]; brands: HomeBrand[]; products: HomeProduct[] };
+
+// o banco só busca a partir de 2 letras
+const SEARCH_MIN = 2;
+const SEARCH_LIMIT = 5;
+
+/** Busca da home logada: creators, marcas com o melhor cupom ativo e produtos à venda com o preço com cupom. */
+export async function searchHome(q: string): Promise<SearchResults> {
+  "use cache";
+  cacheTag(HOME_TAG);
+  cacheLife("minutes");
+
+  if (q.trim().length < SEARCH_MIN) return { creators: [], brands: [], products: [] };
+  const today = todayISO();
+  const hits = await searchCatalog(createPublicSupabase(), q, SEARCH_LIMIT);
+  const products = hits.products
+    .filter((p) => !p.soldOut)
+    .map(({ coupon, ...p }): HomeProduct => {
+      const active = coupon && isActive(coupon, today) ? coupon : undefined;
+      return { ...p, coupon: active, final: applyCoupon(p.price, active) };
+    });
+  return {
+    creators: hits.creators,
+    brands: groupBrands(hits.coupons.filter((c) => isActive(c, today))).slice(0, SEARCH_LIMIT),
+    products: products.slice(0, SEARCH_LIMIT),
   };
 }

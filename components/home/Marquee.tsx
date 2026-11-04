@@ -67,10 +67,12 @@ export function Marquee({
     const tick = (now: number) => {
       const dt = Math.min(now - last, 100);
       last = now;
+      // a cópia sai do DOM (loop desligado, troca de página) um pouco antes de a limpeza do efeito cancelar o quadro
+      if (!copy.current || !first.current) return;
       if (paused.current) {
         pos = el.scrollLeft;
       } else {
-        const half = copy.current!.offsetLeft - first.current!.offsetLeft;
+        const half = copy.current.offsetLeft - first.current.offsetLeft;
         pos += (speed * dt) / 1000;
         if (pos >= half) pos -= half;
         el.scrollLeft = pos;

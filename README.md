@@ -46,6 +46,8 @@ npx supabase db push
 
    Ou cole cada arquivo de `supabase/migrations/` no **SQL Editor**, do mais antigo para o mais novo.
 
+   Aplique também a mais recente, `20261104000000_landing_home.sql`: a busca da home logada (`GET /api/busca`) e os carrosséis de `/inicio` ("Creators do dia" e "Últimos kits") dependem dela. Sem ela, a busca responde 500 e a página abre sem os carrosséis.
+
 3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. O `supabase/seed.sql` atual usa as colunas antigas `tab`/`title` de `kits` e precisa ser ajustado para `name` antes de rodar.
 
 **Opção B — Supabase local (Docker)**
@@ -135,9 +137,9 @@ graph LR
     U -->|imagens públicas| ST
 ```
 
-- **Páginas:** landing com hero de um look ilustrado (`LookHero`, imagens em `public/hero/`), vitrines, cupons, categorias e marcas (`/`, estática; quem tem sessão é redirecionado para `/inicio`), home logada (`/inicio`, que sem sessão mostra o login em página cheia; o **Entrar** do site abre o login num modal, `LoginButton`), criação de conta/vitrine (`/criar-vitrine`, só o formulário com prévia ao vivo; a venda e o FAQ ficam no fim da landing), vitrine pública (`/{handle}`), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
+- **Páginas:** landing com hero de um look ilustrado (`LookHero`, imagens em `public/hero/`), vitrines, cupons, categorias e marcas (`/`, estática; quem tem sessão é redirecionado para `/inicio`), home logada (`/inicio`, com saudação, busca de creators, marcas e produtos, o bloco da própria vitrine e carrosséis de creators do dia e últimos kits; sem sessão mostra o login em página cheia; o **Entrar** do site abre o login num modal, `LoginButton`), criação de conta/vitrine (`/criar-vitrine`, só o formulário com prévia ao vivo; a venda e o FAQ ficam no fim da landing), vitrine pública (`/{handle}`), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
 - **Mutações:** todas em Server Actions (`app/actions.ts`); a autorização é feita pelo banco (RLS), o app nunca usa chave de serviço.
-- **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")`; a publicação invalida com `updateTag`.
+- **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")` (`"minutes"` para o ranking e a busca da home logada, que passa por `GET /api/busca`); a publicação invalida com `updateTag`.
 - **Editor:** rascunho salvo automaticamente em `vitrine_drafts`; **Publicar** grava tudo de uma vez pela função `publish_vitrine()` do Postgres.
 - **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()`.
 

@@ -1,0 +1,45 @@
+import Link from "next/link";
+import { ProductArt } from "@/components/storefront/ProductIcon";
+import type { HomeKit } from "@/lib/vitrine/data";
+import { formatBRL } from "@/lib/vitrine/pricing";
+import { kicker } from "./chrome";
+
+/**
+ * Fotos do kit num quadrado, como o card de vitrine ao lado no carrossel: 1 ocupa tudo, 2 lado a lado,
+ * 3 com a primeira na metade da esquerda e 4 em 2×2.
+ */
+const GRID = ["grid-cols-1", "grid-cols-2", "grid-cols-2 grid-rows-2", "grid-cols-2 grid-rows-2"];
+
+/** Card de kit da home logada; leva aos kits da vitrine de quem montou. */
+export function KitCard({ k }: { k: HomeKit }) {
+  const items = k.items.slice(0, 4);
+  return (
+    <Link href={`/${k.handle}#kits`} className="group flex min-w-0 flex-col text-ink no-underline">
+      <div aria-hidden="true" className={`grid aspect-square gap-px overflow-hidden bg-white ${GRID[items.length - 1]}`}>
+        {items.map((p, i) => (
+          <div
+            key={p.id}
+            className={`relative flex items-center justify-center overflow-hidden bg-cream ${items.length === 3 && i === 0 ? "row-span-2" : ""}`}
+          >
+            <ProductArt product={p} iconClassName={items.length === 1 ? "w-[50%]" : "w-[56%]"} strokeWidth={3.6} />
+          </div>
+        ))}
+      </div>
+      <div className="flex min-w-0 flex-col gap-0.5 pt-3 text-[15px] leading-snug max-md:text-sm">
+        <span className={`${kicker} text-[11px] text-gold`}>
+          Kit · {k.items.length} {k.items.length === 1 ? "item" : "itens"}
+        </span>
+        <span className="font-display text-[24px] leading-[1.1] md:text-[28px]">{k.name}</span>
+        {k.total > 0 && (
+          <span className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <span className="font-medium">{formatBRL(k.final)}</span>
+            {k.save > 0 && <span className="text-mute line-through">{formatBRL(k.total)}</span>}
+          </span>
+        )}
+        <span className="mt-1.5 truncate text-[13px] text-mute group-hover:text-ink">
+          Montado por <span className="font-medium text-ink underline underline-offset-2">{k.creator}</span>
+        </span>
+      </div>
+    </Link>
+  );
+}

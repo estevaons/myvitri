@@ -26,7 +26,10 @@ const pickLook = (look: Partial<VitrineContent["look"]> | null | undefined, fall
   bannerUrl: look?.bannerUrl ?? fallback.bannerUrl,
 });
 
-const toCoupon = (c: CouponRow): Coupon => ({
+/** Sem vitrine_id e position: a busca devolve as linhas assim. */
+type Fields<T> = Omit<T, "vitrine_id" | "position">;
+
+const toCoupon = (c: Fields<CouponRow>): Coupon => ({
   id: c.id,
   brand: c.brand,
   code: c.code,
@@ -40,7 +43,7 @@ const toCoupon = (c: CouponRow): Coupon => ({
   startsAt: c.starts_at,
 });
 
-const toProduct = (p: ProductRow): Product => ({
+const toProduct = (p: Fields<ProductRow>): Product => ({
   id: p.id,
   name: p.name,
   brand: p.brand,
@@ -54,6 +57,14 @@ const toProduct = (p: ProductRow): Product => ({
   videoUrl: p.video_url,
   soldOut: p.sold_out,
   priceCheckedAt: p.price_checked_at,
+});
+
+const toKit = (k: Tables["kits"]["Row"]): Kit => ({
+  id: k.id,
+  name: k.name,
+  description: k.description,
+  signature: k.signature,
+  productIds: k.product_ids,
 });
 
 async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
@@ -77,15 +88,7 @@ async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
     tracking: { ...TRACKING, ...(v.tracking as object) },
     coupons: (coupons.data ?? []).map(toCoupon),
     products: (products.data ?? []).map(toProduct),
-    kits: (kits.data ?? []).map(
-      (k): Kit => ({
-        id: k.id,
-        name: k.name,
-        description: k.description,
-        signature: k.signature,
-        productIds: k.product_ids,
-      }),
-    ),
+    kits: (kits.data ?? []).map(toKit),
   };
 }
 
@@ -108,6 +111,19 @@ export type FeedVitrine =Pick<VitrineContent, "handle" | "name" | "avatarUrl" | 
 export async function listFeed(db: Db, limit: number): Promise<FeedVitrine[]> {
   const { data: rows, error } = await db.from("vitrines").select("*").order("updated_at", { ascending: false }).limit(limit);
   if (error) throw error;
+  return withItems(db, rows);
+}
+
+/** As mesmas vitrines do feed, escolhidas pelo endereço e na ordem pedida (o ranking dos creators do dia). */
+export async function listFeedByHandles(db: Db, handles: string[]): Promise<FeedVitrine[]> {
+  if (!handles.length) return [];
+  const { data: rows, error } = await db.from("vitrines").select("*").in("handle", handles);
+  if (error) throw error;
+  rows.sort((a, b) => handles.indexOf(a.handle) - handles.indexOf(b.handle));
+  return withItems(db, rows);
+}
+
+async function withItems(db: Db, rows: VitrineRow[]): Promise<FeedVitrine[]> {
   if (!rows.length) return [];
 
   const ids = rows.map((v) => v.id);
@@ -128,6 +144,70 @@ export async function listFeed(db: Db, limit: number): Promise<FeedVitrine[]> {
     coupons: (coupons.data ?? []).filter((c) => c.vitrine_id === v.id).map(toCoupon),
     products: (products.data ?? []).filter((p) => p.vitrine_id === v.id).map(toProduct),
   }));
+}
+
+/** Endereços das vitrines com mais cliques hoje (horário de Brasília). Só a ordem: as contagens ficam com o dono. */
+export async function topCreatorsToday(db: Db, limit: number) {
+  const { data, error } = await db.rpc("top_creators_today", { lim: limit });
+  if (error) throw error;
+  return data.map((r) => r.handle);
+}
+
+type By = { handle: string; creator: string };
+export type FeedKit = By & { kit: Kit; coupons: Coupon[]; products: Product[] };
+
+/** Kits publicados mais recentes, com os produtos deles e os cupons da vitrine (para o preço com desconto). */
+export async function listRecentKits(db: Db, limit: number): Promise<FeedKit[]> {
+  const { data: kits, error } = await db
+    .from("kits")
+    .select("*, vitrines(handle, name)")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  if (!kits.length) return [];
+
+  const [coupons, products] = await Promise.all([
+    db.from("coupons").select("*").in("vitrine_id", [...new Set(kits.map((k) => k.vitrine_id))]),
+    db.from("products").select("*").in("id", [...new Set(kits.flatMap((k) => k.product_ids))]),
+  ]);
+  const err = coupons.error ?? products.error;
+  if (err) throw err;
+
+  return kits.map(({ vitrines: v, ...k }) => ({
+    handle: v.handle,
+    creator: v.name,
+    kit: toKit(k),
+    coupons: (coupons.data ?? []).filter((c) => c.vitrine_id === k.vitrine_id).map(toCoupon),
+    products: (products.data ?? []).filter((p) => p.vitrine_id === k.vitrine_id).map(toProduct),
+  }));
+}
+
+/** O que `search_catalog` devolve: as linhas das tabelas (sem vitrine_id e position) mais quem indica. */
+type Hit<T> = Fields<T> & By;
+type CatalogRows = {
+  creators: { handle: string; name: string; avatar_url: string }[];
+  coupons: Hit<CouponRow>[];
+  products: (Hit<ProductRow> & { coupon: Fields<CouponRow> | null })[];
+};
+
+/**
+ * Busca de creators, marcas (pelos cupons) e produtos, sem acento e na ordem do banco: igual, começa com,
+ * contém. Cupons e produtos vêm em mais quantidade (6× o limite) para sobrar depois de agrupar e filtrar.
+ */
+export async function searchCatalog(db: Db, q: string, limit: number) {
+  const { data, error } = await db.rpc("search_catalog", { q, lim: limit });
+  if (error) throw error;
+  const rows = data as unknown as CatalogRows;
+  return {
+    creators: rows.creators.map((c) => ({ handle: c.handle, name: c.name, avatarUrl: c.avatar_url })),
+    coupons: rows.coupons.map((c) => ({ ...toCoupon(c), handle: c.handle, creator: c.creator })),
+    products: rows.products.map((p) => ({
+      ...toProduct(p),
+      handle: p.handle,
+      creator: p.creator,
+      coupon: p.coupon ? toCoupon(p.coupon) : null,
+    })),
+  };
 }
 
 export async function isHandleTaken(db: Db, handle: string) {

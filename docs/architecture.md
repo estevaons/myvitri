@@ -6,7 +6,7 @@ O **MyVitri** é um site onde **creators** (influenciadoras, criadores de conte�
 
 Pense num **shopping**:
 
-- A **landing** (`/`) é a fachada do shopping: mostra as vitrines de creators, os cupons ativos, as categorias e as marcas para quem compra, e convida quem divulga a criar a própria vitrine (botões **Criar vitrine** e **Criar conta**). Quem já entrou com a conta é levado direto para a **home logada** (`/inicio`), que mostra os atalhos da própria vitrine (editar, ver, copiar o link) ou o convite para criar uma.
+- A **landing** (`/`) é a fachada do shopping: mostra as vitrines de creators, os cupons ativos, as categorias e as marcas para quem compra, e convida quem divulga a criar a própria vitrine (botões **Criar vitrine** e **Criar conta**). Quem já entrou com a conta é levado direto para a **home logada** (`/inicio`), que mostra a busca de creators, marcas e produtos, os atalhos da própria vitrine (editar, ver, copiar o link) ou o convite para criar uma, e dois carrosséis: os **creators do dia** (vitrines com mais cliques hoje) e os **últimos kits** publicados.
 - Cada **vitrine** (`/{handle}`) é uma loja. O visitante vê os produtos com o preço já calculado com o cupom, copia o código e é levado para a loja oficial da marca. O MyVitri **não vende nada**: só aponta para a loja certa com o cupom certo.
 - O **editor** (`/editor`) é o "estoque" da loja, onde a creator arruma tudo. Ela edita um **rascunho** (salvo sozinho a cada mudança) e, quando gosta do resultado, clica em **Publicar**.
 - A creator ainda tem **métricas** (quantas visitas e cliques a vitrine teve) e **ferramentas de divulgação** (link com cópia em um toque, passo a passo de onde colar, imagem para stories e prévia do link com a foto dela e dos produtos, UTM nos links).
@@ -50,7 +50,7 @@ Não há testes automatizados, CI, Dockerfile nem filas/jobs no repositório.
 | `components/auth/` | Formulários de login/criação de vitrine e `LoginButton` (modal de login) |
 | `components/editor/` | Editor (painéis, campos, upload) — tudo Client Component |
 | `components/storefront/` | A vitrine pública (`Storefront.tsx`) e as ilustrações de produto |
-| `components/home/` | Peças da landing, da home logada e das páginas legais (cabeçalho/rodapé, `LookHero`, `Marquee`, `CopyLinkButton`) |
+| `components/home/` | Peças da landing, da home logada e das páginas legais (cabeçalho/rodapé, `LookHero`, `Marquee`, `CopyLinkButton`, `HomeView` (conteúdo de `/inicio`), `CreatorCard`, `CreatorCover` e `Avatar`, `KitCard`, `HomeSearch`) |
 | `components/brand/` | Logotipo e ícone (SVG puro) |
 | `lib/brand.ts` | Nome, domínio e e-mail de contato |
 | `lib/supabase/` | Clientes Supabase do servidor e tipos gerados |
@@ -110,14 +110,15 @@ Leitura das setas: "usa". Exemplos concretos: a home usa `ProductArt` da vitrine
 | Rota | Arquivo | Tipo | Renderização |
 |---|---|---|---|
 | `/` | `app/page.tsx` | Página | Landing: cabeçalho (`SiteHeader` com `action`: Vitrines, Categorias, Marcas, Cupons, **Entrar** (`LoginButton`, abre o login num modal) e **Criar conta** → `/criar-vitrine`), hero com altura mínima da primeira tela (`min-h-[calc(100svh-81px)]`, descontando o header) e `LookHero` (`components/home/LookHero.tsx`: foto editorial `public/hero/retrato.webp` via `next/image` com `priority` e `sizes` que consideram a foto deitada recortada num quadro em pé (aparece ~1,7× mais larga que o quadro), com quatro cards de produto sobrepostos — blazer, bolsa, brincos e pantalona — no estilo da vitrine (com animação no hover: o card sobe, cresce levemente, ganha sombra maior e passa para a frente, a foto do produto aproxima e o código do cupom destaca; desligada com `prefers-reduced-motion`): "Cupom -X%", nome, preço com desconto, preço cheio riscado e código; é ilustração estática com marcas e cupons fictícios na constante `LOOK`, sem links nem dados do banco; no celular aparecem só 2 cards) e botões **Criar vitrine** (`/criar-vitrine`) e **Explorar vitrines** (`#vitrines`, ou `#cupons` se não houver vitrines), `#vitrines` (grade de creators + card "Sua vitrine aqui"), bloco "Cada vitrine é uma pessoa", `#cupons`, `#categorias`, `#marcas`, o bloco de venda `CreatorPitch` (`#para-quem-divulga`, `components/home/CreatorPitch.tsx`: "Seu público pergunta. A vitrine responde.", "Feita para quem tem cupom de muita marca" (3 cards), "E ainda" (6 itens), "Pronta em 2 minutos", "Perguntas frequentes" (`FAQ`, 7 itens) e CTA "Seu link na bio, pronto hoje" → `/criar-vitrine`) e rodapé ("Para quem compra" e "Para quem divulga", esta com **Entrar** que também abre o modal). Renderiza dois JSON-LD: `siteJsonLd` e `appJsonLd(FAQ)` (WebApplication + FAQPage). Dados via `getHomeFeed()` (`"use cache"`, tag `home`); não lê cookies, então continua estática (quem tem sessão é redirecionado pelo proxy) |
-| `/inicio` | `app/inicio/page.tsx` | Página | Home logada, sempre por requisição (`connection()` dentro de `<Suspense>`), `noindex` e `Disallow` no `robots.ts`. Sem sessão: `SignInPanel`, o login em página cheia (`?erro=login` mostra o aviso); é para onde o callback volta, mas nenhum link do site leva a `/inicio` como forma de entrar (o **Entrar** abre o modal). Com vitrine: Editar / Ver / Copiar link (`CopyLinkButton`). Sem vitrine: card "Monte sua vitrine também" → `/criar-vitrine`. Cabeçalho sem links de navegação (com sessão o proxy redireciona `/` para `/inicio`, então âncoras da landing voltariam para a home), só o botão **Sair** (`signOutAction`) |
+| `/inicio` | `app/inicio/page.tsx` | Página | Home logada, sempre por requisição (`connection()` dentro de `<Suspense>`), `noindex` e `Disallow` no `robots.ts`. A página só cuida da sessão (`findMine()`, `SignInPanel` sem sessão) e de carregar os dados (`loadCreators`, `getRecentKits`); todo o conteúdo de quem entrou está em `HomeView({ name, vitrine, ranked, creators, kits })` (`components/home/HomeView.tsx`). Sem sessão: `SignInPanel`, o login em página cheia (`?erro=login` mostra o aviso); é para onde o callback volta, mas nenhum link do site leva a `/inicio` como forma de entrar (o **Entrar** abre o modal). Abre com a saudação (kicker "Sua home", "Olá, nome" em serifa grande e uma linha de apoio) e a busca bem separada logo abaixo. As seções seguem o espaçamento da landing (`pt-24 md:pt-32`). Com vitrine, o bloco `YourVitrine` tem duas colunas no estilo editorial: a capa (`CreatorCover` sem legenda, link que abre a vitrine em nova aba) e, ao lado, o nome em serifa, `myvitri.com/handle`, os números (produtos à venda, cupons ativos, kits) numa faixa com bordas e os botões Editar vitrine / Ver vitrine / Copiar link (`CopyLinkButton`); os números vêm de `summarizeVitrine()`, que resume a própria vitrine no formato `HomeCreator` mesmo sem nada ativo. Sem vitrine, `CreateVitrine` é um bloco areia centralizado como o da landing: "Monte sua vitrine também" e o botão Criar minha vitrine → `/criar-vitrine`. Cabeçalho sem links de navegação (com sessão o proxy redireciona `/` para `/inicio`, então âncoras da landing voltariam para a home), só o botão **Sair** (`signOutAction`). Com sessão, abaixo do "Olá" vem a busca `HomeSearch` (`components/home/HomeSearch.tsx`, Client Component): busca enquanto digita via `GET /api/busca`, com debounce de 250 ms e mínimo de 2 letras, Esc limpa o campo; botão "Limpar" no lugar do ✕ nativo do campo; os resultados abrem abaixo do campo em 1 a 3 colunas, conforme quantos grupos vieram (creators → `/{handle}`, marcas com o melhor cupom → `/{handle}#cupons`, produtos com o preço com cupom → `/{handle}#produtos`). Em seguida, dois carrosséis (`Marquee`), cada um com um `SectionHead` centralizado como as seções da landing: **Creators do dia** (`getTopCreators()`, ranking de `top_creators_today`; enquanto ninguém clicou hoje, cai para as vitrines mais recentes de `getHomeFeed()` com o título "Vitrines novas", usando `CreatorCard`, que monta a capa quadrada com `CreatorCover`) e **Últimos kits** (`getRecentKits()`, por `kits.published_at` desc, `KitCard` → `/{handle}#kits`). As consultas do `/inicio` (feed, ranking, kits) rodam em paralelo com a sessão; se falharem (por exemplo, migração `20261104000000_landing_home.sql` ainda não aplicada), o erro vai para o log e a página abre sem os carrosséis |
 | `/criar-vitrine` | `app/criar-vitrine/page.tsx` | Página | Só a tela de criar conta, sem cabeçalho de navegação nem rodapé (apenas a marca, que volta para `/`). `SignupForm` (`components/auth/forms.tsx`): título "Crie sua vitrine", nome + link (hook `useClaim`, campos em `ClaimFields`), botão "Criar com Google" (`claimAction`), aceite dos termos e "Já tem conta? Entrar" (`LoginButton`, abre o modal; o parágrafo fica fora do `<form>` do cadastro). No desktop a metade direita (fundo areia) mostra `VitrinePreview`, prévia ao vivo com iniciais, nome e `myvitri.com/handle` conforme a pessoa digita, com cupons de exemplo; no celular só o formulário. FAQ e JSON-LD da aplicação ficam na landing |
 | `/privacidade`, `/termos` | `app/privacidade/page.tsx`, `app/termos/page.tsx` | Páginas | Estáticas |
 | `/editor` | `app/editor/page.tsx` | Página | Sempre por requisição (`connection()`); `?aba=` e `?erro=login` |
-| `/{handle}` | `app/[handle]/page.tsx` | Página | `<Suspense>` + `getPublicVitrine()` (`"use cache"`, tag `vitrine:{handle}`) |
+| `/{handle}` | `app/[handle]/page.tsx` | Página | `<Suspense>` + `getPublicVitrine()` (`"use cache"`, tag `vitrine:{handle}`). O cabeçalho do `Storefront` tem, à esquerda da foto da creator, o link de voltar `Link href="/"` (`aria-label` "Voltar para o início"): só a seta no celular, seta + "Início" em contêiner largo (`@2xl`). O destino é `/` de propósito: o proxy leva quem tem sessão para `/inicio`, e quem não tem fica na landing. Na prévia do editor (`preview`) é só um `<span>` com a mesma aparência, para o clique não tirar a pessoa do editor. O logo no rodapé continua levando à home |
 | `/{handle}/opengraph-image` | `app/[handle]/opengraph-image.tsx` | Imagem (convenção de metadata) | PNG 1200×630 |
 | `/{handle}/story` | `app/[handle]/story/route.ts` | Route Handler `GET` | PNG 1080×1920 (perfil, produtos com foto, cupons) |
 | `/api/t` | `app/api/t/route.ts` | Route Handler `POST` | Grava evento, sempre 204 |
+| `/api/busca?q=` | `app/api/busca/route.ts` | Route Handler `GET` | Busca da home logada. Pública, sem sessão. Normaliza o termo (`trim`, minúsculas, até 60 caracteres), chama `searchHome()` e responde JSON `{ creators, brands, products }`; erro do banco vira `500` com `{ "error": "busca" }` (detalhe só no log). Depende da RPC `search_catalog` |
 | `/auth/callback` | `app/auth/callback/route.ts` | Route Handler `GET` | Troca `code` por sessão. Destino padrão: `/inicio` (erros: `/inicio?erro=login`). Só vai para `/editor` quando o login veio do claim (`/criar-vitrine`) e a vitrine foi criada nesta chamada |
 | `/icon.svg`, `/apple-icon` | `app/icon.svg`, `app/apple-icon.tsx` | Ícones (convenção de metadata) | Estáticos |
 
@@ -208,8 +209,13 @@ O `next.config.ts` liga quatro opções que mudam o comportamento padrão:
 |---|---|---|---|
 | `getPublicVitrine(handle)` | `vitrine:{handle}` (`vitrineTag`) | `hours` | `publishVitrine` (handle antigo e novo), `createAndOpen`, `deleteAccountAction` (via `updateTag`); `/auth/callback` (via `revalidateTag(tag, { expire: 0 })`, já que `updateTag` só funciona em Server Actions) |
 | `getHomeFeed()` | `home` (`HOME_TAG`) | `hours` | `publishVitrine`, `deleteAccountAction` |
+| `getTopCreators()` | `home` | `minutes` | `publishVitrine`, `deleteAccountAction`; o ranking muda a cada clique, então também expira sozinho em minutos |
+| `getRecentKits()` | `home` | `hours` | `publishVitrine`, `deleteAccountAction` |
+| `searchHome(q)` | `home` | `minutes` | `publishVitrine`, `deleteAccountAction`; o termo é argumento da função, então cada termo normalizado tem a própria entrada de cache |
 
-O perfil `hours` do Next 16 é: *stale* 5 min, revalidação 1 h, expiração 1 dia. Isso também define **a precisão da validade dos cupons**: um cupom que vence hoje pode continuar aparecendo até a próxima revalidação, porque o `today` usado no filtro é calculado **dentro** da função cacheada (`lib/vitrine/data.ts:23`).
+`summarizeVitrine(v)` (`lib/vitrine/data.ts:126`) **não** é cacheada: resume a própria vitrine de quem entrou (lida com a sessão por `findMine()`) no formato `HomeCreator`, mesmo sem nada ativo, e alimenta o bloco "Sua vitrine" de `/inicio`. Ela e `getHomeFeed` compartilham o helper interno `live(v, today)` (cupons ativos, melhor primeiro, e produtos à venda com o preço com cupom).
+
+O perfil `hours` do Next 16 é: *stale* 5 min, revalidação 1 h, expiração 1 dia; o `minutes` é *stale* 5 min, revalidação 1 min, expiração 1 h. Isso também define **a precisão da validade dos cupons**: um cupom que vence hoje pode continuar aparecendo até a próxima revalidação, porque o `today` usado no filtro é calculado **dentro** da função cacheada (`lib/vitrine/data.ts:32`, `todayISO` em `lib/vitrine/data.ts:66`).
 
 As leituras cacheadas usam `createPublicSupabase()` (`lib/supabase/server.ts:28`), um cliente **sem cookies** — obrigatório, porque o resultado do cache é compartilhado entre todos os visitantes.
 
@@ -223,7 +229,7 @@ O **editor** chama `await connection()` (`app/editor/page.tsx:13`) para nunca se
 2. **Renova a sessão** (`proxy.ts:17-29`): cria um cliente Supabase ligado aos cookies da requisição/resposta e chama `auth.getClaims()`. Se o token estiver para expirar, os cookies novos vão na resposta. Server Components não conseguem gravar cookies (o `setAll` de `lib/supabase/server.ts:17-21` engole o erro de propósito), então é o proxy que mantém a sessão viva.
 3. **Leva quem já entrou para a home logada**: se a requisição é para `/` e `getClaims()` devolve claims, responde com redirect para `/inicio`, copiando para o redirect os cookies de sessão recém-renovados. Assim a landing não precisa ler cookies e segue estática.
 
-A vitrine pública (`/{handle}`), as imagens e `/api/t` não passam pelo proxy — não precisam de sessão.
+A vitrine pública (`/{handle}`), as imagens, `/api/t` e `/api/busca` não passam pelo proxy — não precisam de sessão.
 
 ### Autenticação e autorização (resumo)
 
@@ -236,7 +242,7 @@ A vitrine pública (`/{handle}`), as imagens e `/api/t` não passam pelo proxy �
 
 | Serviço | Para quê | Onde | Obrigatório? |
 |---|---|---|---|
-| Supabase Postgres (PostgREST) | Dados | `lib/vitrine/store.ts`, `app/api/t/route.ts`, `app/actions.ts` | sim |
+| Supabase Postgres (PostgREST) | Dados | `lib/vitrine/store.ts`, `app/api/t/route.ts`, `app/api/busca/route.ts` (via `searchHome`), `app/actions.ts` | sim |
 | Supabase Auth + Google OAuth | Login | `app/actions.ts:24-31`, `app/auth/callback/route.ts` | sim |
 | Supabase Storage | Fotos (capa, perfil, produto) e logos enviados | `app/actions.ts:177-202` | sim (para upload) |
 | Sites das lojas (HTTP) | Importar produto, achar logo e baixar as fotos das imagens de divulgação | `lib/vitrine/import-link.ts`, `lib/vitrine/share-image.tsx:33-56` | não (degrada para preenchimento manual; a imagem sai sem a foto) |
@@ -255,10 +261,11 @@ Imagens de produto e logos achados no site da loja são **hotlink** (URL externa
 | Comportamento | Como funciona | Onde |
 |---|---|---|
 | Autosave do rascunho | Debounce de 800 ms no navegador → `saveDraftAction` | `components/editor/Editor.tsx:118-127` |
-| Registro de métricas | `navigator.sendBeacon` (fallback `fetch keepalive`) → `/api/t` | `components/storefront/Storefront.tsx:48-57` |
+| Registro de métricas | `navigator.sendBeacon` (fallback `fetch keepalive`) → `/api/t` | `components/storefront/Storefront.tsx:65-76` |
 | Busca automática de logo | Debounce de 700 ms no navegador | `components/editor/LogoPicker.tsx:43-47` |
 | Cupom vencer/começar | Não há job: a data é comparada na leitura (`couponStatus`), limitada pela revalidação do cache | `lib/vitrine/pricing.ts:26-30` |
-| Atualização da home | Revalidação do cache (`hours`) ou `updateTag(home)` ao publicar | `lib/vitrine/data.ts:51-55` |
+| Atualização da home | Revalidação do cache (`hours`; `minutes` para o ranking e a busca) ou `updateTag(home)` ao publicar | `lib/vitrine/data.ts:19`, `lib/vitrine/data.ts:104-120` |
+| Busca da home logada | Debounce de 250 ms no navegador → `GET /api/busca` (a requisição anterior é abortada ao continuar digitando) | `components/home/HomeSearch.tsx:12-13` |
 
 ### Configuração por ambiente
 
@@ -307,13 +314,14 @@ graph LR
 ### Estilo e design
 
 - Tokens de cor e fontes em `app/globals.css:3-15` (`ink`, `paper`, `coral`, `mute`, `soft`, `line`, `sale`; `font-condensed` = Barlow Condensed).
+- Fonte em `input`, `select`, `textarea` e `button`: `app/globals.css:46-60` define `font-family: inherit` para esses elementos fora das camadas do Tailwind, então ela vence as classes `font-display`/`font-sans` aplicadas direto neles. Por isso a classe de fonte vai no elemento pai (ex.: o `div` em volta do campo da busca em `components/home/HomeSearch.tsx`) ou num `span` dentro do botão.
 - A vitrine usa **container queries** (`@container`, `@3xl:`, `@max-2xl:` em `components/storefront/Storefront.tsx`) em vez de *media queries*. É isso que faz a prévia do editor alternar entre "Computador" e "Celular" só mudando a largura da caixa (`components/editor/Editor.tsx:281`).
 - O visual da vitrine é **fixo**; a creator só escolhe a capa. Temas/cores antigos ficaram no banco como legado.
 
 ### Datas e fuso horário
 
 - Datas de cupom são strings `AAAA-MM-DD` comparadas como texto (`lib/vitrine/pricing.ts:26-30`).
-- "Hoje" é calculado em **UTC** no servidor: `new Date().toISOString().slice(0, 10)` em `lib/vitrine/data.ts:23`, `lib/vitrine/data.ts:56` e `app/editor/page.tsx:24`.
+- "Hoje" é calculado em **UTC** no servidor: `new Date().toISOString().slice(0, 10)` em `lib/vitrine/data.ts:32`, no helper `todayISO` (`lib/vitrine/data.ts:66`, usado por `getHomeFeed`, `getTopCreators`, `getRecentKits` e `searchHome`) e em `app/editor/page.tsx:24`. O ranking `top_creators_today` usa o dia de `America/Sao_Paulo` no banco.
 - As métricas agrupam por dia em **`America/Sao_Paulo`** (`supabase/migrations/20261102000700_creator_tools.sql:39`).
 
 ### Convenções de código
