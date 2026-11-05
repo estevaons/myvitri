@@ -18,8 +18,6 @@ export type CatalogOption = [value: string, label: string];
 export type CatalogVitrine = {
   /** No formato da landing, para reaproveitar a capa (`CreatorCover`). */
   card: HomeCreator;
-  /** A categoria mais frequente entre os produtos à venda ("" sem nenhuma). */
-  category: string;
   /** Todas as categorias à venda (rótulos e chaves), para o filtro. */
   categories: string[];
   categoryKeys: string[];
@@ -32,14 +30,11 @@ export type CatalogVitrine = {
   best: Coupon | null;
   /** "Vence em 3 dias" do cupom ativo que vence primeiro, se for em até 7 dias. */
   expiring: string | null;
-  /** Criada nos últimos 14 dias. */
-  isNew: boolean;
   updatedAt: string;
 };
 
 export type VitrinesCatalog = { vitrines: CatalogVitrine[]; categories: CatalogOption[]; brands: CatalogOption[] };
 
-const NEW_DAYS = 14;
 const EXPIRING_DAYS = 7;
 const MAX_OPTIONS = 12;
 
@@ -88,7 +83,7 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
   const db = createPublicSupabase();
   const [rows, coupons, products, kits] = await Promise.all([
     readAll((a, b) =>
-      db.from("vitrines").select("id, handle, name, avatar_url, look, created_at, updated_at").order("updated_at", { ascending: false }).order("id").range(a, b),
+      db.from("vitrines").select("id, handle, name, avatar_url, look, updated_at").order("updated_at", { ascending: false }).order("id").range(a, b),
     ),
     readAll((a, b) => db.from("coupons").select("*").order("vitrine_id").order("position").order("id").range(a, b)),
     readAll((a, b) => db.from("products").select("*").order("vitrine_id").order("position").order("id").range(a, b)),
@@ -142,7 +137,6 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
         products: onSale.length,
         art: onSale.slice(0, 4),
       },
-      category: categories[0]?.[1] ?? "",
       categories: categories.map(([, label]) => label),
       categoryKeys: categories.map(([k]) => k),
       brands: [...brands.values()],
@@ -150,7 +144,6 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
       kits: (kitsOf.get(row.id) ?? []).filter((k) => k.product_ids.some((id) => forSale.has(id))).length,
       best: active[0] ?? null,
       expiring: soonest ? expiryLabel(soonest.c, today) : null,
-      isNew: Date.parse(today) - Date.parse(row.created_at.slice(0, 10)) < NEW_DAYS * 86_400_000,
       updatedAt: row.updated_at,
     });
   }

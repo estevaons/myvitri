@@ -26,9 +26,9 @@ const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : 
 
 /**
  * Capa quadrada da vitrine: a foto de capa ou um mosaico dos produtos, com o rosto e o nome por cima.
- * `caption={false}` tira o rosto e o nome, para quando eles já aparecem ao lado.
+ * `caption={false}` tira o rosto e o nome, para quando eles já aparecem ao lado; `face={false}` tira só o rosto.
  */
-export function CreatorCover({ c, caption = true }: { c: HomeCreator; caption?: boolean }) {
+export function CreatorCover({ c, caption = true, face = true }: { c: HomeCreator; caption?: boolean; face?: boolean }) {
   // Foto de loja é quadrada: o card também é, e cada célula do mosaico fica quadrada como a foto.
   // Célula de outro formato sobra faixa do cinza do card em volta, que não bate com o fundo da foto.
   // Por isso é 2×2 com 4 produtos ou mais; com menos, só o primeiro ocupando o card todo.
@@ -55,7 +55,7 @@ export function CreatorCover({ c, caption = true }: { c: HomeCreator; caption?: 
         <div
           className={`absolute inset-x-0 bottom-0 flex flex-col items-start gap-1.5 p-3 md:gap-3 md:p-5 ${cover ? "bg-linear-to-t from-black/75 via-black/35 to-transparent pt-10 text-white md:pt-20" : ""}`}
         >
-          <Avatar name={c.creator} url={c.avatarUrl} className="box-border size-9 rounded-full border-2 border-white text-xs md:size-14 md:text-sm" />
+          {face && <Avatar name={c.creator} url={c.avatarUrl} className="box-border size-9 rounded-full border-2 border-white text-xs md:size-14 md:text-sm" />}
           <span className="font-display text-[22px] leading-[1.05] font-medium break-words md:text-[clamp(26px,2.4vw,36px)]">{c.creator}</span>
         </div>
       )}

@@ -205,11 +205,11 @@ function Position({ position, handle }: { position: number | null; handle: strin
       <Head label="Sua posição hoje" title={position ? (position === 1 ? "A mais clicada do dia" : `${position}ª mais clicada do dia`) : "Fora do ranking de hoje"} />
       <p className="m-0 max-w-[32rem] text-[16px] leading-relaxed text-mute">
         {position
-          ? // a home mostra as 12 primeiras em "Creators do dia"
+          ? // a home mostra as 12 primeiras em "Vitrines do dia"
             `${position === 1 ? "Você é a vitrine mais clicada hoje" : `Você é a ${position}ª vitrine mais clicada hoje`}${
-              position <= 12 ? " e está entre as que aparecem em “Creators do dia”, na home." : ". Mais alguns cliques e ela chega a “Creators do dia”, na home."
+              position <= 12 ? " e está entre as que aparecem em “Vitrines do dia”, na home." : ". Mais alguns cliques e ela chega a “Vitrines do dia”, na home."
             }`
-          : "Sua vitrine ainda não está entre as mais clicadas de hoje. Divulgue o link nos stories e na bio: as vitrines mais clicadas do dia aparecem em “Creators do dia”, na home."}
+          : "Sua vitrine ainda não está entre as mais clicadas de hoje. Divulgue o link nos stories e na bio: as vitrines mais clicadas do dia aparecem em “Vitrines do dia”, na home."}
       </p>
       <div className="flex flex-wrap gap-2">
         <CopyLinkButton handle={handle} />

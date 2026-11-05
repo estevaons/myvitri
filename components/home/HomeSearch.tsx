@@ -63,12 +63,13 @@ export function HomeSearch() {
 
   return (
     <div className="flex flex-col gap-4">
-      <form role="search" onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-2">
-        <label htmlFor={id} className={`${kicker} text-[11px] text-mute`}>
-          Buscar creators, marcas e produtos
+      <form role="search" onSubmit={(e) => e.preventDefault()}>
+        {/* o texto de apoio acima do campo já diz o que dá para buscar: o rótulo fica só para leitor de tela */}
+        <label htmlFor={id} className="sr-only">
+          Buscar vitrines, marcas e produtos
         </label>
         {/* o campo herda a fonte (globals.css): a serifa vem daqui */}
-        <div className="flex items-center gap-3 border-b border-ink pb-2 font-display">
+        <div className="flex min-h-14 items-center gap-3 border border-sand bg-cream px-4 font-display focus-within:border-ink md:px-5">
           <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 flex-none" fill="none" stroke="currentColor" strokeWidth={1.8}>
             <circle cx="11" cy="11" r="7" />
             <path d="m20 20-3.5-3.5" />
@@ -84,7 +85,7 @@ export function HomeSearch() {
             enterKeyHint="search"
             spellCheck={false}
             maxLength={60}
-            className="min-w-0 flex-1 border-0 bg-transparent p-0 [&::-webkit-search-cancel-button]:appearance-none text-[clamp(24px,2.6vw,34px)] text-ink outline-none placeholder:text-mute/60"
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 [&::-webkit-search-cancel-button]:appearance-none text-[clamp(20px,1.8vw,24px)] text-ink outline-none placeholder:text-mute/60"
           />
           {q && (
             <button type="button" onClick={() => setQ("")} className={`${kicker} flex-none border-0 bg-transparent p-0 text-[11px] text-mute hover:text-ink`}>
@@ -108,8 +109,8 @@ export function HomeSearch() {
       {r && !empty && (
         <div className={`grid gap-8 border border-sand p-5 md:p-6 ${COLS[groups]} ${loading ? "opacity-60" : ""}`}>
           {r.creators.length > 0 && (
-            <section aria-label="Creators" className="flex min-w-0 flex-col">
-              <h2 className={`m-0 mb-1 ${groupTitle}`}>Creators</h2>
+            <section aria-label="Vitrines" className="flex min-w-0 flex-col">
+              <h2 className={`m-0 mb-1 ${groupTitle}`}>Vitrines</h2>
               {r.creators.map((c) => (
                 <Link key={c.handle} href={`/${c.handle}`} className={row}>
                   <Avatar name={c.name} url={c.avatarUrl} className="box-border size-10 flex-none rounded-full border border-sand text-xs" />

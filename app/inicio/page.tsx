@@ -19,7 +19,7 @@ const orEmpty =
   };
 
 /**
- * Creators do dia pelo ranking de cliques; enquanto ninguém clicou em nada hoje, as vitrines
+ * Vitrines do dia pelo ranking de cliques; enquanto ninguém clicou em nada hoje, as vitrines
  * publicadas mais recentes, com outro título.
  */
 async function loadCreators(): Promise<{ ranked: boolean; creators: HomeCreator[] }> {
