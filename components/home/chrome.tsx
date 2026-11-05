@@ -31,7 +31,8 @@ export function SiteHeader({ links, back, action = <LoginButton className={pillL
       </div>
       <nav className="flex items-center gap-7">
         {links.map(([href, label]) => (
-          <Link key={href} href={href} className={`${kicker} whitespace-nowrap text-ink no-underline hover:text-gold max-md:hidden`}>
+          // com muitos links eles só cabem do lg em diante: no tablet passariam por cima da marca
+          <Link key={href} href={href} className={`${kicker} whitespace-nowrap text-ink no-underline hover:text-gold ${links.length > 2 ? "max-lg:hidden" : "max-md:hidden"}`}>
             {label}
           </Link>
         ))}
