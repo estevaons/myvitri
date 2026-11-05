@@ -23,6 +23,9 @@ export const metadata: Metadata = { ...pageMeta({ title: TITLE, description: DES
 
 const EMPTY: HomeFeed = { creators: [], coupons: [], products: [], brands: [], today: "" };
 
+/** Respiro entre as seções da landing. */
+const section = `mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`;
+
 export default async function Home() {
   const feed = await getHomeFeed().catch((e) => {
     // sem banco a home ainda abre, só sem as seções com dados
@@ -38,10 +41,11 @@ export default async function Home() {
       <JsonLd data={appJsonLd(FAQ)} />
       <SiteHeader
         links={[
+          // na ordem em que as seções aparecem na página
           ["#vitrines", "Vitrines"],
+          ["#cupons", "Cupons"],
           ["#categorias", "Categorias"],
           ["#marcas", "Marcas"],
-          ["#cupons", "Cupons"],
         ]}
         action={
           // no celular os dois encolhem (espaçamento das letras menor) para caber ao lado da marca
@@ -54,50 +58,44 @@ export default async function Home() {
         }
       />
 
-      {/* o hero ocupa a primeira tela inteira (menos o header): o bloco seguinte não aparece cortado embaixo */}
-      <section className={`mx-auto grid min-h-[calc(100svh-81px)] max-w-[1440px] items-center gap-10 pt-6 pb-10 md:grid-cols-[1.1fr_1fr] md:gap-12 md:pt-10 ${pad}`}>
-        <div className="flex flex-col items-start gap-5">
-          <span className={`${kicker} text-gold`}>Achados de quem usa de verdade</span>
-          <h1 className="m-0 font-display text-[clamp(48px,6.8vw,100px)] leading-[1] font-normal tracking-[-0.01em] text-balance">
-            Indicado por gente. <em className="font-normal">Não pelo algoritmo.</em>
-          </h1>
-          <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-mute">
-            {/* "vitri" em serifa itálica dourada: o nome da marca escondido na palavra */}
-            Veja o que quem você segue usa de verdade, reunido na{" "}
-            <span className="whitespace-nowrap">
-              <em className="font-display text-[1.34em] leading-none text-gold">vitri</em>ne
-            </span>{" "}
-            de cada um.
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Link href="/criar-vitrine" className={pillDark}>
-              Criar vitrine
-            </Link>
-            {creators.length > 0 && (
-              <a href="#vitrines" className={pillLight}>
-                Explorar vitrines
-              </a>
-            )}
+      <section>
+        {/* A foto ocupa o hero de ponta a ponta. A altura desconta o header, para o hero fechar a primeira tela.
+            O teto acompanha a largura (56vw): numa tela larga a foto cresce junto, e com a altura presa ela só cortaria mais, deixando a pessoa enorme e sem a bolsa.
+            Em janela estreita e alta o teto de 860px deixa a seção seguinte aparecer, em vez de esticar a foto. */}
+        <div className="relative mx-auto max-w-[2560px] overflow-hidden lg:h-[clamp(480px,calc(100svh-81px),max(860px,56vw))]">
+          <div className={`relative z-10 mx-auto flex h-full max-w-[1440px] flex-col items-start justify-center gap-4 py-8 md:py-10 lg:py-6 ${pad}`}>
+            {/* sobre a parede da foto o dourado perde contraste: do lg em diante o texto é todo preto */}
+            <span className={`${kicker} text-gold lg:text-ink`}>Achados de quem usa de verdade</span>
+            {/* no lg a largura em em quebra cada frase em duas linhas, à esquerda da pessoa na foto; a altura também limita a fonte, para caber em tela baixa */}
+            <h1 className="m-0 font-display text-[clamp(44px,12vw,76px)] leading-[0.98] font-normal tracking-[-0.01em] lg:max-w-[5.6em] lg:text-[clamp(52px,min(6.4vw,10svh),96px)]">
+              Indicado por gente. <em className="font-normal lg:block">Não pelo algoritmo.</em>
+            </h1>
+            <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-mute lg:max-w-[20rem] lg:text-ink xl:max-w-[24rem]">
+              {/* "vitri" em serifa itálica: o nome da marca escondido na palavra */}
+              Veja o que quem você segue usa de verdade, reunido na{" "}
+              <span className="whitespace-nowrap">
+                <em className="font-display text-[1.34em] leading-none text-gold lg:text-ink">vitri</em>ne
+              </span>{" "}
+              de cada um.
+            </p>
+            {/* botões mais estreitos em duas situações: no celular, para caberem lado a lado; no lg ainda estreito, para o segundo não encostar na pessoa da foto */}
+            <div className="mt-1 flex w-full flex-wrap gap-2">
+              <Link href="/criar-vitrine" className={`${pillDark} whitespace-nowrap max-sm:flex-1 max-sm:px-3 max-sm:tracking-[0.12em] lg:max-xl:px-4`}>
+                Criar vitrine
+              </Link>
+              {creators.length > 0 && (
+                <a href="#vitrines" className={`${pillLight} whitespace-nowrap max-sm:flex-1 max-sm:px-3 max-sm:tracking-[0.12em] lg:bg-white/60 lg:max-xl:px-4`}>
+                  Explorar vitrines
+                </a>
+              )}
+            </div>
           </div>
-        </div>
-        <LookHero />
-      </section>
-
-      {/* Fecha a primeira tela: o mesmo bloco areia do convite para criar, aqui falando com quem compra e sem botão. */}
-      <section className={`mx-auto max-w-[1440px] pt-24 md:pt-32 ${pad}`}>
-        <div className="flex flex-col items-center gap-5 bg-sand px-6 py-20 text-center max-md:py-14">
-          <h2 className="m-0 max-w-[16ch] font-display text-[clamp(40px,5.6vw,76px)] leading-[1.04] font-normal text-balance">
-            Cada vitrine é <em>uma pessoa</em>
-          </h2>
-          <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">
-            Quem você segue mostra o que usa de verdade: o tênis do treino, o protetor da praia, a garrafa que vai para todo lado. Tudo num
-            lugar só, para você ver de perto e levar igual.
-          </p>
+          <LookHero />
         </div>
       </section>
 
       {creators.length > 0 && (
-        <section id="vitrines" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`}>
+        <section id="vitrines" className={section}>
           <SectionHead kicker="Explore as" title="Vitrines" text="Entre na vitrine de quem você confia e veja tudo o que essa pessoa usa e recomenda." />
           <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-4">
             {creators.map((c) => (
@@ -122,7 +120,7 @@ export default async function Home() {
       )}
 
       {coupons.length > 0 && (
-        <section id="cupons" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`}>
+        <section id="cupons" className={section}>
           <SectionHead kicker="Compre com" title="Cupons ativos" text="Os descontos que estão valendo agora. Abra a vitrine para copiar o código." />
           <div className="no-scrollbar -mx-5 flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 md:mx-0 md:grid md:grid-cols-4 md:gap-4 md:px-0">
             {coupons.map((c) => (
@@ -158,14 +156,14 @@ export default async function Home() {
       )}
 
       {products.length > 0 && (
-        <section id="categorias" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`}>
+        <section id="categorias" className={section}>
           <SectionHead kicker="Compre por" title="Categoria" text="Escolha uma categoria e veja o que cada vitrine indica." />
           <CategoryShop products={products} />
         </section>
       )}
 
       {brands.length > 0 && (
-        <section id="marcas" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`}>
+        <section id="marcas" className={section}>
           <SectionHead kicker="Compre por" title="Marca" text="As marcas mais indicadas e o melhor cupom de cada uma." />
           <div className="grid grid-cols-2 gap-1 md:grid-cols-4">
             {brands.map((b) => (

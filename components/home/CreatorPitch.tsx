@@ -121,7 +121,7 @@ export function CreatorPitch() {
         </div>
       </section>
 
-      <section className={`mx-auto flex max-w-[1440px] flex-col gap-6 pt-16 md:pt-20 ${pad}`}>
+      <section className={`mx-auto flex max-w-[1440px] flex-col gap-4 pt-12 md:pt-16 ${pad}`}>
         <h2 className="m-0 font-display text-[clamp(28px,3.2vw,40px)] leading-[1.05] font-normal">E ainda</h2>
         <ul className="m-0 grid list-none gap-x-4 p-0 md:grid-cols-3">
           {MORE.map(([title, text]) => (
@@ -133,8 +133,8 @@ export function CreatorPitch() {
         </ul>
       </section>
 
-      <section className={`mx-auto flex max-w-[1440px] flex-col gap-8 pt-20 md:pt-28 ${pad}`}>
-        <h2 className="m-0 font-display text-[clamp(36px,5vw,56px)] leading-[1] font-normal lining-nums">Pronta em 2 minutos</h2>
+      <section className={`mx-auto flex max-w-[1440px] flex-col gap-4 pt-14 md:gap-6 md:pt-20 ${pad}`}>
+        <h2 className="m-0 font-display text-[clamp(36px,4.4vw,56px)] leading-[1] font-normal lining-nums">Pronta em 2 minutos</h2>
         <ol className="m-0 grid list-none gap-0 p-0 md:grid-cols-3 md:gap-4">
           {STEPS.map((s, i) => (
             <li key={s} className="flex items-center gap-4 border-t border-sand py-5 text-[17px] md:flex-col md:items-start md:gap-3">
@@ -145,8 +145,9 @@ export function CreatorPitch() {
         </ol>
       </section>
 
-      <section className={`mx-auto flex max-w-[1440px] flex-col gap-8 pt-20 md:pt-28 ${pad}`}>
-        <h2 className="m-0 font-display text-[clamp(36px,5vw,56px)] leading-[1] font-normal">Perguntas frequentes</h2>
+      {/* em duas colunas: as perguntas são curtas e, na largura toda, deixavam a metade direita da tela vazia */}
+      <section className={`mx-auto grid max-w-[1440px] gap-4 pt-14 md:grid-cols-[1fr_2fr] md:gap-12 md:pt-20 ${pad}`}>
+        <h2 className="m-0 font-display text-[clamp(36px,4.4vw,56px)] leading-[1] font-normal text-balance">Perguntas frequentes</h2>
         <div className="flex flex-col border-b border-sand">
           {FAQ.map(([q, a]) => (
             <details key={q} className="group border-t border-sand">
@@ -162,8 +163,8 @@ export function CreatorPitch() {
         </div>
       </section>
 
-      <section className={`mx-auto max-w-[1440px] pt-16 md:pt-24 ${pad}`}>
-        <div className="flex flex-col items-center gap-4 bg-sand px-6 py-16 text-center max-md:py-12">
+      <section className={`mx-auto max-w-[1440px] pt-14 md:pt-20 ${pad}`}>
+        <div className="flex flex-col items-center gap-4 bg-sand px-6 py-14 text-center max-md:py-10">
           <h2 className="m-0 font-display text-[clamp(32px,4.4vw,52px)] leading-[1] font-normal">Seu link na bio, pronto hoje</h2>
           <p className="m-0 text-[17px] text-ink/70">Grátis para começar. É só escolher o link e criar sua conta.</p>
           <Link href="/criar-vitrine" className={`${pillDark} mt-2`}>

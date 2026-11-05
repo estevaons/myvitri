@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, type ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
@@ -233,10 +234,24 @@ function VitrinePreview({ name, handle }: { name: string; handle: string }) {
 const backFrom = (next: string) => (/^\/(inicio|editor|metricas|nova-senha)(?![^/?#])/.test(next) ? "/" : next);
 
 /**
- * As telas de acesso: formulário à esquerda e, no desktop, o esboço da vitrine à direita. A seta volta para
- * `back` ou, com `onBack`, para o passo anterior da própria tela.
+ * As telas de acesso: formulário à esquerda e, no desktop, um painel à direita. O painel é o esboço da vitrine, que acompanha o que
+ * a pessoa digita; com `photo`, para quem não tem o que digitar ali, é a foto do look. A seta volta para `back` ou, com `onBack`, para o passo anterior da própria tela.
  */
-function AuthShell({ name = "", handle = "", back = "/", onBack, children }: { name?: string; handle?: string; back?: string; onBack?: () => void; children: ReactNode }) {
+function AuthShell({
+  name = "",
+  handle = "",
+  photo = false,
+  back = "/",
+  onBack,
+  children,
+}: {
+  name?: string;
+  handle?: string;
+  photo?: boolean;
+  back?: string;
+  onBack?: () => void;
+  children: ReactNode;
+}) {
   return (
     <main className="grid min-h-dvh grid-cols-[minmax(0,1fr)] bg-white text-ink md:grid-cols-2">
       <div className="flex flex-col gap-10 px-5 py-6 md:px-12 md:py-8">
@@ -248,9 +263,24 @@ function AuthShell({ name = "", handle = "", back = "/", onBack, children }: { n
         </div>
         <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center gap-4 pb-10">{children}</div>
       </div>
-      <div className="flex items-center justify-center bg-sand p-12 max-md:hidden">
-        <VitrinePreview name={name} handle={handle} />
-      </div>
+      {photo ? (
+        <div className="relative overflow-hidden bg-sand max-md:hidden">
+          <Image
+            src="/hero/retrato.webp"
+            alt=""
+            fill
+            preload
+            quality={90}
+            // o painel é mais estreito que a foto, deitada: ela aparece mais larga que ele. No celular o painel some e o 1px evita baixar a foto grande
+            sizes="(min-width: 1024px) 90vw, (min-width: 768px) 180vw, 1px"
+            className="object-cover object-[50%_66%]"
+          />
+        </div>
+      ) : (
+        <div className="flex items-center justify-center bg-sand p-12 max-md:hidden">
+          <VitrinePreview name={name} handle={handle} />
+        </div>
+      )}
     </main>
   );
 }
@@ -364,7 +394,7 @@ function ForgotPassword() {
 export function SignInScreen({ next, loginError }: { next: string; loginError: boolean }) {
   const [forgot, setForgot] = useState(false);
   return (
-    <AuthShell back={backFrom(next)} onBack={forgot ? () => setForgot(false) : undefined}>
+    <AuthShell photo back={backFrom(next)} onBack={forgot ? () => setForgot(false) : undefined}>
       {forgot ? (
         <ForgotPassword />
       ) : (
