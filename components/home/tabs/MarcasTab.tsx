@@ -14,7 +14,7 @@ const grid = "grid grid-cols-2 gap-1 md:grid-cols-3 lg:grid-cols-4";
  * Aba "Marcas" do /inicio: o diretório das marcas com cupom ativo, com o melhor cupom de cada uma somando
  * todas as vitrines — o que nenhuma vitrine sozinha mostra. `?marca=` abre o comparativo dos cupons dela.
  */
-export async function MarcasTab({ params, guest = false }: { params: TabParams; guest?: boolean }) {
+export async function MarcasTab({ params }: { params: TabParams }) {
   const { brands: all, categoryLabels, today } = await getCatalogBrands();
 
   const filtered = sortBrands(
@@ -93,7 +93,7 @@ export async function MarcasTab({ params, guest = false }: { params: TabParams; 
               </Fragment>
             ))}
           </div>
-          <LoadMore params={params} guest={guest} shown={shown.length} total={filtered.length} />
+          <LoadMore params={params} shown={shown.length} total={filtered.length} />
         </>
       ) : filtering ? (
         <CatalogEmpty

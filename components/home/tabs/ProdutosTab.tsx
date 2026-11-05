@@ -6,7 +6,7 @@ import { ProductCard } from "./produtos/ProductCard";
 const FILTERS = ["cat", "marca", "preco", "cupom", "video"] as const;
 
 /** Aba "Produtos" do /inicio: o catálogo completo das vitrines, com filtros e ordenação na URL. */
-export async function ProdutosTab({ params, guest = false }: { params: TabParams; guest?: boolean }) {
+export async function ProdutosTab({ params }: { params: TabParams }) {
   const { items, filters } = await queryProducts(params);
   const limit = limitOf(params);
   const shown = items.slice(0, limit);
@@ -37,7 +37,7 @@ export async function ProdutosTab({ params, guest = false }: { params: TabParams
               <ProductCard key={`${p.handle}:${p.id}`} p={p} />
             ))}
           </div>
-          <LoadMore params={params} guest={guest} shown={shown.length} total={items.length} />
+          <LoadMore params={params} shown={shown.length} total={items.length} />
         </>
       ) : (
         <CatalogEmpty

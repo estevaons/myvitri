@@ -4,6 +4,7 @@ import { createPublicSupabase } from "@/lib/supabase/server";
 import { applyCoupon, isActive, kitTotals, priceProducts, type PricedProduct } from "./pricing";
 import {
   findByHandle,
+  listComments,
   listFeed,
   listFeedByHandles,
   listHandles,
@@ -12,6 +13,7 @@ import {
   topCreatorsToday,
   type FeedVitrine,
 } from "./store";
+import type { CommentList } from "./social";
 import type { Coupon, VitrineContent } from "./types";
 
 export const vitrineTag = (handle: string) => `vitrine:${handle}`;
@@ -30,6 +32,37 @@ export async function getPublicVitrine(handle: string): Promise<PublicVitrine | 
   const content = await findByHandle(createPublicSupabase(), handle);
   if (!content) return null;
   return { content, today: new Date().toISOString().slice(0, 10) };
+}
+
+export const commentsTag = (handle: string) => `comentarios:${handle}`;
+
+/** A vitrine mostra até este tanto; o total continua certo no título. */
+const COMMENTS_SHOWN = 100;
+const commentDate = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Sao_Paulo" });
+
+/**
+ * Comentários públicos de uma vitrine. Quem comenta vê na hora (`updateTag`); para os outros, minutos.
+ * Cache separado de `getPublicVitrine`, que dura horas e só muda ao publicar.
+ */
+export async function getComments(handle: string): Promise<CommentList> {
+  "use cache";
+  cacheTag(commentsTag(handle));
+  cacheLife("minutes");
+
+  const { total, rows } = await listComments(createPublicSupabase(), handle, COMMENTS_SHOWN);
+  return {
+    total,
+    items: rows.map((c) => ({
+      id: c.id,
+      authorId: c.author_id,
+      authorName: c.author_name,
+      authorAvatarUrl: c.author_avatar_url,
+      body: c.body,
+      byOwner: c.vitrines.owner_id === c.author_id,
+      dateLabel: commentDate.format(new Date(c.created_at)),
+      createdAt: c.created_at,
+    })),
+  };
 }
 
 /** Endereços das vitrines para o sitemap e o llms.txt; segue a home, que já é invalidada a cada publicação. */

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useState, useTransition, type MouseEvent, type ReactNode } from "react";
 import { publishVitrine, saveDraftAction, signOutAction } from "@/app/actions";
+import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { HOST } from "@/lib/brand";
 import { Storefront } from "@/components/storefront/Storefront";
@@ -154,24 +155,24 @@ export function Editor({
 
   const panelProps = { draft, update };
   const alerts = couponAlerts(draft.coupons, today).length;
+  // a navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso
+  const confirmLeave = (e: MouseEvent) => {
+    if (unsaved && !confirm("Ainda estamos salvando suas alterações. Sair mesmo assim?")) e.preventDefault();
+  };
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper text-ink lg:h-dvh">
       <header className="border-b border-[#E0DCD3] bg-white">
         <div className="flex flex-wrap items-center gap-3.5 px-5 py-3">
-          <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">
+          <BackLink href="/inicio" onClick={confirmLeave} label="Início" divider />
+          <Link href="/" onClick={confirmLeave} aria-label="MyVitri — início" className="flex text-ink no-underline">
             <Wordmark label="" className="h-[17px] w-auto" />
           </Link>
-          <span className="h-6 w-px bg-[#E0DCD3]" />
-          <span className="text-[15px] font-semibold">Editar vitrine</span>
           <div className="flex-1" />
           {/* as métricas ganharam página própria, no visual da home */}
           <Link
             href="/metricas"
-            onClick={(e) => {
-              // a navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso
-              if (unsaved && !confirm("Ainda estamos salvando suas alterações. Sair mesmo assim?")) e.preventDefault();
-            }}
+            onClick={confirmLeave}
             className="flex min-h-10 items-center gap-1.5 rounded-[9px] px-3 text-[13px] font-semibold text-[#3A3A3A] no-underline hover:bg-[#F2F0EB] hover:text-ink"
           >
             <ChartIcon />

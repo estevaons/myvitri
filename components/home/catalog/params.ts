@@ -6,6 +6,7 @@
 /** [id na URL, rótulo] — a primeira é a padrão. */
 export const TABS = [
   ["para-voce", "Para você"],
+  ["favoritas", "Favoritas"],
   ["vitrines", "Vitrines"],
   ["produtos", "Produtos"],
   ["kits", "Kits"],
@@ -18,9 +19,6 @@ export type TabParams = Record<string, string>;
 
 /** Itens por "página" das grades; "Ver mais" soma outro tanto. */
 export const PAGE = 24;
-
-/** Quem não entrou vê até 2 páginas por aba; o "Ver mais" seguinte pede o login. */
-export const GUEST_LIMIT = PAGE * 2;
 
 export function flatParams(sp: Record<string, string | string[] | undefined>): TabParams {
   const out: TabParams = {};

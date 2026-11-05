@@ -13,6 +13,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      comments: {
+        Row: {
+          author_avatar_url: string
+          author_id: string
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          vitrine_id: string
+        }
+        Insert: {
+          author_avatar_url?: string
+          author_id?: string
+          author_name?: string
+          body: string
+          created_at?: string
+          id?: string
+          vitrine_id: string
+        }
+        Update: {
+          author_avatar_url?: string
+          author_id?: string
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+          vitrine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_vitrine_id_fkey"
+            columns: ["vitrine_id"]
+            isOneToOne: false
+            referencedRelation: "vitrines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupons: {
         Row: {
           brand: string
@@ -100,6 +138,32 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "events_vitrine_id_fkey"
+            columns: ["vitrine_id"]
+            isOneToOne: false
+            referencedRelation: "vitrines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          user_id: string
+          vitrine_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id?: string
+          vitrine_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+          vitrine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_vitrine_id_fkey"
             columns: ["vitrine_id"]
             isOneToOne: false
             referencedRelation: "vitrines"

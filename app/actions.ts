@@ -3,16 +3,31 @@
 import { updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { PASSWORD_MIN } from "@/lib/auth/password";
 import { safePath, saveReturn } from "@/lib/auth/return-to";
 import { HOST } from "@/lib/brand";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
-import { HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
+import { commentsTag, HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
 import { saveClaim, starterContent } from "@/lib/vitrine/claim";
 import { findStoreLogos, importProductFromUrl, type ImportedProduct } from "@/lib/vitrine/import-link";
-import { createVitrine, deleteDraft, findMine, HandleTakenError, isHandleTaken, publishVitrine as publish, saveDraft } from "@/lib/vitrine/store";
+import { COMMENT_MAX, type SocialResult } from "@/lib/vitrine/social";
+import {
+  addComment,
+  CommentRateLimitError,
+  createVitrine,
+  deleteComment,
+  deleteDraft,
+  findMine,
+  HandleTakenError,
+  isHandleTaken,
+  listCommentedHandles,
+  publishVitrine as publish,
+  saveDraft,
+  setFavorite,
+} from "@/lib/vitrine/store";
 import { emptyContent, vitrineContentSchema, type VitrineContent } from "@/lib/vitrine/types";
 
-export type FormState = { error?: string; handle?: string; name?: string };
+export type FormState = { error?: string; notice?: string; handle?: string; name?: string; email?: string };
 
 function readClaim(form: FormData) {
   return {
@@ -34,14 +49,88 @@ async function refererPath() {
   }
 }
 
-/** Leva ao login do Google; a volta passa por /auth/callback. */
-async function startGoogle(state: FormState): Promise<FormState> {
+/** Para onde o Supabase manda de volta (Google e links por e-mail). */
+async function callbackUrl() {
   const h = await headers();
   const origin = h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
+  return `${origin}/auth/callback`;
+}
+
+/** Leva ao login do Google; a volta passa por /auth/callback. */
+async function startGoogle(state: FormState): Promise<FormState> {
   const { supabase } = await getUser();
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${origin}/auth/callback` } });
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: await callbackUrl() } });
   if (error || !data.url) return { ...state, error: "Não conseguimos abrir o login do Google. Tente de novo." };
   redirect(data.url);
+}
+
+function readEmail(form: FormData) {
+  return String(form.get("email") ?? "").trim().toLowerCase();
+}
+
+/** Erros do Supabase que valem igual para entrar, criar conta e trocar a senha. */
+function authErrorText(code: string | undefined) {
+  switch (code) {
+    case "email_provider_disabled":
+    case "signup_disabled":
+      return "O acesso com e-mail e senha ainda não está disponível. Use o Google por enquanto.";
+    case "weak_password":
+      return `Essa senha é fraca. Use pelo menos ${PASSWORD_MIN} caracteres, misturando letras e números.`;
+    // sem SMTP próprio, o Supabase só envia para os e-mails da equipe do projeto
+    case "email_address_not_authorized":
+      return "Não conseguimos enviar e-mail para esse endereço agora. Use o Google por enquanto.";
+    case "over_email_send_rate_limit":
+      return "Muitos e-mails enviados agora. Espere alguns minutos e tente de novo.";
+    case "over_request_rate_limit":
+      return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
+    default:
+      return "Não conseguimos concluir agora. Tente de novo.";
+  }
+}
+
+/** Entrar com e-mail e senha; a mensagem não diz se o e-mail existe. */
+export async function signInWithPasswordAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const email = readEmail(form);
+  const password = String(form.get("password") ?? "");
+  if (!email || !password) return { email, error: "Preencha o e-mail e a senha." };
+
+  const { supabase } = await getUser();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    if (error.code === "invalid_credentials") return { email, error: "E-mail ou senha incorretos. Se você criou a conta com o Google, use o botão do Google." };
+    if (error.code === "email_not_confirmed") return { email, error: "Falta confirmar seu e-mail: abra o link que enviamos para entrar." };
+    return { email, error: authErrorText(error.code) };
+  }
+  redirect(safePath(form.get("next")) ?? "/inicio");
+}
+
+/**
+ * Envia o link para definir uma senha nova. Também serve a quem só usa o Google e quer passar a ter senha.
+ * A resposta é a mesma com ou sem conta, para ninguém descobrir quais e-mails estão cadastrados.
+ */
+export async function requestPasswordResetAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const email = readEmail(form);
+  if (!email) return { error: "Informe seu e-mail." };
+
+  const { supabase } = await getUser();
+  // o link dura 1 hora: é a volta por /auth/callback que leva à tela de senha nova
+  await saveReturn("/nova-senha", 60 * 60);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: await callbackUrl() });
+  // só erros que valem para qualquer e-mail: nenhum deles revela se a conta existe
+  if (error && ["email_address_not_authorized", "over_email_send_rate_limit", "over_request_rate_limit", "email_provider_disabled"].includes(error.code ?? "")) return { email, error: authErrorText(error.code) };
+  return { email, notice: `Se houver uma conta com ${email}, enviamos um link para criar uma senha nova. Abra o link neste mesmo navegador.` };
+}
+
+/** Tela /nova-senha: quem chegou pelo link do e-mail já tem sessão. */
+export async function updatePasswordAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const password = String(form.get("password") ?? "");
+  if (password.length < PASSWORD_MIN) return { error: `Use pelo menos ${PASSWORD_MIN} caracteres.` };
+
+  const { supabase, user } = await getUser();
+  if (!user) return { error: "Este link expirou. Volte para a tela de entrar e peça outro." };
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.code === "same_password" ? "Use uma senha diferente da atual." : authErrorText(error.code) };
+  redirect("/inicio");
 }
 
 async function createAndOpen(handle: string, name: string, state: FormState): Promise<FormState> {
@@ -57,7 +146,30 @@ async function createAndOpen(handle: string, name: string, state: FormState): Pr
   redirect("/editor");
 }
 
-/** Landing: escolhe o link e entra com o Google. Logado, cria direto. */
+/**
+ * Conta nova com e-mail e senha. Com a confirmação de e-mail ligada não há sessão ainda: a vitrine é criada
+ * na volta do link, por /auth/callback, se o cookie do link escolhido ainda valer (senão, o editor pede o link).
+ * Se o e-mail já tiver conta, o Supabase não envia nada e responde igual: o aviso cobre os dois casos.
+ */
+async function signUpWithEmail(state: FormState & { handle: string; name: string }, form: FormData): Promise<FormState> {
+  const email = readEmail(form);
+  const password = String(form.get("password") ?? "");
+  if (!email) return { ...state, email, error: "Informe seu e-mail." };
+  if (password.length < PASSWORD_MIN) return { ...state, email, error: `Use uma senha com pelo menos ${PASSWORD_MIN} caracteres.` };
+
+  const { supabase } = await getUser();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { name: state.name, full_name: state.name }, emailRedirectTo: await callbackUrl() },
+  });
+  if (error) return { ...state, email, error: authErrorText(error.code) };
+  if (data.session) return createAndOpen(state.handle, state.name, state);
+  await saveClaim({ handle: state.handle, name: state.name });
+  return { ...state, email, notice: `Enviamos um link de confirmação para ${email}. Abra neste mesmo navegador para terminar. Se esse e-mail já tiver conta, nada é enviado: é só entrar.` };
+}
+
+/** Criar vitrine: escolhe o link e cria a conta, com e-mail e senha ou com o Google. Logado, cria direto. */
 export async function claimAction(_prev: FormState, form: FormData): Promise<FormState> {
   const state = readClaim(form);
   const { handle, name } = state;
@@ -70,6 +182,7 @@ export async function claimAction(_prev: FormState, form: FormData): Promise<For
   if (await isHandleTaken(createPublicSupabase(), handle)) return { ...state, error: `${HOST}/${handle} já está em uso` };
 
   if (mine.user) return createAndOpen(handle, name, state);
+  if (form.get("via") === "email") return signUpWithEmail(state, form);
   await saveClaim({ handle, name });
   return startGoogle(state);
 }
@@ -105,6 +218,9 @@ export async function deleteAccountAction(confirm: string): Promise<{ error: str
   if (!user) return { error: "Sessão expirada. Entre de novo." };
   if (vitrine && confirm.trim().toLowerCase().replace(/^@/, "") !== vitrine.handle) return { error: "O link digitado não confere." };
 
+  // Lido antes de apagar: depois da cascata não dá mais para saber em quais vitrines a pessoa comentou.
+  const commented = await listCommentedHandles(supabase, user.id).catch(() => []);
+
   // Arquivos não saem na cascata do banco: apaga as imagens enviadas antes da conta.
   for (const name of ["brand-logos", "vitrine-photos"]) {
     const bucket = supabase.storage.from(name);
@@ -120,8 +236,54 @@ export async function deleteAccountAction(confirm: string): Promise<{ error: str
   // A conta já não existe: só limpamos os cookies da sessão.
   await supabase.auth.signOut({ scope: "local" }).catch(() => {});
   if (vitrine) updateTag(vitrineTag(vitrine.handle));
+  commented.forEach((handle) => updateTag(commentsTag(handle)));
   updateTag(HOME_TAG);
   redirect("/");
+}
+
+/** Liga ou desliga o favorito de quem entrou. A lista é privada: não há cache para invalidar. */
+export async function setFavoriteAction(handle: string, on: boolean): Promise<SocialResult> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  try {
+    if (!(await setFavorite(supabase, user.id, handle, on))) return { ok: false, error: "Esta vitrine não existe mais." };
+  } catch (e) {
+    console.error("setFavorite", e);
+    return { ok: false, error: "Não deu para salvar. Tente de novo." };
+  }
+  return { ok: true };
+}
+
+export async function addCommentAction(handle: string, body: string): Promise<SocialResult> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Escreva alguma coisa antes de enviar." };
+  if (text.length > COMMENT_MAX) return { ok: false, error: `Use até ${COMMENT_MAX} caracteres.` };
+  try {
+    if (!(await addComment(supabase, handle, text))) return { ok: false, error: "Esta vitrine não existe mais." };
+  } catch (e) {
+    if (e instanceof CommentRateLimitError) return { ok: false, error: "Muitos comentários em pouco tempo. Espere um minuto." };
+    console.error("addComment", e);
+    return { ok: false, error: "Não deu para comentar. Tente de novo." };
+  }
+  updateTag(commentsTag(handle));
+  return { ok: true };
+}
+
+/** Quem pode apagar (quem escreveu ou a dona da vitrine) é decidido pela RLS. */
+export async function deleteCommentAction(id: string): Promise<SocialResult> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  try {
+    const handle = await deleteComment(supabase, id);
+    if (!handle) return { ok: false, error: "Não deu para excluir este comentário." };
+    updateTag(commentsTag(handle));
+    return { ok: true };
+  } catch (e) {
+    console.error("deleteComment", e);
+    return { ok: false, error: "Não deu para excluir este comentário." };
+  }
 }
 
 const ITEM_LABELS: Record<string, string> = { coupons: "Cupom", products: "Produto", kits: "Kit" };

@@ -1,16 +1,22 @@
 "use client";
 
-import { useActionState, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { createPortal, useFormStatus } from "react-dom";
-import { claimAction, createVitrineAction, signInAction, type FormState } from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { useFormStatus } from "react-dom";
+import { claimAction, createVitrineAction, requestPasswordResetAction, signInAction, signInWithPasswordAction, updatePasswordAction, type FormState } from "@/app/actions";
+import { BackLink } from "@/components/brand/BackLink";
+import { Wordmark } from "@/components/brand/Logo";
+import { PASSWORD_MIN } from "@/lib/auth/password";
 import { HOST } from "@/lib/brand";
 
 /** Campos retos com contorno areia, como a busca da vitrine; no foco o contorno escurece. */
 const field = "box-border flex h-12 w-full min-w-0 items-center border border-sand bg-white px-4 text-base text-ink outline-none placeholder:text-mute focus:border-ink";
 const label = "flex flex-col gap-1.5 text-left text-[13px] font-medium";
 const box = "flex flex-col gap-4";
-const submit = "min-h-12 border-0 bg-ink px-6 text-[12px] font-medium tracking-[0.18em] text-white uppercase hover:bg-[#2b2925]";
+const submit = "min-h-12 cursor-pointer border-0 bg-ink px-6 text-[12px] font-medium tracking-[0.18em] text-white uppercase hover:bg-[#2b2925]";
+const secondary = "min-h-12 cursor-pointer border border-sand bg-white px-6 text-[12px] font-medium tracking-[0.18em] text-ink uppercase hover:border-ink";
+const textLink = "font-medium text-ink underline underline-offset-2";
 
 function GoogleLogo() {
   return (
@@ -25,17 +31,63 @@ function GoogleLogo() {
   );
 }
 
+/** O botão diz o que acontece só quando foi ele o clicado: em /criar-vitrine, dois botões enviam o mesmo formulário (`via`). */
 function GoogleButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
+  const { pending, data } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className={`${submit} flex items-center justify-center gap-3 pl-3`}>
+    <button type="submit" name="via" value="google" disabled={pending} className={`${secondary} flex items-center justify-center gap-3 pl-3`}>
       <GoogleLogo />
-      {pending ? "Abrindo o Google…" : label}
+      {pending && data?.get("via") === "google" ? "Abrindo o Google…" : label}
     </button>
   );
 }
 
-/** Aviso de aceite logo abaixo do botão do Google, com os links que a verificação do Google pede. */
+function SubmitButton({ label, busy, via }: { label: string; busy: string; via?: string }) {
+  const { pending, data } = useFormStatus();
+  return (
+    <button type="submit" name={via && "via"} value={via} disabled={pending} className={submit}>
+      {pending && (!via || data?.get("via") === via) ? busy : label}
+    </button>
+  );
+}
+
+function EmailField({ value }: { value?: string }) {
+  return (
+    <label className={label}>
+      E-mail
+      {/* defaultValue: depois de um erro o formulário é reiniciado, e o e-mail digitado continua lá */}
+      <input name="email" type="email" defaultValue={value} placeholder="voce@email.com" autoComplete="email" autoCapitalize="none" spellCheck={false} className={field} />
+    </label>
+  );
+}
+
+function PasswordField({ title = "Senha", isNew = false }: { title?: string; isNew?: boolean }) {
+  return (
+    <label className={label}>
+      {title}
+      <input
+        name="password"
+        type="password"
+        autoComplete={isNew ? "new-password" : "current-password"}
+        minLength={isNew ? PASSWORD_MIN : undefined}
+        placeholder={isNew ? `Pelo menos ${PASSWORD_MIN} caracteres` : undefined}
+        className={field}
+      />
+    </label>
+  );
+}
+
+function OrDivider() {
+  return (
+    <div className="flex items-center gap-3 text-[13px] text-mute">
+      <span aria-hidden="true" className="h-px flex-1 bg-sand" />
+      ou
+      <span aria-hidden="true" className="h-px flex-1 bg-sand" />
+    </div>
+  );
+}
+
+/** Aviso de aceite no fim dos formulários de acesso, com os links que a verificação do Google pede. */
 function Consent() {
   return (
     <p className="m-0 text-center text-[13px] leading-snug text-mute">
@@ -55,7 +107,17 @@ function Consent() {
 function ErrorText({ children }: { children?: string }) {
   if (!children) return null;
   return (
-    <p role="alert" className="m-0 pl-4 text-sm font-semibold text-[#A3361B]">
+    <p role="alert" className="m-0 text-sm font-semibold text-[#A3361B]">
+      {children}
+    </p>
+  );
+}
+
+/** Deu certo e agora é com o e-mail da pessoa. */
+function NoticeText({ children }: { children?: string }) {
+  if (!children) return null;
+  return (
+    <p role="status" className="m-0 bg-cream p-4 text-[15px] leading-relaxed text-ink">
       {children}
     </p>
   );
@@ -167,38 +229,72 @@ function VitrinePreview({ name, handle }: { name: string; handle: string }) {
   );
 }
 
+/** Para onde a seta de /entrar leva: a página de origem, menos as que exigem login, que trariam de volta para cá. */
+const backFrom = (next: string) => (/^\/(inicio|editor|metricas|nova-senha)(?![^/?#])/.test(next) ? "/" : next);
+
 /**
- * Criar conta: formulário (nome + link → login com o Google) e, no desktop, a prévia da vitrine
- * ao lado, atualizada enquanto a pessoa digita. `children` é o topo da coluna do formulário.
+ * As telas de acesso: formulário à esquerda e, no desktop, o esboço da vitrine à direita. A seta volta para
+ * `back` ou, com `onBack`, para o passo anterior da própria tela.
  */
-export function SignupForm({ children }: { children: ReactNode }) {
+function AuthShell({ name = "", handle = "", back = "/", onBack, children }: { name?: string; handle?: string; back?: string; onBack?: () => void; children: ReactNode }) {
+  return (
+    <main className="grid min-h-dvh grid-cols-[minmax(0,1fr)] bg-white text-ink md:grid-cols-2">
+      <div className="flex flex-col gap-10 px-5 py-6 md:px-12 md:py-8">
+        <div className="flex items-center gap-3">
+          <BackLink href={onBack ? undefined : back} onClick={onBack} divider />
+          <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">
+            <Wordmark label="" className="h-[19px] w-auto" />
+          </Link>
+        </div>
+        <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center gap-4 pb-10">{children}</div>
+      </div>
+      <div className="flex items-center justify-center bg-sand p-12 max-md:hidden">
+        <VitrinePreview name={name} handle={handle} />
+      </div>
+    </main>
+  );
+}
+
+function AuthTitle({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="flex flex-col gap-3 pb-3">
+      <h1 className="m-0 font-display text-[clamp(40px,4.6vw,56px)] leading-[1] font-normal">{title}</h1>
+      <p className="m-0 text-[17px] text-mute">{text}</p>
+    </div>
+  );
+}
+
+/**
+ * Criar conta: nome + link e, depois, e-mail e senha ou Google. A prévia ao lado acompanha a digitação.
+ * Os dois botões enviam o mesmo formulário: e-mail e senha não têm `required` para o do Google poder seguir
+ * sem eles (a ação confere). O de e-mail vem primeiro porque é o que o Enter aciona.
+ */
+export function SignupForm() {
   const [state, action] = useActionState<FormState, FormData>(claimAction, {});
   const claim = useClaim();
   return (
-    <div className="grid min-h-dvh grid-cols-[minmax(0,1fr)] md:grid-cols-2">
-      <div className="flex flex-col gap-10 px-5 py-6 md:px-12 md:py-8">
-        {children}
-        <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center gap-4 pb-10">
-          <form action={action} className="flex flex-col gap-3">
-            <h1 className="m-0 font-display text-[clamp(40px,4.6vw,56px)] leading-[1] font-normal">Crie sua vitrine</h1>
-            <p className="m-0 pb-3 text-[17px] text-mute">Grátis, pronta em 2 minutos.</p>
-            <div className={box}>
-              <ClaimFields claim={claim} />
-              <GoogleButton label="Criar com Google" />
-            </div>
-            <ErrorText>{state.error}</ErrorText>
-            <Consent />
-          </form>
-          {/* fora do formulário: o modal de login tem o próprio formulário, e formulário dentro de formulário não vale */}
-          <p className="m-0 text-center text-[15px] text-mute">
-            Já tem conta? <LoginButton className="font-medium text-ink underline underline-offset-2" />
-          </p>
+    <AuthShell name={claim.name} handle={claim.handle}>
+      <form action={action} className="flex flex-col gap-3">
+        <AuthTitle title="Crie sua vitrine" text="Grátis, pronta em 2 minutos." />
+        <div className={box}>
+          <ClaimFields claim={claim} />
+          <EmailField value={state.email} />
+          <PasswordField isNew />
+          <SubmitButton label="Criar conta" busy="Criando…" via="email" />
+          <ErrorText>{state.error}</ErrorText>
+          <NoticeText>{state.notice}</NoticeText>
+          <OrDivider />
+          <GoogleButton label="Criar com Google" />
         </div>
-      </div>
-      <div className="flex items-center justify-center bg-sand p-12 max-md:hidden">
-        <VitrinePreview name={claim.name} handle={claim.handle} />
-      </div>
-    </div>
+        <Consent />
+      </form>
+      <p className="m-0 text-center text-[15px] text-mute">
+        Já tem conta?{" "}
+        <Link href="/entrar" className={textLink}>
+          Entrar
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
 
@@ -214,99 +310,113 @@ function Panel({ title, text, children }: { title: string; text: string; childre
   );
 }
 
-const noop = () => () => {};
-
-/** A página atual, sem o aviso de erro do login, para voltar a ela depois do Google. */
+/** A página atual, sem o aviso de erro do login, para voltar a ela depois de entrar. */
 function herePath() {
   const url = new URL(location.href);
   url.searchParams.delete("erro");
   return url.pathname + url.search;
 }
 
-/** Botão do Google para entrar (quem já tem conta). Usado na página e no modal de login. */
-function SignInForm({ loginError, next }: { loginError?: boolean; next: string }) {
+function PasswordSignIn({ next, onForgot }: { next: string; onForgot: () => void }) {
+  const [state, action] = useActionState<FormState, FormData>(signInWithPasswordAction, {});
+  return (
+    <form action={action} className={box}>
+      <input type="hidden" name="next" value={next} />
+      <EmailField value={state.email} />
+      <PasswordField />
+      <button type="button" onClick={onForgot} className="-mt-2 cursor-pointer self-end border-0 bg-transparent p-0 text-[13px] text-mute underline underline-offset-2 hover:text-ink">
+        Esqueci minha senha
+      </button>
+      <SubmitButton label="Entrar" busy="Entrando…" />
+      <ErrorText>{state.error}</ErrorText>
+    </form>
+  );
+}
+
+function GoogleSignIn({ next, loginError }: { next: string; loginError: boolean }) {
   const [state, action] = useActionState<FormState, FormData>(signInAction, {});
   return (
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="next" value={next} />
       <GoogleButton label="Entrar com Google" />
-      <ErrorText>{state.error ?? (loginError ? "O login com o Google não foi concluído. Tente de novo." : undefined)}</ErrorText>
+      <ErrorText>{state.error ?? (loginError ? "O login não foi concluído. Tente de novo." : undefined)}</ErrorText>
       <Consent />
     </form>
   );
 }
 
-/** /inicio sem sessão (e a volta do Google com erro): o login ocupa a página. */
-export function SignInPanel({ loginError }: { loginError?: boolean }) {
-  // a página que pediu o login (/editor, /metricas…): depois do Google, volta para ela
-  const next = useSyncExternalStore(noop, herePath, () => "");
+function ForgotPassword() {
+  const [state, action] = useActionState<FormState, FormData>(requestPasswordResetAction, {});
   return (
-    <Panel title="Entrar na sua vitrine" text="Use sua conta Google. Sem senha nova para lembrar.">
-      <SignInForm loginError={loginError} next={next} />
-    </Panel>
+    <>
+      <AuthTitle title="Crie uma senha nova" text="Enviamos um link para o seu e-mail. Também serve se você só entrava com o Google." />
+      <form action={action} className={box}>
+        <EmailField value={state.email} />
+        <SubmitButton label="Enviar link" busy="Enviando…" />
+        <ErrorText>{state.error}</ErrorText>
+        <NoticeText>{state.notice}</NoticeText>
+      </form>
+    </>
+  );
+}
+
+/** /entrar: e-mail e senha ou Google. `next` é a página para onde voltar depois. */
+export function SignInScreen({ next, loginError }: { next: string; loginError: boolean }) {
+  const [forgot, setForgot] = useState(false);
+  return (
+    <AuthShell back={backFrom(next)} onBack={forgot ? () => setForgot(false) : undefined}>
+      {forgot ? (
+        <ForgotPassword />
+      ) : (
+        <>
+          <AuthTitle title="Entre na sua conta" text="Com seu e-mail e senha ou com o Google." />
+          <PasswordSignIn next={next} onForgot={() => setForgot(true)} />
+          <OrDivider />
+          <GoogleSignIn next={next} loginError={loginError} />
+          <p className="m-0 text-center text-[15px] text-mute">
+            Ainda não tem conta?{" "}
+            <Link href="/criar-vitrine" className={textLink}>
+              Criar conta
+            </Link>
+          </p>
+        </>
+      )}
+    </AuthShell>
+  );
+}
+
+/** /nova-senha: quem chegou pelo link do e-mail escolhe a senha. */
+export function NewPasswordScreen() {
+  const [state, action] = useActionState<FormState, FormData>(updatePasswordAction, {});
+  return (
+    <AuthShell>
+      <AuthTitle title="Crie uma senha nova" text="Depois de salvar, você já entra na sua conta." />
+      <form action={action} className={box}>
+        <PasswordField title="Nova senha" isNew />
+        <SubmitButton label="Salvar senha" busy="Salvando…" />
+        <ErrorText>{state.error}</ErrorText>
+      </form>
+    </AuthShell>
   );
 }
 
 /**
- * "Entrar" de qualquer página: abre o login num modal (<dialog> nativo: Esc fecha, o foco fica dentro)
- * em vez de levar a outra página. Clicar fora também fecha. Depois do Google, o callback volta para a
- * página em que a pessoa estava (com aba e filtros), lida no clique.
- * O <dialog> vai direto para o <body> (portal): assim o botão pode ficar até dentro de um <p>.
+ * "Entrar" de qualquer página: leva a /entrar, que devolve à página em que a pessoa estava (com aba e
+ * filtros), lida no clique. `onOpen` guarda o que ela ia fazer (favoritar, comentar) para terminar na volta.
  */
-export function LoginButton({ className, children = "Entrar" }: { className?: string; children?: ReactNode }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const title = useId();
-  // só no navegador: no servidor não há <body> para o portal, e o modal começa fechado de qualquer jeito
-  const mounted = useSyncExternalStore(noop, () => true, () => false);
-  // lido no clique, e não na renderização: entre uma e outra a pessoa pode ter trocado de aba ou filtro
-  const [next, setNext] = useState("");
+export function LoginButton({ className, children = "Entrar", onOpen }: { className?: string; children?: ReactNode; onOpen?: () => void }) {
+  const router = useRouter();
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => {
-          setNext(herePath());
-          dialog.current?.showModal();
-        }}
-        className={`cursor-pointer ${className ?? ""}`}
-      >
-        {children}
-      </button>
-      {mounted &&
-        createPortal(
-          <dialog
-            ref={dialog}
-            aria-labelledby={title}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) dialog.current?.close();
-            }}
-            className="m-auto w-[calc(100%-40px)] max-w-[440px] bg-white p-0 text-ink transition-[opacity,translate] duration-200 ease-out backdrop:bg-ink/45 starting:open:translate-y-3 starting:open:opacity-0 motion-reduce:transition-none"
-          >
-            <div className="relative flex flex-col gap-5 p-7 text-left md:p-9">
-              <button
-                type="button"
-                aria-label="Fechar"
-                onClick={() => dialog.current?.close()}
-                className="absolute top-3 right-3 flex size-10 cursor-pointer items-center justify-center text-[24px] leading-none text-mute hover:text-ink"
-              >
-                <span aria-hidden="true">×</span>
-              </button>
-              <h2 id={title} className="m-0 pr-8 font-display text-[40px] leading-[1] font-normal">
-                Entrar na sua vitrine
-              </h2>
-              <p className="m-0 text-[16px] leading-relaxed text-mute">Use sua conta Google. Sem senha nova para lembrar.</p>
-              <SignInForm next={next} />
-              <p className="m-0 text-center text-[15px] text-mute">
-                Ainda não tem conta?{" "}
-                <Link href="/criar-vitrine" className="font-medium text-ink underline underline-offset-2">
-                  Criar conta
-                </Link>
-              </p>
-            </div>
-          </dialog>,
-          document.body,
-        )}
-    </>
+    <button
+      type="button"
+      onClick={() => {
+        onOpen?.();
+        router.push(`/entrar?next=${encodeURIComponent(herePath())}`);
+      }}
+      className={`cursor-pointer ${className ?? ""}`}
+    >
+      {children}
+    </button>
   );
 }
 

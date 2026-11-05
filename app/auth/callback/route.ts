@@ -8,27 +8,24 @@ import { vitrineContentSchema } from "@/lib/vitrine/types";
 import { vitrineTag } from "@/lib/vitrine/data";
 
 /**
- * Volta do Google: troca o código pela sessão e leva de volta à página em que a pessoa clicou em
- * "Entrar" (ou à home, /inicio). Se o login veio do "escolher o link" em /criar-vitrine, cria a
- * vitrine e abre o editor para terminar de montá-la.
+ * Volta do Google e dos links por e-mail (confirmar conta, senha nova): troca o código pela sessão e
+ * leva de volta à página guardada (em que a pessoa clicou em "Entrar", ou /nova-senha) ou à home, /inicio.
+ * Se veio do "escolher o link" em /criar-vitrine, cria a vitrine e abre o editor para terminar de montá-la.
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const code = params.get("code");
   const home = new URL("/inicio", request.url);
   const editor = new URL("/editor", request.url);
+  const failed = new URL("/entrar?erro=login", request.url);
   if (!code) {
     // o usuário cancelou no Google ou o provedor recusou
-    if (params.has("error")) home.searchParams.set("erro", "login");
-    return NextResponse.redirect(home);
+    return NextResponse.redirect(params.has("error") ? failed : home);
   }
 
   const { supabase } = await getUser();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error || !data.user) {
-    home.searchParams.set("erro", "login");
-    return NextResponse.redirect(home);
-  }
+  if (error || !data.user) return NextResponse.redirect(failed);
 
   const { data: existing } = await supabase.from("vitrines").select("id").eq("owner_id", data.user.id).maybeSingle();
   const [claim, back] = await Promise.all([takeClaim(), takeReturn()]);

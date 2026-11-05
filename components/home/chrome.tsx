@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LoginButton } from "@/components/auth/forms";
+import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { BRAND } from "@/lib/brand";
 
@@ -15,22 +16,26 @@ export const pillLight =
 /** Rótulo pequeno em caixa alta, usado acima dos títulos e nos cabeçalhos do rodapé. */
 export const kicker = "text-[12px] font-medium tracking-[0.22em] uppercase";
 
-/** `action` substitui o botão da direita (padrão: Entrar, que abre o login num modal). */
-export function SiteHeader({ links, action }: { links: [href: string, label: string][]; action?: ReactNode }) {
+/**
+ * `back` põe o voltar para o início à esquerda, nas páginas de dentro. `action` substitui o botão da direita
+ * (padrão: Entrar; `null` deixa sem botão).
+ */
+export function SiteHeader({ links, back, action = <LoginButton className={pillLight} /> }: { links: [href: string, label: string][]; back?: string; action?: ReactNode }) {
   return (
     <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-4 ${pad}`}>
-      <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">
-        <Wordmark label="" className="h-[19px] w-auto" />
-      </Link>
+      <div className="flex min-w-0 items-center gap-3">
+        {back && <BackLink href={back} label="Início" divider />}
+        <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">
+          <Wordmark label="" className="h-[19px] w-auto" />
+        </Link>
+      </div>
       <nav className="flex items-center gap-7">
         {links.map(([href, label]) => (
           <Link key={href} href={href} className={`${kicker} whitespace-nowrap text-ink no-underline hover:text-gold max-md:hidden`}>
             {label}
           </Link>
         ))}
-        {action ?? (
-          <LoginButton className={pillLight} />
-        )}
+        {action}
       </nav>
     </header>
   );

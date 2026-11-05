@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { SignInPanel } from "@/components/auth/forms";
 import { MetricsView, NoVitrine } from "@/components/metrics/MetricsView";
 import { parsePeriod, todaySP, type Stats } from "@/components/metrics/stats";
 import { findMine, topCreatorsToday, type Db } from "@/lib/vitrine/store";
@@ -33,10 +33,7 @@ async function MetricsLoader({ searchParams }: Pick<PageProps<"/metricas">, "sea
   // por requisição: depende da sessão e do dia de hoje
   await connection();
   const [{ supabase, user, vitrine }, params] = await Promise.all([findMine(), searchParams]);
-  if (!user) {
-    // depois do Google, o callback leva a /inicio (e é lá que aparece um erro de login)
-    return <SignInPanel />;
-  }
+  if (!user) redirect("/entrar?next=/metricas");
   if (!vitrine) return <NoVitrine />;
 
   const period = parsePeriod(params.periodo);

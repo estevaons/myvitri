@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FavoriteButton } from "@/components/storefront/FavoriteButton";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import type { HomeCreator } from "@/lib/vitrine/data";
 
@@ -68,12 +69,15 @@ export function CreatorCover({ c, caption = true, face = true }: { c: HomeCreato
   );
 }
 
-/** Card de vitrine da landing e da home logada. */
-export function CreatorCard({ c }: { c: HomeCreator }) {
+/**
+ * Card de vitrine da landing e da home. Com `favorited` (só na home: a landing é estática e não sabe quem
+ * está vendo) ganha o coração, fora do link: botão dentro de link não é HTML válido.
+ */
+export function CreatorCard({ c, favorited }: { c: HomeCreator; favorited?: boolean }) {
   const stats = [c.products > 0 && count(c.products, "produto", "produtos"), c.coupons > 0 && count(c.coupons, "cupom", "cupons")]
     .filter(Boolean)
     .join(" · ");
-  return (
+  const card = (
     <Link href={`/${c.handle}`} className="group flex min-w-0 flex-col text-ink no-underline">
       <CreatorCover c={c} />
       {/* no celular o card é estreito: os números descem para a linha de baixo em vez de cortar */}
@@ -87,5 +91,12 @@ export function CreatorCard({ c }: { c: HomeCreator }) {
         )}
       </span>
     </Link>
+  );
+  if (favorited === undefined) return card;
+  return (
+    <div className="relative min-w-0">
+      {card}
+      <FavoriteButton variant="card" handle={c.handle} name={c.creator} favorited={favorited} guest={false} />
+    </div>
   );
 }

@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { SignupForm } from "@/components/auth/forms";
-import { Wordmark } from "@/components/brand/Logo";
 import { pageMeta } from "@/lib/seo";
 
 /**
@@ -16,13 +14,5 @@ export const metadata: Metadata = pageMeta({
 });
 
 export default function CriarVitrine() {
-  return (
-    <main className="bg-white text-ink">
-      <SignupForm>
-        <Link href="/" aria-label="MyVitri — início" className="flex self-start text-ink no-underline">
-          <Wordmark label="" className="h-[19px] w-auto" />
-        </Link>
-      </SignupForm>
-    </main>
-  );
+  return <SignupForm />;
 }
