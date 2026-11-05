@@ -287,3 +287,73 @@ export async function publishVitrine(db: Db, ownerId: string, content: VitrineCo
   if (error) throw error;
   return { prevHandle: prev.handle, updatedAt: data };
 }
+
+/* Favoritos: lista privada de cada conta (RLS). */
+
+/** Endereços das vitrines favoritas de alguém, da favoritada por último para a primeira. */
+export async function listFavoriteHandles(db: Db, userId: string) {
+  const { data, error } = await db.from("favorites").select("vitrines(handle)").eq("user_id", userId).order("created_at", { ascending: false });
+  if (error) throw error;
+  return data.flatMap((f) => f.vitrines?.handle ?? []);
+}
+
+/** Liga ou desliga o favorito. false: a vitrine não existe (o link pode ter mudado). */
+export async function setFavorite(db: Db, userId: string, handle: string, on: boolean) {
+  const { data: vitrine, error } = await db.from("vitrines").select("id").eq("handle", handle).maybeSingle();
+  if (error) throw error;
+  if (!vitrine) return false;
+  const favorites = db.from("favorites");
+  const { error: writeError } = on
+    ? await favorites.upsert({ user_id: userId, vitrine_id: vitrine.id }, { onConflict: "user_id,vitrine_id", ignoreDuplicates: true })
+    : await favorites.delete().eq("user_id", userId).eq("vitrine_id", vitrine.id);
+  if (writeError) throw writeError;
+  return true;
+}
+
+/** O que a vitrine pública precisa saber de quem está vendo, além da sessão. */
+export async function loadViewerState(db: Db, userId: string, handle: string) {
+  const { data, error } = await db.from("vitrines").select("owner_id, favorites(user_id)").eq("handle", handle).eq("favorites.user_id", userId).maybeSingle();
+  if (error) throw error;
+  return { favorited: Boolean(data?.favorites.length), owner: data?.owner_id === userId };
+}
+
+/* Comentários: leitura pública; quem escreveu ou a dona da vitrine apaga (RLS). */
+
+export class CommentRateLimitError extends Error {}
+
+export async function listComments(db: Db, handle: string, limit: number) {
+  const { data, error, count } = await db
+    .from("comments")
+    .select("id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)", { count: "exact" })
+    .eq("vitrines.handle", handle)
+    .order("created_at", { ascending: false })
+    .order("id")
+    .limit(limit);
+  if (error) throw error;
+  return { total: count ?? data.length, rows: data };
+}
+
+/** false: a vitrine não existe. Autor, nome e foto quem preenche é o banco, a partir da sessão. */
+export async function addComment(db: Db, handle: string, body: string) {
+  const { data: vitrine, error } = await db.from("vitrines").select("id").eq("handle", handle).maybeSingle();
+  if (error) throw error;
+  if (!vitrine) return false;
+  const { error: insertError } = await db.from("comments").insert({ vitrine_id: vitrine.id, body });
+  if (insertError?.code === "VT429") throw new CommentRateLimitError();
+  if (insertError) throw insertError;
+  return true;
+}
+
+/** Devolve o endereço da vitrine do comentário apagado; null se a RLS não deixou ou ele já não existe. */
+export async function deleteComment(db: Db, id: string) {
+  const { data, error } = await db.from("comments").delete().eq("id", id).select("vitrines(handle)").maybeSingle();
+  if (error) throw error;
+  return data?.vitrines?.handle ?? null;
+}
+
+/** Vitrines em que a pessoa comentou: os comentários saem junto com a conta, e o cache delas precisa acompanhar. */
+export async function listCommentedHandles(db: Db, userId: string) {
+  const { data, error } = await db.from("comments").select("vitrines(handle)").eq("author_id", userId);
+  if (error) throw error;
+  return [...new Set(data.flatMap((c) => c.vitrines?.handle ?? []))];
+}

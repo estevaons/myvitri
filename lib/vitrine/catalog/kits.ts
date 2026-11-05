@@ -5,8 +5,8 @@ import { HOME_TAG, todayISO, type HomeKit } from "../data";
 import { isActive, kitTotals, priceProducts } from "../pricing";
 import { toCoupon, toKit, toProduct, type Db } from "../store";
 
-/** Kit do catálogo da aba Kits: o do carrossel mais o rosto de quem montou, a data e as categorias dos itens. */
-export type CatalogKit = HomeKit & { avatarUrl: string; publishedAt: string; cats: string[] };
+/** Kit do catálogo da aba Kits: o do carrossel mais a data e as categorias dos itens. */
+export type CatalogKit = HomeKit & { publishedAt: string; cats: string[] };
 export type KitCatalog = { kits: CatalogKit[]; categories: [slug: string, label: string][]; creators: [handle: string, name: string][] };
 
 // teto do catálogo: a aba filtra e pagina em memória
@@ -40,7 +40,7 @@ async function inChunks<T>(ids: string[], load: (part: string[]) => PromiseLike<
 async function listKits(db: Db) {
   const { data: kits, error } = await db
     .from("kits")
-    .select("*, vitrines(handle, name, avatar_url)")
+    .select("*, vitrines(handle, name)")
     .order("published_at", { ascending: false })
     .order("position")
     .limit(MAX_KITS);
@@ -91,7 +91,6 @@ export async function getKitCatalog(): Promise<KitCatalog> {
       {
         handle: v.handle,
         creator: v.name,
-        avatarUrl: v.avatar_url,
         id: kit.id,
         name: kit.name,
         description: kit.description,

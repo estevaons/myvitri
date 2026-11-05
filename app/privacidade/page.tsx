@@ -12,7 +12,7 @@ export default function Privacidade() {
   return (
     <LegalPage
       title="Política de Privacidade"
-      updated="2 de novembro de 2026"
+      updated="5 de novembro de 2026"
       intro={
         <p className="m-0">
           O {BRAND} ({HOST}) é uma plataforma em que qualquer pessoa monta uma vitrine pública com os cupons de desconto e os produtos que
@@ -35,6 +35,10 @@ export default function Privacidade() {
           Gmail, seus contatos, seu Google Drive nem qualquer outro dado da sua conta Google.
         </p>
         <p>
+          <strong>Quem cria a conta com e-mail e senha.</strong> Recebemos seu nome e seu e-mail, que usamos também para confirmar a conta e
+          enviar o link de senha nova. A senha fica guardada de forma cifrada pelo Supabase, e ninguém do {BRAND} consegue lê-la.
+        </p>
+        <p>
           <strong>Conteúdo da vitrine.</strong> O nome de exibição, o link escolhido, a foto, os textos, os cupons, os produtos, os
           links de loja e de afiliado e os kits que você cadastra. Esse conteúdo foi feito para ser público e aparece para qualquer
           pessoa que abrir sua vitrine.
@@ -43,6 +47,12 @@ export default function Privacidade() {
           <strong>Quem visita uma vitrine.</strong> Contamos visitas e cliques (por exemplo, “cupom copiado” ou “clique para ir à loja”)
           para mostrar métricas a quem é dono da vitrine. Cada registro guarda só o tipo do evento, o item clicado e a data e hora. Não guardamos nome,
           e-mail, endereço IP nem qualquer identificador pessoal junto com esses eventos.
+        </p>
+        <p>
+          <strong>Quem favorita ou comenta.</strong> Os mesmos dados do login. A lista de favoritas é privada. O
+          comentário é público: o texto aparece na vitrine com a data, o seu nome e, se você entrar com o Google, a sua foto de perfil, para qualquer pessoa
+          que abrir a página. Você pode apagar seus comentários a qualquer momento, e quem é dono da vitrine também pode apagar os que
+          estão nela.
         </p>
         <p>
           <strong>Registros técnicos.</strong> Nossos provedores de hospedagem podem registrar, por pouco tempo, dados como endereço IP,
@@ -55,6 +65,7 @@ export default function Privacidade() {
           <li>Criar e manter sua conta, identificar você no login e proteger o acesso ao editor (execução do contrato).</li>
           <li>Preencher a foto da sua vitrine com a foto do Google, que você pode trocar ou remover a qualquer momento.</li>
           <li>Publicar sua vitrine e mostrar a você as métricas de visitas e cliques (execução do contrato).</li>
+          <li>Guardar suas vitrines favoritas e publicar seus comentários com seu nome e foto (execução do contrato).</li>
           <li>Falar com você sobre sua conta, mudanças importantes no serviço ou pedidos que você fizer (legítimo interesse).</li>
           <li>Manter o site seguro, evitar abusos e cumprir obrigações legais.</li>
         </ul>
@@ -76,7 +87,7 @@ export default function Privacidade() {
       <Section title="5. Cookies e armazenamento no navegador">
         <ul>
           <li>Cookies de sessão, necessários para manter você conectado ao editor.</li>
-          <li>Um cookie temporário (até 10 minutos) que guarda o link escolhido enquanto você faz o login com o Google.</li>
+          <li>Cookies temporários que guardam o link escolhido (até 10 minutos, enquanto você entra) e a página para onde voltar (até 1 hora, no caso do link de senha nova).</li>
           <li>Um registro na sessão do navegador para não contar a mesma visita duas vezes; ele some quando a aba é fechada.</li>
         </ul>
         <p>Não usamos cookies de publicidade nem ferramentas de rastreamento de terceiros.</p>
@@ -115,8 +126,8 @@ export default function Privacidade() {
       <Section title="8. Por quanto tempo guardamos">
         <p>
           Mantemos os dados da sua conta e da sua vitrine enquanto a conta existir. Você pode excluir a conta quando quiser, no editor
-          (aba Perfil, “Excluir conta”): na mesma hora apagamos a conta, a vitrine, os cupons, os produtos, os kits, o rascunho e as
-          métricas, e o link fica livre. Se preferir, peça a exclusão por {mail} e fazemos em até 15 dias. Cópias de segurança do banco
+          (aba Perfil, “Excluir conta”): na mesma hora apagamos a conta, a vitrine, os cupons, os produtos, os kits, o rascunho, as
+          métricas, as favoritas e os comentários que você escreveu, e o link fica livre. Se preferir, peça a exclusão por {mail} e fazemos em até 15 dias. Cópias de segurança do banco
           de dados e registros técnicos dos provedores são apagados automaticamente em prazos curtos. Só guardamos algo depois disso se
           a lei obrigar.
         </p>
@@ -152,8 +163,8 @@ export default function Privacidade() {
 
       <Section title="11. Menores de idade">
         <p>
-          Para criar uma vitrine é preciso ter 18 anos ou mais, ou autorização dos pais ou responsáveis. Visitar vitrines não exige
-          cadastro.
+          Para criar uma vitrine, favoritar ou comentar é preciso ter 18 anos ou mais, ou autorização dos pais ou responsáveis. Visitar
+          vitrines não exige cadastro.
         </p>
       </Section>
 

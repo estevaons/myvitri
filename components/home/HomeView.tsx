@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/actions";
-import { LoginButton } from "@/components/auth/forms";
 import { HOST } from "@/lib/brand";
 import { summarizeVitrine, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
 import type { VitrineContent } from "@/lib/vitrine/types";
@@ -12,6 +11,7 @@ import { KitCard } from "./KitCard";
 import { Marquee } from "./Marquee";
 import type { TabId, TabParams } from "./catalog/params";
 import { TabNav } from "./catalog/ui";
+import { FavoritasTab } from "./tabs/FavoritasTab";
 import { KitsTab } from "./tabs/KitsTab";
 import { MarcasTab } from "./tabs/MarcasTab";
 import { ProdutosTab } from "./tabs/ProdutosTab";
@@ -95,56 +95,6 @@ function CreateVitrine() {
   );
 }
 
-const PERKS: [title: string, text: string][] = [
-  ["Um link só", "Cupons, produtos e kits na bio, no lugar de dez links soltos."],
-  ["Preço com desconto", "Cada produto já mostra quanto fica com o seu cupom."],
-  ["Métricas de verdade", "Veja quem visitou, o que clicou e qual cupom foi copiado."],
-];
-
-/**
- * Para quem ainda não entrou: o convite para criar a própria vitrine, em destaque (fundo tinta, o único
- * bloco escuro da página) logo antes das abas, para aparecer em qualquer aba.
- */
-function GuestInvite() {
-  return (
-    <section aria-labelledby="crie-sua-vitrine" className={`mx-auto max-w-[1440px] pt-8 md:pt-10 ${pad}`}>
-      <div className="grid gap-10 bg-ink px-6 py-10 text-white md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] md:items-center md:gap-16 md:px-14 md:py-12">
-        <div className="flex flex-col items-start gap-5">
-          <span className={`${kicker} text-gold`}>Você cria conteúdo?</span>
-          <h2 id="crie-sua-vitrine" className="m-0 font-display text-[clamp(40px,5.2vw,72px)] leading-[1.02] font-normal text-balance">
-            Crie a sua vitrine <em>em 2 minutos</em>
-          </h2>
-          <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-white/70">
-            Junte os cupons e produtos que você usa e indica num link para a bio. É grátis.
-          </p>
-          <span className="text-[16px] text-white/60">
-            {HOST}/<em className="font-display text-[1.35em] leading-none text-white">seunome</em>
-          </span>
-          <Link
-            href="/criar-vitrine"
-            className="mt-1 flex min-h-12 items-center justify-center bg-white px-7 text-[12px] font-medium tracking-[0.18em] text-ink uppercase no-underline hover:bg-cream"
-          >
-            Criar minha vitrine
-          </Link>
-        </div>
-        <ul className="m-0 flex list-none flex-col p-0">
-          {PERKS.map(([title, text], i) => (
-            <li key={title} className="flex gap-5 border-t border-white/15 py-5 last:border-b">
-              <span aria-hidden="true" className="font-display text-[28px] leading-none text-gold lining-nums">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="flex flex-col gap-1">
-                <span className="font-display text-[24px] leading-tight">{title}</span>
-                <span className="text-[15px] leading-relaxed text-white/60">{text}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
 /** "Para você": a própria vitrine (ou o convite) e os carrosséis. */
 export type ForYou = { vitrine: VitrineContent | null; ranked: boolean; creators: HomeCreator[]; kits: HomeKit[] };
 
@@ -157,17 +107,15 @@ export function HomeView({
   tab,
   params,
   forYou,
-  loginError = false,
+  favorites = [],
 }: {
-  /** null: quem ainda não entrou (visitante, vindo do "Explorar vitrines" da landing) */
-  name: string | null;
+  name: string;
   tab: TabId;
   params: TabParams;
   forYou: ForYou | null;
-  /** a volta do Google falhou (?erro=login) */
-  loginError?: boolean;
+  /** endereços das favoritas; só vêm nas abas que mostram o coração */
+  favorites?: string[];
 }) {
-  const guest = name === null;
   return (
     // clip, e não hidden: hidden faz desta div a área de rolagem e as abas param de ficar presas no topo
     <div className="overflow-x-clip bg-white text-ink">
@@ -175,80 +123,49 @@ export function HomeView({
       <SiteHeader
         links={[]}
         action={
-          guest ? (
-            // o mesmo par da landing; no celular os dois encolhem para caber ao lado da marca
-            <div className="flex items-center gap-3 md:gap-2">
-              <LoginButton className={`${kicker} whitespace-nowrap text-ink hover:text-gold max-md:text-[11px] max-md:tracking-[0.12em] md:px-2`} />
-              <Link href="/criar-vitrine" className={`${pillDark} whitespace-nowrap max-md:min-h-10 max-md:px-3.5 max-md:text-[11px] max-md:tracking-[0.12em]`}>
-                Criar conta
-              </Link>
-            </div>
-          ) : (
-            <form action={signOutAction}>
-              <button type="submit" className={pillLight}>
-                Sair
-              </button>
-            </form>
-          )
+          <form action={signOutAction}>
+            <button type="submit" className={pillLight}>
+              Sair
+            </button>
+          </form>
         }
       />
-
-      {loginError && (
-        <div role="alert" className={`mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 bg-cream py-3 text-[15px] ${pad}`}>
-          <span>O login com o Google não foi concluído.</span>
-          <LoginButton className={`${kicker} text-[11px] text-ink underline underline-offset-4 hover:text-gold`}>Tentar de novo</LoginButton>
-        </div>
-      )}
 
       <section className={`mx-auto flex max-w-[1440px] flex-col gap-6 pt-8 md:gap-8 md:pt-12 ${pad}`}>
         {/* no desktop o texto de apoio vai ao lado do título, para não sobrar a metade direita vazia */}
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:gap-12">
           <div className="flex flex-col gap-3">
-            <span className={`${kicker} text-gold`}>{guest ? "Explorar" : "Sua home"}</span>
+            <span className={`${kicker} text-gold`}>Sua home</span>
             <h1 className="m-0 font-display text-[clamp(40px,4.8vw,68px)] leading-[1] font-normal tracking-[-0.01em]">
-              {guest ? (
-                <>
-                  Achados de <em>quem você segue</em>
-                </>
-              ) : (
-                <>
-                  Olá, <em>{name}</em>
-                </>
-              )}
+              Olá, <em>{name}</em>
             </h1>
           </div>
-          <p className="m-0 max-w-[32rem] text-[16px] leading-relaxed text-mute lg:pb-1">
-            {guest
-              ? "Vitrines, produtos, kits e os cupons de cada marca, reunidos num lugar só. Busque por uma pessoa, uma marca ou um produto."
-              : "Encontre os achados de quem você segue: busque por uma pessoa, uma marca ou um produto."}
-          </p>
+          <p className="m-0 max-w-[32rem] text-[16px] leading-relaxed text-mute lg:pb-1">Encontre os achados de quem você segue: busque por uma pessoa, uma marca ou um produto.</p>
         </div>
         <HomeSearch />
       </section>
-
-      {guest && <GuestInvite />}
 
       {/* espaço antes das abas como irmão, não em volta: o sticky só prende dentro do próprio pai */}
       <div aria-hidden="true" className="h-5 md:h-6" />
       <TabNav current={tab} />
 
-      {tab === "para-voce" && forYou && <ForYouTab {...forYou} guest={guest} />}
-      {tab === "vitrines" && <VitrinesTab params={params} guest={guest} />}
-      {tab === "produtos" && <ProdutosTab params={params} guest={guest} />}
-      {tab === "kits" && <KitsTab params={params} guest={guest} />}
-      {tab === "marcas" && <MarcasTab params={params} guest={guest} />}
+      {tab === "para-voce" && forYou && <ForYouTab {...forYou} favorites={favorites} />}
+      {tab === "favoritas" && <FavoritasTab params={params} favorites={favorites} />}
+      {tab === "vitrines" && <VitrinesTab params={params} favorites={favorites} />}
+      {tab === "produtos" && <ProdutosTab params={params} />}
+      {tab === "kits" && <KitsTab params={params} />}
+      {tab === "marcas" && <MarcasTab params={params} />}
 
       <SiteFooter />
     </div>
   );
 }
 
-function ForYouTab({ vitrine, ranked, creators, kits, guest }: ForYou & { guest: boolean }) {
+function ForYouTab({ vitrine, ranked, creators, kits, favorites }: ForYou & { favorites: string[] }) {
   return (
     // div, e não fragmento: é ela que faz da primeira seção a first-child que `section` aproxima das abas
     <div>
-      {/* o visitante já viu o convite em destaque antes das abas */}
-      {vitrine ? <YourVitrine vitrine={vitrine} /> : !guest && <CreateVitrine />}
+      {vitrine ? <YourVitrine vitrine={vitrine} /> : <CreateVitrine />}
 
       {creators.length > 0 && (
         <section className={`${section} gap-10`}>
@@ -261,7 +178,7 @@ function ForYouTab({ vitrine, ranked, creators, kits, guest }: ForYou & { guest:
           </div>
           <Marquee label={ranked ? "Vitrines do dia" : "Vitrines novas"} className={pad} itemClassName="w-[220px] md:w-[300px]">
             {creators.map((c) => (
-              <CreatorCard key={c.handle} c={c} />
+              <CreatorCard key={c.handle} c={c} favorited={favorites.includes(c.handle)} />
             ))}
           </Marquee>
         </section>

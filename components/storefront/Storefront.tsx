@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { productHref, withUtm } from "@/lib/vitrine/links";
 import {
@@ -14,7 +15,10 @@ import {
   priceProducts,
   type PricedProduct,
 } from "@/lib/vitrine/pricing";
+import type { CommentList, Viewer } from "@/lib/vitrine/social";
 import type { VitrineContent } from "@/lib/vitrine/types";
+import { Comments } from "./Comments";
+import { FavoriteButton } from "./FavoriteButton";
 import { ProductArt } from "./ProductIcon";
 
 /**
@@ -39,18 +43,6 @@ const pillDark =
 const pillLight =
   "flex min-h-12 items-center justify-center border border-ink bg-transparent px-7 text-[12px] font-medium tracking-[0.18em] text-ink uppercase no-underline hover:bg-ink hover:text-white";
 
-// voltar para a home: só a seta no celular, seta e "Início" com mais espaço
-const backLink =
-  "flex min-h-10 min-w-10 flex-none items-center justify-center gap-2 border-r border-sand pr-3 text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold";
-
-function BackIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.8}>
-      <path d="M19 12H5m6-6-6 6 6 6" />
-    </svg>
-  );
-}
-
 function copyText(text: string) {
   try {
     navigator.clipboard?.writeText(text).catch(() => {});
@@ -73,6 +65,27 @@ function track(handle: string, kind: "view" | "buy" | "copy" | "kit" | "video", 
   } catch {
     // sem rede ou API: a métrica se perde, a compra segue
   }
+}
+
+/**
+ * Quem está vendo, lido no navegador: a página é a mesma para todos (em cache), e esta rota é por pessoa.
+ * Fica fora da renderização também porque /{handle} não passa pelo proxy, que é quem renova a sessão.
+ * null enquanto carrega.
+ */
+function useViewer(handle: string, off: boolean) {
+  const [viewer, setViewer] = useState<Viewer | null>(null);
+  useEffect(() => {
+    if (off) return;
+    const request = new AbortController();
+    fetch(`/api/eu?h=${encodeURIComponent(handle)}`, { signal: request.signal })
+      .then((r) => (r.ok ? (r.json() as Promise<Viewer>) : { user: null }))
+      .catch(() => ({ user: null }))
+      .then((v) => {
+        if (!request.signal.aborted) setViewer(v);
+      });
+    return () => request.abort();
+  }, [handle, off]);
+  return viewer;
 }
 
 /** Sem acento e minúsculo, para a busca achar "tenis" em "Tênis". */
@@ -196,7 +209,19 @@ function Carousel({ title, label, children }: { title: string; label: string; ch
   );
 }
 
-export function Storefront({ content, today, preview = false }: { content: VitrineContent; today: string; preview?: boolean }) {
+export function Storefront({
+  content,
+  today,
+  preview = false,
+  comments,
+}: {
+  content: VitrineContent;
+  today: string;
+  preview?: boolean;
+  /** Não vem na prévia do editor, que não mostra comentários nem o coração. */
+  comments?: CommentList;
+}) {
+  const viewer = useViewer(content.handle, preview);
   const firstName = content.name.split(" ")[0] || content.name;
   const headline = content.headline.replace(/\*/g, "").trim() || `A vitrine de ${firstName}`;
   const banner = content.look.bannerUrl;
@@ -253,11 +278,11 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
 
   // Sem capa, o topo mostra as fotos dos primeiros produtos em estoque.
   const strip = banner ? [] : products.filter((p) => !p.soldOut).slice(0, 3);
-  const bestPercent = Math.max(0, ...coupons.filter((c) => c.kind === "percent").map((c) => c.value));
   const nav = [
     ["#cupons", "Cupons", coupons.length > 0],
     ["#produtos", "Produtos", products.length > 0],
     ["#kits", "Kits", kits.length > 0],
+    ["#comentarios", "Comentários", Boolean(comments)],
   ] as const;
 
   const send = (kind: Parameters<typeof track>[1], item?: string) => {
@@ -299,45 +324,32 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
 
   return (
     <div className="@container w-full overflow-hidden bg-white font-sans text-ink">
-      {coupons.length > 0 && (
-        <div className="bg-cream px-5 py-2.5 text-center text-[13px] leading-snug">
-          <span className="font-medium">{bestPercent ? `Até ${bestPercent}% OFF com os cupons de ${firstName}` : `Cupons de desconto de ${firstName}`}</span>{" "}
-          <a href="#cupons" className="font-medium text-inherit underline underline-offset-2">
-            Ver cupons
-          </a>
-        </div>
-      )}
-
       <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-3.5 ${pad}`}>
-        <div className="flex min-w-0 items-center gap-3">
-          {/* "/" serve aos dois: o proxy leva quem entrou para /inicio e quem não entrou fica na landing.
-              Na prévia do editor é só a aparência, para o clique não tirar a pessoa do editor. */}
-          {preview ? (
-            <span aria-hidden="true" className={backLink}>
-              <BackIcon />
-              <span className="@max-2xl:hidden">Início</span>
-            </span>
-          ) : (
-            <Link href="/" aria-label="Voltar para o início" className={backLink}>
-              <BackIcon />
-              <span className="@max-2xl:hidden">Início</span>
-            </Link>
+        {/* "/" serve aos dois: o proxy leva quem entrou para /inicio e quem não entrou fica na landing.
+            Na prévia do editor é só a aparência, para o clique não tirar a pessoa do editor. */}
+        <BackLink href={preview ? undefined : "/"} label="Início" labelClass="@max-2xl:hidden" />
+        <div className="flex flex-none items-center gap-6">
+          <nav aria-label="Seções" className="flex gap-6 @max-2xl:hidden">
+            {nav.map(([href, label, on]) =>
+              on ? (
+                <a key={href} href={href} className="text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold">
+                  {label}
+                </a>
+              ) : null,
+            )}
+          </nav>
+          {!preview && (
+            <FavoriteButton
+              key={viewer?.user ? `${viewer.user.id}:${viewer.favorited}` : "visitante"}
+              variant="header"
+              handle={content.handle}
+              name={content.name}
+              loading={!viewer}
+              guest={!viewer?.user}
+              favorited={Boolean(viewer?.user && viewer.favorited)}
+            />
           )}
-          <Avatar content={content} className="box-border size-10 flex-none rounded-full text-sm" />
-          <div className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate font-display text-[20px] leading-tight font-medium">{content.name}</span>
-            <span className="truncate text-[13px] text-mute">@{content.handle}</span>
-          </div>
         </div>
-        <nav aria-label="Seções" className="flex gap-6 @max-2xl:hidden">
-          {nav.map(([href, label, on]) =>
-            on ? (
-              <a key={href} href={href} className="text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold">
-                {label}
-              </a>
-            ) : null,
-          )}
-        </nav>
       </header>
 
       <section className={`mx-auto max-w-[1440px] ${pad}`}>
@@ -355,7 +367,15 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
             </div>
           )
         )}
-        <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 pt-10 pb-2 text-center @3xl:pt-12">
+        {/* quem indica: a foto fica sobre a borda da capa, quando há capa ou fotos no topo */}
+        <div className={`relative flex flex-col items-center gap-2.5 text-center ${banner || strip.length > 0 ? "-mt-10" : "pt-10"}`}>
+          <Avatar content={content} className="box-border size-20 flex-none rounded-full text-2xl ring-4 ring-white" />
+          <div className="flex max-w-full min-w-0 flex-col leading-tight">
+            <span className="font-display text-[22px] leading-tight font-medium break-words">{content.name}</span>
+            <span className="text-[13px] break-words text-mute">@{content.handle}</span>
+          </div>
+        </div>
+        <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 pt-7 pb-2 text-center @3xl:pt-8">
           <h1 className="m-0 font-display text-[clamp(44px,8cqw,96px)] leading-[1] font-normal text-balance">{headline}</h1>
           {content.sub && <p className="m-0 max-w-[36rem] text-[17px] leading-relaxed text-mute">{content.sub}</p>}
           {(products.length > 0 || coupons.length > 0) && (
@@ -371,6 +391,12 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
                 </a>
               )}
             </div>
+          )}
+          {/* no celular o menu de seções some: este link é o caminho até a conversa */}
+          {comments && comments.total > 0 && (
+            <a href="#comentarios" className="mt-1 text-[14px] text-mute underline underline-offset-4 hover:text-ink">
+              {comments.total === 1 ? "1 comentário" : `${comments.total.toLocaleString("pt-BR")} comentários`}
+            </a>
           )}
         </div>
       </section>
@@ -639,6 +665,8 @@ export function Storefront({ content, today, preview = false }: { content: Vitri
           </div>
         </section>
       )}
+
+      {comments && <Comments handle={content.handle} firstName={firstName} comments={comments} viewer={viewer} className={pad} />}
 
       <section className={`mx-auto max-w-[1440px] pt-20 @3xl:pt-28 ${pad}`}>
         <div className="flex flex-col items-center gap-4 bg-sand px-6 py-16 text-center @max-md:py-12">

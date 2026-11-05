@@ -165,7 +165,7 @@ export function CreatorPitch() {
       <section className={`mx-auto max-w-[1440px] pt-16 md:pt-24 ${pad}`}>
         <div className="flex flex-col items-center gap-4 bg-sand px-6 py-16 text-center max-md:py-12">
           <h2 className="m-0 font-display text-[clamp(32px,4.4vw,52px)] leading-[1] font-normal">Seu link na bio, pronto hoje</h2>
-          <p className="m-0 text-[17px] text-ink/70">Grátis para começar. É só escolher o link e entrar com o Google.</p>
+          <p className="m-0 text-[17px] text-ink/70">Grátis para começar. É só escolher o link e criar sua conta.</p>
           <Link href="/criar-vitrine" className={`${pillDark} mt-2`}>
             Criar minha vitrine grátis
           </Link>

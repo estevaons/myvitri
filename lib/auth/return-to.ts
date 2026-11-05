@@ -13,12 +13,13 @@ export function safePath(path: unknown): string | null {
   return typeof path === "string" && /^\/(?![/\\])/.test(path) && !path.includes("\\") && path.length <= 500 ? path : null;
 }
 
-export async function saveReturn(path: string) {
+/** `maxAge` em segundos: o padrão cobre a ida ao Google; o link de "esqueci minha senha" dura mais. */
+export async function saveReturn(path: string, maxAge = 60 * 10) {
   (await cookies()).set(RETURN_COOKIE, path, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 10,
+    maxAge,
     path: "/",
   });
 }

@@ -6,6 +6,7 @@ export function LegalPage({ title, updated, intro, children }: { title: string; 
   return (
     <div className="overflow-hidden bg-white text-ink">
       <SiteHeader
+        back="/"
         links={[
           ["/", "Explorar vitrines"],
           ["/criar-vitrine", "Criar vitrine"],

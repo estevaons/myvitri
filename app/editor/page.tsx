@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { CreateVitrinePanel, SignInPanel } from "@/components/auth/forms";
+import { CreateVitrinePanel } from "@/components/auth/forms";
 import { Editor } from "@/components/editor/Editor";
 import { findDraft, findMine } from "@/lib/vitrine/store";
 
@@ -12,10 +13,8 @@ async function EditorLoader({ searchParams }: Pick<PageProps<"/editor">, "search
   // de hoje e a validação do login no Supabase não podem ser pré-renderizadas.
   await connection();
   const { supabase, user, vitrine } = await findMine();
-  const { erro, aba } = await searchParams;
-  if (!user) {
-    return <SignInPanel loginError={erro === "login"} />;
-  }
+  const { aba } = await searchParams;
+  if (!user) redirect("/entrar?next=/editor");
   if (!vitrine) {
     const meta = user.user_metadata as { name?: string };
     return <CreateVitrinePanel suggestedName={meta.name ?? ""} />;

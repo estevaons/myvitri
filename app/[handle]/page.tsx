@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Storefront } from "@/components/storefront/Storefront";
 import { activeBrands, JsonLd, listNames, pageMeta, vitrineJsonLd } from "@/lib/seo";
-import { getPublicVitrine } from "@/lib/vitrine/data";
+import { getComments, getPublicVitrine } from "@/lib/vitrine/data";
+import type { CommentList } from "@/lib/vitrine/social";
 
 const clean = (handle: string) => decodeURIComponent(handle).toLowerCase();
 
@@ -23,12 +24,19 @@ export async function generateMetadata({ params }: PageProps<"/[handle]">): Prom
 
 async function VitrinePage({ params }: Pick<PageProps<"/[handle]">, "params">) {
   const { handle } = await params;
-  const vitrine = await getPublicVitrine(clean(handle));
+  const [vitrine, comments] = await Promise.all([
+    getPublicVitrine(clean(handle)),
+    // erro nos comentários não pode derrubar a vitrine, que é o que a pessoa veio ver
+    getComments(clean(handle)).catch((e): CommentList => {
+      console.error("getComments", e);
+      return { total: 0, items: [] };
+    }),
+  ]);
   if (!vitrine) notFound();
   return (
     <>
       <JsonLd data={vitrineJsonLd(vitrine.content, vitrine.today)} />
-      <Storefront content={vitrine.content} today={vitrine.today} />
+      <Storefront content={vitrine.content} today={vitrine.today} comments={comments} />
     </>
   );
 }

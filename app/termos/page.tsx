@@ -12,7 +12,7 @@ export default function Termos() {
   return (
     <LegalPage
       title="Termos de Uso"
-      updated="2 de novembro de 2026"
+      updated="5 de novembro de 2026"
       intro={
         <p className="m-0">
           Estes termos valem para quem usa o {BRAND} ({HOST}), seja para criar uma vitrine ou para visitar uma. Ao usar o site, você
@@ -30,7 +30,7 @@ export default function Termos() {
 
       <Section title="2. Sua conta">
         <ul>
-          <li>Para criar uma vitrine você entra com sua conta Google e precisa ter 18 anos ou mais, ou autorização dos responsáveis.</li>
+          <li>Para criar uma vitrine, favoritar ou comentar você entra com sua conta Google ou com e-mail e senha e precisa ter 18 anos ou mais, ou autorização dos responsáveis.</li>
           <li>Cada conta tem uma vitrine e um link. Você é responsável por tudo o que acontece na sua conta.</li>
           <li>
             Alguns links são reservados. Podemos recuperar um link que se passe por outra pessoa ou marca, ou que viole direitos de
@@ -56,7 +56,14 @@ export default function Termos() {
         </ul>
       </Section>
 
-      <Section title="4. Cupons, preços e compras">
+      <Section title="4. Comentários">
+        <ul>
+          <li>Comentários são públicos e aparecem com o seu nome e, se você entrar com o Google, a sua foto de perfil. Você é responsável pelo que escreve.</li>
+          <li>Você pode apagar seus comentários quando quiser. Quem é dono da vitrine também pode apagar qualquer comentário dela.</li>
+        </ul>
+      </Section>
+
+      <Section title="5. Cupons, preços e compras">
         <p>
           O {BRAND} não vende produtos e não participa das compras. Cupons, preços e disponibilidade são informados por quem é dono de cada vitrine e
           podem mudar ou deixar de valer na loja da marca a qualquer momento. A compra, o pagamento, a entrega, as trocas e as
@@ -64,7 +71,7 @@ export default function Termos() {
         </p>
       </Section>
 
-      <Section title="5. Links de afiliado e métricas">
+      <Section title="6. Links de afiliado e métricas">
         <p>
           Os links para lojas podem ser links de afiliado de quem é dono da vitrine ou levar parâmetros de campanha (UTM) que identificam a vitrine de
           origem. Quem é dono da vitrine pode receber comissão pelas vendas. Contamos visitas e cliques de forma anônima para mostrar métricas a
@@ -72,7 +79,7 @@ export default function Termos() {
         </p>
       </Section>
 
-      <Section title="6. O que não é permitido">
+      <Section title="7. O que não é permitido">
         <ul>
           <li>Publicar conteúdo ilegal, enganoso, ofensivo ou que viole direitos de terceiros, como marcas e direitos autorais.</li>
           <li>Divulgar cupons falsos ou preços que você sabe estarem errados.</li>
@@ -82,7 +89,7 @@ export default function Termos() {
         </ul>
       </Section>
 
-      <Section title="7. Suspensão e encerramento">
+      <Section title="8. Suspensão e encerramento">
         <p>
           Você pode deixar de usar o {BRAND} quando quiser e excluir sua conta no editor (aba Perfil, “Excluir conta”). A exclusão
           apaga na hora a vitrine e todo o seu conteúdo e não pode ser desfeita; o link fica livre para outra pessoa. Também dá para
@@ -91,7 +98,7 @@ export default function Termos() {
         </p>
       </Section>
 
-      <Section title="8. Responsabilidade">
+      <Section title="9. Responsabilidade">
         <p>
           Trabalhamos para manter o site disponível e funcionando bem, mas ele é oferecido no estado em que se encontra e pode ter
           interrupções. Na medida permitida pela lei, o {BRAND} não responde por cupons, preços ou produtos divulgados nas vitrines,
@@ -99,25 +106,25 @@ export default function Termos() {
         </p>
       </Section>
 
-      <Section title="9. Marca">
+      <Section title="10. Marca">
         <p>O nome {BRAND}, o logotipo e o visual do site pertencem ao {BRAND} e não podem ser usados sem autorização.</p>
       </Section>
 
-      <Section title="10. Mudanças nestes termos">
+      <Section title="11. Mudanças nestes termos">
         <p>
           Podemos atualizar estes termos. A data no topo mostra a versão em vigor e, se a mudança for importante, avisaremos pelo e-mail
           da sua conta antes de ela valer.
         </p>
       </Section>
 
-      <Section title="11. Lei aplicável">
+      <Section title="12. Lei aplicável">
         <p>
           Estes termos seguem as leis do Brasil. Fica eleito o foro do domicílio do usuário quando ele for consumidor, nos termos do
           Código de Defesa do Consumidor.
         </p>
       </Section>
 
-      <Section title="12. Contato">
+      <Section title="13. Contato">
         <p>Dúvidas sobre estes termos: {mail}.</p>
       </Section>
     </LegalPage>

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LoginButton } from "@/components/auth/forms";
 import { kicker, pad, pillLight } from "../chrome";
 import { FilterMenu } from "./FilterMenu";
-import { GUEST_LIMIT, hrefWith, PAGE, TABS, type TabId, type TabParams } from "./params";
+import { hrefWith, PAGE, TABS, type TabId, type TabParams } from "./params";
 
 /**
  * Peças comuns das abas do /inicio. Tudo é link que muda a URL (no cliente, só o abrir e fechar dos
@@ -179,23 +178,9 @@ export function CatalogFrame({
 /** Grade padrão das abas: 2 colunas no celular, 4 no computador. */
 export const catalogGrid = "grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-3 md:gap-x-4 md:gap-y-12 lg:grid-cols-4";
 
-/**
- * "Ver mais": mais uma página de itens, mantendo filtros e ordem. Para quem não entrou, depois de
- * GUEST_LIMIT itens vira o convite para entrar (o login volta para esta mesma página).
- */
-export function LoadMore({ params, shown, total, guest = false }: { params: TabParams; shown: number; total: number; guest?: boolean }) {
+/** "Ver mais": mais uma página de itens, mantendo filtros e ordem. */
+export function LoadMore({ params, shown, total }: { params: TabParams; shown: number; total: number }) {
   if (shown >= total) return null;
-  if (guest && shown >= GUEST_LIMIT) {
-    return (
-      <div className="flex flex-col items-center gap-4 bg-cream px-6 py-12 text-center">
-        <span className="font-display text-[clamp(26px,2.6vw,36px)] leading-[1.1]">
-          Tem mais <em>{(total - shown).toLocaleString("pt-BR")}</em> por aqui
-        </span>
-        <p className="m-0 max-w-[26rem] text-[15px] leading-relaxed text-mute">Entre com sua conta Google para ver tudo. Leva um clique e não precisa de senha nova.</p>
-        <LoginButton className={pillLight}>Entrar para ver tudo</LoginButton>
-      </div>
-    );
-  }
   return (
     <div className="flex justify-center pt-4">
       <Link href={hrefWith(params, { limite: String(shown + PAGE) })} scroll={false} className={pillLight}>
@@ -206,7 +191,7 @@ export function LoadMore({ params, shown, total, guest = false }: { params: TabP
 }
 
 /** Nada com esses filtros: convite para limpar, não um pedido de desculpas. */
-export function CatalogEmpty({ title, text, clearHref }: { title: string; text: string; clearHref?: string }) {
+export function CatalogEmpty({ title, text, clearHref, action }: { title: string; text: string; clearHref?: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-4 bg-cream px-6 py-16 text-center">
       <span className="font-display text-[clamp(28px,3vw,40px)] leading-[1.1]">{title}</span>
@@ -216,6 +201,7 @@ export function CatalogEmpty({ title, text, clearHref }: { title: string; text: 
           Limpar filtros
         </Link>
       )}
+      {action}
     </div>
   );
 }

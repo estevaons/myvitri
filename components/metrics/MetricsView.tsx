@@ -335,19 +335,17 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
     // clip, e não hidden: hidden criaria uma área de rolagem própria
     <div className="overflow-x-clip bg-white text-ink">
       <SiteHeader
+        back="/inicio"
         links={[]}
         action={
-          <Link href="/editor" className={`${pillDark} max-md:px-5`}>
-            Editar vitrine
+          <Link href="/editor" aria-label="Editar vitrine" className={`${pillDark} max-md:px-5`}>
+            Editar<span className="max-md:hidden">&nbsp;vitrine</span>
           </Link>
         }
       />
 
       <section className={`mx-auto flex max-w-[1440px] flex-col gap-10 pt-10 md:gap-14 md:pt-16 ${pad}`}>
         <div className="flex flex-col gap-6">
-          <Link href="/inicio" className={`${kicker} flex min-h-11 items-center gap-2 self-start text-[11px] text-mute no-underline hover:text-ink`}>
-            <span aria-hidden="true">←</span> Voltar ao início
-          </Link>
           <div className="flex flex-col gap-4">
             <span className={`${kicker} text-gold`}>
               {HOST}/{vitrine.handle}
@@ -478,14 +476,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
 export function NoVitrine() {
   return (
     <div className="overflow-x-clip bg-white text-ink">
-      <SiteHeader
-        links={[]}
-        action={
-          <Link href="/inicio" className={pillLight}>
-            Início
-          </Link>
-        }
-      />
+      <SiteHeader back="/inicio" links={[]} action={null} />
       <section className={`mx-auto max-w-[1440px] pt-16 md:pt-24 ${pad}`}>
         <div className="flex flex-col items-center gap-5 bg-sand px-6 py-20 text-center max-md:py-14">
           <span className={`${kicker} text-gold`}>Suas métricas</span>

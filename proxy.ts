@@ -5,8 +5,8 @@ import { NextResponse, type NextRequest } from "next/server";
  * Renova a sessão do Supabase (cookies) antes das rotas que dependem de login.
  * Também encaminha `/?code=…` para o callback, caso o Supabase volte do Google
  * para a Site URL em vez de /auth/callback, manda a antiga aba /editor?aba=metricas para /metricas
- * e leva quem já entrou da landing para /inicio
- * (assim a landing não lê cookies e continua estática).
+ * e separa as portas de entrada: quem já entrou vai da landing e de /entrar para /inicio, quem não entrou
+ * vai de /inicio para a landing (assim a landing não lê cookies e continua estática).
  */
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
@@ -31,16 +31,22 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  const { data } = await supabase.auth.getClaims();
-  if (pathname === "/" && data?.claims) {
-    const home = NextResponse.redirect(new URL("/inicio", request.url));
-    // leva junto os cookies da sessão que acabaram de ser renovados
-    response.cookies.getAll().forEach((c) => home.cookies.set(c));
-    return home;
+  if (pathname !== "/" && pathname !== "/inicio" && pathname !== "/entrar") {
+    await supabase.auth.getClaims();
+    return response;
   }
-  return response;
+
+  // Estas rotas mandam umas para as outras, então confere a sessão no Supabase: getClaims só valida o JWT
+  // e aceitaria uma sessão já encerrada até ele expirar, com "/" e "/inicio" se redirecionando sem fim.
+  const { data } = await supabase.auth.getUser();
+  const target = pathname === "/inicio" ? (data.user ? null : "/") : data.user ? "/inicio" : null;
+  if (!target) return response;
+  const redirect = NextResponse.redirect(new URL(target, request.url));
+  // leva junto os cookies da sessão que acabaram de ser renovados
+  response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+  return redirect;
 }
 
 export const config = {
-  matcher: ["/", "/criar-vitrine", "/inicio", "/metricas", "/editor/:path*"],
+  matcher: ["/", "/criar-vitrine", "/entrar", "/nova-senha", "/inicio", "/metricas", "/editor/:path*"],
 };

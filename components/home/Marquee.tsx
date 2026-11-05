@@ -9,6 +9,7 @@ const arrow = "flex size-11 items-center justify-center border border-ink text-i
  * primeira cópia, a rolagem volta a largura dela. É rolagem nativa (não transform), então dá
  * para arrastar, usar o teclado e os botões. Para com mouse, foco ou toque em cima; com
  * "reduzir movimento", ou com poucos itens para encher a largura, vira uma lista parada.
+ * A cópia fica fora do leitor de tela e do Tab, mas responde ao clique: ela também aparece na tela.
  * Sem JavaScript é só uma lista rolável.
  */
 export function Marquee({
@@ -85,6 +86,11 @@ export function Marquee({
 
   useEffect(() => () => clearTimeout(resume.current), []);
 
+  // sem `inert` na cópia: ele também mataria o clique em tudo o que aparece dela na ponta do carrossel
+  useEffect(() => {
+    copy.current?.querySelectorAll("a, button").forEach((el) => el.setAttribute("tabindex", "-1"));
+  }, [loop, children]);
+
   const pause = () => {
     clearTimeout(resume.current);
     paused.current = true;
@@ -108,7 +114,6 @@ export function Marquee({
     <ul
       ref={hidden ? copy : first}
       aria-hidden={hidden || undefined}
-      inert={hidden || undefined}
       className="m-0 flex w-max flex-none list-none gap-3 p-0 md:gap-4"
     >
       {items.map((item, i) => (

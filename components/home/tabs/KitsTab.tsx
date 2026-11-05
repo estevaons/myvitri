@@ -9,7 +9,7 @@ const FILTERS = ["preco", "cat", "creator"] as const;
  * Aba "Kits" do /inicio: todos os kits publicados com algum produto à venda, com o total já com cupom.
  * Os dados vêm de um cache só; filtro, ordem e "Ver mais" são feitos aqui, a partir da URL.
  */
-export async function KitsTab({ params, guest = false }: { params: TabParams; guest?: boolean }) {
+export async function KitsTab({ params }: { params: TabParams }) {
   const { kits, categories, creators } = await getKitCatalog();
   const shown = queryKits(kits, params);
   const limit = limitOf(params);
@@ -20,7 +20,7 @@ export async function KitsTab({ params, guest = false }: { params: TabParams; gu
   return (
     <CatalogFrame
       title="Kits"
-      text="Combinações montadas por quem indica, com o total já com o cupom e quanto você economiza levando tudo."
+      text="Combinações montadas por quem indica, com o total já com o cupom."
       filters={
         <>
           <FilterChips label="Preço" param="preco" options={priceOptions(kits)} params={params} />
@@ -41,7 +41,7 @@ export async function KitsTab({ params, guest = false }: { params: TabParams; gu
               </li>
             ))}
           </ul>
-          <LoadMore params={params} guest={guest} shown={Math.min(limit, shown.length)} total={shown.length} />
+          <LoadMore params={params} shown={Math.min(limit, shown.length)} total={shown.length} />
         </>
       ) : filtered ? (
         <CatalogEmpty
@@ -50,7 +50,7 @@ export async function KitsTab({ params, guest = false }: { params: TabParams; gu
           clearHref={clearHref}
         />
       ) : (
-        <CatalogEmpty title="Ainda não há kits" text="Quando alguém publicar um kit, ele aparece aqui com o total e a economia." />
+        <CatalogEmpty title="Ainda não há kits" text="Quando alguém publicar um kit, ele aparece aqui com o total já com o cupom." />
       )}
     </CatalogFrame>
   );

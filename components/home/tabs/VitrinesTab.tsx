@@ -24,7 +24,7 @@ const byRecent = (a: CatalogVitrine, b: CatalogVitrine) => b.updatedAt.localeCom
  * creators). Filtra, ordena e corta no servidor; o catálogo vem do cache de horas e o ranking do dia,
  * que muda a cada clique, do cache de minutos.
  */
-export async function VitrinesTab({ params, guest = false }: { params: TabParams; guest?: boolean }) {
+export async function VitrinesTab({ params, favorites = [] }: { params: TabParams; favorites?: string[] }) {
   const sort = SORTS.find(([id]) => id === params.ordem)?.[0] ?? SORTS[0][0];
   const [{ vitrines, categories, brands }, trending] = await Promise.all([getVitrinesCatalog(), sort === "alta" ? getTrendingHandles() : []]);
 
@@ -76,10 +76,10 @@ export async function VitrinesTab({ params, guest = false }: { params: TabParams
         <>
           <div className={catalogGrid}>
             {shown.map((v) => (
-              <VitrineCard key={v.card.handle} v={v} />
+              <VitrineCard key={v.card.handle} v={v} favorited={favorites.includes(v.card.handle)} />
             ))}
           </div>
-          <LoadMore params={params} guest={guest} shown={shown.length} total={sorted.length} />
+          <LoadMore params={params} shown={shown.length} total={sorted.length} />
         </>
       ) : filtering ? (
         <CatalogEmpty

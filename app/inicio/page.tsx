@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { flatParams, GUEST_LIMIT, tabOf } from "@/components/home/catalog/params";
+import { flatParams, tabOf } from "@/components/home/catalog/params";
 import { HomeView, type ForYou } from "@/components/home/HomeView";
 import { getHomeFeed, getRecentKits, getTopCreators, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
-import { findMine } from "@/lib/vitrine/store";
+import { findMine, listFavoriteHandles } from "@/lib/vitrine/store";
 
 export const metadata: Metadata = { title: "Início", robots: { index: false } };
 
@@ -35,19 +36,20 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/inicio">, "searchPa
   const params = flatParams(await searchParams);
   const tab = tabOf(params);
   // os carrosséis só são lidos na aba "Para você"; as outras abas buscam os próprios dados
-  const [{ user, vitrine }, rows] = await Promise.all([
+  const [{ supabase, user, vitrine }, rows] = await Promise.all([
     findMine(),
     tab === "para-voce" ? Promise.all([loadCreators(), getRecentKits().catch(orEmpty<HomeKit>("getRecentKits"))]) : null,
   ]);
 
-  // sem sessão a home abre do mesmo jeito (o "Explorar vitrines" da landing traz para cá), com até 2
-  // páginas por aba: mesmo um ?limite= maior digitado na URL para em GUEST_LIMIT
-  if (!user && Number(params.limite) > GUEST_LIMIT) params.limite = String(GUEST_LIMIT);
-  const meta = user?.user_metadata as { name?: string } | undefined;
-  const name = user ? firstName(vitrine?.name || meta?.name || "") || user.email?.split("@")[0] || "" : null;
+  // o proxy já manda quem não entrou para a landing; isto cobre a sessão que cai entre ele e esta leitura
+  if (!user) redirect("/");
+  const meta = user.user_metadata as { name?: string };
+  const name = firstName(vitrine?.name || meta.name || "") || user.email?.split("@")[0] || "";
 
   const forYou: ForYou | null = rows && { vitrine, ranked: rows[0].ranked, creators: rows[0].creators, kits: rows[1] };
-  return <HomeView name={name} tab={tab} params={params} forYou={forYou} loginError={params.erro === "login"} />;
+  // só as abas com o coração precisam saber as favoritas
+  const favorites = tab === "para-voce" || tab === "vitrines" || tab === "favoritas" ? await listFavoriteHandles(supabase, user.id).catch(orEmpty<string>("listFavoriteHandles")) : [];
+  return <HomeView name={name} tab={tab} params={params} forYou={forYou} favorites={favorites} />;
 }
 
 export default function Page({ searchParams }: PageProps<"/inicio">) {
