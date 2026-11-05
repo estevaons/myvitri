@@ -7,7 +7,7 @@ import type { TabParams } from "../../catalog/params";
 
 export const SORTS: [value: string, label: string][] = [
   ["desconto", "Maior desconto"],
-  ["creators", "Mais creators"],
+  ["creators", "Em mais vitrines"],
   ["vencendo", "Vencendo antes"],
   ["az", "A–Z"],
 ];

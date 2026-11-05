@@ -114,7 +114,7 @@ export async function listFeed(db: Db, limit: number): Promise<FeedVitrine[]> {
   return withItems(db, rows);
 }
 
-/** As mesmas vitrines do feed, escolhidas pelo endereço e na ordem pedida (o ranking dos creators do dia). */
+/** As mesmas vitrines do feed, escolhidas pelo endereço e na ordem pedida (o ranking das vitrines do dia). */
 export async function listFeedByHandles(db: Db, handles: string[]): Promise<FeedVitrine[]> {
   if (!handles.length) return [];
   const { data: rows, error } = await db.from("vitrines").select("*").in("handle", handles);

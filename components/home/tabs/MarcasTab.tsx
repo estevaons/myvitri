@@ -1,7 +1,7 @@
 import { Fragment, type CSSProperties } from "react";
 import { getCatalogBrands } from "@/lib/vitrine/catalog/brands";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
-import { CatalogEmpty, CatalogFrame, countLabel, FilterChips, LoadMore, SortLinks, ToggleChip } from "../catalog/ui";
+import { CatalogEmpty, CatalogFrame, countLabel, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
 import { BrandCard } from "./marcas/BrandCard";
 import { BrandDetail } from "./marcas/BrandDetail";
 import { expiringSoon, LETTER_MIN, letterOf, optionsBy, OTHER_LETTER, passes, SORTS, sortBrands } from "./marcas/query";
@@ -43,9 +43,9 @@ export async function MarcasTab({ params, guest = false }: { params: TabParams; 
 
   const filters = (catOptions.length > 1 || letterOptions.length > 1 || showSoon) && (
     <>
-      {showSoon && <ToggleChip label="Vencendo esta semana" param="vencendo" params={params} />}
       <FilterChips label="Categoria" param="cat" options={catOptions} params={params} />
       <FilterChips label="Letra" param="letra" options={letterOptions} params={params} />
+      {showSoon && <ToggleChip label="Vencendo esta semana" param="vencendo" params={params} />}
     </>
   );
 
@@ -70,13 +70,15 @@ export async function MarcasTab({ params, guest = false }: { params: TabParams; 
   );
 
   const filtering = Boolean(params.cat || params.vencendo || params.letra);
+  const clearHref = hrefWith(params, { cat: null, vencendo: null, letra: null, marca: null });
   return (
     <CatalogFrame
       title="Marcas"
       text="O melhor cupom de cada marca, somando todas as vitrines. Abra uma marca para comparar os cupons lado a lado."
       filters={filters || undefined}
-      sort={all.length > 1 ? <SortLinks options={SORTS} params={params} /> : undefined}
+      sort={all.length > 1 ? <SortMenu options={SORTS} params={params} /> : undefined}
       count={countLabel(filtered.length, "marca", "marcas")}
+      clearHref={filtering ? clearHref : undefined}
     >
       {selectedAt < 0 && detail}
       {shown.length > 0 ? (
@@ -97,10 +99,10 @@ export async function MarcasTab({ params, guest = false }: { params: TabParams; 
         <CatalogEmpty
           title="Nenhuma marca com esses filtros"
           text="Tire um filtro para ver mais marcas com cupom ativo."
-          clearHref={hrefWith(params, { cat: null, vencendo: null, letra: null, marca: null })}
+          clearHref={clearHref}
         />
       ) : (
-        <CatalogEmpty title="Nenhum cupom ativo agora" text="Quando as creators publicarem cupons nas vitrines, as marcas aparecem aqui." />
+        <CatalogEmpty title="Nenhum cupom ativo agora" text="Quando houver cupons nas vitrines, as marcas aparecem aqui." />
       )}
     </CatalogFrame>
   );

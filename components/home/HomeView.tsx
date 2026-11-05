@@ -17,8 +17,8 @@ import { MarcasTab } from "./tabs/MarcasTab";
 import { ProdutosTab } from "./tabs/ProdutosTab";
 import { VitrinesTab } from "./tabs/VitrinesTab";
 
-/** Espaço entre as seções, o mesmo da landing. */
-const section = `mx-auto flex max-w-[1440px] flex-col pt-24 md:pt-32`;
+/** Espaço entre as seções, o mesmo da landing; a primeira fica mais perto das abas, logo acima dela. */
+const section = `mx-auto flex max-w-[1440px] flex-col pt-24 first:pt-10 md:pt-32 md:first:pt-14`;
 
 function Stat({ n, one, many }: { n: number; one: string; many: string }) {
   return (
@@ -107,8 +107,8 @@ const PERKS: [title: string, text: string][] = [
  */
 function GuestInvite() {
   return (
-    <section aria-labelledby="crie-sua-vitrine" className={`mx-auto max-w-[1440px] pt-16 md:pt-24 ${pad}`}>
-      <div className="grid gap-10 bg-ink px-6 py-12 text-white md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] md:items-center md:gap-16 md:px-14 md:py-16">
+    <section aria-labelledby="crie-sua-vitrine" className={`mx-auto max-w-[1440px] pt-8 md:pt-10 ${pad}`}>
+      <div className="grid gap-10 bg-ink px-6 py-10 text-white md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] md:items-center md:gap-16 md:px-14 md:py-12">
         <div className="flex flex-col items-start gap-5">
           <span className={`${kicker} text-gold`}>Você cria conteúdo?</span>
           <h2 id="crie-sua-vitrine" className="m-0 font-display text-[clamp(40px,5.2vw,72px)] leading-[1.02] font-normal text-balance">
@@ -200,35 +200,36 @@ export function HomeView({
         </div>
       )}
 
-      <section className={`mx-auto flex max-w-[1440px] flex-col gap-14 pt-16 md:gap-20 md:pt-28 ${pad}`}>
-        <div className="flex flex-col gap-5">
-          <span className={`${kicker} text-gold`}>{guest ? "Explorar" : "Sua home"}</span>
-          <h1 className="m-0 font-display text-[clamp(48px,6.8vw,100px)] leading-[1] font-normal tracking-[-0.01em]">
-            {guest ? (
-              <>
-                Achados de <em>quem você segue</em>
-              </>
-            ) : (
-              <>
-                Olá, <em>{name}</em>
-              </>
-            )}
-          </h1>
-          <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-mute">
+      <section className={`mx-auto flex max-w-[1440px] flex-col gap-6 pt-8 md:gap-8 md:pt-12 ${pad}`}>
+        {/* no desktop o texto de apoio vai ao lado do título, para não sobrar a metade direita vazia */}
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:gap-12">
+          <div className="flex flex-col gap-3">
+            <span className={`${kicker} text-gold`}>{guest ? "Explorar" : "Sua home"}</span>
+            <h1 className="m-0 font-display text-[clamp(40px,4.8vw,68px)] leading-[1] font-normal tracking-[-0.01em]">
+              {guest ? (
+                <>
+                  Achados de <em>quem você segue</em>
+                </>
+              ) : (
+                <>
+                  Olá, <em>{name}</em>
+                </>
+              )}
+            </h1>
+          </div>
+          <p className="m-0 max-w-[32rem] text-[16px] leading-relaxed text-mute lg:pb-1">
             {guest
               ? "Vitrines, produtos, kits e os cupons de cada marca, reunidos num lugar só. Busque por uma pessoa, uma marca ou um produto."
               : "Encontre os achados de quem você segue: busque por uma pessoa, uma marca ou um produto."}
           </p>
         </div>
-        <div className="max-w-[60rem]">
-          <HomeSearch />
-        </div>
+        <HomeSearch />
       </section>
 
       {guest && <GuestInvite />}
 
       {/* espaço antes das abas como irmão, não em volta: o sticky só prende dentro do próprio pai */}
-      <div aria-hidden="true" className="h-16 md:h-24" />
+      <div aria-hidden="true" className="h-5 md:h-6" />
       <TabNav current={tab} />
 
       {tab === "para-voce" && forYou && <ForYouTab {...forYou} guest={guest} />}
@@ -244,7 +245,8 @@ export function HomeView({
 
 function ForYouTab({ vitrine, ranked, creators, kits, guest }: ForYou & { guest: boolean }) {
   return (
-    <>
+    // div, e não fragmento: é ela que faz da primeira seção a first-child que `section` aproxima das abas
+    <div>
       {/* o visitante já viu o convite em destaque antes das abas */}
       {vitrine ? <YourVitrine vitrine={vitrine} /> : !guest && <CreateVitrine />}
 
@@ -253,11 +255,11 @@ function ForYouTab({ vitrine, ranked, creators, kits, guest }: ForYou & { guest:
           <div className={pad}>
             <SectionHead
               kicker={ranked ? "Em alta hoje" : "Acabaram de publicar"}
-              title={ranked ? "Creators do dia" : "Vitrines novas"}
+              title={ranked ? "Vitrines do dia" : "Vitrines novas"}
               text={ranked ? "As vitrines que mais receberam cliques hoje." : "As últimas vitrines a entrar no ar."}
             />
           </div>
-          <Marquee label={ranked ? "Creators do dia" : "Vitrines novas"} className={pad} itemClassName="w-[220px] md:w-[300px]">
+          <Marquee label={ranked ? "Vitrines do dia" : "Vitrines novas"} className={pad} itemClassName="w-[220px] md:w-[300px]">
             {creators.map((c) => (
               <CreatorCard key={c.handle} c={c} />
             ))}
@@ -277,6 +279,6 @@ function ForYouTab({ vitrine, ranked, creators, kits, guest }: ForYou & { guest:
           </Marquee>
         </section>
       )}
-    </>
+    </div>
   );
 }

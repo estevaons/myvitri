@@ -1,6 +1,6 @@
 import { getKitCatalog, KIT_SORTS, priceOptions, queryKits } from "@/lib/vitrine/catalog/kits";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
-import { CatalogEmpty, CatalogFrame, catalogGrid, countLabel, FilterChips, LoadMore, SortLinks } from "../catalog/ui";
+import { CatalogEmpty, CatalogFrame, catalogGrid, countLabel, FilterChips, LoadMore, SortMenu } from "../catalog/ui";
 import { KitCatalogCard } from "./kits/KitCatalogCard";
 
 const FILTERS = ["preco", "cat", "creator"] as const;
@@ -15,20 +15,22 @@ export async function KitsTab({ params, guest = false }: { params: TabParams; gu
   const limit = limitOf(params);
   const filtered = FILTERS.some((f) => params[f]);
   const ordem = KIT_SORTS.some(([id]) => id === params.ordem) ? params.ordem : KIT_SORTS[0][0];
+  const clearHref = hrefWith(params, { preco: null, cat: null, creator: null });
 
   return (
     <CatalogFrame
       title="Kits"
-      text="Combinações montadas pelas creators, com o total já com o cupom e quanto você economiza levando tudo."
+      text="Combinações montadas por quem indica, com o total já com o cupom e quanto você economiza levando tudo."
       filters={
         <>
           <FilterChips label="Preço" param="preco" options={priceOptions(kits)} params={params} />
           <FilterChips label="Categoria" param="cat" options={categories} params={params} />
-          <FilterChips label="Creator" param="creator" options={creators} params={params} />
+          <FilterChips label="Vitrine" param="creator" options={creators} params={params} />
         </>
       }
-      sort={<SortLinks options={KIT_SORTS.map(([id, label]) => [id, label])} params={{ ...params, ordem }} />}
+      sort={<SortMenu options={KIT_SORTS.map(([id, label]) => [id, label])} params={{ ...params, ordem }} />}
       count={countLabel(shown.length, "kit", "kits")}
+      clearHref={filtered ? clearHref : undefined}
     >
       {shown.length > 0 ? (
         <>
@@ -45,10 +47,10 @@ export async function KitsTab({ params, guest = false }: { params: TabParams; gu
         <CatalogEmpty
           title="Nenhum kit com esses filtros"
           text="Tire um filtro ou troque a faixa de preço para ver mais combinações."
-          clearHref={hrefWith(params, { preco: null, cat: null, creator: null })}
+          clearHref={clearHref}
         />
       ) : (
-        <CatalogEmpty title="Ainda não há kits" text="Quando uma creator publicar um kit, ele aparece aqui com o total e a economia." />
+        <CatalogEmpty title="Ainda não há kits" text="Quando alguém publicar um kit, ele aparece aqui com o total e a economia." />
       )}
     </CatalogFrame>
   );

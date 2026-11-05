@@ -1,6 +1,6 @@
 import { bestRank, getTrendingHandles, getVitrinesCatalog, keyOf, type CatalogOption, type CatalogVitrine } from "@/lib/vitrine/catalog/vitrines";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
-import { CatalogEmpty, CatalogFrame, catalogGrid, countLabel, FilterChips, LoadMore, SortLinks, ToggleChip } from "../catalog/ui";
+import { CatalogEmpty, CatalogFrame, catalogGrid, countLabel, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
 import { VitrineCard } from "./vitrines/VitrineCard";
 
 /** [valor na URL, rótulo] — a primeira é a padrão. */
@@ -11,7 +11,7 @@ const SORTS: [string, string][] = [
   ["cupons", "Mais cupons"],
 ];
 
-const FILTER_KEYS = ["cat", "marca", "kits", "vencendo"] as const;
+const FILTER_KEYS = ["cat", "marca", "vencendo"] as const;
 
 /** O filtro ativo continua na lista mesmo fora das mais frequentes, para dar para tirá-lo. */
 const withActive = (options: CatalogOption[], active: string | undefined): CatalogOption[] =>
@@ -34,7 +34,6 @@ export async function VitrinesTab({ params, guest = false }: { params: TabParams
     (v) =>
       (!cat || v.categoryKeys.includes(cat)) &&
       (!brand || v.brandKeys.includes(brand)) &&
-      (params.kits !== "1" || v.kits > 0) &&
       (params.vencendo !== "1" || v.expiring !== null),
   );
 
@@ -52,14 +51,15 @@ export async function VitrinesTab({ params, guest = false }: { params: TabParams
   const limit = limitOf(params);
   const shown = sorted.slice(0, limit);
   const filtering = FILTER_KEYS.some((k) => params[k]);
+  const clearHref = hrefWith(params, Object.fromEntries(FILTER_KEYS.map((k) => [k, null])));
 
+  // o liga/desliga só aparece se houver alguma vitrine para mostrar com ele (ou se já estiver ligado)
+  const showExpiring = vitrines.some((v) => v.expiring) || params.vencendo;
   const filters = (
     <>
       <FilterChips label="Categoria" param="cat" options={withActive(categories, params.cat)} params={params} />
       <FilterChips label="Marca" param="marca" options={withActive(brands, params.marca)} params={params} />
-      {/* os liga/desliga só aparecem se houver alguma vitrine para mostrar com eles (ou se já estiverem ligados) */}
-      {(vitrines.some((v) => v.kits > 0) || params.kits) && <ToggleChip label="Com kits" param="kits" params={params} />}
-      {(vitrines.some((v) => v.expiring) || params.vencendo) && <ToggleChip label="Cupom vencendo" param="vencendo" params={params} />}
+      {showExpiring && <ToggleChip label="Cupom vencendo" param="vencendo" params={params} />}
     </>
   );
 
@@ -68,8 +68,9 @@ export async function VitrinesTab({ params, guest = false }: { params: TabParams
       title="Vitrines"
       text="Todas as vitrines com cupom ativo ou produto à venda. Filtre pelo que você procura e entre na que tem a sua cara."
       filters={filters}
-      sort={<SortLinks options={SORTS} params={params} />}
+      sort={<SortMenu options={SORTS} params={params} />}
       count={countLabel(sorted.length, "vitrine", "vitrines")}
+      clearHref={filtering ? clearHref : undefined}
     >
       {shown.length > 0 ? (
         <>
@@ -84,7 +85,7 @@ export async function VitrinesTab({ params, guest = false }: { params: TabParams
         <CatalogEmpty
           title="Nenhuma vitrine com esses filtros"
           text="Tire um filtro ou escolha outra combinação para ver mais vitrines."
-          clearHref={hrefWith(params, Object.fromEntries(FILTER_KEYS.map((k) => [k, null])))}
+          clearHref={clearHref}
         />
       ) : (
         <CatalogEmpty title="Nenhuma vitrine por aqui ainda" text="Assim que alguém publicar cupons ou produtos, a vitrine aparece aqui." />
