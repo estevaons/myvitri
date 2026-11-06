@@ -56,28 +56,6 @@
   }
 }
 
-/* Avisos em volta da prévia de /criar-vitrine: entram, ficam uns 2 s e somem; o ciclo de 14 s com atrasos de 3,5 s mostra um por vez, com pausa entre eles. */
-@theme {
-  --animate-float-note: float-note 14s cubic-bezier(0.22, 1, 0.36, 1) infinite both;
-
-  @keyframes float-note {
-    0% {
-      opacity: 0;
-      transform: translateY(10px) scale(0.96);
-    }
-    4%,
-    17% {
-      opacity: 1;
-      transform: none;
-    }
-    21%,
-    100% {
-      opacity: 0;
-      transform: translateY(-6px) scale(0.98);
-    }
-  }
-}
-
 /* Carrossel que rola de lado sem mostrar a barra (os botões e o arraste fazem o papel dela). */
 @utility no-scrollbar {
   scrollbar-width: none;
