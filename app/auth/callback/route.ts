@@ -1,5 +1,8 @@
+import { hasLocale } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
+import { routing } from "@/lib/i18n/routing";
 import { takeReturn } from "@/lib/auth/return-to";
 import { getUser } from "@/lib/supabase/server";
 import { starterContent, takeClaim } from "@/lib/vitrine/claim";
@@ -11,6 +14,8 @@ import { vitrineTag } from "@/lib/vitrine/data";
  * Volta do Google e dos links por e-mail (confirmar conta, senha nova): troca o código pela sessão e
  * leva de volta à página guardada (em que a pessoa clicou em "Entrar", ou /nova-senha) ou à home, /inicio.
  * Se veio do "escolher o link" em /criar-vitrine, cria a vitrine e abre o editor para terminar de montá-la.
+ * Fica fora de app/[locale] (a URL de volta é fixa no Supabase): os redirecionamentos saem sem idioma e o proxy
+ * leva ao idioma da última escolha (cookie NEXT_LOCALE), que também vale para o texto da vitrine nova.
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -29,7 +34,11 @@ export async function GET(request: NextRequest) {
 
   const { data: existing } = await supabase.from("vitrines").select("id").eq("owner_id", data.user.id).maybeSingle();
   const [claim, back] = await Promise.all([takeClaim(), takeReturn()]);
-  const parsed = claim && vitrineContentSchema.safeParse(starterContent(data.user, claim.handle, claim.name));
+  const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
+  const locale = hasLocale(routing.locales, cookieLocale) ? cookieLocale : routing.defaultLocale;
+  const t = await getTranslations({ locale, namespace: "vitrineDefaults" });
+  const intro = { headline: t("headline"), sub: t("sub") };
+  const parsed = claim && vitrineContentSchema.safeParse(starterContent(data.user, claim.handle, claim.name, intro));
   if (!existing && parsed?.success) {
     try {
       await createVitrine(supabase, data.user.id, parsed.data);

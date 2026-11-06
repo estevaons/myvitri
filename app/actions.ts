@@ -1,9 +1,13 @@
 "use server";
 
+import { getLocale, getTranslations } from "next-intl/server";
 import { updateTag } from "next/cache";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { DELETE_WORD } from "@/lib/auth/account";
+import { redirect as redirectTo } from "next/navigation";
+import type { ZodError } from "zod";
+import { redirect } from "@/lib/i18n/navigation";
+import { withoutLocale } from "@/lib/i18n/routing";
+import { DELETE_WORDS } from "@/lib/auth/account";
 import { PASSWORD_MIN } from "@/lib/auth/password";
 import { safePath, saveReturn } from "@/lib/auth/return-to";
 import { HOST } from "@/lib/brand";
@@ -31,6 +35,31 @@ import { emptyContent, pickProfile, vitrineContentSchema, vitrineProfileSchema, 
 
 export type FormState = { error?: string; notice?: string; handle?: string; name?: string; email?: string };
 
+/**
+ * As mensagens saem no idioma da página que chamou a ação: Server Actions não têm o segmento [locale],
+ * e o next-intl lê o idioma do cabeçalho que o proxy grava na requisição.
+ */
+const errors = () => getTranslations("errors");
+
+/** Leva a uma página do site no idioma atual (`href` sem idioma). */
+async function go(href: string): Promise<never> {
+  redirect({ href, locale: await getLocale() });
+  throw new Error("unreachable");
+}
+
+/** As mensagens dos schemas (lib/vitrine/types.ts) são chaves de `errors.schema`; as padrão do Zod viram uma genérica. */
+async function issueText(error: ZodError) {
+  const t = await getTranslations("errors.schema");
+  const key = error.issues[0].message;
+  return t.has(key as "invalid") ? t(key as "invalid") : t("invalid");
+}
+
+/** O texto padrão de uma vitrine nova, no idioma de quem está criando. */
+async function intro() {
+  const t = await getTranslations("vitrineDefaults");
+  return { headline: t("headline"), sub: t("sub") };
+}
+
 function readClaim(form: FormData) {
   return {
     handle: String(form.get("handle") ?? "").trim().toLowerCase().replace(/^@/, ""),
@@ -38,14 +67,15 @@ function readClaim(form: FormData) {
   };
 }
 
-/** Caminho da página que fez a requisição, só se for deste site (sem o aviso de erro do login). */
+/** Caminho da página que fez a requisição, só se for deste site (sem o aviso de erro do login nem o idioma). */
 async function refererPath() {
   const h = await headers();
   try {
     const ref = new URL(h.get("referer") ?? "");
     if (ref.host !== h.get("host")) return null;
     ref.searchParams.delete("erro");
-    return safePath(ref.pathname + ref.search);
+    const path = safePath(ref.pathname + ref.search);
+    return path && withoutLocale(path);
   } catch {
     return null;
   }
@@ -62,8 +92,8 @@ async function callbackUrl() {
 async function startGoogle(state: FormState): Promise<FormState> {
   const { supabase } = await getUser();
   const { data, error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: await callbackUrl() } });
-  if (error || !data.url) return { ...state, error: "Não conseguimos abrir o login do Google. Tente de novo." };
-  redirect(data.url);
+  if (error || !data.url) return { ...state, error: (await errors())("googleFailed") };
+  redirectTo(data.url);
 }
 
 function readEmail(form: FormData) {
@@ -71,39 +101,42 @@ function readEmail(form: FormData) {
 }
 
 /** Erros do Supabase que valem igual para entrar, criar conta e trocar a senha. */
-function authErrorText(code: string | undefined) {
+async function authErrorText(code: string | undefined) {
+  const t = await getTranslations("auth.errors");
   switch (code) {
     case "email_provider_disabled":
     case "signup_disabled":
-      return "O acesso com e-mail e senha ainda não está disponível. Use o Google por enquanto.";
+      return t("emailDisabled");
     case "weak_password":
-      return `Essa senha é fraca. Use pelo menos ${PASSWORD_MIN} caracteres, misturando letras e números.`;
+      return t("weakPassword", { min: PASSWORD_MIN });
     // sem SMTP próprio, o Supabase só envia para os e-mails da equipe do projeto
     case "email_address_not_authorized":
-      return "Não conseguimos enviar e-mail para esse endereço agora. Use o Google por enquanto.";
+      return t("emailNotAuthorized");
     case "over_email_send_rate_limit":
-      return "Muitos e-mails enviados agora. Espere alguns minutos e tente de novo.";
+      return t("emailRateLimit");
     case "over_request_rate_limit":
-      return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
+      return t("requestRateLimit");
     default:
-      return "Não conseguimos concluir agora. Tente de novo.";
+      return t("generic");
   }
 }
 
 /** Entrar com e-mail e senha; a mensagem não diz se o e-mail existe. */
 export async function signInWithPasswordAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const t = await getTranslations("auth.errors");
   const email = readEmail(form);
   const password = String(form.get("password") ?? "");
-  if (!email || !password) return { email, error: "Preencha o e-mail e a senha." };
+  if (!email || !password) return { email, error: t("fillEmailAndPassword") };
 
   const { supabase } = await getUser();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    if (error.code === "invalid_credentials") return { email, error: "E-mail ou senha incorretos. Se você criou a conta com o Google, use o botão do Google." };
-    if (error.code === "email_not_confirmed") return { email, error: "Falta confirmar seu e-mail: abra o link que enviamos para entrar." };
-    return { email, error: authErrorText(error.code) };
+    if (error.code === "invalid_credentials") return { email, error: t("invalidCredentials") };
+    if (error.code === "email_not_confirmed") return { email, error: t("emailNotConfirmed") };
+    return { email, error: await authErrorText(error.code) };
   }
-  redirect(safePath(form.get("next")) ?? "/inicio");
+  const next = safePath(form.get("next"));
+  return go(next ? withoutLocale(next) : "/inicio");
 }
 
 /**
@@ -111,41 +144,44 @@ export async function signInWithPasswordAction(_prev: FormState, form: FormData)
  * A resposta é a mesma com ou sem conta, para ninguém descobrir quais e-mails estão cadastrados.
  */
 export async function requestPasswordResetAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const t = await errors();
   const email = readEmail(form);
-  if (!email) return { error: "Informe seu e-mail." };
+  if (!email) return { error: t("enterEmail") };
 
   const { supabase } = await getUser();
   // o link dura 1 hora: é a volta por /auth/callback que leva à tela de senha nova
   await saveReturn("/nova-senha", 60 * 60);
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: await callbackUrl() });
   // só erros que valem para qualquer e-mail: nenhum deles revela se a conta existe
-  if (error && ["email_address_not_authorized", "over_email_send_rate_limit", "over_request_rate_limit", "email_provider_disabled"].includes(error.code ?? "")) return { email, error: authErrorText(error.code) };
-  return { email, notice: `Se houver uma conta com ${email}, enviamos um link para criar uma senha nova. Abra o link neste mesmo navegador.` };
+  if (error && ["email_address_not_authorized", "over_email_send_rate_limit", "over_request_rate_limit", "email_provider_disabled"].includes(error.code ?? "")) return { email, error: await authErrorText(error.code) };
+  return { email, notice: t("resetSent", { email }) };
 }
 
 /** Tela /nova-senha: quem chegou pelo link do e-mail já tem sessão. */
 export async function updatePasswordAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const t = await errors();
   const password = String(form.get("password") ?? "");
-  if (password.length < PASSWORD_MIN) return { error: `Use pelo menos ${PASSWORD_MIN} caracteres.` };
+  if (password.length < PASSWORD_MIN) return { error: t("passwordMin", { min: PASSWORD_MIN }) };
 
   const { supabase, user } = await getUser();
-  if (!user) return { error: "Este link expirou. Volte para a tela de entrar e peça outro." };
+  if (!user) return { error: t("linkExpired") };
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: error.code === "same_password" ? "Use uma senha diferente da atual." : authErrorText(error.code) };
-  redirect("/inicio");
+  if (error) return { error: error.code === "same_password" ? t("samePassword") : await authErrorText(error.code) };
+  return go("/inicio");
 }
 
 async function createAndOpen(handle: string, name: string, state: FormState): Promise<FormState> {
+  const t = await errors();
   const { supabase, user } = await getUser();
-  if (!user) return { ...state, error: "Sessão expirada. Entre de novo." };
+  if (!user) return { ...state, error: t("sessionExpired") };
   try {
-    await createVitrine(supabase, user.id, starterContent(user, handle, name));
+    await createVitrine(supabase, user.id, starterContent(user, handle, name, await intro()));
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ...state, error: `${HOST}/${handle} já está em uso` };
+    if (e instanceof HandleTakenError) return { ...state, error: t("handleTaken", { url: `${HOST}/${handle}` }) };
     throw e;
   }
   updateTag(vitrineTag(handle));
-  redirect("/editor");
+  return go("/editor");
 }
 
 /**
@@ -154,10 +190,11 @@ async function createAndOpen(handle: string, name: string, state: FormState): Pr
  * Se o e-mail já tiver conta, o Supabase não envia nada e responde igual: o aviso cobre os dois casos.
  */
 async function signUpWithEmail(state: FormState & { handle: string; name: string }, form: FormData): Promise<FormState> {
+  const t = await errors();
   const email = readEmail(form);
   const password = String(form.get("password") ?? "");
-  if (!email) return { ...state, email, error: "Informe seu e-mail." };
-  if (password.length < PASSWORD_MIN) return { ...state, email, error: `Use uma senha com pelo menos ${PASSWORD_MIN} caracteres.` };
+  if (!email) return { ...state, email, error: t("enterEmail") };
+  if (password.length < PASSWORD_MIN) return { ...state, email, error: t("signupPasswordMin", { min: PASSWORD_MIN }) };
 
   const { supabase } = await getUser();
   const { data, error } = await supabase.auth.signUp({
@@ -165,10 +202,10 @@ async function signUpWithEmail(state: FormState & { handle: string; name: string
     password,
     options: { data: { name: state.name, full_name: state.name }, emailRedirectTo: await callbackUrl() },
   });
-  if (error) return { ...state, email, error: authErrorText(error.code) };
+  if (error) return { ...state, email, error: await authErrorText(error.code) };
   if (data.session) return createAndOpen(state.handle, state.name, state);
   await saveClaim({ handle: state.handle, name: state.name });
-  return { ...state, email, notice: `Enviamos um link de confirmação para ${email}. Abra neste mesmo navegador para terminar. Se esse e-mail já tiver conta, nada é enviado: é só entrar.` };
+  return { ...state, email, notice: t("confirmSent", { email }) };
 }
 
 /** Criar vitrine: escolhe o link e cria a conta, com e-mail e senha ou com o Google. Logado, cria direto. */
@@ -177,11 +214,11 @@ export async function claimAction(_prev: FormState, form: FormData): Promise<For
   const { handle, name } = state;
 
   const mine = await findMine();
-  if (mine.vitrine) redirect("/editor");
+  if (mine.vitrine) return go("/editor");
 
   const parsed = vitrineContentSchema.safeParse(emptyContent(handle, name));
-  if (!parsed.success) return { ...state, error: parsed.error.issues[0].message };
-  if (await isHandleTaken(createPublicSupabase(), handle)) return { ...state, error: `${HOST}/${handle} já está em uso` };
+  if (!parsed.success) return { ...state, error: await issueText(parsed.error) };
+  if (await isHandleTaken(createPublicSupabase(), handle)) return { ...state, error: (await errors())("handleTaken", { url: `${HOST}/${handle}` }) };
 
   if (mine.user) return createAndOpen(handle, name, state);
   if (form.get("via") === "email") return signUpWithEmail(state, form);
@@ -192,7 +229,8 @@ export async function claimAction(_prev: FormState, form: FormData): Promise<For
 /** "Entrar" de qualquer página: depois do Google, volta para `next` (a página em que a pessoa estava). */
 export async function signInAction(_prev: FormState, form: FormData): Promise<FormState> {
   // o campo vem vazio se o clique foi antes de a página hidratar: aí vale a página que enviou o formulário
-  const next = safePath(form.get("next")) ?? (await refererPath());
+  const field = safePath(form.get("next"));
+  const next = field ? withoutLocale(field) : await refererPath();
   if (next) await saveReturn(next);
   return startGoogle({});
 }
@@ -201,25 +239,29 @@ export async function signInAction(_prev: FormState, form: FormData): Promise<Fo
 export async function createVitrineAction(_prev: FormState, form: FormData): Promise<FormState> {
   const { handle, name } = readClaim(form);
   const parsed = vitrineContentSchema.safeParse(emptyContent(handle, name));
-  if (!parsed.success) return { handle, name, error: parsed.error.issues[0].message };
+  if (!parsed.success) return { handle, name, error: await issueText(parsed.error) };
   return createAndOpen(handle, name, { handle, name });
 }
 
 export async function signOutAction() {
   const { supabase } = await getUser();
   await supabase.auth.signOut();
-  redirect("/");
+  return go("/");
 }
 
 /**
  * Apaga a conta de quem está logado, com vitrine, itens, métricas e rascunho (cascata no banco).
- * `confirm` precisa ser o link publicado da vitrine, digitado pela pessoa; quem não tem vitrine digita "excluir".
+ * `confirm` precisa ser o link publicado da vitrine, digitado pela pessoa; quem não tem vitrine digita "excluir"
+ * (ou a palavra do idioma da página, como "delete").
  */
 export async function deleteAccountAction(confirm: string): Promise<{ error: string }> {
+  const t = await errors();
   const { supabase, user, vitrine } = await findMine();
-  if (!user) return { error: "Sessão expirada. Entre de novo." };
+  if (!user) return { error: t("sessionExpired") };
   const typed = confirm.trim().toLowerCase().replace(/^@/, "");
-  if (typed !== (vitrine ? vitrine.handle : DELETE_WORD)) return { error: vitrine ? "O link digitado não confere." : `Digite ${DELETE_WORD} para confirmar.` };
+  const word = DELETE_WORDS[(await getLocale()) as keyof typeof DELETE_WORDS];
+  const ok = vitrine ? typed === vitrine.handle : Object.values(DELETE_WORDS).includes(typed);
+  if (!ok) return { error: vitrine ? t("deleteMismatch") : t("deleteTypeWord", { word }) };
 
   // Lido antes de apagar: depois da cascata não dá mais para saber em quais vitrines a pessoa comentou.
   const commented = await listCommentedHandles(supabase, user.id).catch(() => []);
@@ -234,41 +276,43 @@ export async function deleteAccountAction(confirm: string): Promise<{ error: str
   const { error } = await supabase.rpc("delete_my_account");
   if (error) {
     console.error("delete_my_account", error);
-    return { error: "Não deu para excluir a conta. Tente de novo." };
+    return { error: t("deleteFailed") };
   }
   // A conta já não existe: só limpamos os cookies da sessão.
   await supabase.auth.signOut({ scope: "local" }).catch(() => {});
   if (vitrine) updateTag(vitrineTag(vitrine.handle));
   commented.forEach((handle) => updateTag(commentsTag(handle)));
   updateTag(HOME_TAG);
-  redirect("/");
+  return go("/");
 }
 
 /** Liga ou desliga o favorito de quem entrou. A lista é privada: não há cache para invalidar. */
 export async function setFavoriteAction(handle: string, on: boolean): Promise<SocialResult> {
+  const t = await errors();
   const { supabase, user } = await getUser();
-  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  if (!user) return { ok: false, error: t("sessionExpired") };
   try {
-    if (!(await setFavorite(supabase, user.id, handle, on))) return { ok: false, error: "Esta vitrine não existe mais." };
+    if (!(await setFavorite(supabase, user.id, handle, on))) return { ok: false, error: t("vitrineGone") };
   } catch (e) {
     console.error("setFavorite", e);
-    return { ok: false, error: "Não deu para salvar. Tente de novo." };
+    return { ok: false, error: t("saveFailed") };
   }
   return { ok: true };
 }
 
 export async function addCommentAction(handle: string, body: string): Promise<SocialResult> {
+  const t = await errors();
   const { supabase, user } = await getUser();
-  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  if (!user) return { ok: false, error: t("sessionExpired") };
   const text = body.trim();
-  if (!text) return { ok: false, error: "Escreva alguma coisa antes de enviar." };
-  if (text.length > COMMENT_MAX) return { ok: false, error: `Use até ${COMMENT_MAX} caracteres.` };
+  if (!text) return { ok: false, error: t("commentEmpty") };
+  if (text.length > COMMENT_MAX) return { ok: false, error: t("commentMax", { max: COMMENT_MAX }) };
   try {
-    if (!(await addComment(supabase, handle, text))) return { ok: false, error: "Esta vitrine não existe mais." };
+    if (!(await addComment(supabase, handle, text))) return { ok: false, error: t("vitrineGone") };
   } catch (e) {
-    if (e instanceof CommentRateLimitError) return { ok: false, error: "Muitos comentários em pouco tempo. Espere um minuto." };
+    if (e instanceof CommentRateLimitError) return { ok: false, error: t("commentRate") };
     console.error("addComment", e);
-    return { ok: false, error: "Não deu para comentar. Tente de novo." };
+    return { ok: false, error: t("commentFailed") };
   }
   updateTag(commentsTag(handle));
   return { ok: true };
@@ -276,33 +320,37 @@ export async function addCommentAction(handle: string, body: string): Promise<So
 
 /** Quem pode apagar (quem escreveu ou a dona da vitrine) é decidido pela RLS. */
 export async function deleteCommentAction(id: string): Promise<SocialResult> {
+  const t = await errors();
   const { supabase, user } = await getUser();
-  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  if (!user) return { ok: false, error: t("sessionExpired") };
   try {
     const handle = await deleteComment(supabase, id);
-    if (!handle) return { ok: false, error: "Não deu para excluir este comentário." };
+    if (!handle) return { ok: false, error: t("commentDeleteFailed") };
     updateTag(commentsTag(handle));
     return { ok: true };
   } catch (e) {
     console.error("deleteComment", e);
-    return { ok: false, error: "Não deu para excluir este comentário." };
+    return { ok: false, error: t("commentDeleteFailed") };
   }
 }
 
-const ITEM_LABELS: Record<string, string> = { coupons: "Cupom", products: "Produto", kits: "Kit" };
+/** Listas do conteúdo cujo erro de validação diz o item ("Cupom 2: …"). */
+const ITEM_LISTS = new Set(["coupons", "products", "kits"]);
 
 export type PublishResult = { ok: true; updatedAt: string } | { ok: false; error: string };
 
 export async function publishVitrine(content: VitrineContent): Promise<PublishResult> {
+  const t = await errors();
   const { supabase, user, vitrine } = await findMine();
-  if (!user || !vitrine) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  if (!user || !vitrine) return { ok: false, error: t("sessionExpired") };
 
   // o editor pode estar aberto há tempos: nome, link, foto e capa valem os do banco, não a cópia dele
   const parsed = vitrineContentSchema.safeParse({ ...content, ...pickProfile(vitrine) });
   if (!parsed.success) {
-    const { message, path } = parsed.error.issues[0];
-    const where = ITEM_LABELS[String(path[0])];
-    return { ok: false, error: where && typeof path[1] === "number" ? `${where} ${path[1] + 1}: ${message}` : message };
+    const { path } = parsed.error.issues[0];
+    const message = await issueText(parsed.error);
+    const item = String(path[0]);
+    return { ok: false, error: ITEM_LISTS.has(item) && typeof path[1] === "number" ? t("publishItem", { item, n: path[1] + 1, message }) : message };
   }
 
   try {
@@ -313,28 +361,29 @@ export async function publishVitrine(content: VitrineContent): Promise<PublishRe
     updateTag(HOME_TAG);
     return { ok: true, updatedAt };
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ok: false, error: `${HOST}/${parsed.data.handle} já está em uso` };
+    if (e instanceof HandleTakenError) return { ok: false, error: t("handleTaken", { url: `${HOST}/${parsed.data.handle}` }) };
     console.error("publish_vitrine", e);
-    return { ok: false, error: "Erro ao salvar. Tente de novo." };
+    return { ok: false, error: t("publishFailed") };
   }
 }
 
 /** Grava nome, link, foto e capa por cima do que já está na vitrine e atualiza as páginas públicas. */
 async function saveProfile(patch: Partial<VitrineProfile>): Promise<SocialResult> {
+  const t = await errors();
   const { supabase, user, vitrine } = await findMine();
-  if (!user || !vitrine) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  if (!user || !vitrine) return { ok: false, error: t("sessionExpired") };
 
   // sem foto própria, vale a do Google: fica gravada porque a página pública não tem acesso aos dados do login
   const profile = { ...pickProfile(vitrine), ...patch };
   const parsed = vitrineProfileSchema.safeParse({ ...profile, avatarUrl: profile.avatarUrl || googlePhoto(user) });
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  if (!parsed.success) return { ok: false, error: await issueText(parsed.error) };
 
   try {
     await updateProfile(supabase, user.id, parsed.data);
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ok: false, error: `${HOST}/${parsed.data.handle} já está em uso` };
+    if (e instanceof HandleTakenError) return { ok: false, error: t("handleTaken", { url: `${HOST}/${parsed.data.handle}` }) };
     console.error("updateProfile", e);
-    return { ok: false, error: "Não deu para salvar. Tente de novo." };
+    return { ok: false, error: t("saveFailed") };
   }
   updateTag(vitrineTag(vitrine.handle));
   if (vitrine.handle !== parsed.data.handle) updateTag(vitrineTag(parsed.data.handle));
@@ -369,23 +418,25 @@ export async function saveDraftAction(content: VitrineContent | null): Promise<{
 export type ImportResult = { ok: true; product: ImportedProduct } | { ok: false; error: string };
 
 export async function importProductAction(url: string): Promise<ImportResult> {
+  const t = await errors();
   const { user } = await getUser();
-  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  if (!user) return { ok: false, error: t("sessionExpired") };
   try {
     return { ok: true, product: await importProductFromUrl(url) };
   } catch {
-    return { ok: false, error: "Não conseguimos ler esse link. Preencha os dados à mão." };
+    return { ok: false, error: t("importFailed") };
   }
 }
 
 /** Logos encontrados no site da loja do cupom, para a pessoa escolher. */
 export async function findLogoAction(url: string): Promise<{ ok: true; logos: string[] } | { ok: false; error: string }> {
+  const t = await errors();
   const { user } = await getUser();
-  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  if (!user) return { ok: false, error: t("sessionExpired") };
   try {
     return { ok: true, logos: await findStoreLogos(url) };
   } catch {
-    return { ok: false, error: "Não conseguimos abrir o site da loja. Confira o link." };
+    return { ok: false, error: t("logoFailed") };
   }
 }
 
@@ -400,19 +451,20 @@ export type ImageKind = keyof typeof UPLOADS;
 
 /** Guarda a imagem enviada (já reduzida no navegador) na pasta da pessoa e devolve a URL pública. */
 export async function uploadImageAction(kind: ImageKind, form: FormData): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const t = await errors();
   const { supabase, user } = await getUser();
-  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  if (!user) return { ok: false, error: t("sessionExpired") };
   const target = UPLOADS[kind];
   const file = form.get("file");
   const ext = file instanceof File ? (target?.types as Record<string, string> | undefined)?.[file.type] : undefined;
-  if (!target || !(file instanceof File) || !ext || file.size > target.maxBytes) return { ok: false, error: "Use uma imagem PNG, JPG, SVG ou WebP." };
+  if (!target || !(file instanceof File) || !ext || file.size > target.maxBytes) return { ok: false, error: t("imageType") };
 
   const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
   const bucket = supabase.storage.from(target.bucket);
   const { error } = await bucket.upload(path, file, { contentType: file.type, cacheControl: "31536000" });
   if (error) {
     console.error("uploadImage", kind, error);
-    return { ok: false, error: "Não deu para enviar a imagem. Tente de novo." };
+    return { ok: false, error: t("uploadFailed") };
   }
   return { ok: true, url: bucket.getPublicUrl(path).data.publicUrl };
 }

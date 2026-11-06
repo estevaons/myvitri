@@ -1,5 +1,6 @@
 "use client";
 
+import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useEffectEvent, useOptimistic, useRef, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
 import { addCommentAction, deleteCommentAction } from "@/app/actions";
 import { LoginButton } from "@/components/auth/forms";
@@ -39,22 +40,25 @@ function store(key: string, value: string) {
 
 const noop = () => () => {};
 
+type WhenT = ReturnType<typeof useTranslations<"comments.when">>;
+
 /** "há 5 min" até uma semana; depois disso, a data. No servidor vai a data pronta, igual para todos. */
-function relative(iso: string, fallback: string) {
+function relative(iso: string, fallback: string, t: WhenT) {
   const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
-  if (minutes < 1) return "agora";
-  if (minutes < 60) return `há ${minutes} min`;
+  if (minutes < 1) return t("now");
+  if (minutes < 60) return t("minutes", { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `há ${hours} h`;
+  if (hours < 24) return t("hours", { n: hours });
   const days = Math.floor(hours / 24);
-  if (days === 1) return "ontem";
-  return days < 7 ? `há ${days} dias` : fallback;
+  if (days === 1) return t("yesterday");
+  return days < 7 ? t("days", { n: days }) : fallback;
 }
 
 function When({ comment }: { comment: VitrineComment }) {
+  const t = useTranslations("comments.when");
   const text = useSyncExternalStore(
     noop,
-    () => relative(comment.createdAt, comment.dateLabel),
+    () => relative(comment.createdAt, comment.dateLabel, t),
     () => comment.dateLabel,
   );
   return (
@@ -97,6 +101,7 @@ function Composer({
   /** Devolve a mensagem de erro, ou null se publicou. */
   onSend: (body: string) => Promise<string | null>;
 }) {
+  const t = useTranslations("comments");
   const key = draftKey(handle);
   const [text, setText] = useState(() => readStored(key));
   const [error, setError] = useState<string | null>(null);
@@ -137,7 +142,7 @@ function Composer({
     <form onSubmit={submit} className="flex flex-col gap-2">
       <div className="border border-sand transition-colors focus-within:border-ink">
         <label>
-          <span className="sr-only">Seu comentário</span>
+          <span className="sr-only">{t("field")}</span>
           <textarea
             ref={field}
             value={text}
@@ -146,7 +151,7 @@ function Composer({
               if (user && e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
             }}
             maxLength={COMMENT_MAX}
-            placeholder={`Conte o que achou ou faça uma pergunta para ${firstName}`}
+            placeholder={t("placeholder", { name: firstName })}
             className="field-sizing-content box-border block max-h-80 min-h-24 w-full resize-none border-0 bg-transparent p-4 text-base leading-relaxed text-ink outline-none placeholder:text-mute"
           />
         </label>
@@ -155,28 +160,28 @@ function Composer({
             <div className="flex min-w-0 flex-1 basis-40 items-center gap-2 text-[13px] text-mute">
               <Avatar name={user.name} url={user.avatarUrl} className="size-6" />
               <span className="truncate">
-                Comentando como <span className="font-medium text-ink">{user.name || "você"}</span>
+                {t.rich("commentingAs", { name: user.name || t("you"), b: (s) => <span className="font-medium text-ink">{s}</span> })}
               </span>
             </div>
           ) : (
-            <span className="min-w-0 flex-1 basis-40 text-[13px] leading-snug text-mute">Seu nome e sua foto do Google aparecem no comentário.</span>
+            <span className="min-w-0 flex-1 basis-40 text-[13px] leading-snug text-mute">{t("guestHint")}</span>
           )}
           <div className="ml-auto flex items-center gap-3">
             {left <= WARN_LEFT && (
               <span className={`text-[13px] whitespace-nowrap lining-nums ${left === 0 ? "font-semibold text-[#A3361B]" : "text-mute"}`}>
-                {left === 1 ? "Resta 1" : `Restam ${left}`}
+                {t("left", { count: left })}
               </span>
             )}
             {user ? (
               <button type="submit" disabled={!hasText} className={send}>
-                Comentar
+                {t("submit")}
               </button>
             ) : (
               <LoginButton
                 className={send}
                 onOpen={() => store(RETURNING, handle)}
               >
-                {hasText ? "Entrar e publicar" : "Entrar para comentar"}
+                {hasText ? t("signInAndPost") : t("signInToComment")}
               </LoginButton>
             )}
           </div>
@@ -192,8 +197,9 @@ function Composer({
 }
 
 function CommentItem({ comment, sending, mine, canDelete, onDelete }: { comment: VitrineComment; sending: boolean; mine: boolean; canDelete: boolean; onDelete: () => void }) {
+  const t = useTranslations("comments");
   const [confirming, setConfirming] = useState(false);
-  const tag = mine ? "Você" : comment.byOwner ? "Da vitrine" : null;
+  const tag = mine ? t("you") : comment.byOwner ? t("owner") : null;
   return (
     <li className={`flex gap-3.5 border-b border-sand py-5 ${sending ? "opacity-60 motion-safe:animate-rise-in" : ""}`}>
       <Avatar name={comment.authorName} url={comment.authorAvatarUrl} className="size-10" />
@@ -201,21 +207,21 @@ function CommentItem({ comment, sending, mine, canDelete, onDelete }: { comment:
         <div className="flex flex-wrap items-baseline gap-x-2">
           <span className="min-w-0 text-[15px] font-medium break-words">{comment.authorName}</span>
           {tag && <span className="text-[10px] font-medium tracking-[0.16em] text-gold uppercase">{tag}</span>}
-          {sending ? <span className="text-[13px] text-mute">Enviando…</span> : <When comment={comment} />}
+          {sending ? <span className="text-[13px] text-mute">{t("sending")}</span> : <When comment={comment} />}
           {canDelete && !sending && (
             <span className="ml-auto flex gap-3 pl-3">
               {confirming ? (
                 <>
                   <button type="button" onClick={onDelete} className={`${quiet} font-medium text-ink`}>
-                    Excluir mesmo
+                    {t("confirmDelete")}
                   </button>
                   <button type="button" onClick={() => setConfirming(false)} className={quiet}>
-                    Cancelar
+                    {t("cancel")}
                   </button>
                 </>
               ) : (
-                <button type="button" onClick={() => setConfirming(true)} aria-label={`Excluir o comentário de ${comment.authorName}`} className={quiet}>
-                  Excluir
+                <button type="button" onClick={() => setConfirming(true)} aria-label={t("deleteLabel", { name: comment.authorName })} className={quiet}>
+                  {t("delete")}
                 </button>
               )}
             </span>
@@ -244,6 +250,9 @@ export function Comments({
   viewer: Viewer | null;
   className: string;
 }) {
+  const t = useTranslations("comments");
+  const tErrors = useTranslations("errors");
+  const format = useFormatter();
   // aparece na hora; a lista de verdade chega junto com a resposta da ação, que invalida o cache
   const [items, change] = useOptimistic(comments.items, (list, c: Change) => ("add" in c ? [c.add, ...list] : list.filter((x) => x.id !== c.remove)));
   const [shown, setShown] = useState(STEP);
@@ -258,10 +267,10 @@ export function Comments({
   const onSend = async (body: string) => {
     if (user) {
       const now = new Date().toISOString();
-      change({ add: { id: `enviando:${now}`, authorId: user.id, authorName: user.name || "Você", authorAvatarUrl: user.avatarUrl, body, byOwner: owner, dateLabel: "", createdAt: now } });
+      change({ add: { id: `enviando:${now}`, authorId: user.id, authorName: user.name || t("you"), authorAvatarUrl: user.avatarUrl, body, byOwner: owner, dateLabel: "", createdAt: now } });
     }
-    const result = await reachServer(addCommentAction(handle, body));
-    setStatus(result.ok ? "Comentário publicado." : "");
+    const result = await reachServer(addCommentAction(handle, body), tErrors("offline"));
+    setStatus(result.ok ? t("posted") : "");
     return result.ok ? null : result.error;
   };
 
@@ -269,8 +278,8 @@ export function Comments({
     setListError(null);
     startDelete(async () => {
       change({ remove: id });
-      const result = await reachServer(deleteCommentAction(id));
-      setStatus(result.ok ? "Comentário excluído." : "");
+      const result = await reachServer(deleteCommentAction(id), tErrors("offline"));
+      setStatus(result.ok ? t("deleted") : "");
       if (!result.ok) setListError(result.error);
     });
   };
@@ -281,9 +290,9 @@ export function Comments({
       <div className="flex max-w-[760px] flex-col gap-5">
         <div className="flex flex-col gap-2">
           <h2 className="m-0 font-display text-[clamp(32px,4cqw,44px)] leading-[1.05] font-normal lining-nums">
-            Comentários {total > 0 && <span className="text-mute">({total.toLocaleString("pt-BR")})</span>}
+            {t("title")} {total > 0 && <span className="text-mute">({format.number(total)})</span>}
           </h2>
-          <p className="m-0 text-[15px] leading-relaxed text-mute">Dúvidas, dicas e o que você achou dos achados de {firstName}.</p>
+          <p className="m-0 text-[15px] leading-relaxed text-mute">{t("intro", { name: firstName })}</p>
         </div>
         {viewer ? <Composer handle={handle} firstName={firstName} user={user} onSend={onSend} /> : <div aria-hidden="true" className="h-[154px] bg-cream motion-safe:animate-pulse" />}
 
@@ -293,7 +302,7 @@ export function Comments({
           </p>
         )}
         {items.length === 0 ? (
-          <p className="m-0 text-[15px] leading-relaxed text-mute">Ainda não há comentários. Seja a primeira pessoa a comentar.</p>
+          <p className="m-0 text-[15px] leading-relaxed text-mute">{t("empty")}</p>
         ) : (
           <ul className="m-0 mt-3 list-none border-t border-sand p-0">
             {items.slice(0, shown).map((c) => (
@@ -310,7 +319,7 @@ export function Comments({
         )}
         {remaining > 0 && (
           <button type="button" onClick={() => setShown((n) => n + STEP)} className={`${more} mt-1 self-start`}>
-            Ver mais ({Math.min(remaining, STEP)})
+            {t("more", { n: Math.min(remaining, STEP) })}
           </button>
         )}
         <span role="status" className="sr-only">

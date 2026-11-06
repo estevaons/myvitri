@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
 import { FavoriteButton } from "@/components/storefront/FavoriteButton";
 import type { HomeCreator } from "@/lib/vitrine/data";
 
@@ -21,8 +22,6 @@ export function Avatar({ name, url, className }: { name: string; url: string; cl
     </span>
   );
 }
-
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /**
  * A capa de quem não enviou foto: a primeira letra do nome, grande, ocupando o espaço da capa. O tamanho acompanha a
@@ -63,7 +62,8 @@ export function CreatorCover({ c, caption = true }: { c: HomeCreator; caption?: 
 
 /** Card de vitrine da home logada. O coração fica fora do link: botão dentro de link não é HTML válido. */
 export function CreatorCard({ c, favorited }: { c: HomeCreator; favorited: boolean }) {
-  const stats = [c.products > 0 && count(c.products, "produto", "produtos"), c.coupons > 0 && count(c.coupons, "cupom", "cupons")]
+  const t = useTranslations("counts");
+  const stats = [c.products > 0 && t("products", { count: c.products }), c.coupons > 0 && t("coupons", { count: c.coupons })]
     .filter(Boolean)
     .join(" · ");
   return (

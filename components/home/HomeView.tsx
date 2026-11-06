@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
 import { HOST } from "@/lib/brand";
 import { summarizeVitrine, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
 import type { VitrineContent } from "@/lib/vitrine/types";
@@ -21,10 +22,10 @@ import { VitrinesTab } from "./tabs/VitrinesTab";
 /** Espaço entre as seções, o mesmo da landing; a primeira fica mais perto das abas, logo acima dela. */
 const section = `mx-auto flex max-w-[1440px] flex-col pt-24 first:pt-10 md:pt-32 md:first:pt-14`;
 
-function Stat({ n, one, many }: { n: number; one: string; many: string }) {
+function Stat({ n, label }: { n: number; label: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <dt className={`${kicker} order-2 text-[11px] text-mute`}>{n === 1 ? one : many}</dt>
+      <dt className={`${kicker} order-2 text-[11px] text-mute`}>{label}</dt>
       <dd className="order-1 m-0 font-display text-[clamp(40px,4.4vw,60px)] leading-[0.95] lining-nums">{n}</dd>
     </div>
   );
@@ -35,18 +36,19 @@ function Stat({ n, one, many }: { n: number; one: string; many: string }) {
  * os números com o atalho das métricas e os botões de editar e de ver a vitrine.
  */
 function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
+  const t = useTranslations("home.yourVitrine");
   const card = summarizeVitrine(vitrine);
   return (
     <section aria-labelledby="sua-vitrine" className={`${section} ${pad}`}>
       <div className="grid items-center gap-10 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-16 lg:gap-24">
         <CoverPicker hasCover={Boolean(vitrine.look.bannerUrl)} name={vitrine.name}>
-          <Link href={`/${vitrine.handle}`} target="_blank" rel="noopener" aria-label={`Abrir a vitrine ${vitrine.name}`} className="group block">
+          <Link href={`/${vitrine.handle}`} target="_blank" rel="noopener" aria-label={t("openLabel", { name: vitrine.name })} className="group block">
             <CreatorCover c={card} caption={false} />
           </Link>
         </CoverPicker>
         <div className="flex min-w-0 flex-col items-start gap-8">
           <div className="flex min-w-0 flex-col gap-4">
-            <span className={`${kicker} text-gold`}>Sua vitrine</span>
+            <span className={`${kicker} text-gold`}>{t("kicker")}</span>
             <h2 id="sua-vitrine" className="m-0 font-display text-[clamp(44px,5.6vw,84px)] leading-[1] font-normal break-words text-balance">
               {vitrine.name}
             </h2>
@@ -55,12 +57,12 @@ function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
           <VitrineLinkBar handle={vitrine.handle} />
           <div className="flex w-full flex-wrap items-end justify-between gap-x-8 gap-y-5 border-y border-sand py-6">
             <dl className="m-0 grid flex-1 basis-[22rem] grid-cols-3 gap-6">
-              <Stat n={card.products} one="Produto" many="Produtos" />
-              <Stat n={card.coupons} one="Cupom ativo" many="Cupons ativos" />
-              <Stat n={vitrine.kits.length} one="Kit" many="Kits" />
+              <Stat n={card.products} label={t("statProducts", { count: card.products })} />
+              <Stat n={card.coupons} label={t("statCoupons", { count: card.coupons })} />
+              <Stat n={vitrine.kits.length} label={t("statKits", { count: vitrine.kits.length })} />
             </dl>
             <Link href="/metricas" className={`${kicker} group flex items-center gap-2 pb-1 text-[11px] whitespace-nowrap text-ink no-underline hover:text-gold`}>
-              Ver métricas
+              {t("metrics")}
               <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">
                 →
               </span>
@@ -69,14 +71,14 @@ function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
           {/* abrir a vitrine precisa de um botão com nome: o endereço clicável sozinho não deixava claro onde ir */}
           <div className="flex flex-wrap gap-2">
             <Link href="/editor" className={pillDark}>
-              Editar vitrine
+              {t("edit")}
             </Link>
-            <a href={`/${vitrine.handle}`} target="_blank" rel="noopener" className={`${pillLight} group gap-2`}>
-              Ver minha vitrine
+            <Link href={`/${vitrine.handle}`} target="_blank" rel="noopener" className={`${pillLight} group gap-2`}>
+              {t("view")}
               <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                 <path d="M7 17L17 7M9 7h8v8" />
               </svg>
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -86,20 +88,19 @@ function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
 
 /** Quem ainda não tem vitrine: o mesmo bloco areia da landing, com o convite. */
 function CreateVitrine() {
+  const t = useTranslations("home.create");
   return (
     <section className={`${section} ${pad}`}>
       <div className="flex flex-col items-center gap-5 bg-sand px-6 py-20 text-center max-md:py-14">
-        <span className={`${kicker} text-gold`}>Você cria conteúdo?</span>
+        <span className={`${kicker} text-gold`}>{t("kicker")}</span>
         <h2 className="m-0 max-w-[16ch] font-display text-[clamp(40px,5.6vw,76px)] leading-[1.04] font-normal text-balance">
-          Monte sua vitrine <em>também</em>
+          {t("title")} <em>{t("titleEm")}</em>
         </h2>
-        <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">
-          Junte num link só os cupons e produtos que você usa e indica. É grátis e fica pronta em 2 minutos.
-        </p>
+        <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">{t("text")}</p>
         <Link href="/criar-vitrine" className={`${pillDark} mt-2`}>
-          Criar minha vitrine
+          {t("button")}
         </Link>
-        <span className="text-[15px] text-mute">{HOST}/seunome</span>
+        <span className="text-[15px] text-mute">{t("handle", { host: HOST })}</span>
       </div>
     </section>
   );
@@ -129,6 +130,7 @@ export function HomeView({
   /** endereços das favoritas; só vêm nas abas que mostram o coração */
   favorites?: string[];
 }) {
+  const t = useTranslations("home");
   return (
     // clip, e não hidden: hidden faz desta div a área de rolagem e as abas param de ficar presas no topo
     <div className="overflow-x-clip bg-white text-ink">
@@ -137,9 +139,9 @@ export function HomeView({
 
       <section className={`mx-auto flex max-w-[1440px] flex-col gap-6 pt-8 md:gap-8 md:pt-12 ${pad}`}>
         <div className="flex flex-col gap-3">
-          <span className={`${kicker} text-gold`}>Sua home</span>
+          <span className={`${kicker} text-gold`}>{t("kicker")}</span>
           <h1 className="m-0 font-display text-[clamp(40px,4.8vw,68px)] leading-[1] font-normal tracking-[-0.01em]">
-            Olá, <em>{name}</em>
+            {t.rich("hello", { name, em: (s) => <em>{s}</em> })}
           </h1>
         </div>
         <HomeSearch />
@@ -162,6 +164,7 @@ export function HomeView({
 }
 
 function ForYouTab({ vitrine, ranked, creators, kits, favorites }: ForYou & { favorites: string[] }) {
+  const t = useTranslations("home.forYou");
   return (
     // div, e não fragmento: é ela que faz da primeira seção a first-child que `section` aproxima das abas
     <div>
@@ -171,12 +174,12 @@ function ForYouTab({ vitrine, ranked, creators, kits, favorites }: ForYou & { fa
         <section className={`${section} gap-10`}>
           <div className={pad}>
             <SectionHead
-              kicker={ranked ? "Em alta hoje" : "Acabaram de publicar"}
-              title={ranked ? "Vitrines do dia" : "Vitrines novas"}
-              text={ranked ? "As vitrines que mais receberam cliques hoje." : "As últimas vitrines a entrar no ar."}
+              kicker={ranked ? t("rankedKicker") : t("newKicker")}
+              title={ranked ? t("rankedTitle") : t("newTitle")}
+              text={ranked ? t("rankedText") : t("newText")}
             />
           </div>
-          <Marquee label={ranked ? "Vitrines do dia" : "Vitrines novas"} className={pad} itemClassName="w-[220px] md:w-[300px]">
+          <Marquee label={ranked ? t("rankedTitle") : t("newTitle")} className={pad} itemClassName="w-[220px] md:w-[300px]">
             {creators.map((c) => (
               <CreatorCard key={c.handle} c={c} favorited={favorites.includes(c.handle)} />
             ))}
@@ -187,9 +190,9 @@ function ForYouTab({ vitrine, ranked, creators, kits, favorites }: ForYou & { fa
       {kits.length > 0 && (
         <section className={`${section} gap-10`}>
           <div className={pad}>
-            <SectionHead kicker="Acabaram de sair" title="Últimos kits" text="Combinações montadas por quem indica." />
+            <SectionHead kicker={t("kitsKicker")} title={t("kitsTitle")} text={t("kitsText")} />
           </div>
-          <Marquee label="Últimos kits" className={pad} itemClassName="w-[220px] md:w-[300px]">
+          <Marquee label={t("kitsTitle")} className={pad} itemClassName="w-[220px] md:w-[300px]">
             {kits.map((k) => (
               <KitCard key={k.id} k={k} />
             ))}

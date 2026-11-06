@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 /**
@@ -6,11 +7,12 @@ import Image from "next/image";
  * No celular e no tablet ela vem depois do texto, com um zoom que corta a parede e aproxima o look.
  */
 export function LookHero() {
+  const t = useTranslations("lookHero");
   return (
     <div className="relative aspect-[4/5] overflow-hidden bg-sand md:aspect-[3/2] lg:absolute lg:inset-0 lg:aspect-auto">
       <Image
         src="/hero/retrato.webp"
-        alt="Mulher de blazer creme, calça taupe e bolsa caramelo perto de uma janela"
+        alt={t("alt")}
         fill
         preload
         quality={90}

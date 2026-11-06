@@ -1,8 +1,10 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { deleteAccountAction } from "@/app/actions";
-import { DELETE_WORD } from "@/lib/auth/account";
+import type { Locale } from "@/lib/i18n/routing";
+import { DELETE_WORDS } from "@/lib/auth/account";
 import { HOST } from "@/lib/brand";
 import { Hint, inputCls, labelCls } from "./ui";
 
@@ -11,11 +13,13 @@ import { Hint, inputCls, labelCls } from "./ui";
  * digitando o link dela; quem não tem (sem `handle`) digita "excluir".
  */
 export function DeleteAccount({ handle }: { handle?: string }) {
+  const t = useTranslations("editor.delete");
+  const locale = useLocale() as Locale;
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [deleting, startDeleting] = useTransition();
-  const word = handle ?? DELETE_WORD;
+  const word = handle ?? DELETE_WORDS[locale];
   const matches = typed.trim().toLowerCase().replace(/^@/, "") === word;
 
   const remove = () => {
@@ -34,7 +38,7 @@ export function DeleteAccount({ handle }: { handle?: string }) {
           onClick={() => setOpen(true)}
           className="min-h-9 self-start rounded-lg border-0 bg-transparent px-0 text-[13px] font-medium text-[#A3361B] underline-offset-4 hover:underline"
         >
-          Excluir minha conta
+          {t("open")}
         </button>
       ) : (
         <form
@@ -45,12 +49,10 @@ export function DeleteAccount({ handle }: { handle?: string }) {
           className="flex flex-col gap-3 rounded-[12px] border border-[#F4D5CB] bg-[#FFF6F2] p-4"
         >
           <Hint>
-            {handle
-              ? `Apaga sua conta, a vitrine ${HOST}/${handle}, os cupons, produtos, kits e métricas. Não dá para desfazer.`
-              : "Apaga sua conta, seus favoritos e seus comentários. Não dá para desfazer."}
+            {handle ? t("withVitrine", { url: `${HOST}/${handle}` }) : t("withoutVitrine")}
           </Hint>
           <label className={`flex flex-col gap-1.5 ${labelCls}`}>
-            Para confirmar, digite {word}
+            {t("confirm", { word })}
             <input
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
@@ -71,7 +73,7 @@ export function DeleteAccount({ handle }: { handle?: string }) {
               disabled={!matches || deleting}
               className="min-h-10 rounded-[10px] border-0 bg-[#B42318] px-4 text-sm font-semibold text-white disabled:opacity-40"
             >
-              {deleting ? "Excluindo…" : "Excluir para sempre"}
+              {deleting ? t("deleting") : t("submit")}
             </button>
             <button
               type="button"
@@ -82,7 +84,7 @@ export function DeleteAccount({ handle }: { handle?: string }) {
               }}
               className="min-h-10 rounded-[10px] border-0 bg-transparent px-3 text-sm font-medium text-[#5E5A52]"
             >
-              Cancelar
+              {t("cancel")}
             </button>
           </div>
         </form>

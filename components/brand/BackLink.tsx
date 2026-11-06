@@ -1,5 +1,6 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { MouseEventHandler } from "react";
+import { Link } from "@/lib/i18n/navigation";
 
 // A margem negativa desconta o padding: a área de toque tem 44px, mas a peça ocupa só o que aparece e
 // o ícone fica alinhado à margem da página.
@@ -14,18 +15,21 @@ const active = "group/back cursor-pointer transition-colors hover:text-gold focu
 export function BackLink({
   href,
   onClick,
-  label = "Voltar",
+  label = "back",
   labelClass = "max-md:hidden",
   divider = false,
 }: {
   href?: string;
   onClick?: MouseEventHandler<HTMLElement>;
-  label?: "Voltar" | "Início";
+  /** back: "Voltar"; home: "Início", que leva para o início */
+  label?: "back" | "home";
   labelClass?: string;
   /** fio à direita, para separar do que vem ao lado no cabeçalho */
   divider?: boolean;
 }) {
-  const name = label === "Início" ? "Voltar para o início" : label;
+  const t = useTranslations("common");
+  const text = t(label);
+  const name = label === "home" ? t("backHome") : text;
   const content = (
     <>
       <svg
@@ -40,7 +44,7 @@ export function BackLink({
       >
         <path d="M19 12H5m6-6-6 6 6 6" />
       </svg>
-      <span className={labelClass}>{label}</span>
+      <span className={labelClass}>{text}</span>
     </>
   );
 

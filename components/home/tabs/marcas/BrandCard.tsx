@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
 import { Avatar } from "@/components/home/CreatorCard";
 import type { BrandCreator, CatalogBrand } from "@/lib/vitrine/catalog/brands";
 import { couponOff } from "@/lib/vitrine/pricing";
@@ -29,10 +30,15 @@ export function CreatorFaces({ creators }: { creators: BrandCreator[] }) {
 }
 
 /** "em 3 vitrines" ou "com Fulana" quando é uma só. */
-export const creatorsLabel = (creators: BrandCreator[]) => (creators.length > 1 ? `em ${creators.length} vitrines` : `com ${creators[0]?.name ?? ""}`);
+export function useCreatorsLabel() {
+  const t = useTranslations("counts");
+  return (creators: BrandCreator[]) => (creators.length > 1 ? t("inVitrines", { count: creators.length }) : t("with", { name: creators[0]?.name ?? "" }));
+}
 
 /** Card do diretório: o melhor cupom somando todas as creators. Clicar abre (ou fecha) o comparativo. */
 export function BrandCard({ b, href, selected }: { b: CatalogBrand; href: string; selected: boolean }) {
+  const t = useTranslations("catalog.brands");
+  const creatorsLabel = useCreatorsLabel();
   const best = b.coupons[0];
   return (
     <Link
@@ -45,7 +51,7 @@ export function BrandCard({ b, href, selected }: { b: CatalogBrand; href: string
       <BrandLogo name={b.brand} url={b.logoUrl} className="size-10 text-[20px] md:size-12 md:text-[24px]" />
       <span className="flex min-w-0 flex-col gap-2">
         <span className="font-display text-[24px] leading-[1.05] font-normal break-words md:text-[clamp(26px,2.4vw,34px)]">{b.brand}</span>
-        <span className={`${kicker} text-[11px] text-gold`}>{b.coupons.length > 1 ? `Até ${couponOff(best)}` : couponOff(best)}</span>
+        <span className={`${kicker} text-[11px] text-gold`}>{b.coupons.length > 1 ? t("upTo", { off: couponOff(best) }) : couponOff(best)}</span>
       </span>
       <span className="mt-auto flex min-w-0 items-center gap-2 border-t border-black/10 pt-3 text-[13px]">
         <CreatorFaces creators={b.creators} />

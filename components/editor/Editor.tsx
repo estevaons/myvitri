@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition, type MouseEvent, type ReactNode } from "react";
 import { publishVitrine, saveDraftAction } from "@/app/actions";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { AccountMenu, type Account } from "@/components/home/AccountMenu";
-import { HOST } from "@/lib/brand";
+import { Link } from "@/lib/i18n/navigation";
+import { BRAND, HOST } from "@/lib/brand";
 import { Storefront } from "@/components/storefront/Storefront";
 import { pickProfile, type VitrineContent } from "@/lib/vitrine/types";
 import { couponAlerts, CouponsPanel } from "./CouponsPanel";
@@ -15,13 +16,13 @@ import { ProfilePanel, type Update } from "./panels";
 import { ProductsPanel } from "./ProductsPanel";
 import { SharePanel } from "./SharePanel";
 
-/** [id, rótulo, nome na URL (?aba=…)] */
+/** [id, nome na URL (?aba=…)]; o rótulo vem de `editor.tabs.<id>` */
 const TABS = [
-  ["profile", "Perfil", "perfil"],
-  ["coupons", "Cupons", "cupons"],
-  ["products", "Produtos", "produtos"],
-  ["kits", "Kits", "kits"],
-  ["share", "Divulgar", "divulgar"],
+  ["profile", "perfil"],
+  ["coupons", "cupons"],
+  ["products", "produtos"],
+  ["kits", "kits"],
+  ["share", "divulgar"],
 ] as const;
 type TabId = (typeof TABS)[number][0];
 
@@ -91,12 +92,14 @@ export function Editor({
   /** valor de ?aba= na URL, para voltar à mesma aba ao recarregar */
   initialTab?: string;
 }) {
+  const t = useTranslations("editor");
+  const tCommon = useTranslations("common");
   const [draft, setDraft] = useState(initialDraft ?? initialPublished);
   const [published, setPublished] = useState(initialPublished);
   // O que já está guardado no servidor (rascunho ou, sem rascunho, a versão publicada).
   const [savedJson, setSavedJson] = useState(() => JSON.stringify(initialDraft ?? initialPublished));
   const [saveFailed, setSaveFailed] = useState(false);
-  const [tab, setTab] = useState<TabId>(() => TABS.find(([, , slug]) => slug === initialTab)?.[0] ?? (draft.coupons.length ? "profile" : "coupons"));
+  const [tab, setTab] = useState<TabId>(() => TABS.find(([, slug]) => slug === initialTab)?.[0] ?? (draft.coupons.length ? "profile" : "coupons"));
   const openTab = (id: TabId, slug: string) => {
     setTab(id);
     const url = new URL(window.location.href);
@@ -160,23 +163,23 @@ export function Editor({
   const alerts =couponAlerts(draft.coupons, today).length;
   // a navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso
   const confirmLeave = (e: MouseEvent) => {
-    if (unsaved && !confirm("Ainda estamos salvando suas alterações. Sair mesmo assim?")) e.preventDefault();
+    if (unsaved && !confirm(t("leaveConfirm"))) e.preventDefault();
   };
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper text-ink lg:h-dvh">
       <header className="border-b border-[#E0DCD3] bg-white">
         <div className="flex flex-wrap items-center gap-3.5 px-5 py-3">
-          <BackLink href="/inicio" onClick={confirmLeave} label="Início" divider />
-          <Link href="/" onClick={confirmLeave} aria-label="MyVitri — início" className="flex text-ink no-underline">
+          <BackLink href="/inicio" onClick={confirmLeave} label="home" divider />
+          <Link href="/" onClick={confirmLeave} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
             <Wordmark label="" className="h-[17px] w-auto" />
           </Link>
           <div className="flex-1" />
-          <div role="group" aria-label="Tamanho da prévia" className="flex gap-0.5 rounded-xl bg-[#F2F0EB] p-[3px] max-sm:hidden">
+          <div role="group" aria-label={t("previewSize")} className="flex gap-0.5 rounded-xl bg-[#F2F0EB] p-[3px] max-sm:hidden">
             {(
               [
-                ["desktop", "Computador", <DesktopIcon key="d" />],
-                ["mobile", "Celular", <MobileIcon key="m" />],
+                ["desktop", t("desktop"), <DesktopIcon key="d" />],
+                ["mobile", t("mobile"), <MobileIcon key="m" />],
               ] as const
             ).map(([id, label, icon]) => (
               <button
@@ -199,42 +202,42 @@ export function Editor({
               {dirty ? (
                 <>
                   <span aria-hidden="true" className={`size-2 flex-none rounded-full ${saveFailed ? "bg-[#A3361B]" : "bg-[#E8590C]"}`} />
-                  {saveFailed ? "Erro ao salvar o rascunho" : "Alterações não publicadas"}
+                  {saveFailed ? t("draftFailed") : t("unpublished")}
                 </>
               ) : (
                 <>
                   <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1F6B3A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6 9 17l-5-5" />
                   </svg>
-                  Publicado
+                  {t("published")}
                 </>
               )}
             </span>
             {dirty ? (
               <button type="button" onClick={publish} disabled={saving} className="min-h-11 flex-none cursor-pointer rounded-full border-0 bg-ink px-6 text-sm font-bold text-white transition-opacity hover:opacity-85 disabled:cursor-default disabled:opacity-60">
-                {saving ? "Publicando…" : "Publicar"}
+                {saving ? t("publishing") : t("publish")}
               </button>
             ) : (
-              <a
+              <Link
                 href={`/${published.handle}`}
                 target="_blank"
                 rel="noopener"
                 className="group flex min-h-11 flex-none items-center gap-1.5 rounded-full border border-[#D8D3C9] bg-white px-5 text-sm font-semibold text-ink no-underline transition-colors hover:border-ink"
               >
-                Ver vitrine
+                {t("view")}
                 <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                   <path d="M7 17L17 7M9 7h8v8" />
                 </svg>
-              </a>
+              </Link>
             )}
           </div>
           <AccountMenu account={account} onLeave={confirmLeave} />
         </div>
         {error && (
           <div role="alert" className="flex items-center gap-3 border-t border-[#F1C9BC] bg-[#FFF1EC] px-5 py-2.5 text-sm font-semibold text-[#A3361B]">
-            <span className="flex-1">Não deu para publicar: {error}</span>
+            <span className="flex-1">{t("publishError", { error })}</span>
             <button type="button" onClick={() => setError(null)} className="border-0 bg-transparent text-sm font-bold text-[#A3361B] underline">
-              Fechar
+              {t("close")}
             </button>
           </div>
         )}
@@ -244,10 +247,10 @@ export function Editor({
         <aside className="flex max-w-full min-w-0 flex-[1_1_400px] flex-col border-r border-[#EEEBE5] bg-white lg:max-w-[440px] lg:overflow-y-auto">
           <div
             role="tablist"
-            aria-label="Opções"
+            aria-label={t("tabs.label")}
             className="sticky top-0 z-10 grid grid-cols-5 gap-1 border-b border-[#EEEBE5] bg-white/95 px-3 py-2.5 backdrop-blur"
           >
-            {TABS.map(([id, label, slug]) => (
+            {TABS.map(([id, slug]) => (
               <button
                 key={id}
                 type="button"
@@ -261,10 +264,10 @@ export function Editor({
                 <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === id ? 2 : 1.75} strokeLinecap="round" strokeLinejoin="round">
                   {TAB_ICONS[id]}
                 </svg>
-                <span className="max-w-full truncate">{label}</span>
+                <span className="max-w-full truncate">{t(`tabs.${id}`)}</span>
                 {id === "coupons" && alerts > 0 && (
                   <span
-                    aria-label={`${alerts} ${alerts === 1 ? "cupom vencendo" : "cupons vencendo"}`}
+                    aria-label={t("couponsExpiring", { count: alerts })}
                     className="absolute top-0.5 right-[calc(50%-24px)] inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#E8590C] px-1 text-[10px] font-bold text-white ring-2 ring-white"
                   >
                     {alerts}

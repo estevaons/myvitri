@@ -5,12 +5,8 @@ import type { TabParams } from "../../catalog/params";
 
 /** Filtros e ordem da aba Marcas, a partir da URL. Funções puras: o servidor monta a aba com elas. */
 
-export const SORTS: [value: string, label: string][] = [
-  ["desconto", "Maior desconto"],
-  ["creators", "Em mais vitrines"],
-  ["vencendo", "Vencendo antes"],
-  ["az", "A–Z"],
-];
+/** Ordens na URL (`?ordem=`), a primeira é a padrão. Os rótulos ficam em `catalog.brands.sorts`. */
+export const SORTS = ["desconto", "creators", "vencendo", "az"] as const;
 
 /** "Vencendo esta semana": algum cupom da marca vence em até 7 dias. */
 const SOON_DAYS = 7;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import { kitItems, type Kit, type Product, type VitrineContent } from "@/lib/vitrine/types";
@@ -18,6 +19,7 @@ function KitThumb({ items }: { items: Product[] }) {
 }
 
 export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Update }) {
+  const t = useTranslations("editor.kits");
   const [openId, setOpenId] = useState<string | null>(null);
   const sort = useDragSort((from, to) => update((d) => ({ ...d, kits: reorder(d.kits, from, to) })));
   const firstName = draft.name.split(" ")[0] || draft.name;
@@ -32,31 +34,27 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
 
   return (
     <div className="flex flex-col gap-2.5">
-      <H>Kits montados por você</H>
-      <Hint>Junte até {MAX_ITEMS} produtos num combo. Na vitrine, cada um leva para o link dele.</Hint>
-      {draft.products.length === 0 ? (
-        <Empty>Adicione produtos primeiro para montar um kit.</Empty>
-      ) : (
-        draft.kits.length === 0 && <Empty>Nenhum kit ainda. Que tal o seu “kit praia” ou “kit treino”?</Empty>
-      )}
+      <H>{t("title")}</H>
+      <Hint>{t("hint", { max: MAX_ITEMS })}</Hint>
+      {draft.products.length === 0 ? <Empty>{t("needProducts")}</Empty> : draft.kits.length === 0 && <Empty>{t("empty")}</Empty>}
       {draft.kits.map((k, i) => {
         const items = kitItems(k, draft.products);
         return (
           <Row
             key={k.id}
             pos={i + 1}
-            title={k.name || "Novo kit"}
-            sub={items.length ? `${items.length} ${items.length === 1 ? "item" : "itens"}` : "Sem produtos"}
+            title={k.name || t("new")}
+            sub={items.length ? t("items", { count: items.length }) : t("noProducts")}
             thumb={<KitThumb items={items} />}
             open={openId === k.id}
             onOpen={() => setOpenId(openId === k.id ? null : k.id)}
             sort={sort}
             total={draft.kits.length}
           >
-            <Field label="Nome do kit" hint="Vira o título da seção e o botão de escolha quando houver mais de um kit.">
-              <TextInput value={k.name} onChange={(name) => setKit(k.id, { name })} maxLength={60} placeholder={`Ex.: Kit praia da ${firstName}`} autoFocus={!k.name} />
+            <Field label={t("name")} hint={t("nameHint")}>
+              <TextInput value={k.name} onChange={(name) => setKit(k.id, { name })} maxLength={60} placeholder={t("namePlaceholder", { name: firstName })} autoFocus={!k.name} />
             </Field>
-            <Field label="Descrição">
+            <Field label={t("description")}>
               <textarea
                 value={k.description}
                 onChange={(e) => setKit(k.id, { description: e.target.value })}
@@ -65,12 +63,12 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
                 className={`${inputCls} h-auto resize-y py-2.5 leading-snug`}
               />
             </Field>
-            <Field label="Assinatura">
-              <TextInput value={k.signature} onChange={(signature) => setKit(k.id, { signature })} maxLength={80} placeholder="Ex.: Uso esse combo todo fim de semana" />
+            <Field label={t("signature")}>
+              <TextInput value={k.signature} onChange={(signature) => setKit(k.id, { signature })} maxLength={80} placeholder={t("signaturePlaceholder")} />
             </Field>
             <fieldset className="m-0 flex min-w-0 flex-col gap-1 border-0 p-0">
               <legend className={`mb-1.5 ${labelCls}`}>
-                Produtos ({k.productIds.length}/{MAX_ITEMS})
+                {t("products", { n: k.productIds.length, max: MAX_ITEMS })}
               </legend>
               {draft.products.map((p) => {
                 const checked = k.productIds.includes(p.id);
@@ -89,7 +87,7 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
                     <span aria-hidden="true" className="relative flex size-9 flex-none items-center justify-center overflow-hidden rounded-lg bg-cream">
                       <ProductArt product={p} iconClassName="w-[70%]" strokeWidth={4} />
                     </span>
-                    <span className="min-w-0 flex-1 truncate font-medium" title={p.name}>{p.name || "Produto sem nome"}</span>
+                    <span className="min-w-0 flex-1 truncate font-medium" title={p.name}>{p.name || t("unnamed")}</span>
                   </label>
                 );
               })}
@@ -100,12 +98,12 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
                 update((d) => ({ ...d, kits: d.kits.filter((x) => x.id !== k.id) }));
                 setOpenId(null);
               }}
-              removeLabel="Excluir"
+              removeLabel={t("remove")}
             />
           </Row>
         );
       })}
-      {draft.products.length > 0 && <AddButton onClick={add}>+ Montar kit</AddButton>}
+      {draft.products.length > 0 && <AddButton onClick={add}>{t("add")}</AddButton>}
     </div>
   );
 }

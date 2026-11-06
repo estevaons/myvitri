@@ -1,7 +1,8 @@
+import { getTranslations } from "next-intl/server";
 import { Fragment, type CSSProperties } from "react";
 import { getCatalogBrands } from "@/lib/vitrine/catalog/brands";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
-import { CatalogEmpty, CatalogFrame, countLabel, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
+import { CatalogEmpty, CatalogFrame, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
 import { BrandCard } from "./marcas/BrandCard";
 import { BrandDetail } from "./marcas/BrandDetail";
 import { expiringSoon, LETTER_MIN, letterOf, optionsBy, OTHER_LETTER, passes, SORTS, sortBrands } from "./marcas/query";
@@ -15,7 +16,7 @@ const grid = "grid grid-cols-2 gap-1 md:grid-cols-3 lg:grid-cols-4";
  * todas as vitrines — o que nenhuma vitrine sozinha mostra. `?marca=` abre o comparativo dos cupons dela.
  */
 export async function MarcasTab({ params }: { params: TabParams }) {
-  const { brands: all, categoryLabels, today } = await getCatalogBrands();
+  const [{ brands: all, categoryLabels, today }, t, tCount] = await Promise.all([getCatalogBrands(), getTranslations("catalog"), getTranslations("counts")]);
 
   const filtered = sortBrands(
     all.filter((b) => passes(b, params, today)),
@@ -43,9 +44,9 @@ export async function MarcasTab({ params }: { params: TabParams }) {
 
   const filters = (catOptions.length > 1 || letterOptions.length > 1 || showSoon) && (
     <>
-      <FilterChips label="Categoria" param="cat" options={catOptions} params={params} />
-      <FilterChips label="Letra" param="letra" options={letterOptions} params={params} />
-      {showSoon && <ToggleChip label="Vencendo esta semana" param="vencendo" params={params} />}
+      <FilterChips label={t("filters.category")} param="cat" options={catOptions} params={params} />
+      <FilterChips label={t("filters.letter")} param="letra" options={letterOptions} params={params} />
+      {showSoon && <ToggleChip label={t("filters.expiringWeek")} param="vencendo" params={params} />}
     </>
   );
 
@@ -72,11 +73,11 @@ export async function MarcasTab({ params }: { params: TabParams }) {
   const clearHref = hrefWith(params, { cat: null, vencendo: null, letra: null, marca: null });
   return (
     <CatalogFrame
-      title="Marcas"
-      text="O melhor cupom de cada marca, somando todas as vitrines. Abra uma marca para comparar os cupons lado a lado."
+      title={t("brands.title")}
+      text={t("brands.text")}
       filters={filters || undefined}
-      sort={all.length > 1 ? <SortMenu options={SORTS} params={params} /> : undefined}
-      count={countLabel(filtered.length, "marca", "marcas")}
+      sort={all.length > 1 ? <SortMenu options={SORTS.map((s) => [s, t(`brands.sorts.${s}`)])} params={params} /> : undefined}
+      count={tCount("brands", { count: filtered.length })}
       clearHref={filtering ? clearHref : undefined}
     >
       {selectedAt < 0 && detail}
@@ -95,13 +96,9 @@ export async function MarcasTab({ params }: { params: TabParams }) {
           <LoadMore params={params} shown={shown.length} total={filtered.length} />
         </>
       ) : filtering ? (
-        <CatalogEmpty
-          title="Nenhuma marca com esses filtros"
-          text="Tire um filtro para ver mais marcas com cupom ativo."
-          clearHref={clearHref}
-        />
+        <CatalogEmpty title={t("brands.filteredTitle")} text={t("brands.filteredText")} clearHref={clearHref} />
       ) : (
-        <CatalogEmpty title="Nenhum cupom ativo agora" text="Quando houver cupons nas vitrines, as marcas aparecem aqui." />
+        <CatalogEmpty title={t("brands.emptyTitle")} text={t("brands.emptyText")} />
       )}
     </CatalogFrame>
   );
