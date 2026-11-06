@@ -75,31 +75,37 @@ const FOOTER: [title: string, links: [href: string, label: string][]][] = [
   ],
 ];
 
-export function SiteFooter() {
+/**
+ * Rodapé do site. `signedIn`, nas páginas de quem entrou (/inicio, /metricas), deixa só a linha final: as colunas
+ * levam para a landing e para "Entrar", que não servem a quem já está dentro.
+ */
+export function SiteFooter({ signedIn = false }: { signedIn?: boolean }) {
   return (
-    <footer className={`mx-auto mt-20 max-w-[1440px] md:mt-28 ${pad}`}>
-      <div className="grid gap-10 border-t border-sand py-12 md:grid-cols-[2fr_1fr_1fr]">
-        <div className="flex max-w-xs flex-col gap-3">
-          <Wordmark className="h-[19px] w-auto self-start text-ink" />
-          <p className="m-0 text-[15px] leading-relaxed text-mute">Os achados de quem você segue, cada um na sua vitrine.</p>
+    <footer className={`mx-auto max-w-[1440px] ${signedIn ? "mt-24 md:mt-32" : "mt-20 md:mt-28"} ${pad}`}>
+      {!signedIn && (
+        <div className="grid gap-10 border-t border-sand py-12 md:grid-cols-[2fr_1fr_1fr]">
+          <div className="flex max-w-xs flex-col gap-3">
+            <Wordmark className="h-[19px] w-auto self-start text-ink" />
+            <p className="m-0 text-[15px] leading-relaxed text-mute">Os achados de quem você segue, cada um na sua vitrine.</p>
+          </div>
+          {FOOTER.map(([title, links]) => (
+            <nav key={title} aria-label={title} className="flex flex-col gap-3">
+              <span className={kicker}>{title}</span>
+              {links.map(([href, label]) =>
+                href === "#entrar" ? (
+                  <LoginButton key={href} className="self-start text-left text-[15px] text-mute hover:text-ink">
+                    {label}
+                  </LoginButton>
+                ) : (
+                  <Link key={href} href={href} className="text-[15px] text-mute no-underline hover:text-ink">
+                    {label}
+                  </Link>
+                ),
+              )}
+            </nav>
+          ))}
         </div>
-        {FOOTER.map(([title, links]) => (
-          <nav key={title} aria-label={title} className="flex flex-col gap-3">
-            <span className={kicker}>{title}</span>
-            {links.map(([href, label]) =>
-              href === "#entrar" ? (
-                <LoginButton key={href} className="self-start text-left text-[15px] text-mute hover:text-ink">
-                  {label}
-                </LoginButton>
-              ) : (
-                <Link key={href} href={href} className="text-[15px] text-mute no-underline hover:text-ink">
-                  {label}
-                </Link>
-              ),
-            )}
-          </nav>
-        ))}
-      </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-sand py-6 text-[13px] text-mute">
         <span>
           © {BRAND} · Preços e cupons podem mudar na loja da marca.

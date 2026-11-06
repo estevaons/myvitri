@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { signOutAction } from "@/app/actions";
 import { HOST } from "@/lib/brand";
 import { summarizeVitrine, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
 import type { VitrineContent } from "@/lib/vitrine/types";
+import { AccountMenu, type Account } from "./AccountMenu";
 import { kicker, pad, pillDark, pillLight, SectionHead, SiteFooter, SiteHeader } from "./chrome";
-import { CopyLinkButton } from "./CopyLinkButton";
+import { VitrineLinkBar } from "./CopyLinkButton";
 import { CreatorCard, CreatorCover } from "./CreatorCard";
 import { HomeSearch } from "./HomeSearch";
 import { KitCard } from "./KitCard";
@@ -30,8 +30,8 @@ function Stat({ n, one, many }: { n: number; one: string; many: string }) {
 }
 
 /**
- * A própria vitrine como uma matéria de revista: a capa à esquerda e, ao lado, o nome, o endereço,
- * os números e o que dá para fazer com ela.
+ * A própria vitrine como uma matéria de revista: a capa à esquerda e, ao lado, o nome, o endereço (que abre e copia),
+ * os números com o atalho das métricas e os botões de editar e de ver a vitrine.
  */
 function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
   const card = summarizeVitrine(vitrine);
@@ -47,26 +47,33 @@ function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
             <h2 id="sua-vitrine" className="m-0 font-display text-[clamp(44px,5.6vw,84px)] leading-[1] font-normal break-words text-balance">
               {vitrine.name}
             </h2>
-            <span className="text-[16px] text-mute">
-              {HOST}/<em className="font-display text-[1.3em] leading-none text-ink">{vitrine.handle}</em>
-            </span>
           </div>
-          <dl className="m-0 grid w-full grid-cols-3 gap-6 border-y border-sand py-6">
-            <Stat n={card.products} one="Produto" many="Produtos" />
-            <Stat n={card.coupons} one="Cupom ativo" many="Cupons ativos" />
-            <Stat n={vitrine.kits.length} one="Kit" many="Kits" />
-          </dl>
+          {/* abrir e copiar ficam no próprio endereço; ver métricas, junto dos números; sobra um botão principal */}
+          <VitrineLinkBar handle={vitrine.handle} />
+          <div className="flex w-full flex-wrap items-end justify-between gap-x-8 gap-y-5 border-y border-sand py-6">
+            <dl className="m-0 grid flex-1 basis-[22rem] grid-cols-3 gap-6">
+              <Stat n={card.products} one="Produto" many="Produtos" />
+              <Stat n={card.coupons} one="Cupom ativo" many="Cupons ativos" />
+              <Stat n={vitrine.kits.length} one="Kit" many="Kits" />
+            </dl>
+            <Link href="/metricas" className={`${kicker} group flex items-center gap-2 pb-1 text-[11px] whitespace-nowrap text-ink no-underline hover:text-gold`}>
+              Ver métricas
+              <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">
+                →
+              </span>
+            </Link>
+          </div>
+          {/* abrir a vitrine precisa de um botão com nome: o endereço clicável sozinho não deixava claro onde ir */}
           <div className="flex flex-wrap gap-2">
             <Link href="/editor" className={pillDark}>
               Editar vitrine
             </Link>
-            <a href={`/${vitrine.handle}`} target="_blank" rel="noopener" className={pillLight}>
-              Ver vitrine
+            <a href={`/${vitrine.handle}`} target="_blank" rel="noopener" className={`${pillLight} group gap-2`}>
+              Ver minha vitrine
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                <path d="M7 17L17 7M9 7h8v8" />
+              </svg>
             </a>
-            <CopyLinkButton handle={vitrine.handle} />
-            <Link href="/metricas" className={pillLight}>
-              Ver métricas
-            </Link>
           </div>
         </div>
       </div>
@@ -104,12 +111,15 @@ export type ForYou = { vitrine: VitrineContent | null; ranked: boolean; creators
  */
 export function HomeView({
   name,
+  account,
   tab,
   params,
   forYou,
   favorites = [],
 }: {
   name: string;
+  /** quem entrou, para o menu da conta e as configurações */
+  account: Account;
   tab: TabId;
   params: TabParams;
   forYou: ForYou | null;
@@ -120,27 +130,14 @@ export function HomeView({
     // clip, e não hidden: hidden faz desta div a área de rolagem e as abas param de ficar presas no topo
     <div className="overflow-x-clip bg-white text-ink">
       {/* sem links para a landing: com sessão, o proxy traz quem abre / de volta para cá */}
-      <SiteHeader
-        links={[]}
-        action={
-          <form action={signOutAction}>
-            <button type="submit" className={pillLight}>
-              Sair
-            </button>
-          </form>
-        }
-      />
+      <SiteHeader links={[]} action={<AccountMenu account={account} />} />
 
       <section className={`mx-auto flex max-w-[1440px] flex-col gap-6 pt-8 md:gap-8 md:pt-12 ${pad}`}>
-        {/* no desktop o texto de apoio vai ao lado do título, para não sobrar a metade direita vazia */}
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:gap-12">
-          <div className="flex flex-col gap-3">
-            <span className={`${kicker} text-gold`}>Sua home</span>
-            <h1 className="m-0 font-display text-[clamp(40px,4.8vw,68px)] leading-[1] font-normal tracking-[-0.01em]">
-              Olá, <em>{name}</em>
-            </h1>
-          </div>
-          <p className="m-0 max-w-[32rem] text-[16px] leading-relaxed text-mute lg:pb-1">Encontre os achados de quem você segue: busque por uma pessoa, uma marca ou um produto.</p>
+        <div className="flex flex-col gap-3">
+          <span className={`${kicker} text-gold`}>Sua home</span>
+          <h1 className="m-0 font-display text-[clamp(40px,4.8vw,68px)] leading-[1] font-normal tracking-[-0.01em]">
+            Olá, <em>{name}</em>
+          </h1>
         </div>
         <HomeSearch />
       </section>
@@ -156,7 +153,7 @@ export function HomeView({
       {tab === "kits" && <KitsTab params={params} />}
       {tab === "marcas" && <MarcasTab params={params} />}
 
-      <SiteFooter />
+      <SiteFooter signedIn />
     </div>
   );
 }

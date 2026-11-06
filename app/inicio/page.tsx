@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { flatParams, tabOf } from "@/components/home/catalog/params";
+import type { Account } from "@/components/home/AccountMenu";
 import { HomeView, type ForYou } from "@/components/home/HomeView";
 import { getHomeFeed, getRecentKits, getTopCreators, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
 import { findMine, listFavoriteHandles } from "@/lib/vitrine/store";
@@ -49,7 +50,16 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/inicio">, "searchPa
   const forYou: ForYou | null = rows && { vitrine, ranked: rows[0].ranked, creators: rows[0].creators, kits: rows[1] };
   // só as abas com o coração precisam saber as favoritas
   const favorites = tab === "para-voce" || tab === "vitrines" || tab === "favoritas" ? await listFavoriteHandles(supabase, user.id).catch(orEmpty<string>("listFavoriteHandles")) : [];
-  return <HomeView name={name} tab={tab} params={params} forYou={forYou} favorites={favorites} />;
+  // a foto da vitrine e, sem ela, a do Google (a mesma regra dos comentários: só https)
+  const googlePhoto = (user.user_metadata as { avatar_url?: string }).avatar_url ?? "";
+  const account: Account = {
+    name: meta.name ?? "",
+    avatarUrl: vitrine?.avatarUrl || (googlePhoto.startsWith("https://") ? googlePhoto : ""),
+    email: user.email ?? "",
+    providers: (user.app_metadata.providers as string[] | undefined) ?? [user.app_metadata.provider ?? "email"],
+    vitrine: vitrine && { handle: vitrine.handle, name: vitrine.name },
+  };
+  return <HomeView name={name} account={account} tab={tab} params={params} forYou={forYou} favorites={favorites} />;
 }
 
 export default function Page({ searchParams }: PageProps<"/inicio">) {

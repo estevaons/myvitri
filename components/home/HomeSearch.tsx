@@ -64,7 +64,7 @@ export function HomeSearch() {
   return (
     <div className="flex flex-col gap-4">
       <form role="search" onSubmit={(e) => e.preventDefault()}>
-        {/* o texto de apoio acima do campo já diz o que dá para buscar: o rótulo fica só para leitor de tela */}
+        {/* a dica embaixo do campo já diz o que dá para buscar: o rótulo fica só para leitor de tela */}
         <label htmlFor={id} className="sr-only">
           Buscar vitrines, marcas e produtos
         </label>
@@ -85,6 +85,7 @@ export function HomeSearch() {
             enterKeyHint="search"
             spellCheck={false}
             maxLength={60}
+            aria-describedby={`${id}-dica`}
             className="min-w-0 flex-1 border-0 bg-transparent p-0 [&::-webkit-search-cancel-button]:appearance-none text-[clamp(20px,1.8vw,24px)] text-ink outline-none placeholder:text-mute/60"
           />
           {q && (
@@ -94,6 +95,10 @@ export function HomeSearch() {
             </button>
           )}
         </div>
+        {/* discreta, colada no campo: só lembra o que dá para buscar */}
+        <p id={`${id}-dica`} className="m-0 mt-2 text-[13px] text-mute">
+          Busque por uma pessoa, uma marca ou um produto.
+        </p>
       </form>
 
       <div aria-live="polite" className="contents">

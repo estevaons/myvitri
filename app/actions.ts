@@ -3,6 +3,7 @@
 import { updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { DELETE_WORD } from "@/lib/auth/account";
 import { PASSWORD_MIN } from "@/lib/auth/password";
 import { safePath, saveReturn } from "@/lib/auth/return-to";
 import { HOST } from "@/lib/brand";
@@ -211,12 +212,13 @@ export async function signOutAction() {
 
 /**
  * Apaga a conta de quem está logado, com vitrine, itens, métricas e rascunho (cascata no banco).
- * `confirm` precisa ser o link publicado da vitrine, digitado pela pessoa.
+ * `confirm` precisa ser o link publicado da vitrine, digitado pela pessoa; quem não tem vitrine digita "excluir".
  */
 export async function deleteAccountAction(confirm: string): Promise<{ error: string }> {
   const { supabase, user, vitrine } = await findMine();
   if (!user) return { error: "Sessão expirada. Entre de novo." };
-  if (vitrine && confirm.trim().toLowerCase().replace(/^@/, "") !== vitrine.handle) return { error: "O link digitado não confere." };
+  const typed = confirm.trim().toLowerCase().replace(/^@/, "");
+  if (typed !== (vitrine ? vitrine.handle : DELETE_WORD)) return { error: vitrine ? "O link digitado não confere." : `Digite ${DELETE_WORD} para confirmar.` };
 
   // Lido antes de apagar: depois da cascata não dá mais para saber em quais vitrines a pessoa comentou.
   const commented = await listCommentedHandles(supabase, user.id).catch(() => []);
