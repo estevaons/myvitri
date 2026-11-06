@@ -22,7 +22,10 @@ export const kicker = "text-[12px] font-medium tracking-[0.22em] uppercase";
  */
 export function SiteHeader({ links, back, action = <LoginButton className={pillLight} /> }: { links: [href: string, label: string][]; back?: string; action?: ReactNode }) {
   return (
-    <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-4 ${pad}`}>
+    // as classes group-data só valem dentro do ScrollHeader; a linha some porque ele traz a dele, de ponta a ponta
+    <header
+      className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-4 transition-[padding,border-color] duration-200 ease-out group-data-[compact]/header:border-transparent group-data-[compact]/header:py-2 motion-reduce:transition-none ${pad}`}
+    >
       <div className="flex min-w-0 items-center gap-3">
         {back && <BackLink href={back} label="Início" divider />}
         <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">

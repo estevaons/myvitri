@@ -1,8 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ProductIcon } from "@/components/storefront/ProductIcon";
 import { BRAND, HOST } from "@/lib/brand";
-import type { IconId } from "@/lib/vitrine/types";
 import { kicker, pad, pillDark } from "./chrome";
 
 /**
@@ -10,7 +9,7 @@ import { kicker, pad, pillDark } from "./chrome";
  * Veio de /criar-vitrine, que agora é só o formulário de criar a conta.
  */
 
-const KIT: IconId[] = ["Hat", "Glasses", "Bag", "Jar"];
+const KIT = ["/create_account/oculos.webp", "/hero/bolsa.webp", "/hero/brincos.webp", "/create_account/perfume.webp"];
 /** O resto do que a vitrine faz, sem desenho: os três de cima já mostram como ela é. */
 const MORE: [title: string, text: string][] = [
   ["Veja o que funciona", "Visitas, cliques, produtos mais clicados e cupons mais copiados, dia a dia."],
@@ -93,10 +92,11 @@ export function CreatorPitch() {
             text="Cole o link do produto e a gente puxa nome e foto. Um clique no produto e seu público vai direto para o seu link de afiliado."
           >
             <div className="flex w-[64%] flex-col">
-              <div className="flex aspect-[2/1] items-center justify-center bg-white">
-                <ProductIcon icon="Shoe" className="w-[40%]" />
+              <div className="relative aspect-[2/1] overflow-hidden bg-white">
+                {/* a foto é quadrada e o tênis fica na parte de baixo dela */}
+                <Image src="/create_account/tenis.webp" alt="" fill sizes="(min-width: 768px) 300px, 60vw" className="object-cover object-[50%_75%]" />
               </div>
-              <span className="pt-2.5 text-center text-sm leading-snug font-medium">Tênis de corrida</span>
+              <span className="pt-2.5 text-center text-sm leading-snug font-medium">Tênis de couro</span>
               {/* o link sai como a pessoa colou: é a parte "ref=voce" que paga a comissão */}
               <span className="mt-2.5 truncate border border-dashed border-gold/50 bg-white px-2.5 py-1.5 font-mono text-[11px] text-mute">
                 loja.com/tenis?<span className="font-bold text-ink">ref=voce</span>
@@ -105,9 +105,9 @@ export function CreatorPitch() {
           </Feature>
           <Feature title="Kits que vendem mais" text="Monte combos como “kit praia” ou “kit treino”, cada produto com o seu link.">
             <div className="grid w-[56%] grid-cols-2 gap-1">
-              {KIT.map((icon) => (
-                <div key={icon} className="flex aspect-square items-center justify-center bg-white">
-                  <ProductIcon icon={icon} className="w-[62%]" strokeWidth={3.4} />
+              {KIT.map((src) => (
+                <div key={src} className="relative aspect-square overflow-hidden bg-white">
+                  <Image src={src} alt="" fill sizes="(min-width: 768px) 160px, 28vw" className="object-cover" />
                 </div>
               ))}
             </div>
