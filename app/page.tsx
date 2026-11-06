@@ -6,6 +6,7 @@ import { CreatorMosaic } from "@/components/home/CreatorMosaic";
 import { CreatorPitch, FAQ } from "@/components/home/CreatorPitch";
 import { kicker, pad, pillDark, pillLight, SectionHead, SiteFooter, SiteHeader } from "@/components/home/chrome";
 import { LookHero } from "@/components/home/LookHero";
+import { ScrollHeader } from "@/components/home/ScrollHeader";
 import { BRAND } from "@/lib/brand";
 import { appJsonLd, DESCRIPTION, JsonLd, pageMeta, siteJsonLd } from "@/lib/seo";
 import { getHomeFeed, type HomeFeed } from "@/lib/vitrine/data";
@@ -39,24 +40,29 @@ export default async function Home() {
       <JsonLd data={siteJsonLd} />
       {/* o FAQ de quem divulga fica no fim desta página: os dados estruturados vêm junto */}
       <JsonLd data={appJsonLd(FAQ)} />
-      <SiteHeader
-        links={[
-          // na ordem em que as seções aparecem na página
-          ["#vitrines", "Vitrines"],
-          ["#cupons", "Cupons"],
-          ["#categorias", "Categorias"],
-          ["#marcas", "Marcas"],
-        ]}
-        action={
-          // no celular os dois encolhem (espaçamento das letras menor) para caber ao lado da marca
-          <div className="flex items-center gap-3 md:gap-2">
-            <LoginButton className={`${kicker} whitespace-nowrap text-ink hover:text-gold max-md:text-[11px] max-md:tracking-[0.12em] md:px-2`} />
-            <Link href="/criar-vitrine" className={`${pillDark} whitespace-nowrap max-md:min-h-10 max-md:px-3.5 max-md:text-[11px] max-md:tracking-[0.12em]`}>
-              Criar conta
-            </Link>
-          </div>
-        }
-      />
+      <ScrollHeader>
+        <SiteHeader
+          links={[
+            // na ordem em que as seções aparecem na página
+            ["#vitrines", "Vitrines"],
+            ["#cupons", "Cupons"],
+            ["#categorias", "Categorias"],
+            ["#marcas", "Marcas"],
+          ]}
+          action={
+            // no celular os dois encolhem (espaçamento das letras menor) para caber ao lado da marca
+            <div className="flex items-center gap-3 md:gap-2">
+              <LoginButton className={`${kicker} whitespace-nowrap text-ink hover:text-gold max-md:text-[11px] max-md:tracking-[0.12em] md:px-2`} />
+              <Link
+                href="/criar-vitrine"
+                className={`${pillDark} whitespace-nowrap transition-[min-height] duration-200 ease-out group-data-[compact]/header:min-h-10 motion-reduce:transition-none max-md:min-h-10 max-md:px-3.5 max-md:text-[11px] max-md:tracking-[0.12em]`}
+              >
+                Criar conta
+              </Link>
+            </div>
+          }
+        />
+      </ScrollHeader>
 
       <section>
         {/* A foto ocupa o hero de ponta a ponta. A altura desconta o header, para o hero fechar a primeira tela.
