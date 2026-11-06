@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getUser } from "@/lib/supabase/server";
-import { COUPON_EXTRA, emptyContent, PRODUCT_EXTRA, TRACKING, type Coupon, type IconId, type Kit, type Product, type VitrineContent } from "./types";
+import { COUPON_EXTRA, emptyContent, pickProfile, PRODUCT_EXTRA, TRACKING, type Coupon, type IconId, type Kit, type Product, type VitrineContent, type VitrineProfile } from "./types";
 
 /**
  * Persistência das vitrines no Supabase. Toda leitura/escrita passa por aqui;
@@ -154,9 +154,9 @@ export async function topCreatorsToday(db: Db, limit: number) {
 }
 
 export type By = { handle: string; creator: string };
-export type FeedKit = By & { kit: Kit; coupons: Coupon[]; products: Product[] };
+export type FeedKit = By & { kit: Kit; products: Product[] };
 
-/** Kits publicados mais recentes, com os produtos deles e os cupons da vitrine (para o preço com desconto). */
+/** Kits publicados mais recentes, com os produtos deles. */
 export async function listRecentKits(db: Db, limit: number): Promise<FeedKit[]> {
   const { data: kits, error } = await db
     .from("kits")
@@ -166,19 +166,14 @@ export async function listRecentKits(db: Db, limit: number): Promise<FeedKit[]> 
   if (error) throw error;
   if (!kits.length) return [];
 
-  const [coupons, products] = await Promise.all([
-    db.from("coupons").select("*").in("vitrine_id", [...new Set(kits.map((k) => k.vitrine_id))]),
-    db.from("products").select("*").in("id", [...new Set(kits.flatMap((k) => k.product_ids))]),
-  ]);
-  const err = coupons.error ?? products.error;
-  if (err) throw err;
+  const { data: products, error: productsError } = await db.from("products").select("*").in("id", [...new Set(kits.flatMap((k) => k.product_ids))]);
+  if (productsError) throw productsError;
 
   return kits.map(({ vitrines: v, ...k }) => ({
     handle: v.handle,
     creator: v.name,
     kit: toKit(k),
-    coupons: (coupons.data ?? []).filter((c) => c.vitrine_id === k.vitrine_id).map(toCoupon),
-    products: (products.data ?? []).filter((p) => p.vitrine_id === k.vitrine_id).map(toProduct),
+    products: products.filter((p) => p.vitrine_id === k.vitrine_id).map(toProduct),
   }));
 }
 
@@ -187,7 +182,7 @@ type Hit<T> = Fields<T> & By;
 type CatalogRows = {
   creators: { handle: string; name: string; avatar_url: string }[];
   coupons: Hit<CouponRow>[];
-  products: (Hit<ProductRow> & { coupon: Fields<CouponRow> | null })[];
+  products: Hit<ProductRow>[];
 };
 
 /**
@@ -205,7 +200,6 @@ export async function searchCatalog(db: Db, q: string, limit: number) {
       ...toProduct(p),
       handle: p.handle,
       creator: p.creator,
-      coupon: p.coupon ? toCoupon(p.coupon) : null,
     })),
   };
 }
@@ -228,6 +222,7 @@ export async function findMine() {
 /**
  * Rascunho do editor por cima da versão publicada. Ele pode ter itens ainda incompletos
  * (por isso não passa pelo schema da publicação); só conferimos o formato antes de usar.
+ * Nome, link, foto e capa não têm rascunho: valem os do banco, que mudam na home e nas configurações.
  */
 export async function findDraft(db: Db, ownerId: string, published: VitrineContent): Promise<VitrineContent | null> {
   const { data, error } = await db.from("vitrine_drafts").select("content").eq("owner_id", ownerId).maybeSingle();
@@ -242,10 +237,10 @@ export async function findDraft(db: Db, ownerId: string, published: VitrineConte
   return {
     ...published,
     ...d,
+    ...pickProfile(published),
     coupons: d.coupons!.map((c) => ({ ...COUPON_EXTRA, ...without(c, "color") })),
     products: d.products!.map((p) => ({ ...PRODUCT_EXTRA, ...p })),
     kits,
-    look: pickLook(d.look, published.look),
     show: { ...published.show, ...d.show },
     tracking: { ...published.tracking, ...d.tracking },
   };
@@ -274,6 +269,13 @@ export async function createVitrine(db: Db, ownerId: string, content: VitrineCon
     look: content.look,
     show: content.show,
   });
+  if (isUniqueViolation(error)) throw new HandleTakenError();
+  if (error) throw error;
+}
+
+/** Nome, link, foto e capa: valem na hora, sem passar pela publicação do editor. */
+export async function updateProfile(db: Db, ownerId: string, { handle, name, avatarUrl, look }: VitrineProfile) {
+  const { error } = await db.from("vitrines").update({ handle, name, avatar_url: avatarUrl, look, updated_at: new Date().toISOString() }).eq("owner_id", ownerId);
   if (isUniqueViolation(error)) throw new HandleTakenError();
   if (error) throw error;
 }

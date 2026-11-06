@@ -18,7 +18,7 @@ export async function GET() {
     "",
     `> ${DESCRIPTION}`,
     "",
-    `O ${BRAND} é uma plataforma brasileira de vitrines: cada pessoa que divulga marcas (creators, influenciadoras, atletas) tem uma página em ${HOST}/nome com os cupons de desconto de todas as marcas parceiras, os produtos que usa com o preço já com o cupom e kits de produtos. Quem compra abre a vitrine, copia o cupom e compra direto na loja oficial da marca. O ${BRAND} não vende produtos; preços e cupons podem mudar na loja da marca.`,
+    `O ${BRAND} é uma plataforma brasileira de vitrines: cada pessoa que divulga marcas (creators, influenciadoras, atletas) tem uma página em ${HOST}/nome com os cupons de desconto de todas as marcas parceiras, os produtos que usa e kits de produtos. Quem compra abre a vitrine, copia o cupom da marca ou clica no produto e compra direto na loja. O ${BRAND} não vende produtos; os cupons podem mudar na loja da marca.`,
     "",
     "## Páginas",
     "",

@@ -45,18 +45,18 @@ export const productSchema = z.object({
   name: text(80).min(1, "Informe o nome do produto"),
   brand: text(60),
   category: text(30),
-  /** preço cheio em centavos */
+  /** Legado, como `couponId`: a vitrine não mostra preço nem cupom por produto (cupom é da marca). Produto novo fica com 0 e null. */
   price: z.number().int().nonnegative(),
   couponId: z.uuid().nullable(),
   url: httpUrl,
   imageUrl: httpUrl,
   icon: z.enum(ICONS),
-  /** quando preenchido, é para onde o botão de compra leva (no lugar do link do produto) */
+  /** quando preenchido, é para onde o clique no produto leva (no lugar do link do produto) */
   affiliateUrl: httpUrl,
   /** review em vídeo (Reels, TikTok, YouTube) */
   videoUrl: httpUrl,
   soldOut: z.boolean(),
-  /** ISO; última vez que o preço foi conferido na loja */
+  /** Legado: ISO da última vez que o preço foi conferido na loja. */
   priceCheckedAt: z.string().max(40).nullable(),
 });
 
@@ -84,7 +84,7 @@ export const vitrineContentSchema = z.object({
    * que ainda estejam no banco são descartados na leitura e na publicação.
    */
   look: z.object({
-    /** foto de capa no topo da vitrine */
+    /** foto de capa no topo da vitrine; opcional: sem ela, a capa é a primeira letra do nome */
     bannerUrl: httpUrl,
   }),
   /** Não muda mais nada na vitrine (cada seção aparece quando tem conteúdo); segue aqui porque a publicação grava a coluna. */
@@ -96,6 +96,11 @@ export const vitrineContentSchema = z.object({
   kits: z.array(kitSchema).max(20),
 });
 
+/** O que muda na home e nas configurações, salvo na hora: o editor não tem cópia própria disso. */
+export const vitrineProfileSchema = vitrineContentSchema.pick({ handle: true, name: true, avatarUrl: true, look: true });
+export type VitrineProfile = z.infer<typeof vitrineProfileSchema>;
+export const pickProfile = ({ handle, name, avatarUrl, look }: VitrineProfile): VitrineProfile => ({ handle, name, avatarUrl, look });
+
 /** Campos que chegaram depois: completam rascunhos e linhas antigas. */
 export const COUPON_EXTRA = { logoUrl: "", howTo: "", startsAt: null } satisfies Partial<z.infer<typeof couponSchema>>;
 export const PRODUCT_EXTRA = { affiliateUrl: "", videoUrl: "", soldOut: false, priceCheckedAt: null } satisfies Partial<z.infer<typeof productSchema>>;
@@ -105,6 +110,11 @@ export type Coupon = z.infer<typeof couponSchema>;
 export type Product = z.infer<typeof productSchema>;
 export type Kit = z.infer<typeof kitSchema>;
 export type VitrineContent = z.infer<typeof vitrineContentSchema>;
+
+/** Os produtos do kit na ordem dele; id sem produto (removido, esgotado fora da lista) fica de fora. */
+export function kitItems<P extends { id: string }>(kit: Pick<Kit, "productIds">, products: P[]) {
+  return kit.productIds.map((id) => products.find((p) => p.id === id)).filter((p): p is P => !!p);
+}
 export type IconId = (typeof ICONS)[number];
 export type SectionId = (typeof SECTION_IDS)[number];
 
@@ -114,7 +124,7 @@ export function emptyContent(handle: string, name: string): VitrineContent {
     name,
     avatarUrl: "",
     headline: "Tudo que eu uso, com o meu desconto.",
-    sub: "Escolha o produto, copie o cupom e economize direto na loja oficial da marca.",
+    sub: "Escolha o produto e compre direto na loja oficial. Os cupons de cada marca estão aqui também.",
     look: { bannerUrl: "" },
     show: { ticker: true, products: true, coupons: true, kits: true, cta: true },
     tracking: TRACKING,

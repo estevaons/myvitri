@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import type { SearchResults } from "@/lib/vitrine/data";
-import { couponBadge, couponOff, formatBRL } from "@/lib/vitrine/pricing";
+import { couponOff } from "@/lib/vitrine/pricing";
 import { kicker } from "./chrome";
 import { Avatar } from "./CreatorCard";
 
@@ -160,10 +160,7 @@ export function HomeSearch() {
                   </span>
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate text-[15px] font-medium">{p.name}</span>
-                    <span className="truncate text-[13px] text-mute">
-                      {p.price > 0 && <>{formatBRL(p.final)}{p.coupon && ` (${couponBadge(p.coupon)})`} · </>}
-                      por {p.creator}
-                    </span>
+                    <span className="truncate text-[13px] text-mute">por {p.creator}</span>
                   </span>
                 </Link>
               ))}

@@ -1,11 +1,11 @@
-import { PRODUCT_SORTS, queryProducts } from "@/lib/vitrine/catalog/products";
+import { queryProducts } from "@/lib/vitrine/catalog/products";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
-import { CatalogEmpty, CatalogFrame, catalogGrid, countLabel, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
+import { CatalogEmpty, CatalogFrame, catalogGrid, countLabel, FilterChips, LoadMore, ToggleChip } from "../catalog/ui";
 import { ProductCard } from "./produtos/ProductCard";
 
-const FILTERS = ["cat", "marca", "preco", "cupom", "video"] as const;
+const FILTERS = ["cat", "marca", "video"] as const;
 
-/** Aba "Produtos" do /inicio: o catálogo completo das vitrines, com filtros e ordenação na URL. */
+/** Aba "Produtos" do /inicio: o catálogo completo das vitrines, com filtros na URL. */
 export async function ProdutosTab({ params }: { params: TabParams }) {
   const { items, filters } = await queryProducts(params);
   const limit = limitOf(params);
@@ -16,17 +16,14 @@ export async function ProdutosTab({ params }: { params: TabParams }) {
   return (
     <CatalogFrame
       title="Produtos"
-      text="Tudo o que as vitrines indicam, com o preço já com o cupom."
+      text="Tudo o que as vitrines indicam."
       filters={
         <>
           <FilterChips label="Categoria" param="cat" options={filters.categories} params={params} />
           <FilterChips label="Marca" param="marca" options={filters.brands} params={params} />
-          <FilterChips label="Preço" param="preco" options={filters.prices} params={params} />
-          {filters.coupon && <ToggleChip label="Só com cupom" param="cupom" params={params} />}
           {filters.video && <ToggleChip label="Com review em vídeo" param="video" params={params} />}
         </>
       }
-      sort={<SortMenu options={PRODUCT_SORTS} params={params} />}
       count={countLabel(items.length, "produto", "produtos")}
       clearHref={clearHref}
     >

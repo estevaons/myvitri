@@ -9,7 +9,7 @@ import { safePath, saveReturn } from "@/lib/auth/return-to";
 import { HOST } from "@/lib/brand";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
 import { commentsTag, HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
-import { saveClaim, starterContent } from "@/lib/vitrine/claim";
+import { googlePhoto, saveClaim, starterContent } from "@/lib/vitrine/claim";
 import { findStoreLogos, importProductFromUrl, type ImportedProduct } from "@/lib/vitrine/import-link";
 import { COMMENT_MAX, type SocialResult } from "@/lib/vitrine/social";
 import {
@@ -25,8 +25,9 @@ import {
   publishVitrine as publish,
   saveDraft,
   setFavorite,
+  updateProfile,
 } from "@/lib/vitrine/store";
-import { emptyContent, vitrineContentSchema, type VitrineContent } from "@/lib/vitrine/types";
+import { emptyContent, pickProfile, vitrineContentSchema, vitrineProfileSchema, type VitrineContent, type VitrineProfile } from "@/lib/vitrine/types";
 
 export type FormState = { error?: string; notice?: string; handle?: string; name?: string; email?: string };
 
@@ -293,10 +294,11 @@ const ITEM_LABELS: Record<string, string> = { coupons: "Cupom", products: "Produ
 export type PublishResult = { ok: true; updatedAt: string } | { ok: false; error: string };
 
 export async function publishVitrine(content: VitrineContent): Promise<PublishResult> {
-  const { supabase, user } = await getUser();
-  if (!user) return { ok: false, error: "Sessão expirada. Entre de novo." };
+  const { supabase, user, vitrine } = await findMine();
+  if (!user || !vitrine) return { ok: false, error: "Sessão expirada. Entre de novo." };
 
-  const parsed = vitrineContentSchema.safeParse(content);
+  // o editor pode estar aberto há tempos: nome, link, foto e capa valem os do banco, não a cópia dele
+  const parsed = vitrineContentSchema.safeParse({ ...content, ...pickProfile(vitrine) });
   if (!parsed.success) {
     const { message, path } = parsed.error.issues[0];
     const where = ITEM_LABELS[String(path[0])];
@@ -315,6 +317,39 @@ export async function publishVitrine(content: VitrineContent): Promise<PublishRe
     console.error("publish_vitrine", e);
     return { ok: false, error: "Erro ao salvar. Tente de novo." };
   }
+}
+
+/** Grava nome, link, foto e capa por cima do que já está na vitrine e atualiza as páginas públicas. */
+async function saveProfile(patch: Partial<VitrineProfile>): Promise<SocialResult> {
+  const { supabase, user, vitrine } = await findMine();
+  if (!user || !vitrine) return { ok: false, error: "Sessão expirada. Entre de novo." };
+
+  // sem foto própria, vale a do Google: fica gravada porque a página pública não tem acesso aos dados do login
+  const profile = { ...pickProfile(vitrine), ...patch };
+  const parsed = vitrineProfileSchema.safeParse({ ...profile, avatarUrl: profile.avatarUrl || googlePhoto(user) });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+  try {
+    await updateProfile(supabase, user.id, parsed.data);
+  } catch (e) {
+    if (e instanceof HandleTakenError) return { ok: false, error: `${HOST}/${parsed.data.handle} já está em uso` };
+    console.error("updateProfile", e);
+    return { ok: false, error: "Não deu para salvar. Tente de novo." };
+  }
+  updateTag(vitrineTag(vitrine.handle));
+  if (vitrine.handle !== parsed.data.handle) updateTag(vitrineTag(parsed.data.handle));
+  updateTag(HOME_TAG);
+  return { ok: true };
+}
+
+/** Configurações: nome, link e foto de perfil. */
+export async function updateProfileAction(profile: Pick<VitrineProfile, "handle" | "name" | "avatarUrl">): Promise<SocialResult> {
+  return saveProfile(profile);
+}
+
+/** Home: a capa; vazia remove, e a vitrine passa a mostrar a primeira letra do nome. */
+export async function updateCoverAction(bannerUrl: string): Promise<SocialResult> {
+  return saveProfile({ look: { bannerUrl } });
 }
 
 /** Autosave do editor. null = igual ao publicado, não há rascunho para guardar. */

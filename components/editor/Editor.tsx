@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition, type MouseEvent, type ReactNode } from "react";
-import { publishVitrine, saveDraftAction, signOutAction } from "@/app/actions";
+import { publishVitrine, saveDraftAction } from "@/app/actions";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
+import { AccountMenu, type Account } from "@/components/home/AccountMenu";
 import { HOST } from "@/lib/brand";
 import { Storefront } from "@/components/storefront/Storefront";
-import type { VitrineContent } from "@/lib/vitrine/types";
+import { pickProfile, type VitrineContent } from "@/lib/vitrine/types";
 import { couponAlerts, CouponsPanel } from "./CouponsPanel";
-import { DeleteAccount } from "./DeleteAccount";
 import { KitsPanel } from "./KitsPanel";
 import { ProfilePanel, type Update } from "./panels";
 import { ProductsPanel } from "./ProductsPanel";
@@ -59,15 +59,6 @@ const TAB_ICONS: Record<TabId, ReactNode> = {
   ),
 };
 
-/** Gráfico de barras do Lucide, o mesmo da antiga aba Métricas. */
-function ChartIcon() {
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3" />
-    </svg>
-  );
-}
-
 function DesktopIcon() {
   return (
     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -90,13 +81,13 @@ export function Editor({
   published: initialPublished,
   draft: initialDraft,
   today,
-  email,
+  account,
   initialTab,
 }: {
   published: VitrineContent;
   draft: VitrineContent | null;
   today: string;
-  email: string;
+  account: Account;
   /** valor de ?aba= na URL, para voltar à mesma aba ao recarregar */
   initialTab?: string;
 }) {
@@ -115,6 +106,18 @@ export function Editor({
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [error, setError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+
+  // O estado acima só lê as props ao montar, e o Next mantém a tela viva ao navegar: nome, link, foto e capa, que mudam nas
+  // Configurações e na home, entram aqui sem tocar no que a pessoa está editando.
+  const profileJson = JSON.stringify(pickProfile(initialPublished));
+  const [seenProfile, setSeenProfile] = useState(profileJson);
+  if (profileJson !== seenProfile) {
+    const profile = pickProfile(initialPublished);
+    setSeenProfile(profileJson);
+    setDraft((d) => ({ ...d, ...profile }));
+    setPublished((p) => ({ ...p, ...profile }));
+    setSavedJson((s) => JSON.stringify({ ...JSON.parse(s), ...profile }));
+  }
 
   const draftJson = JSON.stringify(draft);
   const dirty = draftJson !== JSON.stringify(published);
@@ -154,7 +157,7 @@ export function Editor({
   };
 
   const panelProps = { draft, update };
-  const alerts = couponAlerts(draft.coupons, today).length;
+  const alerts =couponAlerts(draft.coupons, today).length;
   // a navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso
   const confirmLeave = (e: MouseEvent) => {
     if (unsaved && !confirm("Ainda estamos salvando suas alterações. Sair mesmo assim?")) e.preventDefault();
@@ -169,15 +172,6 @@ export function Editor({
             <Wordmark label="" className="h-[17px] w-auto" />
           </Link>
           <div className="flex-1" />
-          {/* as métricas ganharam página própria, no visual da home */}
-          <Link
-            href="/metricas"
-            onClick={confirmLeave}
-            className="flex min-h-10 items-center gap-1.5 rounded-[9px] px-3 text-[13px] font-semibold text-[#3A3A3A] no-underline hover:bg-[#F2F0EB] hover:text-ink"
-          >
-            <ChartIcon />
-            Métricas
-          </Link>
           <div role="group" aria-label="Tamanho da prévia" className="flex gap-0.5 rounded-xl bg-[#F2F0EB] p-[3px] max-sm:hidden">
             {(
               [
@@ -199,40 +193,42 @@ export function Editor({
               </button>
             ))}
           </div>
-          {dirty ? (
-            <span className="flex items-center gap-2 text-[13px] font-semibold text-[#8A3B12]">
-              <span aria-hidden="true" className="size-2 rounded-full bg-[#E8590C]" />
-              Não publicado
-              <span className={`font-medium ${saveFailed ? "text-[#A3361B]" : "text-[#5E5A52]"}`}>
-                · {saveFailed ? "erro ao salvar rascunho" : unsaved ? "salvando…" : "rascunho salvo"}
-              </span>
+          {/* um estado de cada vez: com alterações, o aviso e o botão de publicar; sem elas, a confirmação e o caminho para ver o resultado. No celular, ganha uma linha só dele. */}
+          <div className="flex items-center gap-3.5 max-sm:order-last max-sm:w-full max-sm:justify-between">
+            <span role="status" className={`flex items-center gap-2 text-[13px] font-medium ${saveFailed ? "text-[#A3361B]" : dirty ? "text-ink" : "text-[#5E5A52]"}`}>
+              {dirty ? (
+                <>
+                  <span aria-hidden="true" className={`size-2 flex-none rounded-full ${saveFailed ? "bg-[#A3361B]" : "bg-[#E8590C]"}`} />
+                  {saveFailed ? "Erro ao salvar o rascunho" : "Alterações não publicadas"}
+                </>
+              ) : (
+                <>
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1F6B3A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  Publicado
+                </>
+              )}
             </span>
-          ) : (
-            <span className="flex items-center gap-2 text-[13px] font-semibold text-[#1F6B3A]">
-              <span aria-hidden="true" className="size-2 rounded-full bg-[#1F9D55]" />
-              Publicado
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={publish}
-            disabled={saving || !dirty}
-            className="min-h-11 rounded-full border-0 bg-ink px-5 text-sm font-bold text-white"
-          >
-            {saving ? "Publicando…" : "Publicar"}
-          </button>
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              title={email ? `Sair de ${email}` : "Sair"}
-              onClick={(e) => {
-                if (unsaved && !confirm("Ainda estamos salvando suas alterações. Sair mesmo assim?")) e.preventDefault();
-              }}
-              className="min-h-11 border-0 bg-transparent px-2 text-sm font-semibold text-[#5E5A52] underline-offset-4 hover:underline"
-            >
-              Sair
-            </button>
-          </form>
+            {dirty ? (
+              <button type="button" onClick={publish} disabled={saving} className="min-h-11 flex-none cursor-pointer rounded-full border-0 bg-ink px-6 text-sm font-bold text-white transition-opacity hover:opacity-85 disabled:cursor-default disabled:opacity-60">
+                {saving ? "Publicando…" : "Publicar"}
+              </button>
+            ) : (
+              <a
+                href={`/${published.handle}`}
+                target="_blank"
+                rel="noopener"
+                className="group flex min-h-11 flex-none items-center gap-1.5 rounded-full border border-[#D8D3C9] bg-white px-5 text-sm font-semibold text-ink no-underline transition-colors hover:border-ink"
+              >
+                Ver vitrine
+                <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                  <path d="M7 17L17 7M9 7h8v8" />
+                </svg>
+              </a>
+            )}
+          </div>
+          <AccountMenu account={account} onLeave={confirmLeave} />
         </div>
         {error && (
           <div role="alert" className="flex items-center gap-3 border-t border-[#F1C9BC] bg-[#FFF1EC] px-5 py-2.5 text-sm font-semibold text-[#A3361B]">
@@ -278,12 +274,7 @@ export function Editor({
             ))}
           </div>
           <div role="tabpanel" className="flex flex-col gap-8 px-5 pt-6 pb-10">
-            {tab === "profile" && (
-              <>
-                <ProfilePanel {...panelProps} />
-                <DeleteAccount handle={published.handle} />
-              </>
-            )}
+            {tab === "profile" && <ProfilePanel {...panelProps} />}
             {tab === "coupons" && <CouponsPanel {...panelProps} today={today} />}
             {tab === "products" && <ProductsPanel {...panelProps} />}
             {tab === "kits" && <KitsPanel {...panelProps} />}

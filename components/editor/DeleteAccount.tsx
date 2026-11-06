@@ -7,10 +7,10 @@ import { HOST } from "@/lib/brand";
 import { Hint, inputCls, labelCls } from "./ui";
 
 /**
- * Apaga a conta de vez. No fim do painel Perfil do editor e nas configurações da home. Quem tem vitrine confirma
+ * Apaga a conta de vez, nas configurações da home. Quem tem vitrine confirma
  * digitando o link dela; quem não tem (sem `handle`) digita "excluir".
  */
-export function DeleteAccount({ handle, framed = true }: { handle?: string; /** linha de separação em cima, como no fim do painel do editor */ framed?: boolean }) {
+export function DeleteAccount({ handle }: { handle?: string }) {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export function DeleteAccount({ handle, framed = true }: { handle?: string; /** 
   };
 
   return (
-    <section className={`flex flex-col gap-2.5 ${framed ? "border-t border-[#EEEBE5] pt-6" : ""}`}>
+    <section className="flex flex-col gap-2.5">
       {!open ? (
         <button
           type="button"

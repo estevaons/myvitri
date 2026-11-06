@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { formatBRL } from "@/lib/vitrine/pricing";
 
 /** A foto do look e como ela está enquadrada (o `object-position` do <Image>): é o que liga um ponto da foto a um ponto do painel. */
 const PHOTO = { w: 2400, h: 1792, x: 0.5, y: 0.66 };
@@ -11,13 +10,13 @@ const FADE_MS = 1500;
 
 /**
  * As peças do look em cards de produto da vitrine. `place` é onde o card fica; `from` é de onde ele sai, a peça na roupa da mulher,
- * em fração da foto. Marcas e preços são de exemplo.
+ * em fração da foto. Os nomes são de exemplo.
  */
 const PIECES = [
   // o blazer sobe pela parede lisa à esquerda; a bolsa fica embaixo, do lado da mão que a segura; a calça vai para a cortina
-  { name: "Blazer de lã", brand: "Ateliê Bruma", src: "/hero/blazer.webp", price: 48990, off: 15, place: "top-[11%] left-[5%]", from: [0.45, 0.66] },
-  { name: "Calça de alfaiataria", brand: "Casa Linho", src: "/hero/calca.webp", price: 32990, off: 10, place: "top-[40%] right-[5%]", from: [0.53, 0.88] },
-  { name: "Bolsa de couro", brand: "Oficina Couro", src: "/hero/carteira.webp", price: 61990, off: 20, place: "bottom-[7%] left-[9%]", from: [0.42, 0.93] },
+  { name: "Blazer de lã", src: "/hero/blazer.webp", place: "top-[11%] left-[5%]", from: [0.45, 0.66] },
+  { name: "Calça de alfaiataria", src: "/hero/calca.webp", place: "top-[40%] right-[5%]", from: [0.53, 0.88] },
+  { name: "Bolsa de couro", src: "/hero/carteira.webp", place: "bottom-[7%] left-[9%]", from: [0.42, 0.93] },
 ] as const;
 
 /**
@@ -81,8 +80,8 @@ export function LookPanel() {
           }}
           aria-hidden="true"
           // começa escondido: quem mostra é a animação. A largura segue a altura da tela (os dois da esquerda precisam caber um
-          // sobre o outro) e a do painel (para não cobrir o look). No hover o card sobe, a sombra cresce, a foto aproxima e o botão
-          // fica preenchido como o da vitrine; `translate`/`scale` do Tailwind não brigam com o `transform` da animação de entrada
+          // sobre o outro) e a do painel (para não cobrir o look). No hover o card sobe, a sombra cresce e a foto aproxima;
+          // `translate`/`scale` do Tailwind não brigam com o `transform` da animação de entrada
           className={`group absolute flex w-[clamp(112px,min(17vh,15vw),184px)] flex-col rounded-2xl bg-white p-2 opacity-0 shadow-[0_24px_60px_-28px_rgba(17,17,17,0.45)] transition-[translate,box-shadow] duration-300 ease-out hover:shadow-[0_32px_70px_-26px_rgba(17,17,17,0.55)] motion-safe:hover:-translate-y-1.5 ${p.place}`}
         >
           <div className="relative aspect-square overflow-hidden rounded-lg bg-cream">
@@ -94,20 +93,7 @@ export function LookPanel() {
               className="object-cover transition-[scale] duration-500 ease-out motion-safe:group-hover:scale-[1.06]"
             />
           </div>
-          <div className="flex flex-col gap-px px-0.5 pt-2 text-[12px] leading-snug xl:text-[13px]">
-            <span className="text-[10px] font-medium tracking-[0.16em] text-gold uppercase">Cupom -{p.off}%</span>
-            <span className="line-clamp-2 font-medium">{p.name}</span>
-            <span className="truncate text-mute">{p.brand}</span>
-            <span className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
-              {/* a mesma conta do cupom percentual da vitrine (applyCoupon) */}
-              <span className="font-medium">{formatBRL(p.price - Math.round((p.price * p.off) / 100))}</span>
-              <span className="text-[11px] text-mute line-through">{formatBRL(p.price)}</span>
-            </span>
-          </div>
-          <span className="mt-2 flex min-h-8 items-center justify-center rounded-lg border border-ink text-[10px] font-medium tracking-[0.16em] uppercase transition-colors duration-300 group-hover:bg-ink group-hover:text-white">
-            {/* preenchido no hover, como o "Ver na loja" da vitrine */}
-            Ver na loja
-          </span>
+          <span className="line-clamp-2 px-0.5 pt-2 pb-1 text-center text-[12px] leading-snug font-medium xl:text-[13px]">{p.name}</span>
         </div>
       ))}
     </div>

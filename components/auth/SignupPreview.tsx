@@ -4,33 +4,29 @@ import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import Image from "next/image";
 import { Wordmark } from "@/components/brand/Logo";
 import { HOST } from "@/lib/brand";
-import { formatBRL } from "@/lib/vitrine/pricing";
 
 /*
  * Prévia de /criar-vitrine: a vitrine pública num celular, com o nome e o link que a pessoa digita, rolando sozinha pelas
  * seções; em volta, um perfil com o link na bio e avisos do que acontece quando a vitrine está no ar (tudo recurso que existe:
- * cupom copiado, visitas das métricas, favorito, comentário). Marcas, preços e pessoas são de exemplo. É decorativa: fica fora
+ * cupom copiado, visitas das métricas, favorito, comentário). Marcas e pessoas são de exemplo. É decorativa: fica fora
  * do leitor de tela, e a legenda diz o que ela mostra.
  */
 
 const PRODUCTS = [
-  { name: "Sérum de vitamina C", brand: "Casa Alma", src: "/create_account/serum.webp", price: 18990, off: 15 },
-  { name: "Eau de parfum Âmbar", brand: "Lume", src: "/create_account/perfume.webp", price: 34990, off: 10 },
-  { name: "Óculos de sol tartaruga", brand: "Ótica Mira", src: "/create_account/oculos.webp", price: 45900, off: 20 },
-  { name: "Tênis de couro branco", brand: "Passo Leve", src: "/create_account/tenis.webp", price: 52990, off: 10 },
-  { name: "Vela de figo", brand: "Casa Alma", src: "/create_account/vela.webp", price: 8990, off: 15 },
-  { name: "Bolsa de couro", brand: "Oficina Couro", src: "/hero/carteira.webp", price: 61990, off: 20 },
+  { name: "Sérum de vitamina C", src: "/create_account/serum.webp" },
+  { name: "Eau de parfum Âmbar", src: "/create_account/perfume.webp" },
+  { name: "Óculos de sol tartaruga", src: "/create_account/oculos.webp" },
+  { name: "Tênis de couro branco", src: "/create_account/tenis.webp" },
+  { name: "Vela de figo", src: "/create_account/vela.webp" },
+  { name: "Bolsa de couro", src: "/hero/carteira.webp" },
 ];
 /** O kit junta sérum, perfume e vela. */
 const KIT = [0, 1, 4].map((i) => PRODUCTS[i]);
 
 const COUPONS = [
-  { brand: "Casa Alma", off: "15% OFF", code: "ALMA15", rule: "Em todo o site, acima de R$ 150", when: "Vence em 5 dias" },
-  { brand: "Ótica Mira", off: "20% OFF", code: "MIRA20", rule: "Na coleção de verão", when: "Válido até 30/11" },
+  { brand: "Casa Alma", off: "15% OFF", code: "ALMA15", rule: "Em todo o site, acima de R$ 150" },
+  { brand: "Ótica Mira", off: "20% OFF", code: "MIRA20", rule: "Na coleção de verão" },
 ];
-
-/** A mesma conta do cupom percentual da vitrine (applyCoupon). */
-const withOff = (price: number, off: number) => price - Math.round((price * off) / 100);
 
 const initials = (name: string) =>
   name
@@ -99,16 +95,7 @@ function ProductCard({ p }: { p: (typeof PRODUCTS)[number] }) {
       <div className="relative aspect-square overflow-hidden bg-cream">
         <Image src={p.src} alt="" fill sizes="(min-width: 768px) 140px, 1px" className="object-cover" />
       </div>
-      <div className="flex flex-col gap-px pt-1.5 text-[10px] leading-snug">
-        <span className="text-[7.5px] font-medium tracking-[0.16em] text-gold uppercase">Cupom -{p.off}%</span>
-        <span className="line-clamp-2 font-medium">{p.name}</span>
-        <span className="text-mute">{p.brand}</span>
-        <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1">
-          <span className="font-medium">{formatBRL(withOff(p.price, p.off))}</span>
-          <span className="text-[8.5px] text-mute line-through">{formatBRL(p.price)}</span>
-        </span>
-      </div>
-      <span className="mt-1.5 flex min-h-6 items-center justify-center border border-ink text-[7.5px] font-medium tracking-[0.16em] uppercase">Ver na loja</span>
+      <span className="line-clamp-2 pt-1.5 text-center text-[10px] leading-snug font-medium">{p.name}</span>
     </div>
   );
 }
@@ -121,8 +108,6 @@ function PhoneStorefront({ name, handle }: { name: string; handle: string }) {
   const shown = name.trim() || "Seu nome";
   // sem nome ainda, "A vitrine de Seu" soaria estranho
   const headline = name.trim() ? `A vitrine de ${name.trim().split(/\s+/)[0]}` : "A sua vitrine";
-  const kitPrice = KIT.reduce((sum, p) => sum + p.price, 0);
-  const kitFinal = KIT.reduce((sum, p) => sum + withOff(p.price, p.off), 0);
 
   return (
     <div
@@ -193,13 +178,10 @@ function PhoneStorefront({ name, handle }: { name: string; handle: string }) {
               <div className="flex gap-2 overflow-hidden px-3">
                 {COUPONS.map((c) => (
                   <div key={c.code} className="box-border flex w-[78%] flex-none flex-col gap-2.5 border border-sand bg-cream p-3.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex min-w-0 items-center gap-1.5">
-                        <span className="flex size-5 flex-none items-center justify-center rounded-full bg-white font-display text-[10px]">{c.brand[0]}</span>
-                        <span className="truncate text-[10px] font-medium">{c.brand}</span>
-                      </span>
-                      <span className="flex-none text-[8.5px] text-mute">{c.when}</span>
-                    </div>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="flex size-5 flex-none items-center justify-center rounded-full bg-white font-display text-[10px]">{c.brand[0]}</span>
+                      <span className="truncate text-[10px] font-medium">{c.brand}</span>
+                    </span>
                     <div className="flex flex-col gap-1">
                       <span className="font-display text-[32px] leading-none lining-nums">{c.off}</span>
                       <span className="text-[9.5px] leading-snug text-mute">{c.rule}</span>
@@ -244,16 +226,13 @@ function PhoneStorefront({ name, handle }: { name: string; handle: string }) {
                 ))}
               </div>
               <span className="font-display text-[22px] leading-none">Ritual de autocuidado</span>
-              <div className="flex items-end justify-between gap-2 border-t border-sand pt-2.5">
-                <span className="flex flex-col text-[9.5px]">
-                  <span className="text-mute">Total do kit com cupom</span>
-                  <span className="font-medium text-gold">Você economiza {formatBRL(kitPrice - kitFinal)}</span>
-                </span>
-                <span className="flex items-baseline gap-1.5">
-                  <span className="text-[9.5px] text-mute line-through">{formatBRL(kitPrice)}</span>
-                  <span className="text-[16px] leading-none font-medium">{formatBRL(kitFinal)}</span>
-                </span>
-              </div>
+              <ul className="m-0 flex list-none flex-col border-t border-sand p-0">
+                {KIT.map((p) => (
+                  <li key={p.src} className="border-b border-sand py-1.5 text-[10px] font-medium">
+                    {p.name}
+                  </li>
+                ))}
+              </ul>
             </section>
           </div>
         </div>

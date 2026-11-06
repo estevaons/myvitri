@@ -1,7 +1,7 @@
 import type { Product, VitrineContent } from "./types";
 
 /**
- * Acrescenta utm_source/medium/campaign ao link da loja, para a marca enxergar a venda no analytics dela.
+ * Acrescenta utm_source/medium/campaign ao link da loja do cupom, para a marca enxergar a venda no analytics dela.
  * Não mexe em links que já trazem UTM nem em links inválidos.
  */
 export function withUtm(url: string, content: Pick<VitrineContent, "handle" | "tracking">) {
@@ -18,7 +18,10 @@ export function withUtm(url: string, content: Pick<VitrineContent, "handle" | "t
   }
 }
 
-/** Para onde o botão de compra leva: o link de afiliado como veio (redirecionadores quebram com parâmetros extras) ou o da loja com UTM. */
-export function productHref(p: Pick<Product, "url" | "affiliateUrl">, content: Pick<VitrineContent, "handle" | "tracking">) {
-  return p.affiliateUrl || withUtm(p.url, content);
+/**
+ * Para onde o clique no produto leva: exatamente o link que a pessoa colou. Não dá para saber se ele é de afiliado, e
+ * redirecionadores quebram com parâmetros extras, então não leva UTM. `affiliateUrl` só existe em produtos antigos, de quando eram dois campos.
+ */
+export function productHref(p: Pick<Product, "url" | "affiliateUrl">) {
+  return p.affiliateUrl || p.url;
 }

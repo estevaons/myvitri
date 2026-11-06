@@ -13,7 +13,7 @@ export const SORTS: [value: string, label: string][] = [
 ];
 
 /** "Vencendo esta semana": algum cupom da marca vence em até 7 dias. */
-export const SOON_DAYS = 7;
+const SOON_DAYS = 7;
 /** O filtro por letra só ajuda quando a lista já é longa. */
 export const LETTER_MIN = 24;
 /** Marcas que começam com número ou símbolo. */

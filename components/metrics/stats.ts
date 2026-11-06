@@ -7,10 +7,10 @@ export type Stats = {
   days: { day: string; views: number; clicks: number }[];
   items: { id: string; kind: string; n: number }[];
   /**
-   * Totais dos `days` dias anteriores à janela atual, mais `buy_coupon` (cliques em produto com cupom).
+   * Totais dos `days` dias anteriores à janela atual.
    * Só existe depois da migração 20261105000000_metrics_previous; sem ela, a página não mostra a variação.
    */
-  previous?: Partial<Record<EventKind | "buy_coupon", number>>;
+  previous?: Partial<Record<EventKind, number>>;
 };
 
 export const PERIODS = [7, 30, 90] as const;

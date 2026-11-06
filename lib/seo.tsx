@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { BRAND, CONTACT_EMAIL, SITE_URL } from "@/lib/brand";
-import { isActive, priceProducts } from "@/lib/vitrine/pricing";
+import { isActive } from "@/lib/vitrine/pricing";
 import type { VitrineContent } from "@/lib/vitrine/types";
 
 /**
@@ -88,11 +88,10 @@ export function listNames(names: string[], max = 4) {
   return shown.length > 1 ? `${shown.slice(0, -1).join(", ")} e ${shown.at(-1)}` : (shown[0] ?? "");
 }
 
-/** Perfil da creator e os produtos da vitrine com o preço que aparece na tela (já com o cupom). */
-export function vitrineJsonLd(content: VitrineContent, today: string) {
+/** Perfil da creator e os produtos da vitrine, sem preço: a vitrine não mostra, e o preço vale o da loja. */
+export function vitrineJsonLd(content: VitrineContent) {
   const url = `${SITE_URL}/${content.handle}`;
-  const coupons = content.coupons.filter((c) => isActive(c, today));
-  const products = priceProducts(content.products, coupons);
+  const products = content.products;
   const person = {
     "@type": "Person",
     "@id": `${url}#person`,
@@ -137,15 +136,7 @@ export function vitrineJsonLd(content: VitrineContent, today: string) {
                   ...(p.brand && { brand: { "@type": "Brand", name: p.brand } }),
                   ...(p.category && { category: p.category }),
                   ...(p.imageUrl && { image: p.imageUrl }),
-                  ...(p.price > 0 && {
-                    offers: {
-                      "@type": "Offer",
-                      price: (p.final / 100).toFixed(2),
-                      priceCurrency: "BRL",
-                      availability: p.soldOut ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
-                      ...((p.affiliateUrl || p.url) && { url: p.affiliateUrl || p.url }),
-                    },
-                  }),
+                  ...((p.affiliateUrl || p.url) && { url: p.affiliateUrl || p.url }),
                 },
               })),
             },

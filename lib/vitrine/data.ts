@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
-import { applyCoupon, isActive, kitTotals, priceProducts, type PricedProduct } from "./pricing";
+import { isActive } from "./pricing";
 import {
   findByHandle,
   listComments,
@@ -14,7 +14,7 @@ import {
   type FeedVitrine,
 } from "./store";
 import type { CommentList } from "./social";
-import type { Coupon, VitrineContent } from "./types";
+import { kitItems, type Coupon, type Product, type VitrineContent } from "./types";
 
 export const vitrineTag = (handle: string) => `vitrine:${handle}`;
 /** Invalidado junto com a vitrine ao publicar: a home mostra o que acabou de entrar. */
@@ -79,12 +79,11 @@ export type HomeCreator = By & {
   bannerUrl: string;
   coupons: number;
   products: number;
-  art: PricedProduct[];
 };
 export type HomeCoupon = Coupon & By;
-export type HomeProduct = PricedProduct & By;
+export type HomeProduct = Product & By;
 export type HomeBrand = By & { brand: string; logoUrl: string; best: Coupon; creators: number };
-export type HomeFeed = { creators: HomeCreator[]; coupons: HomeCoupon[]; products: HomeProduct[]; brands: HomeBrand[]; today: string };
+export type HomeFeed = { creators: HomeCreator[]; coupons: HomeCoupon[]; products: HomeProduct[]; brands: HomeBrand[] };
 
 /** Percentual sempre na frente de valor fixo; dentro de cada tipo, o maior. */
 export const rank = (c: Coupon) => (c.kind === "percent" ? 1_000_000 + c.value : c.value);
@@ -98,11 +97,11 @@ export function interleave<T>(lists: T[][]): T[] {
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 
-/** Cupons ativos (o melhor primeiro) e produtos à venda com o preço já com o cupom. */
+/** Cupons ativos (o melhor primeiro) e produtos à venda. */
 export function live(v: FeedVitrine, today: string) {
   const by = { handle: v.handle, creator: v.name };
   const coupons = v.coupons.filter((c) => isActive(c, today)).sort((a, b) => rank(b) - rank(a));
-  const products = priceProducts(v.products, coupons).filter((p) => !p.soldOut);
+  const products = v.products.filter((p) => !p.soldOut);
   return { v, by, coupons, products };
 }
 
@@ -116,7 +115,6 @@ const toHomeCreator = ({ v, by, coupons, products }: ReturnType<typeof live>): H
   bannerUrl: v.look.bannerUrl,
   coupons: coupons.length,
   products: products.length,
-  art: products.slice(0, 4),
 });
 
 /** Uma marca por nome; o selo mostra o melhor cupom dela e leva à vitrine de quem o oferece. Mantém a ordem de chegada. */
@@ -151,7 +149,6 @@ export async function getHomeFeed(): Promise<HomeFeed> {
     coupons: coupons.slice(0, 8),
     products: products.slice(0, 48),
     brands: groupBrands(coupons).slice(0, 8),
-    today,
   };
 }
 
@@ -170,21 +167,23 @@ export async function getTopCreators(): Promise<HomeCreator[]> {
   return liveFeed(await listFeedByHandles(db, handles), todayISO()).map(toHomeCreator);
 }
 
-export type HomeKit = By & { id: string; name: string; description: string; items: PricedProduct[]; total: number; final: number; save: number };
+export type HomeKit = By & { id: string; name: string; description: string; items: Product[] };
 
-/** Últimos kits publicados, com o total e quanto o cupom economiza. Kits sem nenhum produto à venda ficam de fora. */
+/** Últimos kits publicados. Kits sem nenhum produto à venda ficam de fora. */
 export async function getRecentKits(): Promise<HomeKit[]> {
   "use cache";
   cacheTag(HOME_TAG);
   cacheLife("hours");
 
-  const today = todayISO();
   return (await listRecentKits(createPublicSupabase(), 12))
-    .map(({ kit, handle, creator, coupons, products }): HomeKit => {
-      const priced = priceProducts(products.filter((p) => !p.soldOut), coupons.filter((c) => isActive(c, today)));
-      const { items, total, final, save } = kitTotals(kit, priced);
-      return { handle, creator, id: kit.id, name: kit.name, description: kit.description, items, total, final, save };
-    })
+    .map(({ kit, handle, creator, products }): HomeKit => ({
+      handle,
+      creator,
+      id: kit.id,
+      name: kit.name,
+      description: kit.description,
+      items: kitItems(kit, products.filter((p) => !p.soldOut)),
+    }))
     .filter((k) => k.items.length > 0);
 }
 
@@ -195,7 +194,7 @@ export type SearchResults = { creators: SearchCreator[]; brands: HomeBrand[]; pr
 const SEARCH_MIN = 2;
 const SEARCH_LIMIT = 5;
 
-/** Busca da home logada: creators, marcas com o melhor cupom ativo e produtos à venda com o preço com cupom. */
+/** Busca da home logada: creators, marcas com o melhor cupom ativo e produtos à venda. */
 export async function searchHome(q: string): Promise<SearchResults> {
   "use cache";
   cacheTag(HOME_TAG);
@@ -204,15 +203,9 @@ export async function searchHome(q: string): Promise<SearchResults> {
   if (q.trim().length < SEARCH_MIN) return { creators: [], brands: [], products: [] };
   const today = todayISO();
   const hits = await searchCatalog(createPublicSupabase(), q, SEARCH_LIMIT);
-  const products = hits.products
-    .filter((p) => !p.soldOut)
-    .map(({ coupon, ...p }): HomeProduct => {
-      const active = coupon && isActive(coupon, today) ? coupon : undefined;
-      return { ...p, coupon: active, final: applyCoupon(p.price, active) };
-    });
   return {
     creators: hits.creators,
     brands: groupBrands(hits.coupons.filter((c) => isActive(c, today))).slice(0, SEARCH_LIMIT),
-    products: products.slice(0, SEARCH_LIMIT),
+    products: hits.products.filter((p) => !p.soldOut).slice(0, SEARCH_LIMIT),
   };
 }

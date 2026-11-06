@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { CreateVitrinePanel } from "@/components/auth/forms";
 import { Editor } from "@/components/editor/Editor";
+import { accountOf } from "@/lib/vitrine/account";
 import { findDraft, findMine } from "@/lib/vitrine/store";
 
 export const metadata: Metadata = { title: "Editar vitrine", robots: { index: false } };
@@ -20,7 +21,7 @@ async function EditorLoader({ searchParams }: Pick<PageProps<"/editor">, "search
     return <CreateVitrinePanel suggestedName={meta.name ?? ""} />;
   }
   const draft = await findDraft(supabase, user.id, vitrine);
-  return <Editor published={vitrine} draft={draft} today={new Date().toISOString().slice(0, 10)} email={user.email ?? ""} initialTab={typeof aba === "string" ? aba : undefined} />;
+  return <Editor published={vitrine} draft={draft} today={new Date().toISOString().slice(0, 10)} account={accountOf(user, vitrine)} initialTab={typeof aba === "string" ? aba : undefined} />;
 }
 
 export default function Page({ searchParams }: PageProps<"/editor">) {

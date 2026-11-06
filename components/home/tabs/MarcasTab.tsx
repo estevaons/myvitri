@@ -57,7 +57,6 @@ export async function MarcasTab({ params }: { params: TabParams }) {
   const detail = selected && (
     <BrandDetail
       b={selected}
-      today={today}
       closeHref={closeHref}
       categories={selected.categories.map((c) => categoryLabels[c] ?? c)}
       // dentro da grade, logo abaixo da linha da marca em cada largura (via `order`); fora dela (filtrada ou
@@ -87,7 +86,7 @@ export async function MarcasTab({ params }: { params: TabParams }) {
             {shown.map((b, i) => (
               <Fragment key={b.key}>
                 <div style={{ order: i * 2 }} className="flex min-w-0 [&>a]:w-full">
-                  <BrandCard b={b} today={today} selected={i === selectedAt} href={i === selectedAt ? closeHref : hrefWith(params, { marca: b.key, ...keep })} />
+                  <BrandCard b={b} selected={i === selectedAt} href={i === selectedAt ? closeHref : hrefWith(params, { marca: b.key, ...keep })} />
                 </div>
                 {i === selectedAt && detail}
               </Fragment>

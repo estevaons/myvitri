@@ -111,7 +111,7 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
       coupons: (couponsOf.get(row.id) ?? []).map(toCoupon),
       products: (productsOf.get(row.id) ?? []).map(toProduct),
     };
-    // cupons ativos com o melhor primeiro; produtos à venda já com o preço do cupom
+    // cupons ativos com o melhor primeiro; produtos à venda
     const { coupons: active, products: onSale } = live(feed, today);
     if (!active.length && !onSale.length) continue;
 
@@ -135,7 +135,6 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
         bannerUrl: feed.look.bannerUrl,
         coupons: active.length,
         products: onSale.length,
-        art: onSale.slice(0, 4),
       },
       categories: categories.map(([, label]) => label),
       categoryKeys: categories.map(([k]) => k),

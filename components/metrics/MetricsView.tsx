@@ -4,8 +4,8 @@ import { kicker, pad, pillDark, pillLight, SiteFooter, SiteHeader } from "@/comp
 import { CopyLinkButton } from "@/components/home/CopyLinkButton";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import { HOST } from "@/lib/brand";
-import { couponOff, couponStatus, daysLeft, ddmm, expiryLabel, formatBRL, priceProducts, type PricedProduct } from "@/lib/vitrine/pricing";
-import type { Coupon, Kit, VitrineContent } from "@/lib/vitrine/types";
+import { couponOff, couponStatus, daysLeft, ddmm, expiryLabel } from "@/lib/vitrine/pricing";
+import type { Coupon, Kit, Product, VitrineContent } from "@/lib/vitrine/types";
 import { DailyChart } from "./DailyChart";
 import { PERIODS, type EventKind, type Period, type Stats } from "./stats";
 
@@ -107,7 +107,7 @@ function Thumb({ children }: { children?: ReactNode }) {
   );
 }
 
-function KitThumb({ items }: { items: PricedProduct[] }) {
+function KitThumb({ items }: { items: Product[] }) {
   if (items.length <= 1) return <Thumb>{items[0] && <ProductArt product={items[0]} iconClassName="w-[56%]" strokeWidth={3.6} />}</Thumb>;
   return (
     <div aria-hidden="true" className="grid size-16 flex-none grid-cols-2 grid-rows-2 gap-px overflow-hidden bg-white">
@@ -176,7 +176,7 @@ function alertsOf(v: VitrineContent, today: string): Alert[] {
   });
   const soldOut = v.products
     .filter((p) => p.soldOut)
-    .map((p): Alert => ({ key: p.id, title: p.name, text: "Esgotado: aparece sem o botão de compra.", href: "/editor?aba=produtos", cta: "Corrigir", urgent: true }));
+    .map((p): Alert => ({ key: p.id, title: p.name, text: "Esgotado: aparece sem o link para a loja.", href: "/editor?aba=produtos", cta: "Corrigir", urgent: true }));
   // os urgentes primeiro; os agendados são só um lembrete
   return [...coupons, ...soldOut].sort((a, b) => Number(b.urgent) - Number(a.urgent));
 }
@@ -255,10 +255,9 @@ function Alerts({ alerts }: { alerts: Alert[] }) {
 export function MetricsView({ vitrine, stats, period, today, position, path = "/metricas" }: MetricsData) {
   const total = (k: EventKind) => stats?.totals[k] ?? 0;
   const prev = stats?.previous;
-  const prevOf = (...ks: (EventKind | "buy_coupon")[]) => (prev ? ks.reduce((s, k) => s + (prev[k] ?? 0), 0) : undefined);
+  const prevOf = (...ks: EventKind[]) => (prev ? ks.reduce((s, k) => s + (prev[k] ?? 0), 0) : undefined);
 
-  const priced = priceProducts(vitrine.products, vitrine.coupons);
-  const products = new Map(priced.map((p) => [p.id, p]));
+  const products = new Map<string, Product>(vitrine.products.map((p) => [p.id, p]));
   const coupons = new Map<string, Coupon>(vitrine.coupons.map((c) => [c.id, c]));
   const kits = new Map<string, Kit>(vitrine.kits.map((k) => [k.id, k]));
   const items = stats?.items ?? [];
@@ -270,9 +269,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
 
   const views = total("view");
   const toStore = total("buy") + total("copy");
-  // o clique num produto com cupom também copia o código, então conta como cupom copiado
-  const buyCoupon = items.filter((i) => i.kind === "buy" && products.get(i.id)?.coupon).reduce((s, i) => s + i.n, 0);
-  const copied = total("copy") + buyCoupon;
+  const copied = total("copy");
   const clicks = toStore + total("kit") + total("video");
   const alerts = alertsOf(vitrine, today);
 
@@ -283,15 +280,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
       n,
       thumb: <Thumb>{p && <ProductArt product={p} iconClassName="w-[56%]" strokeWidth={3.6} />}</Thumb>,
       title: p?.name ?? "Item removido",
-      sub: p ? (
-        <>
-          {formatBRL(p.final)}
-          {p.coupon && p.final < p.price && <span className="ml-1.5 line-through">{formatBRL(p.price)}</span>}
-          {p.coupon && <span> · {p.coupon.code}</span>}
-        </>
-      ) : (
-        "não está mais na vitrine"
-      ),
+      sub: p ? p.brand : "não está mais na vitrine",
     };
   });
   const couponRows: RankRow[] = top("copy").map(({ id, n }) => {
@@ -321,7 +310,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
   });
   const kitRows: RankRow[] = top("kit").map(({ id, n }) => {
     const k = kits.get(id);
-    const kitItems = k ? k.productIds.map((pid) => products.get(pid)).filter((p): p is PricedProduct => !!p) : [];
+    const kitItems = k ? k.productIds.map((pid) => products.get(pid)).filter((p): p is Product => !!p) : [];
     return {
       id,
       n,
@@ -376,7 +365,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
                 hint={views ? `${pct(toStore, views)} de quem visitou` : undefined}
                 delta={<Delta cur={toStore} prev={prevOf("buy", "copy")} period={period} />}
               />
-              <Kpi label="Cupons copiados" value={copied} hint="nos cupons e nos produtos" delta={<Delta cur={copied} prev={prevOf("copy", "buy_coupon")} period={period} />} />
+              <Kpi label="Cupons copiados" value={copied} delta={<Delta cur={copied} prev={prevOf("copy")} period={period} />} />
               <Kpi
                 label="Kits e reviews"
                 value={total("kit") + total("video")}

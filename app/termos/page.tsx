@@ -91,7 +91,7 @@ export default function Termos() {
 
       <Section title="8. Suspensão e encerramento">
         <p>
-          Você pode deixar de usar o {BRAND} quando quiser e excluir sua conta no editor (aba Perfil, “Excluir conta”). A exclusão
+          Você pode deixar de usar o {BRAND} quando quiser e excluir sua conta nas Configurações (no menu da sua foto, “Excluir minha conta”). A exclusão
           apaga na hora a vitrine e todo o seu conteúdo e não pode ser desfeita; o link fica livre para outra pessoa. Também dá para
           pedir a exclusão por {mail}. Podemos remover conteúdo, suspender ou encerrar contas que violem estes termos ou a lei,
           avisando quando possível.

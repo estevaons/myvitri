@@ -2,11 +2,10 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { Avatar } from "@/components/home/CreatorCard";
 import type { CatalogBrand } from "@/lib/vitrine/catalog/brands";
-import { couponOff, daysLeft, expiryLabel } from "@/lib/vitrine/pricing";
+import { couponOff } from "@/lib/vitrine/pricing";
 import { kicker } from "../../chrome";
 import { countLabel } from "../../catalog/ui";
 import { BrandLogo } from "./BrandCard";
-import { SOON_DAYS } from "./query";
 
 /**
  * Comparativo de uma marca: todos os cupons ativos dela, de todas as creators, lado a lado e do melhor
@@ -14,14 +13,12 @@ import { SOON_DAYS } from "./query";
  */
 export function BrandDetail({
   b,
-  today,
   closeHref,
   categories,
   className = "",
   style,
 }: {
   b: CatalogBrand;
-  today: string;
   closeHref: string;
   categories: string[];
   className?: string;
@@ -47,33 +44,27 @@ export function BrandDetail({
 
       {/* no celular rola de lado, como os cupons da landing; no computador, em grade */}
       <ol className="no-scrollbar m-0 -mx-5 flex list-none snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(230px,1fr))] md:gap-4 md:overflow-visible md:px-0">
-        {b.coupons.map((c, i) => {
-          const soon = (daysLeft(c, today) ?? Infinity) <= SOON_DAYS;
-          return (
-            <li key={c.id} className="flex w-[78%] flex-none snap-start md:w-auto">
-              <Link
-                href={`/${c.handle}#cupons`}
-                className="box-border flex w-full flex-col gap-4 border border-sand bg-cream p-5 text-ink no-underline hover:border-gold md:min-h-[240px]"
-              >
-                <span className="flex min-w-0 items-center justify-between gap-3">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Avatar name={c.name} url={c.avatarUrl} className="box-border size-8 flex-none rounded-full border border-sand text-[11px]" />
-                    <span className="truncate text-[14px] font-medium">{c.name}</span>
-                  </span>
-                  {i === 0 && b.coupons.length > 1 && <span className={`${kicker} flex-none text-[10px] text-gold`}>Melhor</span>}
+        {b.coupons.map((c, i) => (
+          <li key={c.id} className="flex w-[78%] flex-none snap-start md:w-auto">
+            <Link
+              href={`/${c.handle}#cupons`}
+              className="box-border flex w-full flex-col gap-4 border border-sand bg-cream p-5 text-ink no-underline hover:border-gold md:min-h-[240px]"
+            >
+              <span className="flex min-w-0 items-center justify-between gap-3">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Avatar name={c.name} url={c.avatarUrl} className="box-border size-8 flex-none rounded-full border border-sand text-[11px]" />
+                  <span className="truncate text-[14px] font-medium">{c.name}</span>
                 </span>
-                <span className="flex flex-col gap-1.5">
-                  <span className="font-display text-[44px] leading-[0.95] font-normal lining-nums md:text-[52px]">{couponOff(c)}</span>
-                  {c.condition && <span className="text-[14px] leading-snug text-mute">{c.condition}</span>}
-                </span>
-                <span className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-sand pt-4 text-[13px]">
-                  <span className={`${soon ? "font-medium text-gold" : "text-mute"}`}>{expiryLabel(c, today)}</span>
-                  <span className={`flex-none ${kicker} text-[11px] text-gold`}>Pegar cupom</span>
-                </span>
-              </Link>
-            </li>
-          );
-        })}
+                {i === 0 && b.coupons.length > 1 && <span className={`${kicker} flex-none text-[10px] text-gold`}>Melhor</span>}
+              </span>
+              <span className="flex flex-col gap-1.5">
+                <span className="font-display text-[44px] leading-[0.95] font-normal lining-nums md:text-[52px]">{couponOff(c)}</span>
+                {c.condition && <span className="text-[14px] leading-snug text-mute">{c.condition}</span>}
+              </span>
+              <span className={`mt-auto border-t border-sand pt-4 ${kicker} text-[11px] text-gold`}>Pegar cupom</span>
+            </Link>
+          </li>
+        ))}
       </ol>
     </section>
   );

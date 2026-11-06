@@ -1,17 +1,20 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
 import Link from "next/link";
-import { requestPasswordResetAction, signOutAction, type FormState } from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { requestPasswordResetAction, signOutAction, updateProfileAction, type FormState } from "@/app/actions";
 import { DeleteAccount } from "@/components/editor/DeleteAccount";
+import { FilePick } from "@/components/editor/ImageField";
+import { uploadImage } from "@/components/editor/upload";
 import { HOST } from "@/lib/brand";
-import { kicker, pillLight } from "./chrome";
+import { kicker, pillDark, pillLight } from "./chrome";
 
 /**
  * O que a home sabe de quem entrou. `providers` vem do Supabase: "email" (senha) e/ou "google". `avatarUrl` é a foto da
- * vitrine ou, sem ela, a do Google; vazio quando não há nenhuma.
+ * vitrine ou, sem ela, `googlePhoto`; vazio quando não há nenhuma.
  */
-export type Account = { name: string; email: string; avatarUrl: string; providers: string[]; vitrine: { handle: string; name: string } | null };
+export type Account = { name: string; email: string; avatarUrl: string; googlePhoto: string; providers: string[]; vitrine: { handle: string; name: string; avatarUrl: string } | null };
 
 const initials = (text: string) =>
   text
@@ -48,10 +51,11 @@ const item =
   "flex min-h-11 w-full cursor-pointer items-center border-0 bg-transparent px-4 text-left text-[14px] text-ink no-underline hover:bg-cream focus-visible:bg-cream focus-visible:outline-none";
 
 /**
- * Canto direito do cabeçalho da home: a foto (ou as iniciais) abre um menu com Configurações e Sair. Fecha com Esc, com um clique
- * fora ou quando o foco sai dele.
+ * Canto direito do cabeçalho da home e do editor: a foto (ou as iniciais) abre um menu com Configurações e Sair. Fecha com Esc, com um
+ * clique fora ou quando o foco sai dele. `onLeave` roda ao clicar no que tira a pessoa da página e pode cancelar com `preventDefault`:
+ * o editor avisa se ainda há alterações sendo salvas.
  */
-export function AccountMenu({ account }: { account: Account }) {
+export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: (e: MouseEvent) => void }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -114,7 +118,7 @@ export function AccountMenu({ account }: { account: Account }) {
               Configurações
             </button>
             <form action={signOutAction}>
-              <button type="submit" className={item}>
+              <button type="submit" onClick={onLeave} className={item}>
                 Sair
               </button>
             </form>
@@ -122,7 +126,7 @@ export function AccountMenu({ account }: { account: Account }) {
         </div>
       )}
 
-      <SettingsDialog ref={dialog} account={account} />
+      <SettingsDialog ref={dialog} account={account} onLeave={onLeave} />
     </div>
   );
 }
@@ -133,6 +137,110 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
       <h3 className={`${kicker} m-0 text-[11px] text-gold`}>{title}</h3>
       {children}
     </section>
+  );
+}
+
+const fieldLabel = "flex flex-col gap-1.5 text-[14px] text-mute";
+const fieldBox = "box-border flex h-11 w-full items-center border border-sand bg-white text-[15px] text-ink focus-within:border-ink";
+
+/**
+ * Nome, link e foto de quem tem vitrine: ao salvar, mudam na hora na vitrine pública. Sem foto própria, vale a do Google:
+ * é o que remover mostra e, por isso, ela mesma não tem o que remover.
+ */
+function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["vitrine"]>; googlePhoto: string }) {
+  const router = useRouter();
+  const [name, setName] = useState(vitrine.name);
+  const [handle, setHandle] = useState(vitrine.handle);
+  const [avatarUrl, setAvatarUrl] = useState(vitrine.avatarUrl || googlePhoto);
+  const [uploading, setUploading] = useState(false);
+  const [saving, startSaving] = useTransition();
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  const changedLink = handle !== vitrine.handle;
+  const changed = name !== vitrine.name || changedLink || avatarUrl !== vitrine.avatarUrl;
+
+  const edit = <T,>(set: (v: T) => void) => (v: T) => {
+    set(v);
+    setSaved(false);
+    setError("");
+  };
+
+  const pick = async (file: File) => {
+    setError("");
+    setSaved(false);
+    setUploading(true);
+    const res = await uploadImage("avatar", file);
+    setUploading(false);
+    if (!res.ok) return setError(res.error);
+    setAvatarUrl(res.url);
+  };
+
+  const save = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    startSaving(async () => {
+      const res = await updateProfileAction({ handle, name, avatarUrl });
+      if (!res.ok) return setError(res.error);
+      setSaved(true);
+      router.refresh();
+    });
+  };
+
+  return (
+    <Block title="Perfil">
+      <form onSubmit={save} className="flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <Avatar key={avatarUrl} url={avatarUrl} label={name} className={`size-16 flex-none text-[20px] ${uploading ? "animate-pulse" : ""}`} />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <FilePick onFile={pick} disabled={uploading} className={`${pillLight} min-h-10 cursor-pointer px-5 text-[11px] has-focus-visible:ring-2 has-focus-visible:ring-ink`}>
+              {uploading ? "Enviando…" : avatarUrl ? "Trocar foto" : "Enviar foto"}
+            </FilePick>
+            {avatarUrl && avatarUrl !== googlePhoto && !uploading && (
+              <button type="button" onClick={() => edit(setAvatarUrl)(googlePhoto)} className="cursor-pointer border-0 bg-transparent p-0 text-[13px] text-mute underline underline-offset-2 hover:text-ink">
+                Remover
+              </button>
+            )}
+          </div>
+        </div>
+        <label className={fieldLabel}>
+          Nome
+          <span className={fieldBox}>
+            <input value={name} onChange={(e) => edit(setName)(e.target.value)} maxLength={60} className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-inherit outline-none" />
+          </span>
+        </label>
+        <label className={fieldLabel}>
+          Seu link
+          <span className={fieldBox}>
+            <span className="pl-3 text-mute">{HOST}/</span>
+            <input
+              value={handle}
+              onChange={(e) => edit(setHandle)(e.target.value.toLowerCase().replace(/^@/, "").replace(/[^a-z0-9_.]/g, ""))}
+              maxLength={30}
+              autoCapitalize="none"
+              spellCheck={false}
+              className="h-full min-w-0 flex-1 border-0 bg-transparent pr-3 text-inherit outline-none"
+            />
+          </span>
+          {changedLink && <span className="text-[13px] leading-snug">Ao salvar, o link antigo para de funcionar, inclusive onde você já divulgou.</span>}
+        </label>
+        {error && (
+          <p role="alert" className="m-0 text-sm font-semibold text-[#A3361B]">
+            {error}
+          </p>
+        )}
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={!changed || saving || uploading} className={`${pillDark} min-h-10 cursor-pointer border-0 px-5 text-[11px] disabled:cursor-default disabled:opacity-40`}>
+            {saving ? "Salvando…" : "Salvar"}
+          </button>
+          {saved && !changed && (
+            <span role="status" className="text-[14px] text-mute">
+              Salvo.
+            </span>
+          )}
+        </div>
+      </form>
+    </Block>
   );
 }
 
@@ -171,8 +279,8 @@ function PasswordBlock({ account }: { account: Account }) {
 const providerName = (providers: string[]) =>
   providers.includes("google") && providers.includes("email") ? "Google ou e-mail e senha" : providers.includes("google") ? "Google" : "E-mail e senha";
 
-/** Configurações da conta: um <dialog> nativo (Esc fecha e o foco fica dentro). Só reaproveita o que já existe. */
-function SettingsDialog({ ref, account }: { ref: React.RefObject<HTMLDialogElement | null>; account: Account }) {
+/** Configurações da conta: um <dialog> nativo (Esc fecha e o foco fica dentro). */
+function SettingsDialog({ ref, account, onLeave }: { ref: React.RefObject<HTMLDialogElement | null>; account: Account; onLeave?: (e: MouseEvent) => void }) {
   return (
     <dialog
       ref={ref}
@@ -195,6 +303,8 @@ function SettingsDialog({ ref, account }: { ref: React.RefObject<HTMLDialogEleme
           </form>
         </div>
 
+        {account.vitrine && <ProfileBlock vitrine={account.vitrine} googlePhoto={account.googlePhoto} />}
+
         <Block title="Conta">
           <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 text-[15px]">
             <dt className="text-mute">E-mail</dt>
@@ -206,41 +316,24 @@ function SettingsDialog({ ref, account }: { ref: React.RefObject<HTMLDialogEleme
 
         <PasswordBlock account={account} />
 
-        <Block title="Sua vitrine">
-          {account.vitrine ? (
-            <>
-              <p className="m-0 text-[15px]">
-                {HOST}/<span className="font-medium">{account.vitrine.handle}</span>
-              </p>
-              <p className="m-0 text-[14px] text-mute">Nome, foto, link e textos da vitrine você muda no editor.</p>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/editor" className={`${pillLight} min-h-10 px-5 text-[11px]`}>
-                  Editar perfil da vitrine
-                </Link>
-                <Link href="/metricas" className={`${pillLight} min-h-10 px-5 text-[11px]`}>
-                  Ver métricas
-                </Link>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="m-0 text-[15px] leading-relaxed text-mute">Você ainda não tem vitrine. Junte num link só os cupons e produtos que você indica.</p>
-              <Link href="/criar-vitrine" className={`${pillLight} min-h-10 self-start px-5 text-[11px]`}>
-                Criar minha vitrine
-              </Link>
-            </>
-          )}
-        </Block>
+        {!account.vitrine && (
+          <Block title="Sua vitrine">
+            <p className="m-0 text-[15px] leading-relaxed text-mute">Você ainda não tem vitrine. Junte num link só os cupons e produtos que você indica.</p>
+            <Link href="/criar-vitrine" className={`${pillLight} min-h-10 self-start px-5 text-[11px]`}>
+              Criar minha vitrine
+            </Link>
+          </Block>
+        )}
 
         <Block title="Excluir conta">
-          <DeleteAccount handle={account.vitrine?.handle} framed={false} />
+          <DeleteAccount handle={account.vitrine?.handle} />
         </Block>
 
         <p className="m-0 flex gap-4 border-t border-sand pt-5 text-[13px] text-mute">
-          <Link href="/termos" className="text-inherit underline underline-offset-2">
+          <Link href="/termos" onClick={onLeave} className="text-inherit underline underline-offset-2">
             Termos de Uso
           </Link>
-          <Link href="/privacidade" className="text-inherit underline underline-offset-2">
+          <Link href="/privacidade" onClick={onLeave} className="text-inherit underline underline-offset-2">
             Política de Privacidade
           </Link>
         </p>
