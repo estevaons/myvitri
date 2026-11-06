@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition, type DragEvent, type ReactNode } from "react";
+import { useRouter } from "@/lib/i18n/navigation";
 import { updateCoverAction } from "@/app/actions";
 import { FilePick, UploadIcon } from "@/components/editor/ImageField";
 import { uploadImage } from "@/components/editor/upload";
@@ -16,6 +17,8 @@ const action = "flex min-h-9 cursor-pointer items-center border-0 bg-transparent
  * com capa, `children` é a foto, e trocar e remover ficam abaixo dela, para não cobri-la.
  */
 export function CoverPicker({ hasCover, name, children }: { hasCover: boolean; name: string; children: ReactNode }) {
+  const t = useTranslations("cover");
+  const tErrors = useTranslations("errors");
   const router = useRouter();
   const [sending, start] = useTransition();
   const [error, setError] = useState("");
@@ -31,7 +34,7 @@ export function CoverPicker({ hasCover, name, children }: { hasCover: boolean; n
       router.refresh();
     });
   };
-  const send = (file: File) => save(() => uploadImage("cover", file));
+  const send = (file: File) => save(() => uploadImage("cover", file, tErrors("imageUnreadable")));
 
   const drop = {
     onDragOver: (e: DragEvent) => {
@@ -64,14 +67,14 @@ export function CoverPicker({ hasCover, name, children }: { hasCover: boolean; n
               <CoverLetter name={name} />
             </div>
             <span className="relative flex flex-col items-center gap-3 p-6 md:gap-4">
-              <span className={`${kicker} text-[11px] text-gold`}>A primeira impressão</span>
-              <span className="max-w-[11em] font-display text-[clamp(32px,3.6vw,52px)] leading-[1.05] text-balance">Coloque uma foto com a sua cara</span>
-              <span className="max-w-[24rem] text-[15px] leading-relaxed text-ink/70">É o que as pessoas veem primeiro. Sem capa, aparece só a primeira letra do seu nome.</span>
+              <span className={`${kicker} text-[11px] text-gold`}>{t("kicker")}</span>
+              <span className="max-w-[11em] font-display text-[clamp(32px,3.6vw,52px)] leading-[1.05] text-balance">{t("title")}</span>
+              <span className="max-w-[24rem] text-[15px] leading-relaxed text-ink/70">{t("text")}</span>
               <span className={`${pillDark} mt-1 gap-2`}>
                 <UploadIcon />
-                {sending ? "Enviando…" : "Enviar capa"}
+                {sending ? t("sending") : t("send")}
               </span>
-              <span className="text-[13px] text-ink/60 max-md:hidden">ou arraste a foto para cá</span>
+              <span className="text-[13px] text-ink/60 max-md:hidden">{t("drag")}</span>
             </span>
           </FilePick>
         </div>
@@ -86,8 +89,8 @@ export function CoverPicker({ hasCover, name, children }: { hasCover: boolean; n
       </div>
       {/* remover pede confirmação: a foto sai na hora da vitrine pública */}
       {confirming ? (
-        <div role="group" aria-label="Confirmar remoção da capa" className="flex flex-wrap items-center gap-x-4">
-          <span className="text-[13px] text-ink">Remover a capa?</span>
+        <div role="group" aria-label={t("confirmLabel")} className="flex flex-wrap items-center gap-x-4">
+          <span className="text-[13px] text-ink">{t("confirm")}</span>
           <button
             type="button"
             onClick={() => {
@@ -96,20 +99,20 @@ export function CoverPicker({ hasCover, name, children }: { hasCover: boolean; n
             }}
             className={`${action} text-[#A3361B] hover:text-[#A3361B]`}
           >
-            Sim, remover
+            {t("yes")}
           </button>
           <button type="button" onClick={() => setConfirming(false)} className={action}>
-            Cancelar
+            {t("cancel")}
           </button>
         </div>
       ) : (
         <div className="flex items-center gap-4">
           <FilePick onFile={send} disabled={sending} className={action}>
-            {sending ? "Salvando…" : "Trocar capa"}
+            {sending ? t("saving") : t("change")}
           </FilePick>
           {!sending && (
             <button type="button" onClick={() => setConfirming(true)} className={action}>
-              Remover
+              {t("remove")}
             </button>
           )}
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition, type ReactNode } from "react";
 import { importProductAction } from "@/app/actions";
 import { ProductArt } from "@/components/storefront/ProductIcon";
@@ -19,6 +20,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function ProductsPanel({ draft, update }: { draft: VitrineContent; update: Update }) {
+  const t = useTranslations("editor.products");
   const [openId, setOpenId] = useState<string | null>(null);
   // o vídeo fica escondido até a pessoa pedir (ou até estar preenchido)
   const [moreId, setMoreId] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export function ProductsPanel({ draft, update }: { draft: VitrineContent; update
   const importLink = () => {
     const url = link.trim();
     if (!/^https?:\/\//i.test(url)) {
-      setImportError("Cole o link completo do produto, começando com https://");
+      setImportError(t("fullLink"));
       return;
     }
     setImportError(null);
@@ -85,15 +87,15 @@ export function ProductsPanel({ draft, update }: { draft: VitrineContent; update
 
   return (
     <div className="flex flex-col gap-2.5">
-      <H>Ordem dos produtos</H>
-      <span className="-mt-1 text-[13px] text-[#5E5A52]">O primeiro aparece no topo da vitrine.</span>
-      {products.length === 0 && <Empty>Cole o link de um produto que você indica e a gente puxa nome e foto.</Empty>}
+      <H>{t("order")}</H>
+      <span className="-mt-1 text-[13px] text-[#5E5A52]">{t("orderHint")}</span>
+      {products.length === 0 && <Empty>{t("empty")}</Empty>}
       {products.map((p, i) => (
         <Row
           key={p.id}
           pos={i + 1}
-          title={p.name || "Novo produto"}
-          sub={[p.soldOut ? "Esgotado" : "", p.brand].filter(Boolean).join(" · ")}
+          title={p.name || t("new")}
+          sub={[p.soldOut ? t("soldOut") : "", p.brand].filter(Boolean).join(" · ")}
           thumb={
             <span aria-hidden="true" className="relative flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] bg-cream">
               <ProductArt product={p} iconClassName="w-[78%]" strokeWidth={4} />
@@ -104,38 +106,38 @@ export function ProductsPanel({ draft, update }: { draft: VitrineContent; update
           sort={sort}
           total={products.length}
         >
-          <Group title="Foto">
+          <Group title={t("photo")}>
             <ImageField value={p.imageUrl} onChange={(imageUrl) => setProduct(p.id, { imageUrl })} />
           </Group>
 
-          <Group title="Produto">
-            <Field label="Nome">
+          <Group title={t("product")}>
+            <Field label={t("name")}>
               <TextInput value={p.name} onChange={(name) => setProduct(p.id, { name })} maxLength={80} autoFocus={!p.name} />
             </Field>
             <div className="grid grid-cols-2 gap-2.5">
-              <Field label="Marca">
+              <Field label={t("brand")}>
                 <TextInput value={p.brand} onChange={(brand) => setProduct(p.id, { brand })} maxLength={60} />
               </Field>
-              <Field label="Categoria">
-                <TextInput value={p.category} onChange={(category) => setProduct(p.id, { category })} maxLength={30} list="vitri-categories" placeholder="Ex.: Praia" />
+              <Field label={t("category")}>
+                <TextInput value={p.category} onChange={(category) => setProduct(p.id, { category })} maxLength={30} list="vitri-categories" placeholder={t("categoryPlaceholder")} />
               </Field>
             </div>
           </Group>
 
           {p.soldOut && (
-            <Group title="Na vitrine">
-              <Pill tone="bad">Esgotado na loja</Pill>
-              <Hint>A loja estava sem estoque quando buscamos o produto. Ele continua na vitrine, sem link e no fim da lista.</Hint>
+            <Group title={t("onVitrine")}>
+              <Pill tone="bad">{t("soldOutStore")}</Pill>
+              <Hint>{t("soldOutHint")}</Hint>
             </Group>
           )}
 
-          <Group title="Links">
-            <Field label="Link do produto" hint="Cole seu link de afiliado ou o link da loja. É para onde a pessoa vai ao clicar.">
+          <Group title={t("links")}>
+            <Field label={t("link")} hint={t("linkHint")}>
               {/* produtos antigos podem ter os dois links: vale o de afiliado, e editar deixa só o que foi colado */}
               <TextInput value={p.affiliateUrl || p.url} onChange={(url) => setProduct(p.id, { url, affiliateUrl: "" })} placeholder="https://…" inputMode="url" />
             </Field>
             {moreId === p.id || p.videoUrl ? (
-              <Field label="Review em vídeo (opcional)" hint="Link do seu Reels, TikTok ou YouTube sobre o produto.">
+              <Field label={t("video")} hint={t("videoHint")}>
                 <TextInput value={p.videoUrl} onChange={(videoUrl) => setProduct(p.id, { videoUrl })} placeholder="https://…" inputMode="url" />
               </Field>
             ) : (
@@ -144,11 +146,11 @@ export function ProductsPanel({ draft, update }: { draft: VitrineContent; update
                 onClick={() => setMoreId(p.id)}
                 className="min-h-8 self-start border-0 bg-transparent p-0 text-[13px] font-medium text-[#5E5A52] underline-offset-4 hover:text-ink hover:underline"
               >
-                + Review em vídeo
+                {t("addVideo")}
               </button>
             )}
           </Group>
-          <FormActions onDone={() => setOpenId(null)} onRemove={() => remove(p.id)} removeLabel="Remover" />
+          <FormActions onDone={() => setOpenId(null)} onRemove={() => remove(p.id)} removeLabel={t("remove")} />
         </Row>
       ))}
       <datalist id="vitri-categories">
@@ -164,24 +166,24 @@ export function ProductsPanel({ draft, update }: { draft: VitrineContent; update
         }}
         className="mt-1 flex flex-col gap-2 rounded-[12px] border-[1.5px] border-dashed border-[#DDD8CF] p-3"
       >
-        <span className="text-sm font-semibold text-[#3A3A3A]">+ Adicionar pelo link</span>
+        <span className="text-sm font-semibold text-[#3A3A3A]">{t("addByLink")}</span>
         <div className="flex gap-2">
           <input
             value={link}
             onChange={(e) => setLink(e.target.value)}
-            placeholder="https://loja.com/produto"
+            placeholder={t("linkPlaceholder")}
             inputMode="url"
-            aria-label="Link do produto"
+            aria-label={t("linkLabel")}
             className={`${inputCls} min-w-0 flex-1`}
           />
           <button type="submit" disabled={importing} className="min-h-11 flex-none rounded-[10px] border-0 bg-ink px-4 text-sm font-semibold text-white">
-            {importing ? "Buscando…" : "Buscar"}
+            {importing ? t("searching") : t("search")}
           </button>
         </div>
-        <Hint>Pode ser seu link de afiliado ou o da loja. A gente puxa nome e foto, e o clique leva ao link que você colou.</Hint>
+        <Hint>{t("addHint")}</Hint>
         {importError && <span className="text-[13px] font-semibold text-[#A3361B]">{importError}</span>}
       </form>
-      <AddButton onClick={() => insert({})}>Adicionar manualmente</AddButton>
+      <AddButton onClick={() => insert({})}>{t("manual")}</AddButton>
     </div>
   );
 }

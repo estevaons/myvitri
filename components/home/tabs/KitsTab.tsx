@@ -1,6 +1,7 @@
+import { getTranslations } from "next-intl/server";
 import { getKitCatalog, queryKits } from "@/lib/vitrine/catalog/kits";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
-import { CatalogEmpty, CatalogFrame, catalogGrid, countLabel, FilterChips, LoadMore } from "../catalog/ui";
+import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore } from "../catalog/ui";
 import { KitCatalogCard } from "./kits/KitCatalogCard";
 
 const FILTERS = ["cat", "creator"] as const;
@@ -10,7 +11,7 @@ const FILTERS = ["cat", "creator"] as const;
  * Os dados vêm de um cache só; filtro e "Ver mais" são feitos aqui, a partir da URL.
  */
 export async function KitsTab({ params }: { params: TabParams }) {
-  const { kits, categories, creators } = await getKitCatalog();
+  const [{ kits, categories, creators }, t, tCount] = await Promise.all([getKitCatalog(), getTranslations("catalog"), getTranslations("counts")]);
   const shown = queryKits(kits, params);
   const limit = limitOf(params);
   const filtered = FILTERS.some((f) => params[f]);
@@ -18,15 +19,15 @@ export async function KitsTab({ params }: { params: TabParams }) {
 
   return (
     <CatalogFrame
-      title="Kits"
-      text="Combinações montadas por quem indica."
+      title={t("kits.title")}
+      text={t("kits.text")}
       filters={
         <>
-          <FilterChips label="Categoria" param="cat" options={categories} params={params} />
-          <FilterChips label="Vitrine" param="creator" options={creators} params={params} />
+          <FilterChips label={t("filters.category")} param="cat" options={categories} params={params} />
+          <FilterChips label={t("filters.vitrine")} param="creator" options={creators} params={params} />
         </>
       }
-      count={countLabel(shown.length, "kit", "kits")}
+      count={tCount("kits", { count: shown.length })}
       clearHref={filtered ? clearHref : undefined}
     >
       {shown.length > 0 ? (
@@ -41,13 +42,9 @@ export async function KitsTab({ params }: { params: TabParams }) {
           <LoadMore params={params} shown={Math.min(limit, shown.length)} total={shown.length} />
         </>
       ) : filtered ? (
-        <CatalogEmpty
-          title="Nenhum kit com esses filtros"
-          text="Tire um filtro para ver mais combinações."
-          clearHref={clearHref}
-        />
+        <CatalogEmpty title={t("kits.filteredTitle")} text={t("kits.filteredText")} clearHref={clearHref} />
       ) : (
-        <CatalogEmpty title="Ainda não há kits" text="Quando alguém publicar um kit, ele aparece aqui." />
+        <CatalogEmpty title={t("kits.emptyTitle")} text={t("kits.emptyText")} />
       )}
     </CatalogFrame>
   );

@@ -3,16 +3,9 @@
  * navegador funciona, o link pode ser compartilhado e a página continua montada no servidor.
  */
 
-/** [id na URL, rótulo] — a primeira é a padrão. */
-export const TABS = [
-  ["para-voce", "Para você"],
-  ["favoritas", "Favoritas"],
-  ["vitrines", "Vitrines"],
-  ["produtos", "Produtos"],
-  ["kits", "Kits"],
-  ["marcas", "Marcas"],
-] as const;
-export type TabId = (typeof TABS)[number][0];
+/** Ids das abas na URL — a primeira é a padrão. Os rótulos ficam nas mensagens (`catalog.tabs`). */
+export const TABS = ["para-voce", "favoritas", "vitrines", "produtos", "kits", "marcas"] as const;
+export type TabId = (typeof TABS)[number];
 
 /** Parâmetros da URL achatados: um valor por chave, só os não vazios. */
 export type TabParams = Record<string, string>;
@@ -29,7 +22,7 @@ export function flatParams(sp: Record<string, string | string[] | undefined>): T
   return out;
 }
 
-export const tabOf = (p: TabParams): TabId => TABS.find(([id]) => id === p.aba)?.[0] ?? "para-voce";
+export const tabOf = (p: TabParams): TabId => TABS.find((id) => id === p.aba) ?? "para-voce";
 
 /** Quantos itens mostrar (`?limite=`), de PAGE em PAGE, até 10 páginas. */
 export const limitOf = (p: TabParams) => Math.min(Math.max(PAGE, Math.round(Number(p.limite) / PAGE) * PAGE || PAGE), PAGE * 10);

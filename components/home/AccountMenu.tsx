@@ -1,8 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/lib/i18n/navigation";
 import { requestPasswordResetAction, signOutAction, updateProfileAction, type FormState } from "@/app/actions";
 import { DeleteAccount } from "@/components/editor/DeleteAccount";
 import { FilePick } from "@/components/editor/ImageField";
@@ -56,6 +56,7 @@ const item =
  * o editor avisa se ainda há alterações sendo salvas.
  */
 export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: (e: MouseEvent) => void }) {
+  const t = useTranslations("account");
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -86,7 +87,7 @@ export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: 
         type="button"
         aria-expanded={open}
         aria-controls="menu-da-conta"
-        aria-label={`Sua conta (${account.email})`}
+        aria-label={t("label", { email: account.email })}
         onClick={() => setOpen((v) => !v)}
         // o contorno fica 2px afastado da foto, como um anel, no hover e com o menu aberto
         className={`flex size-11 cursor-pointer items-center justify-center rounded-full border bg-transparent p-[2px] transition-colors hover:border-ink ${open ? "border-ink" : "border-transparent"}`}
@@ -115,11 +116,11 @@ export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: 
                 dialog.current?.showModal();
               }}
             >
-              Configurações
+              {t("settings")}
             </button>
             <form action={signOutAction}>
               <button type="submit" onClick={onLeave} className={item}>
-                Sair
+                {t("signOut")}
               </button>
             </form>
           </div>
@@ -148,6 +149,8 @@ const fieldBox = "box-border flex h-11 w-full items-center border border-sand bg
  * é o que remover mostra e, por isso, ela mesma não tem o que remover.
  */
 function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["vitrine"]>; googlePhoto: string }) {
+  const t = useTranslations("account");
+  const tErrors = useTranslations("errors");
   const router = useRouter();
   const [name, setName] = useState(vitrine.name);
   const [handle, setHandle] = useState(vitrine.handle);
@@ -170,7 +173,7 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
     setError("");
     setSaved(false);
     setUploading(true);
-    const res = await uploadImage("avatar", file);
+    const res = await uploadImage("avatar", file, tErrors("imageUnreadable"));
     setUploading(false);
     if (!res.ok) return setError(res.error);
     setAvatarUrl(res.url);
@@ -188,29 +191,29 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
   };
 
   return (
-    <Block title="Perfil">
+    <Block title={t("profile")}>
       <form onSubmit={save} className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <Avatar key={avatarUrl} url={avatarUrl} label={name} className={`size-16 flex-none text-[20px] ${uploading ? "animate-pulse" : ""}`} />
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <FilePick onFile={pick} disabled={uploading} className={`${pillLight} min-h-10 cursor-pointer px-5 text-[11px] has-focus-visible:ring-2 has-focus-visible:ring-ink`}>
-              {uploading ? "Enviando…" : avatarUrl ? "Trocar foto" : "Enviar foto"}
+              {uploading ? t("sending") : avatarUrl ? t("changePhoto") : t("sendPhoto")}
             </FilePick>
             {avatarUrl && avatarUrl !== googlePhoto && !uploading && (
               <button type="button" onClick={() => edit(setAvatarUrl)(googlePhoto)} className="cursor-pointer border-0 bg-transparent p-0 text-[13px] text-mute underline underline-offset-2 hover:text-ink">
-                Remover
+                {t("remove")}
               </button>
             )}
           </div>
         </div>
         <label className={fieldLabel}>
-          Nome
+          {t("name")}
           <span className={fieldBox}>
             <input value={name} onChange={(e) => edit(setName)(e.target.value)} maxLength={60} className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-inherit outline-none" />
           </span>
         </label>
         <label className={fieldLabel}>
-          Seu link
+          {t("link")}
           <span className={fieldBox}>
             <span className="pl-3 text-mute">{HOST}/</span>
             <input
@@ -222,7 +225,7 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
               className="h-full min-w-0 flex-1 border-0 bg-transparent pr-3 text-inherit outline-none"
             />
           </span>
-          {changedLink && <span className="text-[13px] leading-snug">Ao salvar, o link antigo para de funcionar, inclusive onde você já divulgou.</span>}
+          {changedLink && <span className="text-[13px] leading-snug">{t("linkWarning")}</span>}
         </label>
         {error && (
           <p role="alert" className="m-0 text-sm font-semibold text-[#A3361B]">
@@ -231,11 +234,11 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
         )}
         <div className="flex items-center gap-3">
           <button type="submit" disabled={!changed || saving || uploading} className={`${pillDark} min-h-10 cursor-pointer border-0 px-5 text-[11px] disabled:cursor-default disabled:opacity-40`}>
-            {saving ? "Salvando…" : "Salvar"}
+            {saving ? t("saving") : t("save")}
           </button>
           {saved && !changed && (
             <span role="status" className="text-[14px] text-mute">
-              Salvo.
+              {t("saved")}
             </span>
           )}
         </div>
@@ -246,24 +249,21 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
 
 /** Link para criar ou trocar a senha, pelo mesmo e-mail do "Esqueci minha senha"; quem só usa o Google ganha uma senha também. */
 function PasswordBlock({ account }: { account: Account }) {
+  const t = useTranslations("account");
   const [state, send, pending] = useActionState<FormState, FormData>(requestPasswordResetAction, {});
   const hasPassword = account.providers.includes("email");
   return (
-    <Block title="Senha">
-      <p className="m-0 text-[15px] leading-relaxed text-mute">
-        {hasPassword
-          ? "Enviamos para o seu e-mail um link para escolher uma senha nova."
-          : "Você entra com o Google. Se quiser entrar também com e-mail e senha, enviamos um link para criar uma."}
-      </p>
+    <Block title={t("password")}>
+      <p className="m-0 text-[15px] leading-relaxed text-mute">{hasPassword ? t("passwordChange") : t("passwordCreate")}</p>
       {state.notice ? (
         <p role="status" className="m-0 bg-cream p-3 text-[14px] leading-relaxed">
-          Link enviado para {account.email}. Abra o link neste mesmo navegador.
+          {t("linkSent", { email: account.email })}
         </p>
       ) : (
         <form action={send}>
           <input type="hidden" name="email" value={account.email} />
           <button type="submit" disabled={pending} className={`${pillLight} min-h-10 cursor-pointer px-5 text-[11px] disabled:opacity-50`}>
-            {pending ? "Enviando…" : hasPassword ? "Enviar link para trocar a senha" : "Enviar link para criar senha"}
+            {pending ? t("sending") : hasPassword ? t("sendChange") : t("sendCreate")}
           </button>
         </form>
       )}
@@ -276,11 +276,12 @@ function PasswordBlock({ account }: { account: Account }) {
   );
 }
 
-const providerName = (providers: string[]) =>
-  providers.includes("google") && providers.includes("email") ? "Google ou e-mail e senha" : providers.includes("google") ? "Google" : "E-mail e senha";
+const providerKey = (providers: string[]) =>
+  providers.includes("google") && providers.includes("email") ? "both" : providers.includes("google") ? "google" : "email";
 
 /** Configurações da conta: um <dialog> nativo (Esc fecha e o foco fica dentro). */
 function SettingsDialog({ ref, account, onLeave }: { ref: React.RefObject<HTMLDialogElement | null>; account: Account; onLeave?: (e: MouseEvent) => void }) {
+  const t = useTranslations("account");
   return (
     <dialog
       ref={ref}
@@ -292,10 +293,10 @@ function SettingsDialog({ ref, account, onLeave }: { ref: React.RefObject<HTMLDi
       <div className="flex flex-col gap-5 p-6 md:p-8">
         <div className="flex items-start justify-between gap-4">
           <h2 id="titulo-configuracoes" className="m-0 font-display text-[36px] leading-none font-normal">
-            Configurações
+            {t("settings")}
           </h2>
           <form method="dialog">
-            <button type="submit" aria-label="Fechar" className="-mt-1 -mr-2 flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent text-ink hover:bg-cream">
+            <button type="submit" aria-label={t("close")} className="-mt-1 -mr-2 flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent text-ink hover:bg-cream">
               <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
@@ -305,36 +306,36 @@ function SettingsDialog({ ref, account, onLeave }: { ref: React.RefObject<HTMLDi
 
         {account.vitrine && <ProfileBlock vitrine={account.vitrine} googlePhoto={account.googlePhoto} />}
 
-        <Block title="Conta">
+        <Block title={t("account")}>
           <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 text-[15px]">
-            <dt className="text-mute">E-mail</dt>
+            <dt className="text-mute">{t("email")}</dt>
             <dd className="m-0 truncate">{account.email}</dd>
-            <dt className="text-mute">Entra com</dt>
-            <dd className="m-0">{providerName(account.providers)}</dd>
+            <dt className="text-mute">{t("signsInWith")}</dt>
+            <dd className="m-0">{t(`providers.${providerKey(account.providers)}`)}</dd>
           </dl>
         </Block>
 
         <PasswordBlock account={account} />
 
         {!account.vitrine && (
-          <Block title="Sua vitrine">
-            <p className="m-0 text-[15px] leading-relaxed text-mute">Você ainda não tem vitrine. Junte num link só os cupons e produtos que você indica.</p>
+          <Block title={t("yourVitrine")}>
+            <p className="m-0 text-[15px] leading-relaxed text-mute">{t("noVitrine")}</p>
             <Link href="/criar-vitrine" className={`${pillLight} min-h-10 self-start px-5 text-[11px]`}>
-              Criar minha vitrine
+              {t("createVitrine")}
             </Link>
           </Block>
         )}
 
-        <Block title="Excluir conta">
+        <Block title={t("delete")}>
           <DeleteAccount handle={account.vitrine?.handle} />
         </Block>
 
         <p className="m-0 flex gap-4 border-t border-sand pt-5 text-[13px] text-mute">
           <Link href="/termos" onClick={onLeave} className="text-inherit underline underline-offset-2">
-            Termos de Uso
+            {t("terms")}
           </Link>
           <Link href="/privacidade" onClick={onLeave} className="text-inherit underline underline-offset-2">
-            Política de Privacidade
+            {t("privacy")}
           </Link>
         </p>
       </div>

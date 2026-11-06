@@ -15,7 +15,7 @@ const httpUrl = z
   .string()
   .trim()
   .max(2000)
-  .refine((v) => v === "" || /^https?:\/\//i.test(v), "Use um link que comece com https://");
+  .refine((v) => v === "" || /^https?:\/\//i.test(v), "httpUrl");
 
 const text = (max: number) => z.string().trim().max(max);
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -23,8 +23,8 @@ const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const couponSchema = z
   .object({
     id: z.uuid(),
-    brand: text(60).min(1, "Informe a marca"),
-    code: text(40).min(1, "Informe o código").transform((v) => v.toUpperCase()),
+    brand: text(60).min(1, "brandRequired"),
+    code: text(40).min(1, "codeRequired").transform((v) => v.toUpperCase()),
     kind: z.enum(["percent", "fixed"]),
     /** percent: 1–100; fixed: valor em centavos */
     value: z.number().int().positive(),
@@ -38,11 +38,11 @@ export const couponSchema = z
     /** AAAA-MM-DD: antes disso o cupom fica escondido; null = já vale */
     startsAt: date.nullable(),
   })
-  .refine((c) => !c.startsAt || !c.expiresAt || c.startsAt <= c.expiresAt, { message: "O cupom vence antes de começar", path: ["startsAt"] });
+  .refine((c) => !c.startsAt || !c.expiresAt || c.startsAt <= c.expiresAt, { message: "couponDates", path: ["startsAt"] });
 
 export const productSchema = z.object({
   id: z.uuid(),
-  name: text(80).min(1, "Informe o nome do produto"),
+  name: text(80).min(1, "productName"),
   brand: text(60),
   category: text(30),
   /** Legado, como `couponId`: a vitrine não mostra preço nem cupom por produto (cupom é da marca). Produto novo fica com 0 e null. */
@@ -62,7 +62,7 @@ export const productSchema = z.object({
 
 export const kitSchema = z.object({
   id: z.uuid(),
-  name: text(60).min(1, "Dê um nome ao kit"),
+  name: text(60).min(1, "kitName"),
   description: text(240),
   signature: text(80),
   productIds: z.array(z.uuid()).max(4),
@@ -73,9 +73,9 @@ export const vitrineContentSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .regex(HANDLE_RE, "Use de 3 a 30 letras minúsculas, números, ponto ou _")
-    .refine((h) => !RESERVED_HANDLES.has(h), "Esse nome é reservado"),
-  name: text(60).min(1, "Informe seu nome"),
+    .regex(HANDLE_RE, "handleRule")
+    .refine((h) => !RESERVED_HANDLES.has(h), "handleReserved"),
+  name: text(60).min(1, "nameRequired"),
   avatarUrl: httpUrl,
   headline: text(90),
   sub: text(240),
@@ -118,13 +118,13 @@ export function kitItems<P extends { id: string }>(kit: Pick<Kit, "productIds">,
 export type IconId = (typeof ICONS)[number];
 export type SectionId = (typeof SECTION_IDS)[number];
 
-export function emptyContent(handle: string, name: string): VitrineContent {
+/** `intro`: título e texto de abertura da vitrine nova, no idioma de quem cria (mensagens `vitrineDefaults`). */
+export function emptyContent(handle: string, name: string, intro: Pick<VitrineContent, "headline" | "sub"> = { headline: "", sub: "" }): VitrineContent {
   return {
     handle,
     name,
     avatarUrl: "",
-    headline: "Tudo que eu uso, com o meu desconto.",
-    sub: "Escolha o produto e compre direto na loja oficial. Os cupons de cada marca estão aqui também.",
+    ...intro,
     look: { bannerUrl: "" },
     show: { ticker: true, products: true, coupons: true, kits: true, cta: true },
     tracking: TRACKING,

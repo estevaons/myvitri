@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
 import { HOST } from "@/lib/brand";
 import type { HomeCreator } from "@/lib/vitrine/data";
 import { CoverLetter } from "./CreatorCard";
@@ -26,6 +27,7 @@ function pickLead(creators: HomeCreator[]) {
 }
 
 function Tile({ c, lead = false, className }: { c: HomeCreator; lead?: boolean; className: string }) {
+  const t = useTranslations("mosaic");
   const cover = Boolean(c.bannerUrl);
   return (
     <Link href={`/${c.handle}`} className={`group relative block min-w-0 overflow-hidden bg-sand no-underline ${cover ? "text-white" : "text-ink"} ${className}`}>
@@ -40,7 +42,7 @@ function Tile({ c, lead = false, className }: { c: HomeCreator; lead?: boolean; 
           lead ? "items-center gap-1 p-6 pt-32 text-center md:gap-2 md:p-10 md:pt-48" : "items-start p-3 pt-16 md:p-5 md:pt-24"
         }`}
       >
-        <em className={lead ? "text-[20px] leading-none md:text-[clamp(20px,2vw,28px)]" : "text-[14px] leading-tight md:text-[16px]"}>Vitrine de</em>
+        <em className={lead ? "text-[20px] leading-none md:text-[clamp(20px,2vw,28px)]" : "text-[14px] leading-tight md:text-[16px]"}>{t("vitrineOf")}</em>
         <span className={`font-normal break-words ${lead ? "text-[44px] leading-[1] md:text-[clamp(44px,5.6vw,84px)]" : "text-[22px] leading-[1.05] md:text-[clamp(26px,2.4vw,36px)]"}`}>
           {c.creator}
         </span>
@@ -50,20 +52,25 @@ function Tile({ c, lead = false, className }: { c: HomeCreator; lead?: boolean; 
 }
 
 function Invite({ className }: { className: string }) {
+  const t = useTranslations("mosaic");
   return (
     <Link href="/criar-vitrine" className={`group flex min-w-0 flex-col justify-between gap-4 bg-sand p-4 text-ink no-underline xl:p-6 ${className}`}>
       {/* no celular bem estreito a pergunta sai, para o card não ficar mais alto que o vizinho */}
-      <span className={`${kicker} text-[11px] text-gold max-[359px]:hidden`}>Você cria conteúdo?</span>
+      <span className={`${kicker} text-[11px] text-gold max-[359px]:hidden`}>{t("inviteKicker")}</span>
       {/* em telas menores o card é estreito: título sem o "aqui" e tamanhos menores, para caber */}
       <span className="flex flex-col gap-2">
         <span className="font-display text-[30px] leading-[1] font-normal md:max-lg:text-[26px] xl:text-[clamp(36px,4vw,56px)]">
-          Sua vitrine<span className="max-xl:hidden"> <em>aqui</em></span>
+          {t("inviteTitle")}
+          <span className="max-xl:hidden">
+            {" "}
+            <em>{t("inviteTitleEm")}</em>
+          </span>
         </span>
         <span className="text-[15px] leading-snug text-mute max-md:hidden">
-          Monte a sua em 2 minutos: {HOST}/seunome
+          {t("inviteText", { host: HOST })}
         </span>
       </span>
-      <span className={`flex min-h-10 items-center justify-center bg-ink px-4 ${kicker} text-[11px] text-white group-hover:bg-[#2b2925] max-md:px-1 max-md:text-[11px] max-md:tracking-[0.1em] xl:min-h-11`}>Criar grátis</span>
+      <span className={`flex min-h-10 items-center justify-center bg-ink px-4 ${kicker} text-[11px] text-white group-hover:bg-[#2b2925] max-md:px-1 max-md:text-[11px] max-md:tracking-[0.1em] xl:min-h-11`}>{t("inviteCta")}</span>
     </Link>
   );
 }

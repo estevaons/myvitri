@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { createPublicSupabase } from "@/lib/supabase/server";
 import { HOME_TAG, live, rank, todayISO, type HomeCreator } from "../data";
-import { daysLeft, expiryLabel } from "../pricing";
+import { daysLeft } from "../pricing";
 import { toCoupon, toProduct, topCreatorsToday, type FeedVitrine } from "../store";
 import type { Coupon } from "../types";
 
@@ -28,12 +28,12 @@ export type CatalogVitrine = {
   kits: number;
   /** O maior desconto entre os cupons ativos. */
   best: Coupon | null;
-  /** "Vence em 3 dias" do cupom ativo que vence primeiro, se for em até 7 dias. */
+  /** Validade (AAAA-MM-DD) do cupom ativo que vence primeiro, se for em até 7 dias; o card monta o "Vence em 3 dias". */
   expiring: string | null;
   updatedAt: string;
 };
 
-export type VitrinesCatalog = { vitrines: CatalogVitrine[]; categories: CatalogOption[]; brands: CatalogOption[] };
+export type VitrinesCatalog = { vitrines: CatalogVitrine[]; categories: CatalogOption[]; brands: CatalogOption[]; today: string };
 
 const EXPIRING_DAYS = 7;
 const MAX_OPTIONS = 12;
@@ -142,7 +142,7 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
       brandKeys: [...brands.keys()],
       kits: (kitsOf.get(row.id) ?? []).filter((k) => k.product_ids.some((id) => forSale.has(id))).length,
       best: active[0] ?? null,
-      expiring: soonest ? expiryLabel(soonest.c, today) : null,
+      expiring: soonest?.c.expiresAt ?? null,
       updatedAt: row.updated_at,
     });
   }
@@ -152,6 +152,7 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
     vitrines,
     categories: tally(vitrines.flatMap((v) => v.categories)).slice(0, MAX_OPTIONS),
     brands: tally(vitrines.flatMap((v) => v.brands)).slice(0, MAX_OPTIONS),
+    today,
   };
 }
 

@@ -1,10 +1,14 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import { boxCls, labelCls } from "./ui";
 
-const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
+/** Nomes de mês e dia da semana no idioma da página. As datas são AAAA-MM-DD, lidas em UTC. */
+const utc = (s: string) => new Date(`${s}T00:00:00Z`);
+const fmt = (locale: string, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale, { ...o, timeZone: "UTC" });
+/** Iniciais dos dias, de domingo a sábado (5 de jan. de 2025 foi um domingo). */
+const weekdays = (locale: string) => Array.from({ length: 7 }, (_, i) => fmt(locale, { weekday: "narrow" }).format(utc(`2025-01-0${5 + i}`)));
 
 // Datas como AAAA-MM-DD, calculadas em UTC para o fuso não mudar o dia.
 const parts = (s: string) => s.split("-").map(Number) as [number, number, number];
@@ -15,22 +19,28 @@ const addDays = (s: string, n: number) => {
 };
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
 
-/** "8 nov", ou "8 nov 2027" fora do ano de hoje. */
-function short(s: string, today: string) {
-  const [y, m, d] = parts(s);
-  return `${d} ${MONTHS[m - 1].slice(0, 3)}${y === parts(today)[0] ? "" : ` ${y}`}`;
+/** "8 nov" ("Nov 8" em inglês), ou "8 nov 2027" fora do ano de hoje. */
+function short(s: string, today: string, locale: string) {
+  const [y, , d] = parts(s);
+  const month = fmt(locale, { month: "short" }).format(utc(s)).replace(".", "");
+  const day = locale.startsWith("pt") ? `${d} ${month}` : `${month} ${d}`;
+  return y === parts(today)[0] ? day : `${day} ${y}`;
 }
 
-function fromToday(s: string, today: string) {
+type DatesT = ReturnType<typeof useTranslations<"editor.dates">>;
+
+function fromToday(s: string, today: string, t: DatesT) {
   const n = daysBetween(today, s);
-  if (n < 0) return "já passou";
-  if (n === 0) return "hoje";
-  if (n === 1) return "amanhã";
-  return `em ${n} dias`;
+  if (n < 0) return t("past");
+  if (n === 0) return t("today");
+  if (n === 1) return t("tomorrow");
+  return t("inDays", { n });
 }
 
 /** Calendário de um mês; tocar num dia escolhe. Setas do teclado andam pelos dias. */
 function Calendar({ today, value, min, onPick }: { today: string; value: string | null; min: string; onPick: (day: string) => void }) {
+  const t = useTranslations("editor.dates");
+  const locale = useLocale();
   const [view, setView] = useState(() => (value ?? min).slice(0, 7));
   const [focus, setFocus] = useState(value ?? min);
   const grid = useRef<HTMLDivElement>(null);
@@ -51,22 +61,22 @@ function Calendar({ today, value, min, onPick }: { today: string; value: string 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <button type="button" aria-label="Mês anterior" onClick={() => shiftView(-1)} className={arrow}>
+        <button type="button" aria-label={t("prevMonth")} onClick={() => shiftView(-1)} className={arrow}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m15 18-6-6 6-6" />
           </svg>
         </button>
         <span aria-live="polite" className="text-sm font-semibold capitalize">
-          {MONTHS[vm - 1]} {vy}
+          {fmt(locale, { month: "long", year: "numeric" }).format(utc(`${view}-01`))}
         </span>
-        <button type="button" aria-label="Próximo mês" onClick={() => shiftView(1)} className={arrow}>
+        <button type="button" aria-label={t("nextMonth")} onClick={() => shiftView(1)} className={arrow}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m9 18 6-6-6-6" />
           </svg>
         </button>
       </div>
       <div ref={grid} className="grid grid-cols-7 gap-y-0.5">
-        {WEEKDAYS.map((w, i) => (
+        {weekdays(locale).map((w, i) => (
           <span key={i} aria-hidden="true" className="pb-1 text-center text-[11px] font-medium text-[#ADA79C]">
             {w}
           </span>
@@ -86,7 +96,7 @@ function Calendar({ today, value, min, onPick }: { today: string; value: string 
                 disabled={day < min}
                 tabIndex={tabbable ? 0 : -1}
                 aria-pressed={picked}
-                aria-label={`${i + 1} de ${MONTHS[vm - 1]} de ${vy}${day === today ? ", hoje" : ""}`}
+                aria-label={t("dayLabel", { date: fmt(locale, { dateStyle: "long" }).format(utc(day)), isToday: day === today ? "yes" : "no" })}
                 onClick={() => onPick(day)}
                 onKeyDown={(e) => {
                   const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
@@ -129,6 +139,7 @@ function DateField({
   options: [string, string | null][];
   onChange: (day: string | null) => void;
 }) {
+  const t = useTranslations("editor.dates");
   const [open, setOpen] = useState(false);
   const id = useId();
   const choose = (day: string | null) => {
@@ -161,7 +172,7 @@ function DateField({
       {open && (
         <div className="flex flex-col gap-3 rounded-[12px] border border-[#EEEBE5] bg-white p-3 shadow-[0_4px_16px_rgba(17,17,17,0.06)]">
           {options.length > 0 && (
-            <div role="group" aria-label="Atalhos" className="flex flex-wrap gap-1.5">
+            <div role="group" aria-label={t("shortcuts")} className="flex flex-wrap gap-1.5">
               {options.map(([text, day]) => (
                 <button
                   key={text}
@@ -199,30 +210,32 @@ export function CouponDates({
   end: string | null;
   onChange: (start: string | null, end: string | null) => void;
 }) {
+  const t = useTranslations("editor.dates");
+  const locale = useLocale();
   const scheduled = !!start && start > today;
   const from = scheduled ? start : today;
 
   return (
     <div className="flex flex-col gap-2">
       <DateField
-        label="Vale até"
+        label={t("until")}
         today={today}
         value={end}
         min={from}
-        summary={end ? `${short(end, today)} · ${end < today ? "já venceu" : `vence ${fromToday(end, today)}`}` : "Sem validade"}
+        summary={end ? `${short(end, today, locale)} · ${end < today ? t("expired") : t("expires", { when: fromToday(end, today, t) })}` : t("noExpiry")}
         options={[
-          ["Sem validade", null],
-          ["7 dias", addDays(from, 7)],
-          ["15 dias", addDays(from, 15)],
-          ["30 dias", addDays(from, 30)],
+          [t("noExpiry"), null],
+          [t("days", { n: 7 }), addDays(from, 7)],
+          [t("days", { n: 15 }), addDays(from, 15)],
+          [t("days", { n: 30 }), addDays(from, 30)],
         ]}
         onChange={(day) => onChange(start, day)}
       />
       {scheduled && (
         <p className="m-0 flex flex-wrap items-center gap-x-2 rounded-[10px] bg-[#F4F2EE] px-3 py-2 text-xs leading-snug text-[#5E5A52]">
-          Só entra na vitrine em {short(start, today)}.
+          {t("scheduled", { date: short(start, today, locale) })}
           <button type="button" onClick={() => onChange(null, end)} className="min-h-6 border-0 bg-transparent p-0 text-xs font-semibold text-ink underline underline-offset-2">
-            Começar agora
+            {t("startNow")}
           </button>
         </p>
       )}

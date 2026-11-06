@@ -1,7 +1,9 @@
 import "server-only";
+import { getTranslations } from "next-intl/server";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import { WORDMARK_RATIO, Wordmark } from "@/components/brand/Logo";
+import type { Locale } from "@/lib/i18n/routing";
 import { fetchPublic } from "./import-link";
 import { couponOff, isActive } from "./pricing";
 import type { Product, VitrineContent } from "./types";
@@ -83,10 +85,12 @@ export async function fonts() {
   return list.flatMap((f, i) => (data[i] ? [{ name: f.name, data: data[i], weight: f.weight, style: "normal" as const }] : []));
 }
 
-export async function shareImage(content: VitrineContent, today: string, url: string, format: keyof typeof SHARE_SIZES) {
+/** `locale`: idioma dos textos da imagem (o da página que pediu: a prévia do link ou o story). */
+export async function shareImage(content: VitrineContent, today: string, url: string, format: keyof typeof SHARE_SIZES, locale: Locale) {
+  const t = await getTranslations({ locale, namespace: "share" });
   const story = format === "story";
   const active = content.coupons.filter((c) => isActive(c, today));
-  const headline = plain(content.headline) || `A vitrine de ${content.name}`;
+  const headline = plain(content.headline) || t("headline", { name: content.name });
   const shortUrl = url.replace(/^https?:\/\//, "");
   const tile = story ? 286 : 250;
   const [avatar, products] = await Promise.all([
@@ -176,8 +180,11 @@ export async function shareImage(content: VitrineContent, today: string, url: st
   const offer =
     active.length > 0 ? (
       <span style={{ fontSize: 28, fontWeight: 500, color: GOLD }}>
-        {best ? `Até ${best}% OFF` : "Cupons"}
-        {brands.length ? ` em ${new Intl.ListFormat("pt-BR").format(brands.slice(0, 3))}` : ""}
+        {brands.length
+          ? t("offerIn", { offer: best ? t("upTo", { best }) : t("coupons"), brands: new Intl.ListFormat(locale).format(brands.slice(0, 3)) })
+          : best
+            ? t("upTo", { best })
+            : t("coupons")}
       </span>
     ) : null;
 
@@ -190,7 +197,7 @@ export async function shareImage(content: VitrineContent, today: string, url: st
       {/* quem vê o story está no celular: em vez de QR, o endereço e espaço livre para a figurinha de link */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: "auto", borderTop: `2px solid ${SAND}`, paddingTop: 40 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <span style={{ fontSize: 40, fontWeight: 500 }}>Todos os cupons no link</span>
+          <span style={{ fontSize: 40, fontWeight: 500 }}>{t("allInLink")}</span>
           <span style={{ fontSize: 32, color: MUTE }}>{shortUrl}</span>
         </div>
         {logo}

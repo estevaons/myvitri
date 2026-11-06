@@ -1,7 +1,8 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { couponOff, couponStatus, daysLeft, ddmm, expiryLabel } from "@/lib/vitrine/pricing";
+import { couponOff, couponStatus, daysLeft, ddmm, expiryValues } from "@/lib/vitrine/pricing";
 import { COUPON_EXTRA, type Coupon, type VitrineContent } from "@/lib/vitrine/types";
 import { CouponDates } from "./CouponDates";
 import { LogoPicker } from "./LogoPicker";
@@ -9,13 +10,18 @@ import type { Update } from "./panels";
 import { AddButton, Empty, Field, FormActions, H, Hint, MoneyInput, PercentInput, Pill, Row, Segmented, TextInput, inputCls, labelCls, newId, reorder, useDragSort } from "./ui";
 
 /** Situação do cupom na lista do editor: etiqueta quando pede atenção, senão só a validade no subtítulo. */
-function status(c: Coupon, today: string) {
-  const s = couponStatus(c, today);
-  if (s === "agendado") return { pill: <Pill tone="off">Entra em {ddmm(c.startsAt!)}</Pill> };
-  if (s === "vencido") return { pill: <Pill tone="bad">Vencido</Pill> };
-  const days = daysLeft(c, today);
-  if (days !== null && days <= 7) return { pill: <Pill tone="warn">{expiryLabel(c, today)}</Pill> };
-  return { sub: c.expiresAt ? `até ${ddmm(c.expiresAt)}` : "" };
+function useStatus(today: string) {
+  const t = useTranslations("editor.coupons");
+  const tCoupon = useTranslations("coupon");
+  const locale = useLocale();
+  return (c: Coupon) => {
+    const s = couponStatus(c, today);
+    if (s === "agendado") return { pill: <Pill tone="off">{t("startsOn", { date: ddmm(c.startsAt!, locale) })}</Pill> };
+    if (s === "vencido") return { pill: <Pill tone="bad">{t("expired")}</Pill> };
+    const days = daysLeft(c, today);
+    if (days !== null && days <= 7) return { pill: <Pill tone="warn">{tCoupon("expiry", expiryValues(c, today, locale))}</Pill> };
+    return { sub: c.expiresAt ? t("until", { date: ddmm(c.expiresAt, locale) }) : "" };
+  };
 }
 
 /** Cupons que pedem atenção: vencidos ou vencendo em até 7 dias. */
@@ -27,6 +33,8 @@ export function couponAlerts(coupons: Coupon[], today: string) {
 }
 
 export function CouponsPanel({ draft, update, today }: { draft: VitrineContent; update: Update; today: string }) {
+  const t = useTranslations("editor.coupons");
+  const status = useStatus(today);
   const [openId, setOpenId] = useState<string | null>(null);
   const sort = useDragSort((from, to) => update((d) => ({ ...d, coupons: reorder(d.coupons, from, to) })));
   const coupons = draft.coupons;
@@ -53,8 +61,8 @@ export function CouponsPanel({ draft, update, today }: { draft: VitrineContent; 
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-col gap-1 pb-1">
-        <H>Seus cupons</H>
-        <Hint>Cadastre uma vez. Quando um cupom vence, ele sai da vitrine sozinho.</Hint>
+        <H>{t("title")}</H>
+        <Hint>{t("hint")}</Hint>
       </div>
       {alerts > 0 && (
         <p role="status" className="m-0 flex items-start gap-2.5 rounded-[12px] bg-[#FFF8E6] px-3.5 py-3 text-[13px] leading-snug text-[#6B4A00]">
@@ -62,19 +70,17 @@ export function CouponsPanel({ draft, update, today }: { draft: VitrineContent; 
             <circle cx="12" cy="12" r="10" />
             <path d="M12 6v6l4 2" />
           </svg>
-          <span>
-            <span className="font-semibold">{alerts === 1 ? "1 cupom vencendo." : `${alerts} cupons vencendo.`}</span> Renove a data ou troque o código.
-          </span>
+          <span>{t.rich("alert", { count: alerts, b: (s) => <span className="font-semibold">{s}</span> })}</span>
         </p>
       )}
-      {coupons.length === 0 && <Empty>Nenhum cupom ainda. Comece pelo cupom que você mais divulga.</Empty>}
+      {coupons.length === 0 && <Empty>{t("empty")}</Empty>}
       {coupons.map((c, i) => {
-        const st = status(c, today);
+        const st = status(c);
         return (
           <Row
             key={c.id}
             pos={i + 1}
-            title={c.brand || "Novo cupom"}
+            title={c.brand || t("new")}
             sub={[c.code, couponOff(c), st.sub].filter(Boolean).join(" · ")}
             badge={st.pill}
             thumb={
@@ -92,25 +98,25 @@ export function CouponsPanel({ draft, update, today }: { draft: VitrineContent; 
             total={coupons.length}
           >
             <div className="grid grid-cols-2 gap-2.5">
-              <Field label="Marca">
-                <TextInput value={c.brand} onChange={(brand) => setCoupon(c.id, { brand })} maxLength={60} placeholder="Ex.: Maré" autoFocus={!c.brand} />
+              <Field label={t("brand")}>
+                <TextInput value={c.brand} onChange={(brand) => setCoupon(c.id, { brand })} maxLength={60} placeholder={t("brandPlaceholder")} autoFocus={!c.brand} />
               </Field>
-              <Field label="Código">
+              <Field label={t("code")}>
                 <TextInput
                   value={c.code}
                   onChange={(code) => setCoupon(c.id, { code: code.toUpperCase().replace(/\s/g, "") })}
                   maxLength={40}
-                  placeholder="MARINA15"
+                  placeholder={t("codePlaceholder")}
                   className={`${inputCls} font-mono tracking-wider`}
                 />
               </Field>
             </div>
             <div className={`flex flex-col gap-1.5 ${labelCls}`}>
-              Desconto
+              {t("discount")}
               <div className="flex gap-2">
                 <div className="w-[104px] flex-none">
                   <Segmented
-                    label="Tipo de desconto"
+                    label={t("kind")}
                     options={[
                       ["percent", "%"],
                       ["fixed", "R$"],
@@ -128,11 +134,11 @@ export function CouponsPanel({ draft, update, today }: { draft: VitrineContent; 
                 </div>
               </div>
             </div>
-            <Field label="Condição (opcional)">
-              <TextInput value={c.condition} onChange={(condition) => setCoupon(c.id, { condition })} maxLength={120} placeholder="Ex.: Na primeira compra" />
+            <Field label={t("condition")}>
+              <TextInput value={c.condition} onChange={(condition) => setCoupon(c.id, { condition })} maxLength={120} placeholder={t("conditionPlaceholder")} />
             </Field>
             <CouponDates today={today} start={c.startsAt} end={c.expiresAt} onChange={(startsAt, expiresAt) => setCoupon(c.id, { startsAt, expiresAt })} />
-            <Field label="Link da loja (opcional)">
+            <Field label={t("storeUrl")}>
               <TextInput value={c.storeUrl} onChange={(storeUrl) => setCoupon(c.id, { storeUrl })} placeholder="https://…" inputMode="url" />
             </Field>
             <LogoPicker storeUrl={c.storeUrl} logoUrl={c.logoUrl} onChange={(logoUrl) => setCoupon(c.id, { logoUrl })} />
@@ -142,26 +148,26 @@ export function CouponsPanel({ draft, update, today }: { draft: VitrineContent; 
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-open:rotate-90">
                   <path d="m9 18 6-6-6-6" />
                 </svg>
-                Como usar (opcional)
+                {t("howTo")}
               </summary>
               <div className="pt-3">
-                <Field label="Passos" hint="Um passo por linha. Aparece no cupom como uma lista.">
+                <Field label={t("steps")} hint={t("stepsHint")}>
                   <textarea
                     value={c.howTo}
                     onChange={(e) => setCoupon(c.id, { howTo: e.target.value })}
                     maxLength={400}
                     rows={3}
-                    placeholder={"Ex.: Válido só no app\nNão acumula com outras promoções"}
+                    placeholder={t("stepsPlaceholder")}
                     className={`${inputCls} h-auto resize-y py-2.5 leading-snug`}
                   />
                 </Field>
               </div>
             </details>
-            <FormActions onDone={() => setOpenId(null)} onRemove={() => remove(c.id)} removeLabel="Excluir cupom" />
+            <FormActions onDone={() => setOpenId(null)} onRemove={() => remove(c.id)} removeLabel={t("remove")} />
           </Row>
         );
       })}
-      <AddButton onClick={add}>+ Adicionar cupom</AddButton>
+      <AddButton onClick={add}>{t("add")}</AddButton>
     </div>
   );
 }

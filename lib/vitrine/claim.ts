@@ -39,7 +39,7 @@ export function googlePhoto(user: User) {
   return avatar_url?.startsWith("https://") ? avatar_url : "";
 }
 
-/** Vitrine nova; quem entra pelo Google já ganha a foto da conta. */
-export function starterContent(user: User, handle: string, name: string) {
-  return { ...emptyContent(handle, name), avatarUrl: googlePhoto(user) };
+/** Vitrine nova; quem entra pelo Google já ganha a foto da conta. `intro` vem das mensagens `vitrineDefaults`. */
+export function starterContent(user: User, handle: string, name: string, intro: Parameters<typeof emptyContent>[2]) {
+  return { ...emptyContent(handle, name, intro), avatarUrl: googlePhoto(user) };
 }

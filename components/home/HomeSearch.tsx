@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
+import { Link } from "@/lib/i18n/navigation";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import type { SearchResults } from "@/lib/vitrine/data";
 import { couponOff } from "@/lib/vitrine/pricing";
@@ -25,6 +26,8 @@ const row = "flex min-w-0 items-center gap-3 py-2.5 text-ink no-underline hover:
  * logo abaixo do campo, empurrando a página; Esc limpa. Cada resultado leva à vitrine de quem indica.
  */
 export function HomeSearch() {
+  const t = useTranslations("search");
+  const tCount = useTranslations("counts");
   const [q, setQ] = useState("");
   const [state, setState] = useState<State | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -66,7 +69,7 @@ export function HomeSearch() {
       <form role="search" onSubmit={(e) => e.preventDefault()}>
         {/* a dica embaixo do campo já diz o que dá para buscar: o rótulo fica só para leitor de tela */}
         <label htmlFor={id} className="sr-only">
-          Buscar vitrines, marcas e produtos
+          {t("label")}
         </label>
         {/* o campo herda a fonte (globals.css): a serifa vem daqui */}
         <div className="flex min-h-14 items-center gap-3 border border-sand bg-cream px-4 font-display focus-within:border-ink md:px-5">
@@ -80,7 +83,7 @@ export function HomeSearch() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === "Escape" && setQ("")}
-            placeholder="Nike, protetor solar, @marina"
+            placeholder={t("placeholder")}
             autoComplete="off"
             enterKeyHint="search"
             spellCheck={false}
@@ -91,22 +94,22 @@ export function HomeSearch() {
           {q && (
             <button type="button" onClick={() => setQ("")} className={`${kicker} flex-none border-0 bg-transparent p-0 text-[11px] text-mute hover:text-ink`}>
               {/* o botão herda a serifa do campo (globals.css): o rótulo volta para a fonte do texto */}
-              <span className="font-sans">Limpar</span>
+              <span className="font-sans">{t("clear")}</span>
             </button>
           )}
         </div>
         {/* discreta, colada no campo: só lembra o que dá para buscar */}
         <p id={`${id}-dica`} className="m-0 mt-2 text-[13px] text-mute">
-          Busque por uma pessoa, uma marca ou um produto.
+          {t("hint")}
         </p>
       </form>
 
       <div aria-live="polite" className="contents">
-        {loading && !shown && <p className="m-0 text-[15px] text-mute">Buscando…</p>}
-        {shown?.status === "error" && <p className="m-0 text-[15px] text-mute">Não deu para buscar agora. Tente de novo em instantes.</p>}
+        {loading && !shown && <p className="m-0 text-[15px] text-mute">{t("searching")}</p>}
+        {shown?.status === "error" && <p className="m-0 text-[15px] text-mute">{t("error")}</p>}
         {empty && (
           <p className="m-0 text-[15px] text-mute">
-            Nada encontrado para “{shown?.q}”. Tente o nome da marca, do produto ou de quem indica.
+            {t("empty", { q: shown?.q ?? "" })}
           </p>
         )}
       </div>
@@ -114,8 +117,8 @@ export function HomeSearch() {
       {r && !empty && (
         <div className={`grid gap-8 border border-sand p-5 md:p-6 ${COLS[groups]} ${loading ? "opacity-60" : ""}`}>
           {r.creators.length > 0 && (
-            <section aria-label="Vitrines" className="flex min-w-0 flex-col">
-              <h2 className={`m-0 mb-1 ${groupTitle}`}>Vitrines</h2>
+            <section aria-label={t("vitrines")} className="flex min-w-0 flex-col">
+              <h2 className={`m-0 mb-1 ${groupTitle}`}>{t("vitrines")}</h2>
               {r.creators.map((c) => (
                 <Link key={c.handle} href={`/${c.handle}`} className={row}>
                   <Avatar name={c.name} url={c.avatarUrl} className="box-border size-10 flex-none rounded-full border border-sand text-xs" />
@@ -128,8 +131,8 @@ export function HomeSearch() {
             </section>
           )}
           {r.brands.length > 0 && (
-            <section aria-label="Marcas" className="flex min-w-0 flex-col">
-              <h2 className={`m-0 mb-1 ${groupTitle}`}>Marcas</h2>
+            <section aria-label={t("brands")} className="flex min-w-0 flex-col">
+              <h2 className={`m-0 mb-1 ${groupTitle}`}>{t("brands")}</h2>
               {r.brands.map((b) => (
                 <Link key={b.brand} href={`/${b.handle}#cupons`} className={row}>
                   {b.logoUrl ? (
@@ -143,7 +146,7 @@ export function HomeSearch() {
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate text-[15px] font-medium">{b.brand}</span>
                     <span className="truncate text-[13px] text-mute">
-                      Até {couponOff(b.best)} · {b.creators > 1 ? `em ${b.creators} vitrines` : `com ${b.creator}`}
+                      {t("brandLine", { off: couponOff(b.best), where: b.creators > 1 ? tCount("inVitrines", { count: b.creators }) : tCount("with", { name: b.creator }) })}
                     </span>
                   </span>
                 </Link>
@@ -151,8 +154,8 @@ export function HomeSearch() {
             </section>
           )}
           {r.products.length > 0 && (
-            <section aria-label="Produtos" className="flex min-w-0 flex-col">
-              <h2 className={`m-0 mb-1 ${groupTitle}`}>Produtos</h2>
+            <section aria-label={t("products")} className="flex min-w-0 flex-col">
+              <h2 className={`m-0 mb-1 ${groupTitle}`}>{t("products")}</h2>
               {r.products.map((p) => (
                 <Link key={`${p.handle}:${p.id}`} href={`/${p.handle}#produtos`} className={row}>
                   <span aria-hidden="true" className="relative flex size-12 flex-none items-center justify-center overflow-hidden bg-cream">
@@ -160,7 +163,7 @@ export function HomeSearch() {
                   </span>
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate text-[15px] font-medium">{p.name}</span>
-                    <span className="truncate text-[13px] text-mute">por {p.creator}</span>
+                    <span className="truncate text-[13px] text-mute">{tCount("by", { name: p.creator })}</span>
                   </span>
                 </Link>
               ))}

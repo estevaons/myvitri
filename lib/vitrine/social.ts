@@ -27,6 +27,6 @@ export type SocialResult = { ok: true } | { ok: false; error: string };
  * Uma ação de servidor rejeita quando nem chega resposta (sem internet, servidor fora do ar, deploy novo):
  * sem isto, o erro sobe pela transição e o Next troca a página inteira pela tela de erro.
  */
-export function reachServer(action: Promise<SocialResult>): Promise<SocialResult> {
-  return action.catch(() => ({ ok: false, error: "Não foi possível falar com o servidor. Confira sua conexão e tente de novo." }));
+export function reachServer(action: Promise<SocialResult>, offline: string): Promise<SocialResult> {
+  return action.catch(() => ({ ok: false, error: offline }));
 }

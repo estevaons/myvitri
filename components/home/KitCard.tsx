@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import type { HomeKit } from "@/lib/vitrine/data";
 import type { Product } from "@/lib/vitrine/types";

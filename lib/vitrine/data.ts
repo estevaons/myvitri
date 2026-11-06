@@ -1,4 +1,5 @@
 import "server-only";
+import { getFormatter } from "next-intl/server";
 import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
 import { isActive } from "./pricing";
@@ -38,7 +39,6 @@ export const commentsTag = (handle: string) => `comentarios:${handle}`;
 
 /** A vitrine mostra até este tanto; o total continua certo no título. */
 const COMMENTS_SHOWN = 100;
-const commentDate = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Sao_Paulo" });
 
 /**
  * Comentários públicos de uma vitrine. Quem comenta vê na hora (`updateTag`); para os outros, minutos.
@@ -49,7 +49,7 @@ export async function getComments(handle: string): Promise<CommentList> {
   cacheTag(commentsTag(handle));
   cacheLife("minutes");
 
-  const { total, rows } = await listComments(createPublicSupabase(), handle, COMMENTS_SHOWN);
+  const [{ total, rows }, format] = await Promise.all([listComments(createPublicSupabase(), handle, COMMENTS_SHOWN), getFormatter()]);
   return {
     total,
     items: rows.map((c) => ({
@@ -59,7 +59,8 @@ export async function getComments(handle: string): Promise<CommentList> {
       authorAvatarUrl: c.author_avatar_url,
       body: c.body,
       byOwner: c.vitrines.owner_id === c.author_id,
-      dateLabel: commentDate.format(new Date(c.created_at)),
+      // idioma e fuso vêm de lib/i18n/request.ts
+      dateLabel: format.dateTime(new Date(c.created_at), { day: "numeric", month: "short", year: "numeric" }),
       createdAt: c.created_at,
     })),
   };

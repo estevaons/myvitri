@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/lib/i18n/navigation";
 import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { setFavoriteAction } from "@/app/actions";
@@ -116,6 +117,8 @@ export function FavoriteButton({
   /** aba Favoritas: o card fica no lugar ao tirar o coração */
   stay?: boolean;
 }) {
+  const t = useTranslations("storefront.favorite");
+  const tErrors = useTranslations("errors");
   const router = useRouter();
   const [on, setOn] = useState(favorited);
   const [pop, setPop] = useState(false);
@@ -139,7 +142,7 @@ export function FavoriteButton({
     // uma nova tentativa fecha o erro anterior, inclusive o de outro card
     closeOpenToast?.();
     start(async () => {
-      const result = await reachServer(setFavoriteAction(handle, next));
+      const result = await reachServer(setFavoriteAction(handle, next), tErrors("offline"));
       if (!result.ok) {
         announce(handle, !next);
         setPop(false);
@@ -167,7 +170,7 @@ export function FavoriteButton({
     return () => clearTimeout(timer);
   }, [guest, loading, handle]);
 
-  const label = variant === "profile" && <span>{on ? "Favorita" : "Favoritar"}</span>;
+  const label = variant === "profile" && <span>{t(on ? "on" : "off")}</span>;
 
   if (guest && !loading) {
     return (
@@ -176,7 +179,7 @@ export function FavoriteButton({
         onOpen={() => remember(handle)}
       >
         <Icon variant={variant} on={false} pop={false} />
-        <span className="sr-only">Favoritar a vitrine de {name}</span>
+        <span className="sr-only">{t("label", { name })}</span>
         {label}
       </LoginButton>
     );
@@ -189,7 +192,7 @@ export function FavoriteButton({
         onClick={() => change(!on)}
         aria-pressed={on}
         aria-busy={loading || pending}
-        aria-label={`Favoritar a vitrine de ${name}`}
+        aria-label={t("label", { name })}
         className={`${SHAPE[variant]} ${variant === "profile" ? PROFILE_LOOK[on ? "on" : "off"] : ""} transition-colors ${loading ? "cursor-default" : "cursor-pointer"}`}
       >
         <Icon variant={variant} on={on} pop={pop} />

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, type DragEvent, type ReactNode } from "react";
 import { IMAGE_ACCEPT, uploadImage } from "./upload";
 
@@ -36,6 +37,8 @@ export function FilePick({ onFile, disabled, className, children }: { onFile: (f
 
 /** Foto do produto: a que veio da loja ou uma enviada do aparelho (tocando ou arrastando). */
 export function ImageField({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const t = useTranslations("editor.image");
+  const tErrors = useTranslations("errors");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -44,7 +47,7 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
   const send = async (file: File) => {
     setError("");
     setUploading(true);
-    const res = await uploadImage("product", file);
+    const res = await uploadImage("product", file, tErrors("imageUnreadable"));
     setUploading(false);
     if (!res.ok) return setError(res.error);
     onChange(res.url);
@@ -91,7 +94,7 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
               disabled={uploading}
               className="flex min-h-9 cursor-pointer items-center rounded-[10px] border border-[#E6E2DA] bg-white px-3.5 text-[13px] font-semibold text-ink transition-colors hover:border-[#D6D0C5] hover:bg-[#FAF9F7] has-focus-visible:ring-2 has-focus-visible:ring-ink"
             >
-              {uploading ? "Enviando…" : "Trocar foto"}
+              {uploading ? t("sending") : t("change")}
             </FilePick>
             {!uploading && (
               <button type="button" onClick={() => onChange("")} className={`${linkBtn} text-[#A3361B] hover:text-[#A3361B]`}>
@@ -113,10 +116,10 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
             <span className="mb-1.5 flex size-10 items-center justify-center rounded-full bg-white text-ink shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
               <UploadIcon />
             </span>
-            <span className="text-sm font-semibold text-ink">{uploading ? "Enviando…" : dragging ? "Solte a foto aqui" : "Enviar foto"}</span>
-            <span className="text-[13px] leading-snug text-[#5E5A52] md:hidden">Toque para escolher uma imagem</span>
-            <span className="text-[13px] leading-snug text-[#5E5A52] max-md:hidden">Clique ou arraste uma imagem para cá</span>
-            <span className="mt-1 text-xs leading-snug text-[#8F897E]">Sem foto, a vitrine mostra uma ilustração</span>
+            <span className="text-sm font-semibold text-ink">{uploading ? t("sending") : dragging ? t("drop") : t("send")}</span>
+            <span className="text-[13px] leading-snug text-[#5E5A52] md:hidden">{t("tap")}</span>
+            <span className="text-[13px] leading-snug text-[#5E5A52] max-md:hidden">{t("click")}</span>
+            <span className="mt-1 text-xs leading-snug text-[#8F897E]">{t("none")}</span>
           </FilePick>
         </div>
       )}
@@ -128,7 +131,7 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
       )}
       {value && broken === value && (
         <span role="alert" className="text-xs font-medium text-[#A3361B]">
-          Essa imagem não abriu. Envie outra foto.
+          {t("broken")}
         </span>
       )}
     </div>
