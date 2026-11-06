@@ -7,8 +7,7 @@ import { useFormStatus } from "react-dom";
 import { claimAction, createVitrineAction, requestPasswordResetAction, signInAction, signInWithPasswordAction, updatePasswordAction, type FormState } from "@/app/actions";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
-import { LookPanel } from "@/components/auth/LookPanel";
-import { SignupPreview } from "@/components/auth/SignupPreview";
+import { AuthPhoto } from "@/components/auth/AuthPhoto";
 import { PASSWORD_MIN } from "@/lib/auth/password";
 import { HOST } from "@/lib/brand";
 
@@ -195,24 +194,10 @@ function ClaimFields({ claim: { name, setName, handle, setCustom } }: { claim: C
 const backFrom = (next: string) => (/^\/(inicio|editor|metricas|nova-senha)(?![^/?#])/.test(next) ? "/" : next);
 
 /**
- * As telas de acesso: formulário à esquerda e, no desktop, um painel à direita. O painel é a vitrine num celular, que acompanha o que
- * a pessoa digita (SignupPreview); com `photo`, para quem não tem o que digitar ali, é a foto do look com as peças dela em cards de produto. A seta volta para `back` ou, com `onBack`, para o passo anterior da própria tela.
+ * As telas de acesso: formulário à esquerda e, no desktop, a foto com o logotipo à direita (AuthPhoto). A seta volta para `back` ou,
+ * com `onBack`, para o passo anterior da própria tela.
  */
-function AuthShell({
-  name = "",
-  handle = "",
-  photo = false,
-  back = "/",
-  onBack,
-  children,
-}: {
-  name?: string;
-  handle?: string;
-  photo?: boolean;
-  back?: string;
-  onBack?: () => void;
-  children: ReactNode;
-}) {
+function AuthShell({ back = "/", onBack, children }: { back?: string; onBack?: () => void; children: ReactNode }) {
   return (
     <main className="grid min-h-dvh grid-cols-[minmax(0,1fr)] bg-white text-ink md:grid-cols-2">
       <div className="flex flex-col gap-10 px-5 py-6 md:px-12 md:py-8">
@@ -224,14 +209,7 @@ function AuthShell({
         </div>
         <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center gap-4 pb-10">{children}</div>
       </div>
-      {photo ? (
-        <LookPanel />
-      ) : (
-        // overflow-hidden: os avisos em volta do celular não passam para o lado do formulário
-        <div className="flex items-center justify-center overflow-hidden bg-sand p-12 max-md:hidden">
-          <SignupPreview name={name} handle={handle} />
-        </div>
-      )}
+      <AuthPhoto />
     </main>
   );
 }
@@ -246,7 +224,7 @@ function AuthTitle({ title, text }: { title: string; text: string }) {
 }
 
 /**
- * Criar conta: nome + link e, depois, e-mail e senha ou Google. A prévia ao lado acompanha a digitação.
+ * Criar conta: nome + link e, depois, e-mail e senha ou Google.
  * Os dois botões enviam o mesmo formulário: e-mail e senha não têm `required` para o do Google poder seguir
  * sem eles (a ação confere). O de e-mail vem primeiro porque é o que o Enter aciona.
  */
@@ -254,7 +232,7 @@ export function SignupForm() {
   const [state, action] = useActionState<FormState, FormData>(claimAction, {});
   const claim = useClaim();
   return (
-    <AuthShell name={claim.name} handle={claim.handle}>
+    <AuthShell>
       <form action={action} className="flex flex-col gap-3">
         <AuthTitle title="Crie sua vitrine" text="Grátis, pronta em 2 minutos." />
         <div className={box}>
@@ -345,7 +323,7 @@ function ForgotPassword() {
 export function SignInScreen({ next, loginError }: { next: string; loginError: boolean }) {
   const [forgot, setForgot] = useState(false);
   return (
-    <AuthShell photo back={backFrom(next)} onBack={forgot ? () => setForgot(false) : undefined}>
+    <AuthShell back={backFrom(next)} onBack={forgot ? () => setForgot(false) : undefined}>
       {forgot ? (
         <ForgotPassword />
       ) : (
