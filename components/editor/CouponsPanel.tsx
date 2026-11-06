@@ -54,7 +54,7 @@ export function CouponsPanel({ draft, update, today }: { draft: VitrineContent; 
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-col gap-1 pb-1">
         <H>Seus cupons</H>
-        <Hint>Cadastre uma vez e vincule aos produtos. Quando um cupom vence, ele sai da vitrine sozinho.</Hint>
+        <Hint>Cadastre uma vez. Quando um cupom vence, ele sai da vitrine sozinho.</Hint>
       </div>
       {alerts > 0 && (
         <p role="status" className="m-0 flex items-start gap-2.5 rounded-[12px] bg-[#FFF8E6] px-3.5 py-3 text-[13px] leading-snug text-[#6B4A00]">

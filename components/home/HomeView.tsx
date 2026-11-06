@@ -5,6 +5,7 @@ import type { VitrineContent } from "@/lib/vitrine/types";
 import { AccountMenu, type Account } from "./AccountMenu";
 import { kicker, pad, pillDark, pillLight, SectionHead, SiteFooter, SiteHeader } from "./chrome";
 import { VitrineLinkBar } from "./CopyLinkButton";
+import { CoverPicker } from "./CoverPicker";
 import { CreatorCard, CreatorCover } from "./CreatorCard";
 import { HomeSearch } from "./HomeSearch";
 import { KitCard } from "./KitCard";
@@ -30,7 +31,7 @@ function Stat({ n, one, many }: { n: number; one: string; many: string }) {
 }
 
 /**
- * A própria vitrine como uma matéria de revista: a capa à esquerda e, ao lado, o nome, o endereço (que abre e copia),
+ * A própria vitrine como uma matéria de revista: a capa à esquerda (é aqui que ela é definida) e, ao lado, o nome, o endereço (que abre e copia),
  * os números com o atalho das métricas e os botões de editar e de ver a vitrine.
  */
 function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
@@ -38,9 +39,11 @@ function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
   return (
     <section aria-labelledby="sua-vitrine" className={`${section} ${pad}`}>
       <div className="grid items-center gap-10 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-16 lg:gap-24">
-        <Link href={`/${vitrine.handle}`} target="_blank" rel="noopener" aria-label={`Abrir a vitrine ${vitrine.name}`} className="group block">
-          <CreatorCover c={card} caption={false} />
-        </Link>
+        <CoverPicker hasCover={Boolean(vitrine.look.bannerUrl)} name={vitrine.name}>
+          <Link href={`/${vitrine.handle}`} target="_blank" rel="noopener" aria-label={`Abrir a vitrine ${vitrine.name}`} className="group block">
+            <CreatorCover c={card} caption={false} />
+          </Link>
+        </CoverPicker>
         <div className="flex min-w-0 flex-col items-start gap-8">
           <div className="flex min-w-0 flex-col gap-4">
             <span className={`${kicker} text-gold`}>Sua vitrine</span>
@@ -184,7 +187,7 @@ function ForYouTab({ vitrine, ranked, creators, kits, favorites }: ForYou & { fa
       {kits.length > 0 && (
         <section className={`${section} gap-10`}>
           <div className={pad}>
-            <SectionHead kicker="Acabaram de sair" title="Últimos kits" text="Combinações montadas por quem indica, com o preço já com o cupom." />
+            <SectionHead kicker="Acabaram de sair" title="Últimos kits" text="Combinações montadas por quem indica." />
           </div>
           <Marquee label="Últimos kits" className={pad} itemClassName="w-[220px] md:w-[300px]">
             {kits.map((k) => (

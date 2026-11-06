@@ -1,9 +1,9 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
-import { HOME_TAG, todayISO, type HomeKit } from "../data";
-import { isActive, kitTotals, priceProducts } from "../pricing";
-import { toCoupon, toKit, toProduct, type Db } from "../store";
+import { HOME_TAG, type HomeKit } from "../data";
+import { toKit, toProduct, type Db } from "../store";
+import { kitItems } from "../types";
 
 /** Kit do catálogo da aba Kits: o do carrossel mais a data e as categorias dos itens. */
 export type CatalogKit = HomeKit & { publishedAt: string; cats: string[] };
@@ -34,8 +34,8 @@ async function inChunks<T>(ids: string[], load: (part: string[]) => PromiseLike<
 }
 
 /**
- * Kits publicados com os itens e só os cupons que eles usam. Busca produtos e cupons por id (no máximo
- * 4 produtos por kit), não a vitrine inteira: fica longe do limite de linhas por consulta do Supabase.
+ * Kits publicados com os itens. Busca os produtos por id (no máximo 4 por kit), não a vitrine inteira:
+ * fica longe do limite de linhas por consulta do Supabase.
  */
 async function listKits(db: Db) {
   const { data: kits, error } = await db
@@ -47,24 +47,17 @@ async function listKits(db: Db) {
   if (error) throw error;
 
   const products = await inChunks([...new Set(kits.flatMap((k) => k.product_ids))], (ids) => db.from("products").select("*").in("id", ids));
-  const couponIds = [...new Set(products.map((p) => p.coupon_id).filter((id): id is string => !!id))];
-  const coupons = await inChunks(couponIds, (ids) => db.from("coupons").select("*").in("id", ids));
-  return { kits, products, coupons };
+  return { kits, products };
 }
 
-/** Todos os kits com algum produto à venda, com total, total com cupom e economia, mais as opções dos filtros. */
+/** Todos os kits com algum produto à venda, mais as opções dos filtros. */
 export async function getKitCatalog(): Promise<KitCatalog> {
   "use cache";
   cacheTag(HOME_TAG);
-  // horas: cupom vencido tem que sair do total mesmo sem nova publicação
   cacheLife("hours");
 
-  const today = todayISO();
-  const { kits, products, coupons } = await listKits(createPublicSupabase());
-  const priced = priceProducts(
-    products.filter((p) => !p.sold_out).map(toProduct),
-    coupons.map(toCoupon).filter((c) => isActive(c, today)),
-  );
+  const { kits, products } = await listKits(createPublicSupabase());
+  const onSale = products.filter((p) => !p.sold_out).map(toProduct);
   // produto de outra vitrine nunca entra no kit, mesmo que o id apareça lá por engano
   const vitrineOf = new Map(products.map((p) => [p.id, p.vitrine_id]));
 
@@ -74,8 +67,7 @@ export async function getKitCatalog(): Promise<KitCatalog> {
 
   const out = kits.flatMap(({ vitrines: v, ...row }): CatalogKit[] => {
     const kit = toKit(row);
-    const own = priced.filter((p) => vitrineOf.get(p.id) === row.vitrine_id && kit.productIds.includes(p.id));
-    const { items, total, final, save } = kitTotals(kit, own);
+    const items = kitItems(kit, onSale.filter((p) => vitrineOf.get(p.id) === row.vitrine_id));
     if (!items.length) return [];
 
     const cats = [...new Set(items.map((p) => catSlug(p.category)).filter(Boolean))];
@@ -95,9 +87,6 @@ export async function getKitCatalog(): Promise<KitCatalog> {
         name: kit.name,
         description: kit.description,
         items,
-        total,
-        final,
-        save,
         publishedAt: row.published_at,
         cats,
       },
@@ -117,37 +106,8 @@ export async function getKitCatalog(): Promise<KitCatalog> {
   };
 }
 
-/** Faixas do total com cupom, em centavos: [id na URL, rótulo, de (exclusivo), até (inclusivo)]. */
-export const PRICE_RANGES = [
-  ["ate-200", "Até R$ 200", -1, 20_000],
-  ["200-500", "R$ 200 a R$ 500", 20_000, 50_000],
-  ["500-mais", "Acima de R$ 500", 50_000, Infinity],
-] as const;
+export type KitQuery = { cat?: string; creator?: string };
 
-export const KIT_SORTS = [
-  ["recentes", "Mais recentes"],
-  ["economia", "Maior economia"],
-  ["menor", "Menor total"],
-] as const;
-
-export type KitQuery = { preco?: string; cat?: string; creator?: string; ordem?: string };
-
-/** Filtra e ordena no servidor. Valor desconhecido em `preco` ou `ordem` vale como "sem filtro" / padrão. */
-export function queryKits(kits: CatalogKit[], q: KitQuery): CatalogKit[] {
-  const range = PRICE_RANGES.find(([id]) => id === q.preco);
-  const shown = kits.filter(
-    (k) =>
-      (!range || (k.final > range[2] && k.final <= range[3])) &&
-      (!q.cat || k.cats.includes(q.cat)) &&
-      (!q.creator || k.handle === q.creator),
-  );
-  const recent = (a: CatalogKit, b: CatalogKit) => b.publishedAt.localeCompare(a.publishedAt);
-  if (q.ordem === "economia") return shown.sort((a, b) => b.save - a.save || recent(a, b));
-  if (q.ordem === "menor") return shown.sort((a, b) => a.final - b.final || recent(a, b));
-  // já vem do banco do mais recente para o mais antigo
-  return shown;
-}
-
-/** Só as faixas de preço que têm algum kit, para não mostrar filtro que dá em nada. */
-export const priceOptions = (kits: CatalogKit[]): [string, string][] =>
-  PRICE_RANGES.filter(([, , from, to]) => kits.some((k) => k.final > from && k.final <= to)).map(([id, label]) => [id, label]);
+/** Filtra no servidor; a ordem é a do banco, do mais recente para o mais antigo. */
+export const queryKits = (kits: CatalogKit[], q: KitQuery): CatalogKit[] =>
+  kits.filter((k) => (!q.cat || k.cats.includes(q.cat)) && (!q.creator || k.handle === q.creator));

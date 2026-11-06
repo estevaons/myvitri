@@ -194,7 +194,7 @@ export function SharePanel({
           <span aria-hidden="true" className="flex size-11 flex-none items-center justify-center overflow-hidden rounded-full bg-[#F4F2EE] text-base font-semibold text-[#8F897E]">
             {draft.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- foto do bucket ou de URL arbitrária
-              <img src={draft.avatarUrl} alt="" className="size-full object-cover" />
+              <img src={draft.avatarUrl} alt="" referrerPolicy="no-referrer" className="size-full object-cover" />
             ) : (
               (draft.name || draft.handle).slice(0, 1).toUpperCase()
             )}
@@ -268,8 +268,8 @@ export function SharePanel({
             label="Nome da campanha"
             hint={
               <>
-                Os links ganham <span className="break-all">utm_source=myvitri&amp;utm_medium=creator&amp;utm_campaign={campaign}</span>. Links de afiliado
-                ficam como estão.
+                Os links de loja dos cupons ganham <span className="break-all">utm_source=myvitri&amp;utm_medium=creator&amp;utm_campaign={campaign}</span>. Os
+                links de produto ficam como você colou.
               </>
             }
           >

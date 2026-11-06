@@ -26,13 +26,13 @@ const STEPS = [`Escolha seu link ${HOST}`, "Cadastre seus cupons e produtos", "C
 export const FAQ: [question: string, answer: string][] = [
   [
     `O que é o ${BRAND}?`,
-    `Uma vitrine em um link só para quem divulga marcas. Você reúne os cupons de todas as marcas parceiras e os produtos que usa, com o preço já com o seu desconto, e coloca o link na bio.`,
+    `Uma vitrine em um link só para quem divulga marcas. Você reúne os cupons de todas as marcas parceiras e os produtos que usa, cada um com o seu link, e coloca o link na bio.`,
   ],
   [`Quanto custa?`, `É grátis para começar. Basta escolher o seu link e entrar com a conta do Google.`],
   [`Como fica o meu link?`, `Sua vitrine fica em ${HOST}/seunome. É esse endereço que vai na bio do Instagram, do TikTok ou onde você quiser.`],
   [
     `Preciso cadastrar cada produto na mão?`,
-    `Não. Cole o link do produto na loja e a gente puxa nome, foto e preço. Se o produto tem cupom, a vitrine mostra quanto seu público paga com o desconto.`,
+    `Não. Cole o link do produto na loja e a gente puxa nome e foto. Depois é só colocar o seu link de afiliado, se tiver.`,
   ],
   [
     `A marca consegue ver que a venda veio de mim?`,
@@ -40,7 +40,7 @@ export const FAQ: [question: string, answer: string][] = [
   ],
   [
     `Posso usar meu link de afiliado?`,
-    `Pode. Cada produto tem um campo para o seu link de afiliado, e o botão de compra leva direto para ele, do jeito que você colou. Dá para usar junto com um cupom: seu público tem o desconto e você, a comissão.`,
+    `Pode. Cada produto tem um campo para o seu link de afiliado, e o clique no produto leva direto para ele, do jeito que você colou. Os cupons ficam na mesma vitrine: seu público tem o desconto e você, a comissão.`,
   ],
   [`Como divulgo a vitrine?`, `O link já gera uma prévia com os seus cupons no WhatsApp e nas redes, e você baixa uma imagem pronta para os stories com os seus cupons.`],
 ];
@@ -68,7 +68,7 @@ export function CreatorPitch() {
             Seu público pergunta. <em>A vitrine responde.</em>
           </h2>
           <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-ink/70">
-            Cupom, link da loja e preço com desconto num lugar só. Você para de mandar o mesmo código no direct.
+            Seus cupons e os links dos produtos num lugar só. Você para de mandar o mesmo código no direct.
           </p>
         </div>
       </section>
@@ -78,7 +78,7 @@ export function CreatorPitch() {
         <div className="grid gap-x-4 gap-y-10 md:grid-cols-3">
           <Feature
             title="Todos os cupons num link só"
-            text="Cada marca vira um cupom pronto para copiar, com validade e condição."
+            text="Cada marca vira um cupom pronto para copiar, com a condição de uso."
           >
             <div className="flex w-[64%] flex-col gap-3 bg-white p-5">
               <span className={`${kicker} text-[11px] text-gold`}>Sua marca parceira</span>
@@ -89,27 +89,21 @@ export function CreatorPitch() {
             </div>
           </Feature>
           <Feature
-            title="Preço com desconto e seu link de afiliado"
-            text="Cole o link do produto e a gente puxa nome, foto e preço. Seu público vê quanto paga com o seu cupom, e o botão de compra pode levar para o seu link de afiliado."
+            title="Produtos com o seu link de afiliado"
+            text="Cole o link do produto e a gente puxa nome e foto. Um clique no produto e seu público vai direto para o seu link de afiliado."
           >
             <div className="flex w-[64%] flex-col">
               <div className="flex aspect-[2/1] items-center justify-center bg-white">
                 <ProductIcon icon="Shoe" className="w-[40%]" />
               </div>
-              <div className="flex flex-col gap-0.5 pt-2.5 text-sm leading-snug">
-                <span className="text-[11px] font-medium tracking-[0.18em] text-gold uppercase">Cupom -15%</span>
-                <span>Tênis de corrida</span>
-                <span>
-                  <span className="font-medium">R$ 339,90</span> <span className="text-mute line-through">R$ 399,90</span>
-                </span>
-              </div>
+              <span className="pt-2.5 text-center text-sm leading-snug font-medium">Tênis de corrida</span>
               {/* o link sai como a pessoa colou: é a parte "ref=voce" que paga a comissão */}
               <span className="mt-2.5 truncate border border-dashed border-gold/50 bg-white px-2.5 py-1.5 font-mono text-[11px] text-mute">
                 loja.com/tenis?<span className="font-bold text-ink">ref=voce</span>
               </span>
             </div>
           </Feature>
-          <Feature title="Kits que vendem mais" text="Monte combos como “kit praia” ou “kit treino”, com total e economia somados automaticamente.">
+          <Feature title="Kits que vendem mais" text="Monte combos como “kit praia” ou “kit treino”, cada produto com o seu link.">
             <div className="grid w-[56%] grid-cols-2 gap-1">
               {KIT.map((icon) => (
                 <div key={icon} className="flex aspect-square items-center justify-center bg-white">

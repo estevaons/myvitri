@@ -3,8 +3,8 @@ import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import { WORDMARK_RATIO, Wordmark } from "@/components/brand/Logo";
 import { fetchPublic } from "./import-link";
-import { couponBadge, couponOff, formatBRL, isActive, priceProducts, type PricedProduct } from "./pricing";
-import type { VitrineContent } from "./types";
+import { couponOff, isActive } from "./pricing";
+import type { Product, VitrineContent } from "./types";
 
 /**
  * Imagens para divulgar a vitrine: "og" (prévia do link em WhatsApp, X etc.)
@@ -49,7 +49,7 @@ async function photo(raw: string, size: number, kind: "product" | "avatar") {
 }
 
 /** Os primeiros produtos à venda que têm foto, na ordem da vitrine; tenta alguns a mais para cobrir fotos que falharem. */
-async function productPhotos(products: PricedProduct[], count: number, size: number) {
+async function productPhotos(products: Product[], count: number, size: number) {
   const candidates = products.filter((p) => !p.soldOut && p.imageUrl).slice(0, count + 2);
   const photos = await Promise.all(candidates.map((p) => photo(p.imageUrl, size, "product")));
   return candidates.flatMap((p, i) => (photos[i] ? [{ product: p, src: photos[i] }] : [])).slice(0, count);
@@ -91,7 +91,7 @@ export async function shareImage(content: VitrineContent, today: string, url: st
   const tile = story ? 286 : 250;
   const [avatar, products] = await Promise.all([
     content.avatarUrl ? photo(content.avatarUrl, story ? 240 : 144, "avatar") : null,
-    productPhotos(priceProducts(content.products, active), story ? 3 : 4, tile * 2),
+    productPhotos(content.products, story ? 3 : 4, tile * 2),
   ]);
   // no story, com produtos sobra espaço para 2 cupons; na prévia do link, os produtos só entram se fecharem a grade 2×2
   const showProducts = story ? products.length > 0 : products.length === 4;
@@ -132,33 +132,9 @@ export async function shareImage(content: VitrineContent, today: string, url: st
   ));
 
   const tiles = products.map(({ product: p, src }) => (
-    <div key={p.id} style={{ display: "flex", flexDirection: "column", gap: 14, width: tile }}>
-      <div style={{ display: "flex", position: "relative", width: tile, height: tile }}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img> */}
-        <img src={src} width={tile} height={tile} alt="" />
-        {p.coupon && (
-          <span
-            style={{
-              position: "absolute",
-              top: 14,
-              left: 14,
-              background: INK,
-              color: "#FFFFFF",
-              fontSize: story ? 24 : 20,
-              fontWeight: 500,
-              padding: story ? "6px 14px" : "4px 12px",
-            }}
-          >
-            {couponBadge(p.coupon)}
-          </span>
-        )}
-      </div>
-      {story && p.price > 0 && (
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-          <span style={{ fontSize: 30, fontWeight: 500 }}>{formatBRL(p.final)}</span>
-          {p.final < p.price && <span style={{ fontSize: 22, color: MUTE, textDecoration: "line-through" }}>{formatBRL(p.price)}</span>}
-        </div>
-      )}
+    <div key={p.id} style={{ display: "flex", width: tile, height: tile }}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img> */}
+      <img src={src} width={tile} height={tile} alt="" />
     </div>
   ));
 

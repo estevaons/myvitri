@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LoginButton } from "@/components/auth/forms";
 import { CategoryShop } from "@/components/home/CategoryShop";
-import { CreatorCard } from "@/components/home/CreatorCard";
+import { CreatorMosaic } from "@/components/home/CreatorMosaic";
 import { CreatorPitch, FAQ } from "@/components/home/CreatorPitch";
 import { kicker, pad, pillDark, pillLight, SectionHead, SiteFooter, SiteHeader } from "@/components/home/chrome";
 import { LookHero } from "@/components/home/LookHero";
-import { BRAND, HOST } from "@/lib/brand";
+import { BRAND } from "@/lib/brand";
 import { appJsonLd, DESCRIPTION, JsonLd, pageMeta, siteJsonLd } from "@/lib/seo";
 import { getHomeFeed, type HomeFeed } from "@/lib/vitrine/data";
-import { couponOff, expiryLabel } from "@/lib/vitrine/pricing";
+import { couponOff } from "@/lib/vitrine/pricing";
 
 /**
  * Landing: descobrir vitrines, cupons ativos, achados por categoria e marcas e, no fim, o que a
@@ -21,7 +21,7 @@ const TITLE = `${BRAND} | Cupons e achados de quem você segue`;
 // título absoluto: na home o nome do site vem primeiro, sem o sufixo do template
 export const metadata: Metadata = { ...pageMeta({ title: TITLE, description: DESCRIPTION, path: "/" }), title: { absolute: TITLE } };
 
-const EMPTY: HomeFeed = { creators: [], coupons: [], products: [], brands: [], today: "" };
+const EMPTY: HomeFeed = { creators: [], coupons: [], products: [], brands: [] };
 
 /** Respiro entre as seções da landing. */
 const section = `mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`;
@@ -32,7 +32,7 @@ export default async function Home() {
     console.error("getHomeFeed", e);
     return EMPTY;
   });
-  const { creators, coupons, products, brands, today } = feed;
+  const { creators, coupons, products, brands } = feed;
 
   return (
     <div className="overflow-hidden bg-white text-ink">
@@ -66,17 +66,13 @@ export default async function Home() {
           <div className={`relative z-10 mx-auto flex h-full max-w-[1440px] flex-col items-start justify-center gap-4 py-8 md:py-10 lg:py-6 ${pad}`}>
             {/* sobre a parede da foto o dourado perde contraste: do lg em diante o texto é todo preto */}
             <span className={`${kicker} text-gold lg:text-ink`}>Achados de quem usa de verdade</span>
-            {/* no lg a largura em em quebra cada frase em duas linhas, à esquerda da pessoa na foto; a altura também limita a fonte, para caber em tela baixa */}
-            <h1 className="m-0 font-display text-[clamp(44px,12vw,76px)] leading-[0.98] font-normal tracking-[-0.01em] lg:max-w-[5.6em] lg:text-[clamp(52px,min(6.4vw,10svh),96px)]">
-              Indicado por gente. <em className="font-normal lg:block">Não pelo algoritmo.</em>
+            {/* Uma frase por linha, na parede, à esquerda da pessoa na foto. Acima de 1440px a coluna do texto anda para a direita mais rápido que a pessoa,
+                então a fonte diminui com a largura até 56px (em 2560px, onde a foto para de crescer): sem isso o título encosta no ombro em janela baixa, em que ele fica na altura do blazer. A altura também limita, para caber em tela baixa. */}
+            <h1 className="m-0 font-display text-[clamp(38px,10.8vw,76px)] leading-[0.98] font-normal tracking-[-0.01em] lg:text-[clamp(40px,min(4.6vw,10svh,max(56px,90px_-_1.34vw)),66px)]">
+              <span className="block">Indicado por gente.</span> <em className="block font-normal">Não pelo algoritmo.</em>
             </h1>
             <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-mute lg:max-w-[20rem] lg:text-ink xl:max-w-[24rem]">
-              {/* "vitri" em serifa itálica: o nome da marca escondido na palavra */}
-              Veja o que quem você segue usa de verdade, reunido na{" "}
-              <span className="whitespace-nowrap">
-                <em className="font-display text-[1.34em] leading-none text-gold lg:text-ink">vitri</em>ne
-              </span>{" "}
-              de cada um.
+              Veja o que quem você segue usa de verdade, reunido na vitrine de cada um.
             </p>
             {/* botões mais estreitos em duas situações: no celular, para caberem lado a lado; no lg ainda estreito, para o segundo não encostar na pessoa da foto */}
             <div className="mt-1 flex w-full flex-wrap gap-2">
@@ -97,25 +93,7 @@ export default async function Home() {
       {creators.length > 0 && (
         <section id="vitrines" className={section}>
           <SectionHead kicker="Explore as" title="Vitrines" text="Entre na vitrine de quem você confia e veja tudo o que essa pessoa usa e recomenda." />
-          <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-4">
-            {creators.map((c) => (
-              <CreatorCard key={c.handle} c={c} />
-            ))}
-            <Link href="/criar-vitrine" className="group flex min-w-0 flex-col text-ink no-underline">
-              {/* em telas menores o card é estreito: título sem o "aqui" e tamanhos menores, para caber no quadrado */}
-              <div className="flex aspect-square flex-col justify-between bg-sand p-4 xl:p-6">
-                <span className={`${kicker} text-[11px] text-gold`}>Você cria conteúdo?</span>
-                <span className="font-display text-[30px] leading-[1] font-normal md:max-lg:text-[26px] xl:text-[clamp(36px,4vw,56px)]">
-                  Sua vitrine<span className="max-xl:hidden"> <em>aqui</em></span>
-                </span>
-                <span className={`flex min-h-10 items-center justify-center bg-ink px-4 ${kicker} text-[11px] text-white group-hover:bg-[#2b2925] xl:min-h-11`}>
-                  Criar grátis
-                </span>
-              </div>
-              <span className="pt-3 text-[16px]">Monte a sua em 2 minutos</span>
-              <span className="text-[15px] text-mute">{HOST}/seunome</span>
-            </Link>
-          </div>
+          <CreatorMosaic creators={creators} />
         </section>
       )}
 
@@ -129,16 +107,13 @@ export default async function Home() {
                 href={`/${c.handle}#cupons`}
                 className="box-border flex w-[68%] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-5 text-ink no-underline hover:border-gold md:min-h-[260px] md:w-auto md:p-6"
               >
-                <div className="flex min-w-0 flex-col items-start gap-1 md:flex-row md:items-center md:justify-between md:gap-3">
-                  <span className="flex max-w-full min-w-0 items-center gap-2">
-                    {c.logoUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária
-                      <img src={c.logoUrl} alt="" loading="lazy" className="size-8 flex-none rounded-full bg-white object-contain" />
-                    )}
-                    <span className="truncate text-[15px] font-medium">{c.brand}</span>
-                  </span>
-                  <span className="flex-none text-[13px] text-mute">{expiryLabel(c, today)}</span>
-                </div>
+                <span className="flex max-w-full min-w-0 items-center gap-2">
+                  {c.logoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária
+                    <img src={c.logoUrl} alt="" loading="lazy" className="size-8 flex-none rounded-full bg-white object-contain" />
+                  )}
+                  <span className="truncate text-[15px] font-medium">{c.brand}</span>
+                </span>
                 <div className="flex flex-col gap-1.5">
                   <span className="font-display text-[46px] leading-[0.95] font-normal lining-nums md:text-[58px]">{couponOff(c)}</span>
                   {c.condition && <span className="text-[15px] leading-snug text-mute">{c.condition}</span>}

@@ -1,4 +1,4 @@
-import type { Coupon, Kit, Product } from "./types";
+import type { Coupon } from "./types";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -10,16 +10,6 @@ const shortBRL = (cents: number) =>
 
 export function couponOff(c: Coupon) {
   return c.kind === "percent" ? `${c.value}% OFF` : `${shortBRL(c.value)} OFF`;
-}
-
-export function couponBadge(c: Coupon) {
-  return c.kind === "percent" ? `-${c.value}%` : `-${shortBRL(c.value)}`;
-}
-
-export function applyCoupon(price: number, c: Coupon | undefined) {
-  if (!c) return price;
-  const off = c.kind === "percent" ? Math.round((price * c.value) / 100) : c.value;
-  return Math.max(0, price - off);
 }
 
 /** Agendados ainda não começaram; vencidos já passaram. Os dois ficam fora da vitrine pública. */
@@ -46,26 +36,6 @@ export function expiryLabel(c: Coupon, today: string) {
   if (days === 1) return "Vence amanhã";
   if (days <= 7) return `Vence em ${days} dias`;
   return `Válido até ${ddmm(c.expiresAt!)}`;
-}
-
-export type PricedProduct = Product & { coupon?: Coupon; final: number };
-
-export function priceProducts(products: Product[], coupons: Coupon[]): PricedProduct[] {
-  const byId = new Map(coupons.map((c) => [c.id, c]));
-  return products.map((p) => {
-    const coupon = p.couponId ? byId.get(p.couponId) : undefined;
-    return { ...p, coupon, final: applyCoupon(p.price, coupon) };
-  });
-}
-
-export function kitTotals(kit: Kit, priced: PricedProduct[]) {
-  const items = kit.productIds
-    .map((id) => priced.find((p) => p.id === id))
-    .filter((p): p is PricedProduct => !!p);
-  const total = items.reduce((s, p) => s + p.price, 0);
-  const final = items.reduce((s, p) => s + p.final, 0);
-  const codes = [...new Set(items.map((p) => p.coupon?.code).filter(Boolean))] as string[];
-  return { items, total, final, save: total - final, codes };
 }
 
 /** Converte "189,90" / "R$ 1.189,90" / "189.90" em centavos. */

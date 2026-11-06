@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { Avatar } from "@/components/home/CreatorCard";
 import type { BrandCreator, CatalogBrand } from "@/lib/vitrine/catalog/brands";
-import { couponOff, daysLeft, expiryLabel } from "@/lib/vitrine/pricing";
+import { couponOff } from "@/lib/vitrine/pricing";
 import { kicker } from "../../chrome";
-import { SOON_DAYS, soonest } from "./query";
 
 /** Logo da marca num círculo; sem logo, a inicial em serifa. */
 export function BrandLogo({ name, url, className }: { name: string; url: string; className: string }) {
@@ -33,10 +32,8 @@ export function CreatorFaces({ creators }: { creators: BrandCreator[] }) {
 export const creatorsLabel = (creators: BrandCreator[]) => (creators.length > 1 ? `em ${creators.length} vitrines` : `com ${creators[0]?.name ?? ""}`);
 
 /** Card do diretório: o melhor cupom somando todas as creators. Clicar abre (ou fecha) o comparativo. */
-export function BrandCard({ b, today, href, selected }: { b: CatalogBrand; today: string; href: string; selected: boolean }) {
+export function BrandCard({ b, href, selected }: { b: CatalogBrand; href: string; selected: boolean }) {
   const best = b.coupons[0];
-  const next = soonest(b);
-  const soon = next !== null && (daysLeft(next, today) ?? Infinity) <= SOON_DAYS;
   return (
     <Link
       href={href}
@@ -50,12 +47,9 @@ export function BrandCard({ b, today, href, selected }: { b: CatalogBrand; today
         <span className="font-display text-[24px] leading-[1.05] font-normal break-words md:text-[clamp(26px,2.4vw,34px)]">{b.brand}</span>
         <span className={`${kicker} text-[11px] text-gold`}>{b.coupons.length > 1 ? `Até ${couponOff(best)}` : couponOff(best)}</span>
       </span>
-      <span className="mt-auto flex min-w-0 flex-col gap-2 border-t border-black/10 pt-3 text-[13px]">
-        <span className="flex min-w-0 items-center gap-2">
-          <CreatorFaces creators={b.creators} />
-          <span className="truncate text-mute">{creatorsLabel(b.creators)}</span>
-        </span>
-        <span className={soon ? "font-medium text-gold" : "text-mute"}>{next ? expiryLabel(next, today) : "Sem validade"}</span>
+      <span className="mt-auto flex min-w-0 items-center gap-2 border-t border-black/10 pt-3 text-[13px]">
+        <CreatorFaces creators={b.creators} />
+        <span className="truncate text-mute">{creatorsLabel(b.creators)}</span>
       </span>
     </Link>
   );

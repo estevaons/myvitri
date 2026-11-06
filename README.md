@@ -2,7 +2,7 @@
 
 > 📚 **Documentação:** [arquitetura](docs/architecture.md) e [banco de dados](docs/database.md).
 
-O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **vitrine pública** com os **cupons de desconto** das marcas que divulgam, os **produtos** que indicam (com o preço já calculado com o cupom) e **kits** de produtos. A vitrine fica num link curto (`myvitri.com/seunome`) para a bio do Instagram/TikTok. O seguidor copia o cupom e vai direto para a loja oficial da marca — o MyVitri não vende nada.
+O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **vitrine pública** com os **cupons de desconto** das marcas que divulgam, os **produtos** que indicam (foto e nome, com o clique levando ao link que a creator colou, de afiliado ou da loja) e **kits** de produtos. O cupom é só da marca e fica na seção Cupons. A vitrine fica num link curto (`myvitri.com/seunome`) para a bio do Instagram/TikTok. O seguidor copia o cupom da marca e abre o produto na loja — o MyVitri não vende nada.
 
 | | |
 |---|---|
@@ -157,7 +157,7 @@ graph LR
 - **Mutações:** todas em Server Actions (`app/actions.ts`); a autorização é feita pelo banco (RLS), o app nunca usa chave de serviço.
 - **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")` (`"minutes"` para o ranking e a busca da home logada, que passa por `GET /api/busca`); os catálogos das abas de `/inicio` (`lib/vitrine/catalog/`) usam a tag `home` e filtram em memória a partir da URL; a publicação invalida com `updateTag`. Comentários têm cache próprio (tag `comentarios:{handle}`); o que é por pessoa (coração, formulário, botão de excluir) vem de `GET /api/eu` no navegador.
 - **Favoritos e comentários:** tabelas `favorites` (lista privada de cada conta) e `comments` (leitura pública, preenchida por um trigger do banco a partir da sessão); veja [docs/database.md](docs/database.md).
-- **Editor:** rascunho salvo automaticamente em `vitrine_drafts`; **Publicar** grava tudo de uma vez pela função `publish_vitrine()` do Postgres.
+- **Editor:** rascunho salvo automaticamente em `vitrine_drafts`; **Publicar** grava tudo de uma vez pela função `publish_vitrine()` do Postgres. Nome, link e foto de perfil (Configurações, no menu da conta da home; sem foto própria vale a da conta Google, gravada em `avatar_url`, e sem nenhuma das duas a vitrine mostra as iniciais) e a capa (bloco "Sua vitrine" da home) não passam pelo rascunho: `updateProfileAction` e `updateCoverAction` gravam direto em `vitrines`, na hora. Sem capa, a vitrine mostra a primeira letra do nome.
 - **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()` e mostrados na página `/metricas` (a antiga aba do editor foi removida; `/editor?aba=metricas` redireciona).
 
 Mais em [docs/architecture.md](docs/architecture.md).

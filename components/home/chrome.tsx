@@ -108,7 +108,7 @@ export function SiteFooter({ signedIn = false }: { signedIn?: boolean }) {
       )}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-sand py-6 text-[13px] text-mute">
         <span>
-          © {BRAND} · Preços e cupons podem mudar na loja da marca.
+          © {BRAND} · Cupons podem mudar na loja da marca.
         </span>
         <nav aria-label="Informações legais" className="flex gap-5">
           <Link href="/privacidade" className="text-inherit no-underline hover:text-ink">

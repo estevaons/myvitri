@@ -2,23 +2,19 @@ import "server-only";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
-import { HOME_TAG, interleave, live, todayISO, type HomeProduct } from "../data";
-import { toCoupon, toProduct, type Db, type FeedVitrine } from "../store";
+import { HOME_TAG, interleave, type HomeProduct } from "../data";
+import { toProduct, type Db } from "../store";
 
 /**
- * Catálogo da aba "Produtos" do /inicio: todos os produtos à venda das vitrines publicadas, com o preço
- * já com o cupom ativo. O mesmo produto indicado por várias creators vira um item só.
+ * Catálogo da aba "Produtos" do /inicio: todos os produtos à venda das vitrines publicadas.
+ * O mesmo produto indicado por várias creators vira um item só.
  */
 
 /** Um produto do catálogo. `others` = quantas creators além de `creator` indicam o mesmo produto. */
 export type CatalogProduct = HomeProduct & {
   catKey: string;
   brandKey: string;
-  /** desconto do cupom em % do preço cheio (0 sem cupom ou sem preço) */
-  off: number;
   others: number;
-  /** posição em "Em destaque" */
-  order: number;
 };
 
 /** [chave na URL, rótulo, quantos produtos] */
@@ -56,27 +52,18 @@ async function all<T>(page: (from: number, to: number) => PromiseLike<{ data: T[
 }
 
 /**
- * Todas as vitrines publicadas com cupons e produtos à venda. Consulta própria em vez de `listFeed`:
- * sem o `.in(ids)` (que estoura a URL com centenas de vitrines) e paginada além das 1000 linhas.
+ * Os produtos à venda de cada vitrine publicada, das mais recentes para as mais antigas. Consulta própria em vez
+ * de `listFeed`: sem o `.in(ids)` (que estoura a URL com centenas de vitrines) e paginada além das 1000 linhas.
  */
-async function listAll(db: Db): Promise<FeedVitrine[]> {
-  const [vitrines, coupons, products] = await Promise.all([
-    all((a, b) => db.from("vitrines").select("id, handle, name, avatar_url, headline").order("updated_at", { ascending: false }).order("id").range(a, b)),
-    all((a, b) => db.from("coupons").select("*").order("id").range(a, b)),
+async function listAll(db: Db): Promise<HomeProduct[][]> {
+  const [vitrines, products] = await Promise.all([
+    all((a, b) => db.from("vitrines").select("id, handle, name").order("updated_at", { ascending: false }).order("id").range(a, b)),
     all((a, b) => db.from("products").select("*").eq("sold_out", false).order("id").range(a, b)),
   ]);
-  const byPosition = (x: { position: number }, y: { position: number }) => x.position - y.position;
-  coupons.sort(byPosition);
-  products.sort(byPosition);
-  return vitrines.map((v) => ({
-    handle: v.handle,
-    name: v.name,
-    avatarUrl: v.avatar_url,
-    headline: v.headline,
-    look: { bannerUrl: "" },
-    coupons: coupons.filter((c) => c.vitrine_id === v.id).map(toCoupon),
-    products: products.filter((p) => p.vitrine_id === v.id).map(toProduct),
-  }));
+  products.sort((x, y) => x.position - y.position);
+  return vitrines.map((v) =>
+    products.filter((p) => p.vitrine_id === v.id).map((p): HomeProduct => ({ ...toProduct(p), handle: v.handle, creator: v.name })),
+  );
 }
 
 /** Opções de filtro pela frequência; o rótulo é a primeira grafia vista. */
@@ -96,15 +83,12 @@ function options(values: string[]): CatalogOption[] {
 export async function getProductCatalog(): Promise<ProductCatalog> {
   "use cache";
   cacheTag(HOME_TAG);
-  // horas: cupons vencidos precisam sumir mesmo sem nova publicação
   cacheLife("hours");
 
-  const today = todayISO();
-  const feed = (await listAll(createPublicSupabase())).map((v) => live(v, today));
   // intercala as vitrines, como a home, para uma creator não tomar o começo da grade
-  const flat = interleave(feed.map((f) => f.products.map((p): HomeProduct => ({ ...p, ...f.by }))));
+  const flat = interleave(await listAll(createPublicSupabase()));
 
-  // agrupa por nome + marca; fica o de menor preço final (com review em vídeo no empate), na posição
+  // agrupa por nome + marca; fica o primeiro visto, ou o primeiro com review em vídeo, na posição
   // do primeiro visto (o Map guarda a ordem de entrada)
   const groups = new Map<string, { best: HomeProduct; creators: Set<string> }>();
   for (const p of flat) {
@@ -115,61 +99,32 @@ export async function getProductCatalog(): Promise<ProductCatalog> {
       continue;
     }
     g.creators.add(p.handle);
-    if (p.final < g.best.final || (p.final === g.best.final && p.videoUrl && !g.best.videoUrl)) g.best = p;
+    if (p.videoUrl && !g.best.videoUrl) g.best = p;
   }
 
-  const products = [...groups.values()].map(({ best: p, creators }, i): CatalogProduct => ({
+  const products = [...groups.values()].map(({ best: p, creators }): CatalogProduct => ({
     ...p,
     catKey: slug(p.category),
     brandKey: slug(p.brand),
-    off: p.price > 0 ? Math.round(((p.price - p.final) / p.price) * 100) : 0,
     others: creators.size - 1,
-    order: i,
   }));
 
   return { products, categories: options(products.map((p) => p.category)), brands: options(products.map((p) => p.brand)) };
 }
 
-/** Faixas de preço (`?preco=`), pelo preço final em centavos. */
-export const PRICE_RANGES: [key: string, label: string, test: (cents: number) => boolean][] = [
-  ["ate-100", "Até R$ 100", (c) => c <= 100_00],
-  ["100-300", "R$ 100 a 300", (c) => c > 100_00 && c <= 300_00],
-  ["300-mais", "Acima de R$ 300", (c) => c > 300_00],
-];
-
-export const PRODUCT_SORTS: [value: string, label: string][] = [
-  ["destaque", "Em destaque"],
-  ["desconto", "Maior desconto"],
-  ["menor", "Menor preço"],
-  ["maior", "Maior preço"],
-];
-
 /** Quantas marcas viram chip; a escolhida entra mesmo fora das mais frequentes. */
 const BRAND_CHIPS = 12;
 
-// produto sem preço (0) vai para o fim nas ordens por preço
-const priced = (p: CatalogProduct) => p.price > 0;
-const SORT: Record<string, (a: CatalogProduct, b: CatalogProduct) => number> = {
-  desconto: (a, b) => b.off - a.off || a.order - b.order,
-  menor: (a, b) => Number(priced(b)) - Number(priced(a)) || a.final - b.final || a.order - b.order,
-  maior: (a, b) => Number(priced(b)) - Number(priced(a)) || b.final - a.final || a.order - b.order,
-};
-
-/** Filtra e ordena o catálogo conforme a URL; devolve também as opções dos filtros (do catálogo inteiro). */
+/** Filtra o catálogo conforme a URL, na ordem "Em destaque"; devolve também as opções dos filtros (do catálogo inteiro). */
 export async function queryProducts(params: Record<string, string>) {
   const { products, categories, brands } = await getProductCatalog();
-  const range = PRICE_RANGES.find(([key]) => key === params.preco);
 
-  const items = products
-    .filter(
-      (p) =>
-        (!params.cat || p.catKey === params.cat) &&
-        (!params.marca || p.brandKey === params.marca) &&
-        (!range || (priced(p) && range[2](p.final))) &&
-        (params.cupom !== "1" || !!p.coupon) &&
-        (params.video !== "1" || !!p.videoUrl),
-    )
-    .sort((Object.hasOwn(SORT, params.ordem) && SORT[params.ordem]) || ((a, b) => a.order - b.order));
+  const items = products.filter(
+    (p) =>
+      (!params.cat || p.catKey === params.cat) &&
+      (!params.marca || p.brandKey === params.marca) &&
+      (params.video !== "1" || !!p.videoUrl),
+  );
 
   const brandChips = brands.slice(0, BRAND_CHIPS);
   const picked = brands.find(([key]) => key === params.marca);
@@ -180,8 +135,6 @@ export async function queryProducts(params: Record<string, string>) {
     filters: {
       categories: categories.map(([key, label]): [string, string] => [key, label]),
       brands: brandChips.map(([key, label]): [string, string] => [key, label]),
-      prices: PRICE_RANGES.filter(([, , test]) => products.some((p) => priced(p) && test(p.final))).map(([key, label]): [string, string] => [key, label]),
-      coupon: products.some((p) => p.coupon),
       video: products.some((p) => p.videoUrl),
     },
   };

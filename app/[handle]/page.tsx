@@ -35,7 +35,7 @@ async function VitrinePage({ params }: Pick<PageProps<"/[handle]">, "params">) {
   if (!vitrine) notFound();
   return (
     <>
-      <JsonLd data={vitrineJsonLd(vitrine.content, vitrine.today)} />
+      <JsonLd data={vitrineJsonLd(vitrine.content)} />
       <Storefront content={vitrine.content} today={vitrine.today} comments={comments} />
     </>
   );

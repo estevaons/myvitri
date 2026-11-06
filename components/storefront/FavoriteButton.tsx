@@ -10,7 +10,7 @@ import { reachServer } from "@/lib/vitrine/social";
 const focus = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 
 const SHAPE = {
-  // por cima da capa: área de toque de 44px, com o círculo visível de 32px alinhado ao selo de desconto do outro canto
+  // por cima da capa: área de toque de 44px, com o círculo visível de 32px
   card: "group/heart absolute top-1 right-1 flex size-11 items-center justify-center border-0 bg-transparent p-0 outline-none",
   // na vitrine, embaixo do nome de quem indica: coração e texto (largura fixa: a troca do texto não mexe no resto)
   profile: `flex min-h-10 min-w-[9.5rem] items-center justify-center gap-2 border px-4 text-[11px] font-medium tracking-[0.18em] uppercase ${focus}`,

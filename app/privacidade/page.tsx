@@ -107,7 +107,7 @@ export default function Privacidade() {
           </li>
           <li>
             <strong>Brave Search</strong>: quando você importa um produto por link, podemos consultar o endereço ou o nome do produto
-            para completar foto e preço. Nenhum dado pessoal seu é enviado.
+            para completar a foto. Nenhum dado pessoal seu é enviado.
           </li>
         </ul>
         <p>
@@ -125,8 +125,8 @@ export default function Privacidade() {
 
       <Section title="8. Por quanto tempo guardamos">
         <p>
-          Mantemos os dados da sua conta e da sua vitrine enquanto a conta existir. Você pode excluir a conta quando quiser, no editor
-          (aba Perfil, “Excluir conta”): na mesma hora apagamos a conta, a vitrine, os cupons, os produtos, os kits, o rascunho, as
+          Mantemos os dados da sua conta e da sua vitrine enquanto a conta existir. Você pode excluir a conta quando quiser, nas Configurações
+          (no menu da sua foto, “Excluir minha conta”): na mesma hora apagamos a conta, a vitrine, os cupons, os produtos, os kits, o rascunho, as
           métricas, as favoritas e os comentários que você escreveu, e o link fica livre. Se preferir, peça a exclusão por {mail} e fazemos em até 15 dias. Cópias de segurança do banco
           de dados e registros técnicos dos provedores são apagados automaticamente em prazos curtos. Só guardamos algo depois disso se
           a lei obrigar.
@@ -137,8 +137,8 @@ export default function Privacidade() {
         <p>Pela LGPD, você pode, a qualquer momento:</p>
         <ul>
           <li>confirmar se tratamos seus dados e pedir acesso a eles;</li>
-          <li>corrigir dados incompletos ou desatualizados (a maior parte pode ser editada direto no editor);</li>
-          <li>excluir sua conta e seus dados por conta própria, no editor (aba Perfil, “Excluir conta”);</li>
+          <li>corrigir dados incompletos ou desatualizados (a maior parte pode ser editada direto nas Configurações e no editor);</li>
+          <li>excluir sua conta e seus dados por conta própria, nas Configurações (no menu da sua foto, “Excluir minha conta”);</li>
           <li>pedir a portabilidade dos dados;</li>
           <li>saber com quem compartilhamos seus dados;</li>
           <li>revogar o consentimento, quando ele for a base do tratamento.</li>
