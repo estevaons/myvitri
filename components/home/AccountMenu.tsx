@@ -1,0 +1,250 @@
+"use client";
+
+import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { requestPasswordResetAction, signOutAction, type FormState } from "@/app/actions";
+import { DeleteAccount } from "@/components/editor/DeleteAccount";
+import { HOST } from "@/lib/brand";
+import { kicker, pillLight } from "./chrome";
+
+/**
+ * O que a home sabe de quem entrou. `providers` vem do Supabase: "email" (senha) e/ou "google". `avatarUrl` é a foto da
+ * vitrine ou, sem ela, a do Google; vazio quando não há nenhuma.
+ */
+export type Account = { name: string; email: string; avatarUrl: string; providers: string[]; vitrine: { handle: string; name: string } | null };
+
+const initials = (text: string) =>
+  text
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+
+/** A foto de quem entrou; sem foto, ou se ela não carregar (a do Google pode sair do ar), as iniciais. */
+function Avatar({ url, label, className }: { url: string; label: string; className: string }) {
+  const [broken, setBroken] = useState(false);
+  return url && !broken ? (
+    // eslint-disable-next-line @next/next/no-img-element -- foto vem de URL arbitrária (Storage ou Google)
+    <img
+      src={url}
+      alt=""
+      referrerPolicy="no-referrer"
+      onError={() => setBroken(true)}
+      // no topo da página a foto carrega antes de o React assumir, e um erro nesse intervalo não chega ao onError
+      ref={(img) => {
+        if (img?.complete && img.naturalWidth === 0) setBroken(true);
+      }}
+      className={`${className} rounded-full bg-sand object-cover`}
+    />
+  ) : (
+    <span aria-hidden="true" className={`${className} flex items-center justify-center rounded-full bg-sand font-display text-ink`}>
+      {initials(label) || "?"}
+    </span>
+  );
+}
+
+const item =
+  "flex min-h-11 w-full cursor-pointer items-center border-0 bg-transparent px-4 text-left text-[14px] text-ink no-underline hover:bg-cream focus-visible:bg-cream focus-visible:outline-none";
+
+/**
+ * Canto direito do cabeçalho da home: a foto (ou as iniciais) abre um menu com Configurações e Sair. Fecha com Esc, com um clique
+ * fora ou quando o foco sai dele.
+ */
+export function AccountMenu({ account }: { account: Account }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e: PointerEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      trigger.current?.focus();
+    };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+
+  const label = account.vitrine?.name || account.name || account.email;
+
+  return (
+    <div ref={box} className="relative" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpen(false)}>
+      <button
+        ref={trigger}
+        type="button"
+        aria-expanded={open}
+        aria-controls="menu-da-conta"
+        aria-label={`Sua conta (${account.email})`}
+        onClick={() => setOpen((v) => !v)}
+        // o contorno fica 2px afastado da foto, como um anel, no hover e com o menu aberto
+        className={`flex size-11 cursor-pointer items-center justify-center rounded-full border bg-transparent p-[2px] transition-colors hover:border-ink ${open ? "border-ink" : "border-transparent"}`}
+      >
+        <Avatar url={account.avatarUrl} label={label} className="size-full text-[15px]" />
+      </button>
+
+      {open && (
+        <div
+          id="menu-da-conta"
+          className="absolute top-[calc(100%+8px)] right-0 z-30 flex w-64 flex-col border border-sand bg-white py-2 shadow-[0_24px_60px_-28px_rgba(17,17,17,0.45)] motion-safe:animate-rise-in"
+        >
+          <div className="flex min-w-0 items-center gap-3 border-b border-sand px-4 pt-2 pb-3">
+            <Avatar url={account.avatarUrl} label={label} className="size-10 flex-none text-[15px]" />
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate text-[15px] font-medium">{label}</span>
+              <span className="truncate text-[13px] text-mute">{account.email}</span>
+            </span>
+          </div>
+          <div className="flex flex-col pt-2">
+            <button
+              type="button"
+              className={item}
+              onClick={() => {
+                setOpen(false);
+                dialog.current?.showModal();
+              }}
+            >
+              Configurações
+            </button>
+            <form action={signOutAction}>
+              <button type="submit" className={item}>
+                Sair
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <SettingsDialog ref={dialog} account={account} />
+    </div>
+  );
+}
+
+function Block({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-3 border-t border-sand pt-5">
+      <h3 className={`${kicker} m-0 text-[11px] text-gold`}>{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+/** Link para criar ou trocar a senha, pelo mesmo e-mail do "Esqueci minha senha"; quem só usa o Google ganha uma senha também. */
+function PasswordBlock({ account }: { account: Account }) {
+  const [state, send, pending] = useActionState<FormState, FormData>(requestPasswordResetAction, {});
+  const hasPassword = account.providers.includes("email");
+  return (
+    <Block title="Senha">
+      <p className="m-0 text-[15px] leading-relaxed text-mute">
+        {hasPassword
+          ? "Enviamos para o seu e-mail um link para escolher uma senha nova."
+          : "Você entra com o Google. Se quiser entrar também com e-mail e senha, enviamos um link para criar uma."}
+      </p>
+      {state.notice ? (
+        <p role="status" className="m-0 bg-cream p-3 text-[14px] leading-relaxed">
+          Link enviado para {account.email}. Abra o link neste mesmo navegador.
+        </p>
+      ) : (
+        <form action={send}>
+          <input type="hidden" name="email" value={account.email} />
+          <button type="submit" disabled={pending} className={`${pillLight} min-h-10 cursor-pointer px-5 text-[11px] disabled:opacity-50`}>
+            {pending ? "Enviando…" : hasPassword ? "Enviar link para trocar a senha" : "Enviar link para criar senha"}
+          </button>
+        </form>
+      )}
+      {state.error && (
+        <p role="alert" className="m-0 text-sm font-semibold text-[#A3361B]">
+          {state.error}
+        </p>
+      )}
+    </Block>
+  );
+}
+
+const providerName = (providers: string[]) =>
+  providers.includes("google") && providers.includes("email") ? "Google ou e-mail e senha" : providers.includes("google") ? "Google" : "E-mail e senha";
+
+/** Configurações da conta: um <dialog> nativo (Esc fecha e o foco fica dentro). Só reaproveita o que já existe. */
+function SettingsDialog({ ref, account }: { ref: React.RefObject<HTMLDialogElement | null>; account: Account }) {
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby="titulo-configuracoes"
+      // clique no fundo escurecido (fora da caixa) fecha
+      onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
+      className="m-auto box-border max-h-[calc(100dvh-32px)] w-[calc(100%-32px)] max-w-[520px] overflow-y-auto border-0 bg-white p-0 text-ink backdrop:bg-ink/40"
+    >
+      <div className="flex flex-col gap-5 p-6 md:p-8">
+        <div className="flex items-start justify-between gap-4">
+          <h2 id="titulo-configuracoes" className="m-0 font-display text-[36px] leading-none font-normal">
+            Configurações
+          </h2>
+          <form method="dialog">
+            <button type="submit" aria-label="Fechar" className="-mt-1 -mr-2 flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent text-ink hover:bg-cream">
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </form>
+        </div>
+
+        <Block title="Conta">
+          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 text-[15px]">
+            <dt className="text-mute">E-mail</dt>
+            <dd className="m-0 truncate">{account.email}</dd>
+            <dt className="text-mute">Entra com</dt>
+            <dd className="m-0">{providerName(account.providers)}</dd>
+          </dl>
+        </Block>
+
+        <PasswordBlock account={account} />
+
+        <Block title="Sua vitrine">
+          {account.vitrine ? (
+            <>
+              <p className="m-0 text-[15px]">
+                {HOST}/<span className="font-medium">{account.vitrine.handle}</span>
+              </p>
+              <p className="m-0 text-[14px] text-mute">Nome, foto, link e textos da vitrine você muda no editor.</p>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/editor" className={`${pillLight} min-h-10 px-5 text-[11px]`}>
+                  Editar perfil da vitrine
+                </Link>
+                <Link href="/metricas" className={`${pillLight} min-h-10 px-5 text-[11px]`}>
+                  Ver métricas
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="m-0 text-[15px] leading-relaxed text-mute">Você ainda não tem vitrine. Junte num link só os cupons e produtos que você indica.</p>
+              <Link href="/criar-vitrine" className={`${pillLight} min-h-10 self-start px-5 text-[11px]`}>
+                Criar minha vitrine
+              </Link>
+            </>
+          )}
+        </Block>
+
+        <Block title="Excluir conta">
+          <DeleteAccount handle={account.vitrine?.handle} framed={false} />
+        </Block>
+
+        <p className="m-0 flex gap-4 border-t border-sand pt-5 text-[13px] text-mute">
+          <Link href="/termos" className="text-inherit underline underline-offset-2">
+            Termos de Uso
+          </Link>
+          <Link href="/privacidade" className="text-inherit underline underline-offset-2">
+            Política de Privacidade
+          </Link>
+        </p>
+      </div>
+    </dialog>
+  );
+}

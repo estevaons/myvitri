@@ -467,7 +467,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
         Uma visita por pessoa a cada vez que ela abre a vitrine. Os dias seguem o horário de Brasília.
       </p>
 
-      <SiteFooter />
+      <SiteFooter signedIn />
     </div>
   );
 }
@@ -492,7 +492,7 @@ export function NoVitrine() {
           <span className="text-[15px] text-mute">{HOST}/seunome</span>
         </div>
       </section>
-      <SiteFooter />
+      <SiteFooter signedIn />
     </div>
   );
 }

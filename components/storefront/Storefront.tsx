@@ -328,28 +328,15 @@ export function Storefront({
         {/* "/" serve aos dois: o proxy leva quem entrou para /inicio e quem não entrou fica na landing.
             Na prévia do editor é só a aparência, para o clique não tirar a pessoa do editor. */}
         <BackLink href={preview ? undefined : "/"} label="Início" labelClass="@max-2xl:hidden" />
-        <div className="flex flex-none items-center gap-6">
-          <nav aria-label="Seções" className="flex gap-6 @max-2xl:hidden">
-            {nav.map(([href, label, on]) =>
-              on ? (
-                <a key={href} href={href} className="text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold">
-                  {label}
-                </a>
-              ) : null,
-            )}
-          </nav>
-          {!preview && (
-            <FavoriteButton
-              key={viewer?.user ? `${viewer.user.id}:${viewer.favorited}` : "visitante"}
-              variant="header"
-              handle={content.handle}
-              name={content.name}
-              loading={!viewer}
-              guest={!viewer?.user}
-              favorited={Boolean(viewer?.user && viewer.favorited)}
-            />
+        <nav aria-label="Seções" className="flex flex-none gap-6 @max-2xl:hidden">
+          {nav.map(([href, label, on]) =>
+            on ? (
+              <a key={href} href={href} className="text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold">
+                {label}
+              </a>
+            ) : null,
           )}
-        </div>
+        </nav>
       </header>
 
       <section className={`mx-auto max-w-[1440px] ${pad}`}>
@@ -374,6 +361,20 @@ export function Storefront({
             <span className="font-display text-[22px] leading-tight font-medium break-words">{content.name}</span>
             <span className="text-[13px] break-words text-mute">@{content.handle}</span>
           </div>
+          {/* favoritar fica junto de quem indica, não no cabeçalho; na prévia do editor não aparece */}
+          {!preview && (
+            <div className="pt-1.5">
+              <FavoriteButton
+                key={viewer?.user ? `${viewer.user.id}:${viewer.favorited}` : "visitante"}
+                variant="profile"
+                handle={content.handle}
+                name={content.name}
+                loading={!viewer}
+                guest={!viewer?.user}
+                favorited={Boolean(viewer?.user && viewer.favorited)}
+              />
+            </div>
+          )}
         </div>
         <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 pt-7 pb-2 text-center @3xl:pt-8">
           <h1 className="m-0 font-display text-[clamp(44px,8cqw,96px)] leading-[1] font-normal text-balance">{headline}</h1>

@@ -12,10 +12,10 @@ const focus = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visi
 const SHAPE = {
   // por cima da capa: área de toque de 44px, com o círculo visível de 32px alinhado ao selo de desconto do outro canto
   card: "group/heart absolute top-1 right-1 flex size-11 items-center justify-center border-0 bg-transparent p-0 outline-none",
-  // no cabeçalho da vitrine: só o coração no celular, com o texto quando há espaço (largura fixa: a troca do texto não mexe no resto)
-  header: `flex min-h-10 min-w-10 items-center justify-center gap-2 border px-2.5 text-[12px] font-medium tracking-[0.18em] uppercase @2xl:min-w-[8.75rem] ${focus}`,
+  // na vitrine, embaixo do nome de quem indica: coração e texto (largura fixa: a troca do texto não mexe no resto)
+  profile: `flex min-h-10 min-w-[9.5rem] items-center justify-center gap-2 border px-4 text-[11px] font-medium tracking-[0.18em] uppercase ${focus}`,
 };
-const HEADER_LOOK = { on: "border-ink bg-ink text-white", off: "border-sand bg-transparent text-ink hover:border-ink" };
+const PROFILE_LOOK = { on: "border-ink bg-ink text-white", off: "border-sand bg-transparent text-ink hover:border-ink" };
 // a capa pode ser clara ou escura: o círculo translúcido garante o contraste nas duas
 const CARD_LOOK = { on: "bg-white text-ink shadow-sm", off: "bg-black/45 text-white backdrop-blur-sm group-hover/heart:bg-black/70" };
 
@@ -54,9 +54,9 @@ function Heart({ on, pop, className }: { on: boolean; pop: boolean; className: s
   );
 }
 
-/** O coração de cada variante: no card, dentro do círculo; no cabeçalho, solto ao lado do texto. */
+/** O coração de cada variante: no card, dentro do círculo; no perfil, solto ao lado do texto. */
 function Icon({ variant, on, pop }: { variant: keyof typeof SHAPE; on: boolean; pop: boolean }) {
-  if (variant === "header") return <Heart on={on} pop={pop} className="size-5" />;
+  if (variant === "profile") return <Heart on={on} pop={pop} className="size-[18px]" />;
   return (
     <span className={`flex size-8 items-center justify-center rounded-full transition-colors group-focus-visible/heart:outline-2 group-focus-visible/heart:outline-offset-2 group-focus-visible/heart:outline-white ${CARD_LOOK[on ? "on" : "off"]}`}>
       <Heart on={on} pop={pop} className="size-[18px] translate-y-px" />
@@ -167,12 +167,12 @@ export function FavoriteButton({
     return () => clearTimeout(timer);
   }, [guest, loading, handle]);
 
-  const label = variant === "header" && <span className="@max-2xl:hidden">{on ? "Favorita" : "Favoritar"}</span>;
+  const label = variant === "profile" && <span>{on ? "Favorita" : "Favoritar"}</span>;
 
   if (guest && !loading) {
     return (
       <LoginButton
-        className={`${SHAPE[variant]} ${variant === "header" ? HEADER_LOOK.off : ""} transition-colors`}
+        className={`${SHAPE[variant]} ${variant === "profile" ? PROFILE_LOOK.off : ""} transition-colors`}
         onOpen={() => remember(handle)}
       >
         <Icon variant={variant} on={false} pop={false} />
@@ -190,7 +190,7 @@ export function FavoriteButton({
         aria-pressed={on}
         aria-busy={loading || pending}
         aria-label={`Favoritar a vitrine de ${name}`}
-        className={`${SHAPE[variant]} ${variant === "header" ? HEADER_LOOK[on ? "on" : "off"] : ""} transition-colors ${loading ? "cursor-default" : "cursor-pointer"}`}
+        className={`${SHAPE[variant]} ${variant === "profile" ? PROFILE_LOOK[on ? "on" : "off"] : ""} transition-colors ${loading ? "cursor-default" : "cursor-pointer"}`}
       >
         <Icon variant={variant} on={on} pop={pop} />
         {label}
