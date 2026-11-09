@@ -3,7 +3,8 @@
     "favorite": {
       "on": "Favorita",
       "off": "Favoritar",
-      "label": "Favoritar a vitrine de {name}"
+      "label": "Favoritar a vitrine de {name}",
+      "count": "{count, plural, one {# pessoa favoritou} other {# pessoas favoritaram}}"
     },
     "defaultHeadline": "A vitrine de {name}",
     "nav": {
@@ -315,7 +316,8 @@
       "handleReserved": "Esse nome é reservado",
       "nameRequired": "Informe seu nome"
     },
-    "imageUnreadable": "Não conseguimos abrir essa imagem. Tente outra."
+    "imageUnreadable": "Não conseguimos abrir essa imagem. Tente outra.",
+    "replyGone": "Esse comentário foi excluído e não aceita mais respostas."
   },
   "vitrineDefaults": {
     "headline": "Tudo que eu uso, com o meu desconto.",
@@ -349,7 +351,16 @@
     "title": "Comentários",
     "intro": "Dúvidas, dicas e o que você achou dos achados de {name}.",
     "empty": "Ainda não há comentários. Seja a primeira pessoa a comentar.",
-    "more": "Ver mais ({n})"
+    "more": "Ver mais ({n})",
+    "reply": "Responder",
+    "replyLabel": "Responder a {name}",
+    "replyField": "Sua resposta",
+    "replyPlaceholder": "Responda a {name}",
+    "replySubmit": "Responder",
+    "signInToReply": "Entrar para responder",
+    "replied": "Resposta publicada.",
+    "hideReplies": "Ocultar respostas",
+    "showReplies": "{count, plural, one {Ver # resposta} other {Ver # respostas}}"
   },
   "share": {
     "headline": "A vitrine de {name}",

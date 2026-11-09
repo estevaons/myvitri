@@ -1,9 +1,11 @@
 import "server-only";
 import { getFormatter } from "next-intl/server";
 import { cacheLife, cacheTag } from "next/cache";
+import type { Locale } from "@/lib/i18n/routing";
 import { createPublicSupabase } from "@/lib/supabase/server";
 import { isActive } from "./pricing";
 import {
+  favoriteCount,
   findByHandle,
   listComments,
   listFeed,
@@ -14,7 +16,7 @@ import {
   topCreatorsToday,
   type FeedVitrine,
 } from "./store";
-import type { CommentList } from "./social";
+import type { CommentList, VitrineComment } from "./social";
 import { kitItems, type Coupon, type Product, type VitrineContent } from "./types";
 
 export const vitrineTag = (handle: string) => `vitrine:${handle}`;
@@ -35,34 +37,48 @@ export async function getPublicVitrine(handle: string): Promise<PublicVitrine | 
   return { content, today: new Date().toISOString().slice(0, 10) };
 }
 
+export const favoritesTag = (handle: string) => `favoritos:${handle}`;
+
+/** Quantas pessoas favoritaram a vitrine. Quem toca no coração vê na hora (`updateTag`); para os outros, minutos. */
+export async function getFavoriteCount(handle: string): Promise<number> {
+  "use cache";
+  cacheTag(favoritesTag(handle));
+  cacheLife("minutes");
+  return favoriteCount(createPublicSupabase(), handle);
+}
+
 export const commentsTag = (handle: string) => `comentarios:${handle}`;
 
 /** A vitrine mostra até este tanto; o total continua certo no título. */
 const COMMENTS_SHOWN = 100;
 
 /**
- * Comentários públicos de uma vitrine. Quem comenta vê na hora (`updateTag`); para os outros, minutos.
+ * Comentários públicos de uma vitrine, com as respostas. Quem comenta vê na hora (`updateTag`); para os outros, minutos.
  * Cache separado de `getPublicVitrine`, que dura horas e só muda ao publicar.
+ * O idioma das datas vem como argumento (e entra na chave do cache): sem ele, o next-intl pode cair no
+ * cabeçalho da requisição, que `"use cache"` não deixa ler.
  */
-export async function getComments(handle: string): Promise<CommentList> {
+export async function getComments(handle: string, locale: Locale): Promise<CommentList> {
   "use cache";
   cacheTag(commentsTag(handle));
   cacheLife("minutes");
 
-  const [{ total, rows }, format] = await Promise.all([listComments(createPublicSupabase(), handle, COMMENTS_SHOWN), getFormatter()]);
+  const [{ total, rows, replies }, format] = await Promise.all([listComments(createPublicSupabase(), handle, COMMENTS_SHOWN), getFormatter({ locale })]);
+  const toComment = (c: (typeof rows)[number]): VitrineComment => ({
+    id: c.id,
+    parentId: c.parent_id,
+    authorId: c.author_id,
+    authorName: c.author_name,
+    authorAvatarUrl: c.author_avatar_url,
+    body: c.body,
+    byOwner: c.vitrines.owner_id === c.author_id,
+    // fuso vem de lib/i18n/request.ts
+    dateLabel: format.dateTime(new Date(c.created_at), { day: "numeric", month: "short", year: "numeric" }),
+    createdAt: c.created_at,
+  });
   return {
     total,
-    items: rows.map((c) => ({
-      id: c.id,
-      authorId: c.author_id,
-      authorName: c.author_name,
-      authorAvatarUrl: c.author_avatar_url,
-      body: c.body,
-      byOwner: c.vitrines.owner_id === c.author_id,
-      // idioma e fuso vêm de lib/i18n/request.ts
-      dateLabel: format.dateTime(new Date(c.created_at), { day: "numeric", month: "short", year: "numeric" }),
-      createdAt: c.created_at,
-    })),
+    items: rows.map((c) => ({ ...toComment(c), replies: replies.filter((r) => r.parent_id === c.id).map(toComment) })),
   };
 }
 

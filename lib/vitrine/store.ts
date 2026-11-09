@@ -292,6 +292,13 @@ export async function publishVitrine(db: Db, ownerId: string, content: VitrineCo
 
 /* Favoritos: lista privada de cada conta (RLS). */
 
+/** Quantas pessoas favoritaram a vitrine. Só o número é público: quem favoritou continua privado. */
+export async function favoriteCount(db: Db, handle: string) {
+  const { data, error } = await db.rpc("favorite_count", { target_handle: handle });
+  if (error) throw error;
+  return data;
+}
+
 /** Endereços das vitrines favoritas de alguém, da favoritada por último para a primeira. */
 export async function listFavoriteHandles(db: Db, userId: string) {
   const { data, error } = await db.from("favorites").select("vitrines(handle)").eq("user_id", userId).order("created_at", { ascending: false });
@@ -322,26 +329,53 @@ export async function loadViewerState(db: Db, userId: string, handle: string) {
 /* Comentários: leitura pública; quem escreveu ou a dona da vitrine apaga (RLS). */
 
 export class CommentRateLimitError extends Error {}
+/** O comentário respondido foi apagado nesse meio-tempo. */
+export class CommentGoneError extends Error {}
 
+/**
+ * Os `limit` comentários mais recentes da vitrine, as respostas deles (das mais antigas para as mais novas,
+ * na ordem da conversa) e o total, respostas incluídas.
+ */
 export async function listComments(db: Db, handle: string, limit: number) {
-  const { data, error, count } = await db
+  const [top, all] = await Promise.all([
+    db
+      .from("comments")
+      .select("id, parent_id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)")
+      .eq("vitrines.handle", handle)
+      .is("parent_id", null)
+      .order("created_at", { ascending: false })
+      .order("id")
+      .limit(limit),
+    db.from("comments").select("id, vitrines!inner(handle)", { count: "exact", head: true }).eq("vitrines.handle", handle),
+  ]);
+  if (top.error) throw top.error;
+  if (all.error) throw all.error;
+  if (!top.data.length) return { total: all.count ?? 0, rows: top.data, replies: [] };
+  const { data: replies, error } = await db
     .from("comments")
-    .select("id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)", { count: "exact" })
-    .eq("vitrines.handle", handle)
-    .order("created_at", { ascending: false })
-    .order("id")
-    .limit(limit);
+    .select("id, parent_id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)")
+    .in(
+      "parent_id",
+      top.data.map((c) => c.id),
+    )
+    .order("created_at")
+    .order("id");
   if (error) throw error;
-  return { total: count ?? data.length, rows: data };
+  return { total: all.count ?? top.data.length + replies.length, rows: top.data, replies };
 }
 
-/** false: a vitrine não existe. Autor, nome e foto quem preenche é o banco, a partir da sessão. */
-export async function addComment(db: Db, handle: string, body: string) {
+/**
+ * false: a vitrine não existe. Autor, nome e foto quem preenche é o banco, a partir da sessão. Com `parentId`,
+ * é uma resposta: o banco a pendura no comentário original, mesmo quando se responde a uma resposta.
+ */
+export async function addComment(db: Db, handle: string, body: string, parentId?: string) {
   const { data: vitrine, error } = await db.from("vitrines").select("id").eq("handle", handle).maybeSingle();
   if (error) throw error;
   if (!vitrine) return false;
-  const { error: insertError } = await db.from("comments").insert({ vitrine_id: vitrine.id, body });
+  const { error: insertError } = await db.from("comments").insert({ vitrine_id: vitrine.id, body, parent_id: parentId ?? null });
   if (insertError?.code === "VT429") throw new CommentRateLimitError();
+  // VT404: o gatilho não achou o comentário; 23503: ele foi apagado entre o gatilho e a gravação
+  if (insertError?.code === "VT404" || insertError?.code === "23503") throw new CommentGoneError();
   if (insertError) throw insertError;
   return true;
 }

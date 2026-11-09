@@ -4,12 +4,14 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useEffectEvent, useOptimistic, useRef, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
 import { addCommentAction, deleteCommentAction } from "@/app/actions";
 import { LoginButton } from "@/components/auth/forms";
-import { COMMENT_MAX, reachServer, type CommentList, type Viewer, type VitrineComment } from "@/lib/vitrine/social";
+import { COMMENT_MAX, reachServer, type CommentList, type CommentThread, type Viewer, type VitrineComment } from "@/lib/vitrine/social";
 
 /** Quantos comentários aparecem de início e a cada "Ver mais". */
 const STEP = 10;
 /** A partir de quantos caracteres restantes o campo avisa. */
 const WARN_LEFT = 100;
+/** Conversas com mais respostas que isto começam fechadas, só com o botão "Ver N respostas". */
+const REPLIES_OPEN = 2;
 
 const send =
   "flex min-h-10 flex-none cursor-pointer items-center justify-center border-0 bg-ink px-5 text-[11px] font-medium tracking-[0.16em] text-white uppercase hover:bg-[#2b2925]";
@@ -18,9 +20,13 @@ const more =
 const quiet = "cursor-pointer border-0 bg-transparent p-0 text-[13px] text-mute underline underline-offset-2 hover:text-ink";
 const errorText = "m-0 text-sm font-semibold text-[#A3361B]";
 
-/** O que estava sendo escrito e, depois de abrir o login, para onde voltar. Vale só nesta aba do navegador. */
-const draftKey = (handle: string) => `vitri:comentario:${handle}`;
+/**
+ * O que estava sendo escrito e, depois de abrir o login, para onde voltar: o campo da vitrine (`handle`) ou a
+ * resposta a um comentário (`handle#id`). Vale só nesta aba do navegador.
+ */
+const draftKey = (target: string) => `vitri:comentario:${target}`;
 const RETURNING = "vitri:comentar";
+const replyTarget = (handle: string, id: string) => `${handle}#${id}`;
 
 function readStored(key: string) {
   try {
@@ -36,6 +42,12 @@ function store(key: string, value: string) {
   } catch {
     // sessionStorage bloqueado: só o rascunho não sobrevive ao login
   }
+}
+
+/** Conversa cuja resposta ficou pela metade quando a pessoa foi entrar. */
+function returningReply(handle: string) {
+  const target = readStored(RETURNING);
+  return target.startsWith(`${handle}#`) ? target.slice(handle.length + 1) : null;
 }
 
 const noop = () => () => {};
@@ -83,26 +95,34 @@ function Avatar({ name, url, className }: { name: string; url: string; className
   );
 }
 
+type ComposerText = { field: string; placeholder: string; submit: string; signIn: string };
+
 /**
- * Campo de comentar, igual para todos: quem não entrou escreve primeiro e o login vem só na hora de
- * publicar. O texto fica guardado e, na volta do Google, a pessoa cai de novo aqui para confirmar o envio
- * (nada é publicado sozinho: o comentário sai com o nome e a foto dela). Só monta no navegador, depois de
- * se saber quem está vendo, por isso pode ler o rascunho ao iniciar.
+ * Campo de comentar ou de responder, igual para todos: quem não entrou escreve primeiro e o login vem só na
+ * hora de publicar. O texto fica guardado e, na volta do Google, a pessoa cai de novo aqui para confirmar o
+ * envio (nada é publicado sozinho: o comentário sai com o nome e a foto dela). Só monta no navegador, depois
+ * de se saber quem está vendo, por isso pode ler o rascunho ao iniciar.
  */
 function Composer({
-  handle,
-  firstName,
+  target,
+  text: copy,
   user,
+  reply = false,
   onSend,
+  onCancel,
 }: {
-  handle: string;
-  firstName: string;
+  /** O que identifica o rascunho e a volta do login: `handle`, ou `handle#id` numa resposta. */
+  target: string;
+  text: ComposerText;
   user: { name: string; avatarUrl: string } | null;
+  /** Campo de resposta: menor, com foco ao abrir e com "Cancelar". */
+  reply?: boolean;
   /** Devolve a mensagem de erro, ou null se publicou. */
   onSend: (body: string) => Promise<string | null>;
+  onCancel?: () => void;
 }) {
   const t = useTranslations("comments");
-  const key = draftKey(handle);
+  const key = draftKey(target);
   const [text, setText] = useState(() => readStored(key));
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -115,13 +135,17 @@ function Composer({
     store(key, value);
   };
 
-  const backFromLogin = useEffectEvent(() => {
-    if (!user || readStored(RETURNING) !== handle) return;
-    store(RETURNING, "");
-    field.current?.scrollIntoView({ block: "center" });
-    field.current?.focus({ preventScroll: true });
+  const onMount = useEffectEvent(() => {
+    const back = Boolean(user) && readStored(RETURNING) === target;
+    if (back) {
+      store(RETURNING, "");
+      field.current?.scrollIntoView({ block: "center" });
+      field.current?.focus({ preventScroll: true });
+    } else if (reply) {
+      field.current?.focus();
+    }
   });
-  useEffect(() => backFromLogin(), []);
+  useEffect(() => onMount(), []);
 
   const submit = (e?: FormEvent) => {
     e?.preventDefault();
@@ -138,21 +162,27 @@ function Composer({
     });
   };
 
+  const cancel = () => {
+    type("");
+    onCancel?.();
+  };
+
   return (
     <form onSubmit={submit} className="flex flex-col gap-2">
       <div className="border border-sand transition-colors focus-within:border-ink">
         <label>
-          <span className="sr-only">{t("field")}</span>
+          <span className="sr-only">{copy.field}</span>
           <textarea
             ref={field}
             value={text}
             onChange={(e) => type(e.target.value)}
             onKeyDown={(e) => {
               if (user && e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
+              if (reply && e.key === "Escape" && !hasText) cancel();
             }}
             maxLength={COMMENT_MAX}
-            placeholder={t("placeholder", { name: firstName })}
-            className="field-sizing-content box-border block max-h-80 min-h-24 w-full resize-none border-0 bg-transparent p-4 text-base leading-relaxed text-ink outline-none placeholder:text-mute"
+            placeholder={copy.placeholder}
+            className={`field-sizing-content box-border block max-h-80 w-full resize-none border-0 bg-transparent text-base leading-relaxed text-ink outline-none placeholder:text-mute ${reply ? "min-h-16 px-3.5 py-3" : "min-h-24 p-4"}`}
           />
         </label>
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-sand py-2 pr-2 pl-3">
@@ -172,16 +202,18 @@ function Composer({
                 {t("left", { count: left })}
               </span>
             )}
+            {onCancel && (
+              <button type="button" onClick={cancel} className={quiet}>
+                {t("cancel")}
+              </button>
+            )}
             {user ? (
               <button type="submit" disabled={!hasText} className={send}>
-                {t("submit")}
+                {copy.submit}
               </button>
             ) : (
-              <LoginButton
-                className={send}
-                onOpen={() => store(RETURNING, handle)}
-              >
-                {hasText ? t("signInAndPost") : t("signInToComment")}
+              <LoginButton className={send} onOpen={() => store(RETURNING, target)}>
+                {hasText ? t("signInAndPost") : copy.signIn}
               </LoginButton>
             )}
           </div>
@@ -196,13 +228,28 @@ function Composer({
   );
 }
 
-function CommentItem({ comment, sending, mine, canDelete, onDelete }: { comment: VitrineComment; sending: boolean; mine: boolean; canDelete: boolean; onDelete: () => void }) {
+const isSending = (c: VitrineComment) => c.id.startsWith("enviando:");
+const firstNameOf = (name: string) => name.trim().split(/\s+/)[0] ?? "";
+
+type RowProps = {
+  comment: VitrineComment;
+  /** Resposta: foto menor. */
+  small?: boolean;
+  mine: boolean;
+  canDelete: boolean;
+  onDelete: () => void;
+  /** null: ainda não se sabe quem está vendo, e o "Responder" fica de fora. */
+  onReply: (() => void) | null;
+};
+
+function CommentRow({ comment, small = false, mine, canDelete, onDelete, onReply }: RowProps) {
   const t = useTranslations("comments");
   const [confirming, setConfirming] = useState(false);
+  const sending = isSending(comment);
   const tag = mine ? t("you") : comment.byOwner ? t("owner") : null;
   return (
-    <li className={`flex gap-3.5 border-b border-sand py-5 ${sending ? "opacity-60 motion-safe:animate-rise-in" : ""}`}>
-      <Avatar name={comment.authorName} url={comment.authorAvatarUrl} className="size-10" />
+    <div className={`flex gap-3.5 ${small ? "gap-3" : ""} ${sending ? "opacity-60 motion-safe:animate-rise-in" : ""}`}>
+      <Avatar name={comment.authorName} url={comment.authorAvatarUrl} className={small ? "size-8" : "size-10"} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-baseline gap-x-2">
           <span className="min-w-0 text-[15px] font-medium break-words">{comment.authorName}</span>
@@ -228,14 +275,37 @@ function CommentItem({ comment, sending, mine, canDelete, onDelete }: { comment:
           )}
         </div>
         <p className="m-0 text-[15px] leading-relaxed break-words whitespace-pre-line">{comment.body}</p>
+        {onReply && !sending && (
+          <button
+            type="button"
+            onClick={onReply}
+            aria-label={t("replyLabel", { name: comment.authorName })}
+            className="mt-0.5 cursor-pointer self-start border-0 bg-transparent p-0 text-[13px] font-medium text-mute hover:text-ink"
+          >
+            {t("reply")}
+          </button>
+        )}
       </div>
-    </li>
+    </div>
   );
 }
 
 type Change = { add: VitrineComment } | { remove: string };
 
-/** Comentários da vitrine: o título, o campo e, abaixo, a lista. */
+function applyChange(list: CommentThread[], c: Change): CommentThread[] {
+  if ("remove" in c) return list.filter((x) => x.id !== c.remove).map((x) => (x.replies.some((r) => r.id === c.remove) ? { ...x, replies: x.replies.filter((r) => r.id !== c.remove) } : x));
+  const { parentId } = c.add;
+  if (!parentId) return [{ ...c.add, replies: [] }, ...list];
+  return list.map((x) => (x.id === parentId ? { ...x, replies: [...x.replies, c.add] } : x));
+}
+
+/** Comentários e respostas. */
+const countAll = (list: CommentThread[]) => list.reduce((n, x) => n + 1 + x.replies.length, 0);
+
+/** O que a pessoa está respondendo: a conversa (comentário original) e o nome de quem ela quer responder. */
+type ReplyTo = { thread: string; name: string };
+
+/** Comentários da vitrine: o título, o campo e, abaixo, a lista com as respostas. */
 export function Comments({
   handle,
   firstName,
@@ -254,25 +324,57 @@ export function Comments({
   const tErrors = useTranslations("errors");
   const format = useFormatter();
   // aparece na hora; a lista de verdade chega junto com a resposta da ação, que invalida o cache
-  const [items, change] = useOptimistic(comments.items, (list, c: Change) => ("add" in c ? [c.add, ...list] : list.filter((x) => x.id !== c.remove)));
+  const [items, change] = useOptimistic(comments.items, applyChange);
   const [shown, setShown] = useState(STEP);
   const [listError, setListError] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  // quem voltou do login no meio de uma resposta encontra o campo dela aberto (só aparece com `viewer`, depois da hidratação)
+  const [replyTo, setReplyTo] = useState<ReplyTo | null>(() => {
+    const thread = returningReply(handle);
+    const original = comments.items.find((x) => x.id === thread);
+    return original ? { thread: original.id, name: original.authorName } : null;
+  });
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set(replyTo ? [replyTo.thread] : []));
   const [, startDelete] = useTransition();
   const user = viewer?.user ?? null;
   const owner = Boolean(viewer?.user && viewer.owner);
-  const total = comments.total + items.length - comments.items.length;
+  const total = comments.total + countAll(items) - countAll(comments.items);
   const remaining = items.length - shown;
 
+  const optimistic = (body: string, parentId: string | null): VitrineComment | null => {
+    if (!user) return null;
+    const now = new Date().toISOString();
+    return { id: `enviando:${now}`, parentId, authorId: user.id, authorName: user.name || t("you"), authorAvatarUrl: user.avatarUrl, body, byOwner: owner, dateLabel: "", createdAt: now };
+  };
+
   const onSend = async (body: string) => {
-    if (user) {
-      const now = new Date().toISOString();
-      change({ add: { id: `enviando:${now}`, authorId: user.id, authorName: user.name || t("you"), authorAvatarUrl: user.avatarUrl, body, byOwner: owner, dateLabel: "", createdAt: now } });
-    }
+    const add = optimistic(body, null);
+    if (add) change({ add });
     const result = await reachServer(addCommentAction(handle, body), tErrors("offline"));
     setStatus(result.ok ? t("posted") : "");
     return result.ok ? null : result.error;
   };
+
+  const onReply = (thread: string) => async (body: string) => {
+    const add = optimistic(body, thread);
+    if (add) change({ add });
+    const result = await reachServer(addCommentAction(handle, body, thread), tErrors("offline"));
+    setStatus(result.ok ? t("replied") : "");
+    if (result.ok) setReplyTo((r) => (r?.thread === thread ? null : r));
+    return result.ok ? null : result.error;
+  };
+
+  const openReply = (thread: string, name: string) => {
+    setReplyTo({ thread, name });
+    setExpanded((s) => new Set(s).add(thread));
+  };
+
+  const toggle = (thread: string) =>
+    setExpanded((s) => {
+      const next = new Set(s);
+      if (!next.delete(thread)) next.add(thread);
+      return next;
+    });
 
   const onDelete = (id: string) => {
     setListError(null);
@@ -284,6 +386,14 @@ export function Comments({
     });
   };
 
+  const rowProps = (c: VitrineComment, thread: string) => ({
+    comment: c,
+    mine: user?.id === c.authorId,
+    canDelete: owner || user?.id === c.authorId,
+    onDelete: () => onDelete(c.id),
+    onReply: viewer ? () => openReply(thread, c.authorName) : null,
+  });
+
   return (
     <section id="comentarios" className={`mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24 ${className}`}>
       {/* uma coluna só, na margem das outras seções; a largura limitada mantém o texto confortável de ler */}
@@ -294,7 +404,16 @@ export function Comments({
           </h2>
           <p className="m-0 text-[15px] leading-relaxed text-mute">{t("intro", { name: firstName })}</p>
         </div>
-        {viewer ? <Composer handle={handle} firstName={firstName} user={user} onSend={onSend} /> : <div aria-hidden="true" className="h-[154px] bg-cream motion-safe:animate-pulse" />}
+        {viewer ? (
+          <Composer
+            target={handle}
+            text={{ field: t("field"), placeholder: t("placeholder", { name: firstName }), submit: t("submit"), signIn: t("signInToComment") }}
+            user={user}
+            onSend={onSend}
+          />
+        ) : (
+          <div aria-hidden="true" className="h-[154px] bg-cream motion-safe:animate-pulse" />
+        )}
 
         {listError && (
           <p role="alert" className={errorText}>
@@ -305,16 +424,51 @@ export function Comments({
           <p className="m-0 text-[15px] leading-relaxed text-mute">{t("empty")}</p>
         ) : (
           <ul className="m-0 mt-3 list-none border-t border-sand p-0">
-            {items.slice(0, shown).map((c) => (
-              <CommentItem
-                key={c.id}
-                comment={c}
-                sending={c.id.startsWith("enviando:")}
-                mine={user?.id === c.authorId}
-                canDelete={owner || user?.id === c.authorId}
-                onDelete={() => onDelete(c.id)}
-              />
-            ))}
+            {items.slice(0, shown).map((c) => {
+              const replying = viewer && !isSending(c) && replyTo?.thread === c.id ? replyTo : null;
+              const collapsible = c.replies.length > REPLIES_OPEN;
+              const open = !collapsible || expanded.has(c.id);
+              return (
+                <li key={c.id} className="border-b border-sand py-5">
+                  <CommentRow {...rowProps(c, c.id)} />
+                  {(c.replies.length > 0 || replying) && (
+                    // alinhado ao texto do comentário: foto (40px) + espaço (14px)
+                    <div className="mt-4 flex flex-col gap-4 pl-[54px]">
+                      {collapsible && (
+                        <button type="button" onClick={() => toggle(c.id)} aria-expanded={open} className={`${quiet} self-start`}>
+                          {open ? t("hideReplies") : t("showReplies", { count: c.replies.length })}
+                        </button>
+                      )}
+                      {open && c.replies.length > 0 && (
+                        <ul className="m-0 flex list-none flex-col gap-4 p-0">
+                          {c.replies.map((r) => (
+                            <li key={r.id}>
+                              <CommentRow {...rowProps(r, c.id)} small />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {replying && (
+                        <Composer
+                          key={c.id}
+                          target={replyTarget(handle, c.id)}
+                          text={{
+                            field: t("replyField"),
+                            placeholder: t("replyPlaceholder", { name: firstNameOf(replying.name) }),
+                            submit: t("replySubmit"),
+                            signIn: t("signInToReply"),
+                          }}
+                          user={user}
+                          reply
+                          onSend={onReply(c.id)}
+                          onCancel={() => setReplyTo(null)}
+                        />
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
         {remaining > 0 && (

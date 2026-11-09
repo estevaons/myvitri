@@ -12,12 +12,13 @@ import { PASSWORD_MIN } from "@/lib/auth/password";
 import { safePath, saveReturn } from "@/lib/auth/return-to";
 import { HOST } from "@/lib/brand";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
-import { commentsTag, HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
+import { commentsTag, favoritesTag, HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
 import { googlePhoto, saveClaim, starterContent } from "@/lib/vitrine/claim";
 import { findStoreLogos, importProductFromUrl, type ImportedProduct } from "@/lib/vitrine/import-link";
 import { COMMENT_MAX, type SocialResult } from "@/lib/vitrine/social";
 import {
   addComment,
+  CommentGoneError,
   CommentRateLimitError,
   createVitrine,
   deleteComment,
@@ -286,7 +287,7 @@ export async function deleteAccountAction(confirm: string): Promise<{ error: str
   return go("/");
 }
 
-/** Liga ou desliga o favorito de quem entrou. A lista é privada: não há cache para invalidar. */
+/** Liga ou desliga o favorito de quem entrou. A lista é privada; o que muda no cache é só o número da vitrine. */
 export async function setFavoriteAction(handle: string, on: boolean): Promise<SocialResult> {
   const t = await errors();
   const { supabase, user } = await getUser();
@@ -297,10 +298,12 @@ export async function setFavoriteAction(handle: string, on: boolean): Promise<So
     console.error("setFavorite", e);
     return { ok: false, error: t("saveFailed") };
   }
+  updateTag(favoritesTag(handle));
   return { ok: true };
 }
 
-export async function addCommentAction(handle: string, body: string): Promise<SocialResult> {
+/** Com `parentId`, responde a um comentário (ou a uma resposta, que entra na mesma conversa). */
+export async function addCommentAction(handle: string, body: string, parentId?: string): Promise<SocialResult> {
   const t = await errors();
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: t("sessionExpired") };
@@ -308,9 +311,14 @@ export async function addCommentAction(handle: string, body: string): Promise<So
   if (!text) return { ok: false, error: t("commentEmpty") };
   if (text.length > COMMENT_MAX) return { ok: false, error: t("commentMax", { max: COMMENT_MAX }) };
   try {
-    if (!(await addComment(supabase, handle, text))) return { ok: false, error: t("vitrineGone") };
+    if (!(await addComment(supabase, handle, text, parentId))) return { ok: false, error: t("vitrineGone") };
   } catch (e) {
     if (e instanceof CommentRateLimitError) return { ok: false, error: t("commentRate") };
+    if (e instanceof CommentGoneError) {
+      // a lista ainda mostra o comentário apagado: atualiza para a pessoa ver que ele saiu
+      updateTag(commentsTag(handle));
+      return { ok: false, error: t("replyGone") };
+    }
     console.error("addComment", e);
     return { ok: false, error: t("commentFailed") };
   }

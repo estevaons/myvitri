@@ -21,7 +21,7 @@ async function routeLocale() {
 }
 
 /**
- * Idioma de cada renderização. Nas páginas (inclusive dentro de `"use cache"`) vem do segmento `[locale]`
+ * Idioma de cada renderização. Nas páginas vem do segmento `[locale]`
  * por `next/root-params`, que entra na chave do cache. Em Server Actions e route handlers vale o idioma que
  * o proxy grava no cabeçalho da requisição, ou o passado explicitamente pelo chamador.
  */

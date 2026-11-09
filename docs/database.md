@@ -8,7 +8,7 @@ Pense no banco como um **arquivo de pastas de uma loja de departamento**:
 
 - Cada **creator** (influenciadora, criadora de conteúdo) tem **uma pasta**: a **vitrine**. Na capa da pasta está o nome dela, o endereço (`myvitri.com/marinacosta`), a foto e as frases de destaque.
 - Dentro da pasta há três gavetas: **cupons** (os códigos de desconto de cada marca), **produtos** (o que ela indica: foto, nome e link) e **kits** (combinações de produtos, tipo "kit praia").
-- Quem entra com e-mail e senha ou com o Google (mesmo sem ter vitrine) pode **favoritar** vitrines, numa lista privada (`favorites`), e **comentar** nelas (`comments`): o comentário é público, e apaga quem escreveu ou a dona da vitrine.
+- Quem entra com e-mail e senha ou com o Google (mesmo sem ter vitrine) pode **favoritar** vitrines, numa lista privada (`favorites`), e **comentar** nelas (`comments`, com respostas em um nível): o comentário é público, e apaga quem escreveu ou a dona da vitrine.
 - Ao lado da pasta oficial existe um **rascunho**: enquanto a creator edita, tudo vai para o rascunho. Só quando ela clica em **Publicar** o conteúdo do rascunho substitui o que está na pasta oficial.
 - Existe ainda um **caderno de visitas** (`events`): toda vez que alguém abre a vitrine ou clica no produto ou em "copiar cupom", uma linha anônima é anotada ali. É daí que saem os gráficos de métricas.
 - As **fotos** enviadas (capa, perfil, logos de marca) não ficam no banco: ficam em "baldes" de arquivos (Supabase Storage), cada usuário na sua própria pasta.
@@ -40,6 +40,7 @@ erDiagram
     VITRINES ||--o{ FAVORITES : "vitrine_id (cascade)"
     AUTH_USERS ||--o{ COMMENTS : "author_id (cascade)"
     VITRINES ||--o{ COMMENTS : "vitrine_id (cascade)"
+    COMMENTS ||--o{ COMMENTS : "parent_id (cascade)"
 
     AUTH_USERS {
         uuid id PK
@@ -116,6 +117,7 @@ erDiagram
     COMMENTS {
         uuid id PK
         uuid vitrine_id FK
+        uuid parent_id FK "resposta: comentario original, opcional"
         uuid author_id FK "preenchido pelo trigger"
         text author_name "copia do perfil, 1 a 80"
         text author_avatar_url "copia do perfil"
@@ -153,6 +155,8 @@ erDiagram
 | 12 | `20261105000000_metrics_previous.sql` | `create or replace` de `vitrine_stats(days)`: mantém `totals`, `days` e `items` e acrescenta `previous` (totais por `kind` dos `days` dias imediatamente anteriores à janela atual, mais `buy_coupon`). Alimenta a variação contra o período anterior de `/metricas`. Está no repositório e precisa ser aplicada no Supabase; sem ela a RPC continua devolvendo o formato antigo e a página funciona sem as variações. |
 | 13 | `20261105010000_favorites.sql` | Cria `favorites` (PK `(user_id, vitrine_id)`), o índice `favorites_vitrine_idx` e RLS só do dono. |
 | 14 | `20261105010100_comments.sql` | Cria `comments`, os índices `comments_vitrine_idx` e `comments_author_idx`, a função `stamp_comment()`, o trigger `comments_stamp` (`before insert`) e as policies. |
+| 15 | `20261109000000_comment_replies.sql` | Adiciona `comments.parent_id` (FK para `comments(id)` **on delete cascade**), o índice parcial `comments_parent_idx` e recria `stamp_comment()` para tratar respostas (sobe para o original, copia a vitrine, erro `VT404`). RLS inalterada. |
+| 16 | `20261109000100_favorite_count.sql` | Cria `favorite_count(target_handle text)` (`security definer`), que devolve quantas pessoas favoritaram a vitrine, e libera a execução só para `anon` e `authenticated`. `favorites` segue privada. |
 | — | `supabase/seed.sql` | Vitrine de demonstração `/marinacosta`. Insere em `kits` pelas colunas antigas `tab`/`title`. |
 
 ## Tabelas
@@ -304,10 +308,11 @@ Comentários na vitrine pública. `20261105010100_comments.sql`. Sem edição: p
 | `author_avatar_url` | `text` | não | `''` | Cópia da foto do Google (vazia em conta de e-mail e senha); só `https://`, senão `''`. Sobrescrito pelo trigger |
 | `body` | `text` | não | — | `CHECK char_length(btrim(body)) between 1 and 500`. O trigger faz o `trim` |
 | `created_at` | `timestamptz` | não | `now()` | Sobrescrito pelo trigger |
+| `parent_id` | `uuid` | sim | `null` | FK → `comments(id)` **on delete cascade** (`20261109000000_comment_replies.sql`). `null`: comentário original. Preenchido: resposta. É um nível só: o trigger troca o `parent_id` pelo do original quando se responde a uma resposta |
 
-**Índices:** `comments_vitrine_idx (vitrine_id, created_at desc)` (lista da vitrine), `comments_author_idx (author_id, created_at desc)` (limite por minuto e `listCommentedHandles`).
+**Índices:** `comments_vitrine_idx (vitrine_id, created_at desc)` (lista da vitrine), `comments_author_idx (author_id, created_at desc)` (limite por minuto e `listCommentedHandles`), `comments_parent_idx (parent_id, created_at) where parent_id is not null` (parcial, respostas de cada comentário).
 
-**Trigger `comments_stamp`** (`before insert`, `for each row`, função `stamp_comment()`; veja [Funções (RPC)](#funções-rpc)): como a chave publicável é pública e dá para chamar a API sem passar pelo app, nada que identifica o comentário vem do cliente. O trigger preenche autor, nome, foto e `created_at` a partir da sessão, faz o `trim` do corpo e limita a 5 comentários por minuto por pessoa.
+**Trigger `comments_stamp`** (`before insert`, `for each row`, função `stamp_comment()`; veja [Funções (RPC)](#funções-rpc)): como a chave publicável é pública e dá para chamar a API sem passar pelo app, nada que identifica o comentário vem do cliente. O trigger preenche autor, nome, foto e `created_at` a partir da sessão, faz o `trim` do corpo e limita a 5 comentários por minuto por pessoa. Numa resposta, também resolve o original (se `parent_id` já é uma resposta, usa o `parent_id` dela), copia a `vitrine_id` dele (a resposta nunca fica em outra vitrine) e levanta `VT404` se o comentário não existe.
 
 ## Storage (arquivos)
 
@@ -325,7 +330,8 @@ Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:408`). As pol
 | `owns_vitrine(v uuid) → boolean` | SQL, `stable`, `security invoker`, `search_path = ''` | revogada de `public` e `anon` | `true` se a vitrine `v` pertence a `auth.uid()`. Usada nas policies. | Só nas policies |
 | `publish_vitrine(content jsonb) → timestamptz` | plpgsql, `security invoker` | `authenticated` | Atualiza a vitrine do usuário, **apaga** todos os cupons/produtos/kits dela e **reinsere** a partir do JSON, numa transação. Retorna `updated_at`. Versão atual: `20261104000000_landing_home.sql` (preserva `kits.published_at` por `id`). | `lib/vitrine/store.ts:284` |
 | `vitrine_stats(days int default 30) → jsonb` | SQL, `stable`, `security invoker` | `authenticated` | Agrega `events` da vitrine de quem chama nos últimos `days` (limitado a 1–90), por dia no fuso `America/Sao_Paulo` e por item. Também devolve `previous`: os totais da janela anterior de mesma duração. Versão atual: `20261105000000_metrics_previous.sql` (lê as duas janelas de uma vez, `now() - 2 * days`). | `loadStats` em `app/metricas/page.tsx:13` |
-| `stamp_comment() → trigger` | plpgsql, `security invoker`, `search_path = ''` | `execute` revogado de `public`, `anon` e `authenticated` (só o trigger a chama) | Função do trigger `comments_stamp`. Lê `auth.jwt() -> 'user_metadata'`: `author_id = auth.uid()`; `author_name` = `name`, senão `full_name`, senão `Visitante` (até 80 caracteres); `author_avatar_url` = `avatar_url` se começar com `https://`, senão vazio; `body` com `btrim`; `created_at = now()`. Se a pessoa já tem 5 ou mais comentários no último minuto, levanta `VT429` ("muitos comentários em pouco tempo"), que `addComment` transforma em `CommentRateLimitError`. | Trigger em `comments` (insert por `addComment`, `lib/vitrine/store.ts`) |
+| `stamp_comment() → trigger` | plpgsql, `security invoker`, `search_path = ''` | `execute` revogado de `public`, `anon` e `authenticated` (só o trigger a chama) | Função do trigger `comments_stamp`. Lê `auth.jwt() -> 'user_metadata'`: `author_id = auth.uid()`; `author_name` = `name`, senão `full_name`, senão `Visitante` (até 80 caracteres); `author_avatar_url` = `avatar_url` se começar com `https://`, senão vazio; `body` com `btrim`; `created_at = now()`. Se a pessoa já tem 5 ou mais comentários no último minuto, levanta `VT429` ("muitos comentários em pouco tempo"), que `addComment` transforma em `CommentRateLimitError`. Em resposta (`parent_id` não nulo), sobe para o comentário original (`coalesce(parent_id, id)`) e copia a `vitrine_id` dele; se o comentário respondido não existe, levanta `VT404`, que `addComment` transforma em `CommentGoneError` (a FK `23503` também). | Trigger em `comments` (insert por `addComment`, `lib/vitrine/store.ts`) |
+| `favorite_count(target_handle text) → integer` | SQL, `stable`, **`security definer`**, `search_path = ''` | `execute` revogado de `public`; liberado para `anon` e `authenticated` | Conta as linhas de `favorites` da vitrine com esse `handle` (join com `vitrines`). Como `favorites` é privada por RLS, a função só devolve o número, nunca quem favoritou. | `favoriteCount` em `lib/vitrine/store.ts`, via `getFavoriteCount` |
 | `delete_my_account() → void` | plpgsql, **`security definer`** | `authenticated` | Apaga `auth.users` do próprio usuário; o resto sai em cascata. | `app/actions.ts:234` |
 | `fold(t text) → text` | SQL, `immutable`, `parallel safe`, `search_path = ''` | padrão | Minúsculas e sem acento (`unaccent` com dicionário explícito, para poder entrar em índice). Base dos índices trigram e da busca. | Índices e `search_catalog()` |
 | `top_creators_today(lim int default 12) → table(handle text)` | SQL, `stable`, **`security definer`** | `anon`, `authenticated` | Handles das vitrines (com ao menos um cupom ou produto) ordenados pelos cliques do dia no fuso `America/Sao_Paulo` (`buy`, `copy`, `kit`, `video`), deduplicando visitante + tipo + item; desempate por `vitrines.updated_at`. Devolve só a ordem, nunca contagens (a RLS de `events` segue só para o dono). `lim` limitado a 1–50. | `topCreatorsToday` (`lib/vitrine/store.ts:150`), via `getTopCreators()` em `/inicio`, `getTrendingHandles()` (ordem "Em alta hoje" da aba Vitrines) e `loadPosition` em `/metricas` (lim 50) |
@@ -397,7 +403,7 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
 | `favorites` | select / insert / delete | `authenticated` | `user_id = auth.uid()` (insert: `with check`). Sem update |
 | `comments` | select | `anon`, `authenticated` | `true` (pública) |
 | `comments` | insert | `authenticated` | `author_id = auth.uid()` (o trigger já força esse valor) |
-| `comments` | delete | `authenticated` | `author_id = auth.uid()` **ou** `owns_vitrine(vitrine_id)` (quem escreveu ou a dona da vitrine). Sem update |
+| `comments` | delete | `authenticated` | `author_id = auth.uid()` **ou** `owns_vitrine(vitrine_id)` (quem escreveu ou a dona da vitrine). Sem update. Apagar o original apaga as respostas em cascata |
 | `events` | insert | `anon`, `authenticated` | `created_at` entre `now() - 1 min` e `now() + 1 min` **e** a vitrine existe |
 | `events` | select | `authenticated` | `owns_vitrine(vitrine_id)` (o ranking público passa por `top_creators_today()`, `security definer`, que só expõe a ordem) |
 | `storage.objects` (`brand-logos`, `vitrine-photos`) | insert / select / delete | `authenticated` | primeira pasta do caminho = `auth.uid()` |
