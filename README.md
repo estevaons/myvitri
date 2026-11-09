@@ -172,9 +172,9 @@ Mais em [docs/architecture.md](docs/architecture.md).
 
 ```text
 app/[locale]/        páginas e imagens por idioma (layout raiz incluso); /en/... é o inglês
-app/                 fora do idioma: actions.ts, api/, auth/callback, llms.txt, robots.ts, sitemap.ts, global-not-found.tsx
-components/          auth/, editor/, storefront/, home/ (com catalog/ e tabs/), metrics/, brand/ (com LocaleSwitcher), legal/ (termos e privacidade em pt e en)
-lib/                 brand.ts, i18n/ (idiomas e prefixo em routing.ts, navegação com idioma em navigation.ts, idioma por requisição e fuso em request.ts, tipagem das mensagens), supabase/ (clientes e tipos), vitrine/ (domínio, com catalog/)
+app/                 fora do idioma: actions.ts, api/, auth/callback, llms.txt, robots.ts, sitemap.ts, global-not-found.tsx, global-error.tsx
+components/          auth/, editor/, storefront/, home/ (com catalog/ e tabs/), metrics/, brand/ (com LocaleSwitcher e ErrorScreen, a tela dos erros e 404), legal/ (termos e privacidade em pt e en)
+lib/                 brand.ts, fonts.ts, i18n/ (idiomas e prefixo em routing.ts, navegação com idioma em navigation.ts, idioma por requisição e fuso em request.ts, tipagem das mensagens), supabase/ (clientes e tipos), vitrine/ (domínio, com catalog/)
 supabase/            migrations/ (SQL em ordem) e seed.sql
 messages/            pt-BR.json e en.json, catálogo de textos
 proxy.ts             proxy do Next 16 (idioma com next-intl, sessão, retorno do OAuth, / e /entrar → /inicio com sessão e /inicio → / sem sessão, /editor?aba=metricas → /metricas)
