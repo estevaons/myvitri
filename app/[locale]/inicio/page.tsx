@@ -7,7 +7,8 @@ import { HomeView, type ForYou } from "@/components/home/HomeView";
 import { redirect } from "@/lib/i18n/navigation";
 import { accountOf } from "@/lib/vitrine/account";
 import { getHomeFeed, getRecentKits, getTopCreators, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
-import { findMine, listFavoriteHandles } from "@/lib/vitrine/store";
+import { findMineContent, findMineSummary, listFavoriteHandles } from "@/lib/vitrine/store";
+import { getUser } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("home");
@@ -35,25 +36,36 @@ async function loadCreators(): Promise<{ ranked: boolean; creators: HomeCreator[
   return { ranked: false, creators: feed?.creators ?? [] };
 }
 
+/**
+ * Cada troca de aba ou filtro passa por aqui de novo, então as leituras vão juntas, e não uma depois da outra:
+ * só a sessão vem antes, porque as outras precisam do id de quem entrou.
+ */
 async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, "searchParams">) {
   // por requisição: depende da sessão, como o editor
   await connection();
   const params = flatParams(await searchParams);
   const tab = tabOf(params);
-  // os carrosséis só são lidos na aba "Para você"; as outras abas buscam os próprios dados
-  const [{ supabase, user, vitrine }, rows] = await Promise.all([
-    findMine(),
-    tab === "para-voce" ? Promise.all([loadCreators(), getRecentKits().catch(orEmpty<HomeKit>("getRecentKits"))]) : null,
-  ]);
+  const forYouTab = tab === "para-voce";
+  // os carrosséis (em cache, sem sessão) só são lidos na aba "Para você" e já começam antes da sessão
+  const rows = forYouTab ? Promise.all([loadCreators(), getRecentKits().catch(orEmpty<HomeKit>("getRecentKits"))]) : null;
 
+  const { supabase, user } = await getUser();
   // o proxy já manda quem não entrou para a landing; isto cobre a sessão que cai entre ele e esta leitura
   if (!user) return redirect({ href: "/", locale: await getLocale() });
+
+  // a vitrine completa só na aba "Para você"; nas outras basta o nome, o endereço e a foto do cabeçalho.
+  // Só as abas com o coração precisam saber as favoritas.
+  const [content, summary, forYouRows, favorites] = await Promise.all([
+    forYouTab ? findMineContent(supabase, user.id) : null,
+    forYouTab ? null : findMineSummary(supabase, user.id),
+    rows,
+    forYouTab || tab === "vitrines" || tab === "favoritas" ? listFavoriteHandles(supabase, user.id).catch(orEmpty<string>("listFavoriteHandles")) : [],
+  ]);
+  const vitrine = content ?? summary;
   const meta = user.user_metadata as { name?: string };
   const name = firstName(vitrine?.name || meta.name || "") || user.email?.split("@")[0] || "";
 
-  const forYou: ForYou | null = rows && { vitrine, ranked: rows[0].ranked, creators: rows[0].creators, kits: rows[1] };
-  // só as abas com o coração precisam saber as favoritas
-  const favorites = tab === "para-voce" || tab === "vitrines" || tab === "favoritas" ? await listFavoriteHandles(supabase, user.id).catch(orEmpty<string>("listFavoriteHandles")) : [];
+  const forYou: ForYou | null = forYouRows && { vitrine: content, ranked: forYouRows[0].ranked, creators: forYouRows[0].creators, kits: forYouRows[1] };
   return <HomeView name={name} account={accountOf(user, vitrine)} tab={tab} params={params} forYou={forYou} favorites={favorites} />;
 }
 

@@ -5,7 +5,7 @@ import { googlePhoto } from "./claim";
 import type { VitrineContent } from "./types";
 
 /** O que o menu da conta (home e editor) precisa saber de quem entrou. */
-export function accountOf(user: User, vitrine: VitrineContent | null): Account {
+export function accountOf(user: User, vitrine: Pick<VitrineContent, "handle" | "name" | "avatarUrl"> | null): Account {
   const google = googlePhoto(user);
   return {
     name: (user.user_metadata as { name?: string }).name ?? "",
