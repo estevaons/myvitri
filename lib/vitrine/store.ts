@@ -214,9 +214,24 @@ export async function isHandleTaken(db: Db, handle: string) {
 export async function findMine() {
   const { supabase, user } = await getUser();
   if (!user) return { supabase, user: null, vitrine: null };
-  const { data, error } = await supabase.from("vitrines").select("*").eq("owner_id", user.id).maybeSingle();
+  return { supabase, user, vitrine: await findMineContent(supabase, user.id) };
+}
+
+/** A vitrine de quem entrou, completa (cupons, produtos e kits). */
+export async function findMineContent(db: Db, ownerId: string): Promise<VitrineContent | null> {
+  const { data, error } = await db.from("vitrines").select("*").eq("owner_id", ownerId).maybeSingle();
   if (error) throw error;
-  return { supabase, user, vitrine: data ? await loadContent(supabase, data) : null };
+  return data ? loadContent(db, data) : null;
+}
+
+/** Só o nome, o endereço e a foto da vitrine de quem entrou: o que o cabeçalho e o menu da conta usam. */
+export type MineSummary = Pick<VitrineContent, "handle" | "name" | "avatarUrl">;
+
+/** Uma consulta só, sem cupons, produtos e kits: para as telas que não mostram o conteúdo da vitrine. */
+export async function findMineSummary(db: Db, ownerId: string): Promise<MineSummary | null> {
+  const { data, error } = await db.from("vitrines").select("handle, name, avatar_url").eq("owner_id", ownerId).maybeSingle();
+  if (error) throw error;
+  return data && { handle: data.handle, name: data.name, avatarUrl: data.avatar_url };
 }
 
 /**

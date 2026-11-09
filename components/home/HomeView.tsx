@@ -12,6 +12,7 @@ import { HomeSearch } from "./HomeSearch";
 import { KitCard } from "./KitCard";
 import { Marquee } from "./Marquee";
 import type { TabId, TabParams } from "./catalog/params";
+import { NavPending } from "./catalog/NavPending";
 import { TabNav } from "./catalog/ui";
 import { FavoritasTab } from "./tabs/FavoritasTab";
 import { KitsTab } from "./tabs/KitsTab";
@@ -149,16 +150,21 @@ export function HomeView({
 
       {/* espaço antes das abas como irmão, não em volta: o sticky só prende dentro do próprio pai */}
       <div aria-hidden="true" className="h-5 md:h-6" />
-      <TabNav current={tab} />
+      {/* o pai das abas vai até o rodapé, então elas continuam presas no topo a página toda */}
+      <NavPending>
+        <TabNav current={tab} />
 
-      {tab === "para-voce" && forYou && <ForYouTab {...forYou} favorites={favorites} />}
-      {tab === "favoritas" && <FavoritasTab params={params} favorites={favorites} />}
-      {tab === "vitrines" && <VitrinesTab params={params} favorites={favorites} />}
-      {tab === "produtos" && <ProdutosTab params={params} />}
-      {tab === "kits" && <KitsTab params={params} />}
-      {tab === "marcas" && <MarcasTab params={params} />}
+        <div className="transition-opacity duration-200 group-aria-busy:opacity-50 group-aria-busy:delay-100">
+          {tab === "para-voce" && forYou && <ForYouTab {...forYou} favorites={favorites} />}
+          {tab === "favoritas" && <FavoritasTab params={params} favorites={favorites} />}
+          {tab === "vitrines" && <VitrinesTab params={params} favorites={favorites} />}
+          {tab === "produtos" && <ProdutosTab params={params} />}
+          {tab === "kits" && <KitsTab params={params} />}
+          {tab === "marcas" && <MarcasTab params={params} />}
+        </div>
 
-      <SiteFooter signedIn />
+        <SiteFooter signedIn />
+      </NavPending>
     </div>
   );
 }

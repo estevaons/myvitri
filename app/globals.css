@@ -56,6 +56,21 @@
   }
 }
 
+/* Barra no topo do /inicio enquanto a aba ou o filtro escolhido carrega: corre rápido no começo e vai
+   desacelerando sem chegar ao fim, já que não se sabe quanto falta. */
+@theme {
+  --animate-nav-progress: nav-progress 8s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+
+  @keyframes nav-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(0.92);
+    }
+  }
+}
+
 /* Carrossel que rola de lado sem mostrar a barra (os botões e o arraste fazem o papel dela). */
 @utility no-scrollbar {
   scrollbar-width: none;

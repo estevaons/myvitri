@@ -8,7 +8,7 @@ O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **v
 |---|---|
 | **Stack** | Next.js 16 (App Router, Cache Components) · React 19 · TypeScript · Tailwind CSS v4 · Zod 4 |
 | **Backend** | Supabase: Postgres com RLS, Auth (e-mail e senha, e Google), Storage |
-| **Hospedagem** | Vercel (inferido: Web Analytics + integração) |
+| **Hospedagem** | Vercel (inferido: Web Analytics + integração), funções em Portland (`pdx1`, `vercel.json`), junto ao Supabase |
 | **Idioma do produto e do código** | Português do Brasil |
 
 > ⚠️ **Este projeto usa Next.js 16**, que mudou APIs e convenções (ex.: `proxy.ts` no lugar de `middleware.ts`, `updateTag`, `"use cache"`). Antes de escrever código, leia o guia correspondente em `node_modules/next/dist/docs/` — veja [`AGENTS.md`](AGENTS.md).

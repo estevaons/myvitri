@@ -56,7 +56,7 @@ Não há testes automatizados, CI, Dockerfile nem filas/jobs no repositório.
 | `components/metrics/` | Página de métricas: `MetricsView` (Server Component), `DailyChart` (gráfico, Client Component) e `stats.ts` (tipos da RPC, períodos, "hoje" em Brasília) |
 | `components/storefront/` | A vitrine pública (`Storefront.tsx`), o coração `FavoriteButton`, a seção `Comments` e as ilustrações de produto |
 | `components/home/` | Peças da landing, da home logada e das páginas legais (cabeçalho/rodapé e `SectionHead`, o cabeçalho de seção centrado: rótulo, `title` (string) e texto curto), `ScrollHeader` (Client Component usado só em `app/[locale]/page.tsx`, em volta do `SiteHeader`: fixa o header no topo e, quando a rolagem passa da altura do header aberto, liga `data-compact` e o header encolhe e ganha fundo de vidro; ver a rota `/`), `LookHero` (`LookHero.tsx`, a foto do hero), `Marquee` (a cópia da lista fica `aria-hidden` e com `tabindex="-1"` em `a, button`, mas sem `inert`, para que o clique funcione na parte dela que aparece na borda), `CopyLinkButton` (e `VitrineLinkBar`, a barra com o endereço da vitrine e o botão Copiar, ambos sobre o hook interno `useCopyLink`), `HomeView` (conteúdo de `/inicio`), `AccountMenu` (menu de conta e modal de configurações de `/inicio` e do editor, com prop opcional `onLeave`, que roda em Sair e nos links de Termos e Privacidade e pode cancelar com `preventDefault`, com o `ProfileBlock`: nome, link e foto de perfil, salvos por `updateProfileAction`), `CoverPicker` (enviar, trocar e remover a capa, por `updateCoverAction`), `CreatorCard` (card da home logada, com `favorited` obrigatório), `CreatorCover` (capa, usada na home e na aba Vitrines), `CoverLetter` (a capa de quem não enviou foto: a primeira letra do nome, também usada em `CreatorMosaic` e `Storefront`) e `Avatar`, `CreatorMosaic` (mosaico de vitrines da landing), `KitCard` e `KitMosaic`, `HomeSearch`) |
-| `components/home/catalog/` | Base das abas do `/inicio`: `params.ts` (estado na URL) e `FilterMenu.tsx` (menu de filtro/ordenação, Client Component) e `ui.tsx` (abas, menus de filtro, ordenação, moldura, "Ver mais", estado vazio) |
+| `components/home/catalog/` | Base das abas do `/inicio`: `params.ts` (estado na URL) e `FilterMenu.tsx` (menu de filtro/ordenação, Client Component) e `ui.tsx` (abas, menus de filtro, ordenação, moldura, "Ver mais", estado vazio) e `NavPending.tsx` (Client Component: indicador de navegação, ver [Abas do `/inicio`](#abas-do-inicio)) |
 | `components/home/tabs/` | Uma aba por arquivo (`FavoritasTab`, `VitrinesTab`, `ProdutosTab`, `KitsTab`, `MarcasTab`) e, nas subpastas `vitrines/`, `produtos/`, `kits/` e `marcas/`, os cards e o painel de comparação de marca |
 | `components/brand/` | Logotipo e ícone (SVG puro), `BackLink`, o voltar único do app (veja [O voltar do app](#o-voltar-do-app)) `LocaleSwitcher` (troca de idioma no rodapé, usado por `SiteFooter`) e `ErrorScreen` (tela compartilhada das páginas de erro e 404) |
 | `components/legal/` | Textos jurídicos longos, um componente por idioma: `TermsPt`, `TermsEn`, `PrivacyPt`, `PrivacyEn` (recebem a data de atualização) |
@@ -193,7 +193,13 @@ Comportamentos a conhecer:
 
 ### Abas do `/inicio`
 
-O que muda entre as abas está na URL (`/inicio?aba=produtos&cat=tenis&ordem=desconto&limite=48`), não em estado do cliente (a exceção é o abrir e fechar dos menus de filtro e ordenação): o voltar do navegador funciona, o link pode ser compartilhado e cada troca é uma página montada de novo no servidor. As peças comuns ficam em `components/home/catalog/`:
+O que muda entre as abas está na URL (`/inicio?aba=produtos&cat=tenis&ordem=desconto&limite=48`), não em estado do cliente (a exceção é o abrir e fechar dos menus de filtro e ordenação): o voltar do navegador funciona, o link pode ser compartilhado e cada troca é uma página montada de novo no servidor. As peças comuns ficam em `components/home/catalog/`.
+
+Leituras em paralelo (`app/[locale]/inicio/page.tsx`): os carrosséis (em cache) começam antes da sessão; depois do `getUser()`, a vitrine, os favoritos e os carrosséis seguem juntos. A vitrine completa (`findMineContent`) só é lida na aba **Para você**; nas outras basta `findMineSummary` (handle, nome e foto, uma consulta). `findMine()` em `lib/vitrine/store.ts` usa as duas, e `accountOf` aceita `Pick<VitrineContent, "handle" | "name" | "avatarUrl">`.
+
+Indicador de navegação: `NavPending` envolve as abas, o conteúdo e o rodapé em `HomeView`. Ao clicar em qualquer link do próprio `/inicio` que muda a URL (aba, filtro, ordem, "Ver mais", inclusive nos menus de filtro), mostra uma barra dourada no topo (animação `nav-progress` em `app/globals.css`) e esmaece o conteúdo (`group-aria-busy:opacity-50`) até a URL mudar.
+
+Peças:
 
 | Peça | Arquivo | O que faz |
 |---|---|---|
@@ -209,7 +215,7 @@ Tudo em `ui.tsx` é `<Link scroll={false}>` renderizado no servidor, para a pess
 
 | Aba (`?aba=`) | Componente | Dados | Filtros | Ordem (a primeira é a padrão) |
 |---|---|---|---|---|
-| **Para você** (`para-voce`) | `ForYouTab` em `HomeView.tsx` | `findMine()`, `getTopCreators()` (ou `getHomeFeed()` enquanto ninguém clicou), `getRecentKits()` | — | — |
+| **Para você** (`para-voce`) | `ForYouTab` em `HomeView.tsx` | `findMineContent()` (as outras abas leem só `findMineSummary()`), `getTopCreators()` (ou `getHomeFeed()` enquanto ninguém clicou), `getRecentKits()` | — | — |
 | **Favoritas** (`favoritas`) | `tabs/FavoritasTab.tsx` (reusa `VitrineCard`) | `favorites` (de `listFavoriteHandles`) cruzado com `getVitrinesCatalog()` | — | a das favoritas: da última favoritada para a primeira |
 | **Vitrines** (`vitrines`) | `tabs/VitrinesTab.tsx`, card `tabs/vitrines/VitrineCard.tsx` | `getVitrinesCatalog()` e `getTrendingHandles()` (`lib/vitrine/catalog/vitrines.ts`) | `cat`, `marca`, `vencendo=1` (cupom vencendo) | `alta` (em alta hoje), `recentes`, `desconto`, `cupons` |
 | **Produtos** (`produtos`) | `tabs/ProdutosTab.tsx`, card `tabs/produtos/ProductCard.tsx` | `queryProducts()` sobre `getProductCatalog()` (`catalog/products.ts`) | `cat`, `marca`, `video=1` | sem ordenação (sempre "em destaque"; `preco`, `cupom` e `ordem` são ignorados) |
@@ -371,7 +377,9 @@ O **editor** chama `await connection()` (`app/[locale]/editor/page.tsx:15`) para
 2. **Corrige o retorno do OAuth:** se o Supabase devolver o usuário para `/?code=…` (acontece quando o `redirectTo` não está na lista de Redirect URLs), redireciona para `/auth/callback` com a mesma query. Vale também em `/en/?code=…`.
 3. **Antiga aba de métricas do editor:** `/editor?aba=metricas` (e `/en/editor?aba=metricas`) recebe um redirect para `/metricas` no mesmo idioma, antes de qualquer leitura de sessão.
 4. **Renova a sessão só nas rotas de login:** `/`, `/criar-vitrine`, `/entrar`, `/nova-senha`, `/inicio`, `/metricas` e `/editor` (com ou sem prefixo de idioma; constante `SESSION_PATHS`). O proxy cria um cliente Supabase ligado aos cookies da requisição/resposta e chama `auth.getClaims()` (só valida o JWT, sem ir ao Supabase). Server Components não conseguem gravar cookies (o `setAll` de `lib/supabase/server.ts` engole o erro de propósito), então é o proxy que mantém a sessão viva. Os cookies renovados são guardados e copiados para a resposta final, inclusive para redirecionamentos.
-5. **Separa as duas portas de entrada:** em `/`, `/inicio` e `/entrar` o proxy usa `auth.getUser()`, que confere a sessão no Supabase. `/` e `/entrar` com sessão respondem com redirect para `/inicio`; `/inicio` sem sessão responde para `/`, descartando os parâmetros da URL. O destino mantém o prefixo do idioma (`/en/inicio` ↔ `/en`). Assim a landing não precisa ler cookies e segue estática. Usa-se `getUser()` e não `getClaims()` porque as duas rotas mandam uma para a outra: `getClaims()` aceitaria uma sessão já encerrada até o JWT expirar, e `/` e `/inicio` se redirecionariam sem fim.
+5. **Separa as duas portas de entrada:** em `/`, `/inicio` e `/entrar` o proxy usa `auth.getUser()`, que confere a sessão no Supabase. `/` e `/entrar` com sessão respondem com redirect para `/inicio`; `/inicio` sem sessão responde para `/`, descartando os parâmetros da URL (no `/inicio` a checagem é `auth.getClaims()`, ver abaixo). O destino mantém o prefixo do idioma (`/en/inicio` ↔ `/en`). Assim a landing não precisa ler cookies e segue estática. Usa-se `getUser()` e não `getClaims()` porque as duas rotas mandam uma para a outra: `getClaims()` aceitaria uma sessão já encerrada até o JWT expirar, e `/` e `/inicio` se redirecionariam sem fim.
+
+   O `/inicio` é a exceção: como cada aba, filtro e "Ver mais" passa pelo proxy, ele usa `auth.getClaims()` (JWT verificado localmente com a chave ES256 do JWKS, sem ida ao Supabase) e manda para `/` quem não tem JWT. Uma sessão já encerrada passa até o JWT expirar, mas a página confere com `getUser()` e redireciona para a landing, que também confere e fica nela: não há vaivém.
 6. **Idioma (middleware do `next-intl`):** por fim a requisição passa por `createMiddleware(routing)`. Ele manda quem abre um link sem prefixo para o idioma do cookie `NEXT_LOCALE` (por exemplo `/inicio` vira `/en/inicio` para quem escolheu inglês), grava o cookie na escolha e coloca o idioma num cabeçalho da requisição, que é de onde Server Actions e route handlers leem o idioma.
 
 `/api/t`, `/api/busca`, `/api/eu` e `/auth/callback` não passam pelo proxy (`/api/eu` lê a sessão, mas é o próprio handler que renova os cookies). A vitrine pública (`/{handle}`) e as imagens passam só pelo item do idioma: a sessão não é renovada ali.
@@ -474,7 +482,8 @@ graph LR
     G --> SB
 ```
 
-- **Deploy do app:** presumivelmente pela integração Git da Vercel (push na `main` / PRs com preview). Não há `vercel.json`.
+- **Deploy do app:** presumivelmente pela integração Git da Vercel (push na `main` / PRs com preview).
+- **Região das funções:** `vercel.json` fixa `"regions": ["pdx1"]` (Portland), ao lado do banco Supabase (AWS `us-west-2`), em vez do padrão `iad1` (Virginia), que fazia cada consulta atravessar os EUA (~70 ms de ida e volta). Se o Supabase mudar de região, `regions` deve acompanhar.
 - **Deploy do banco:** manual, com `supabase db push`.
 - **Segredos:** só no painel da Vercel e no Supabase. `.env*` está no `.gitignore` (exceto `.env.example`). Nenhum segredo versionado foi encontrado.
 
