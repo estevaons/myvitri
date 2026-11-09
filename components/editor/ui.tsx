@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { centsToInput, parseBRL } from "@/lib/vitrine/pricing";
 
@@ -58,19 +59,21 @@ export function TextInput({
 
 /** Preço em reais digitado livremente ("189,90"), guardado em centavos. */
 export function MoneyInput({ cents, onChange }: { cents: number; onChange: (cents: number) => void }) {
-  const [text, setText] = useState(cents ? centsToInput(cents) : "");
+  const t = useTranslations("editor.ui");
+  const locale = useLocale();
+  const [text, setText] = useState(cents ? centsToInput(cents, locale) : "");
   return (
     <div className="relative">
       <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[15px] font-normal text-[#8F897E]">R$</span>
       <input
         inputMode="decimal"
         value={text}
-        placeholder="0,00"
+        placeholder={t("moneyPlaceholder")}
         onChange={(e) => {
           setText(e.target.value);
-          onChange(parseBRL(e.target.value) ?? 0);
+          onChange(parseBRL(e.target.value, locale) ?? 0);
         }}
-        onBlur={() => setText(cents ? centsToInput(cents) : "")}
+        onBlur={() => setText(cents ? centsToInput(cents, locale) : "")}
         className={`${inputCls} pl-10`}
       />
     </div>
@@ -79,12 +82,13 @@ export function MoneyInput({ cents, onChange }: { cents: number; onChange: (cent
 
 /** Porcentagem de 1 a 100. O texto fica livre enquanto digita (apagar não vira "1"); só ajusta ao sair do campo. */
 export function PercentInput({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  const t = useTranslations("editor.ui");
   const [text, setText] = useState(String(value));
   return (
     <div className="relative">
       <input
         inputMode="numeric"
-        aria-label="Porcentagem de desconto"
+        aria-label={t("percentLabel")}
         value={text}
         onChange={(e) => {
           const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
@@ -244,6 +248,7 @@ export function Row({
   sort: DragSort;
   children?: ReactNode;
 }) {
+  const t = useTranslations("editor.ui");
   const i = pos - 1;
   // Ao abrir (inclusive um item recém-adicionado no fim da lista), rola só o
   // necessário para o formulário aparecer; se ele for maior que a tela, alinha o topo.
@@ -263,8 +268,8 @@ export function Row({
         <button
           type="button"
           {...sort.handle(i, total)}
-          aria-label={`Mover ${title}, posição ${pos} de ${total}. Use as setas para cima e para baixo.`}
-          title="Arraste para mudar a ordem"
+          aria-label={t("move", { title, pos, total })}
+          title={t("drag")}
           className={`flex min-h-11 w-6 flex-none touch-none items-center justify-center rounded-lg border-0 bg-transparent p-0 text-[#B8B1A6] transition-colors hover:text-[#5E5A52] focus-visible:text-[#5E5A52] ${
             sort.from === i ? "cursor-grabbing text-[#5E5A52]" : "cursor-grab"
           }`}
@@ -293,13 +298,14 @@ export function Row({
 }
 
 export function FormActions({ onDone, onRemove, removeLabel }: { onDone: () => void; onRemove: () => void; removeLabel: string }) {
+  const t = useTranslations("editor.ui");
   return (
     <div className="flex items-center justify-between gap-2 border-t border-[#F1EEE8] pt-3.5">
       <button type="button" onClick={onRemove} className="-ml-2 min-h-10 rounded-[10px] border-0 bg-transparent px-2 text-sm font-medium text-[#A3361B] hover:bg-[#FFF1EC]">
         {removeLabel}
       </button>
       <button type="button" onClick={onDone} className="min-h-10 rounded-[10px] border-0 bg-ink px-6 text-sm font-semibold text-white">
-        Concluir
+        {t("done")}
       </button>
     </div>
   );

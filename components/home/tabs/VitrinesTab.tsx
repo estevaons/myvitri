@@ -1,15 +1,11 @@
+import { getTranslations } from "next-intl/server";
 import { bestRank, getTrendingHandles, getVitrinesCatalog, keyOf, type CatalogOption, type CatalogVitrine } from "@/lib/vitrine/catalog/vitrines";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
-import { CatalogEmpty, CatalogFrame, catalogGrid, countLabel, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
+import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
 import { VitrineCard } from "./vitrines/VitrineCard";
 
-/** [valor na URL, rótulo] — a primeira é a padrão. */
-const SORTS: [string, string][] = [
-  ["alta", "Em alta hoje"],
-  ["recentes", "Mais recentes"],
-  ["desconto", "Maior desconto"],
-  ["cupons", "Mais cupons"],
-];
+/** Ordens na URL (`?ordem=`), a primeira é a padrão. Os rótulos ficam em `catalog.vitrines.sorts`. */
+const SORTS = ["alta", "recentes", "desconto", "cupons"] as const;
 
 const FILTER_KEYS = ["cat", "marca", "vencendo"] as const;
 
@@ -25,8 +21,13 @@ const byRecent = (a: CatalogVitrine, b: CatalogVitrine) => b.updatedAt.localeCom
  * que muda a cada clique, do cache de minutos.
  */
 export async function VitrinesTab({ params, favorites = [] }: { params: TabParams; favorites?: string[] }) {
-  const sort = SORTS.find(([id]) => id === params.ordem)?.[0] ?? SORTS[0][0];
-  const [{ vitrines, categories, brands }, trending] = await Promise.all([getVitrinesCatalog(), sort === "alta" ? getTrendingHandles() : []]);
+  const sort = SORTS.find((id) => id === params.ordem) ?? SORTS[0];
+  const [{ vitrines, categories, brands, today }, trending, t, tCount] = await Promise.all([
+    getVitrinesCatalog(),
+    sort === "alta" ? getTrendingHandles() : [],
+    getTranslations("catalog"),
+    getTranslations("counts"),
+  ]);
 
   const cat = params.cat && keyOf(params.cat);
   const brand = params.marca && keyOf(params.marca);
@@ -57,38 +58,34 @@ export async function VitrinesTab({ params, favorites = [] }: { params: TabParam
   const showExpiring = vitrines.some((v) => v.expiring) || params.vencendo;
   const filters = (
     <>
-      <FilterChips label="Categoria" param="cat" options={withActive(categories, params.cat)} params={params} />
-      <FilterChips label="Marca" param="marca" options={withActive(brands, params.marca)} params={params} />
-      {showExpiring && <ToggleChip label="Cupom vencendo" param="vencendo" params={params} />}
+      <FilterChips label={t("filters.category")} param="cat" options={withActive(categories, params.cat)} params={params} />
+      <FilterChips label={t("filters.brand")} param="marca" options={withActive(brands, params.marca)} params={params} />
+      {showExpiring && <ToggleChip label={t("filters.expiringCoupon")} param="vencendo" params={params} />}
     </>
   );
 
   return (
     <CatalogFrame
-      title="Vitrines"
-      text="Todas as vitrines com cupom ativo ou produto à venda. Filtre pelo que você procura e entre na que tem a sua cara."
+      title={t("vitrines.title")}
+      text={t("vitrines.text")}
       filters={filters}
-      sort={<SortMenu options={SORTS} params={params} />}
-      count={countLabel(sorted.length, "vitrine", "vitrines")}
+      sort={<SortMenu options={SORTS.map((s) => [s, t(`vitrines.sorts.${s}`)])} params={params} />}
+      count={tCount("vitrines", { count: sorted.length })}
       clearHref={filtering ? clearHref : undefined}
     >
       {shown.length > 0 ? (
         <>
           <div className={catalogGrid}>
             {shown.map((v) => (
-              <VitrineCard key={v.card.handle} v={v} favorited={favorites.includes(v.card.handle)} />
+              <VitrineCard key={v.card.handle} v={v} today={today} favorited={favorites.includes(v.card.handle)} />
             ))}
           </div>
           <LoadMore params={params} shown={shown.length} total={sorted.length} />
         </>
       ) : filtering ? (
-        <CatalogEmpty
-          title="Nenhuma vitrine com esses filtros"
-          text="Tire um filtro ou escolha outra combinação para ver mais vitrines."
-          clearHref={clearHref}
-        />
+        <CatalogEmpty title={t("vitrines.filteredTitle")} text={t("vitrines.filteredText")} clearHref={clearHref} />
       ) : (
-        <CatalogEmpty title="Nenhuma vitrine por aqui ainda" text="Assim que alguém publicar cupons ou produtos, a vitrine aparece aqui." />
+        <CatalogEmpty title={t("vitrines.emptyTitle")} text={t("vitrines.emptyText")} />
       )}
     </CatalogFrame>
   );

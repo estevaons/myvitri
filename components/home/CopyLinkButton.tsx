@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Link } from "@/lib/i18n/navigation";
 import { HOST } from "@/lib/brand";
 import { pillLight } from "./chrome";
 
@@ -14,6 +15,7 @@ const useOrigin = () => useSyncExternalStore(noop, () => window.location.origin,
  * mostra o link num campo já selecionado, para copiar à mão.
  */
 function useCopyLink(handle: string) {
+  const t = useTranslations("linkBar");
   const [state, setState] = useState<"idle" | "copied" | "manual">("idle");
   const field = useRef<HTMLInputElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -37,11 +39,11 @@ function useCopyLink(handle: string) {
   };
 
   const manualField = (className: string) => (
-    <input ref={field} readOnly value={url} aria-label="Link da sua vitrine" onFocus={(e) => e.currentTarget.select()} className={className} />
+    <input ref={field} readOnly value={url} aria-label={t("fieldLabel")} onFocus={(e) => e.currentTarget.select()} className={className} />
   );
   const announce = (
     <span aria-live="polite" className="sr-only">
-      {state === "copied" ? "Link copiado" : ""}
+      {state === "copied" ? t("copiedLink") : ""}
     </span>
   );
   return { state, url, copy, manualField, announce };
@@ -49,12 +51,13 @@ function useCopyLink(handle: string) {
 
 /** Botão solto que copia o link público da vitrine (página de métricas). */
 export function CopyLinkButton({ handle }: { handle: string }) {
+  const t = useTranslations("linkBar");
   const { state, url, copy, manualField, announce } = useCopyLink(handle);
   if (state === "manual") return manualField("min-h-11 min-w-0 border border-ink bg-white px-4 text-[15px]");
   return (
     <>
       <button type="button" onClick={copy} disabled={!url} className={pillLight}>
-        {state === "copied" ? "Link copiado" : "Copiar link"}
+        {state === "copied" ? t("copiedLink") : t("copyLink")}
       </button>
       {announce}
     </>
@@ -66,6 +69,7 @@ export function CopyLinkButton({ handle }: { handle: string }) {
  * numa aba nova (atalho; o caminho principal é o botão "Ver minha vitrine" logo abaixo).
  */
 export function VitrineLinkBar({ handle }: { handle: string }) {
+  const t = useTranslations("linkBar");
   const { state, url, copy, manualField, announce } = useCopyLink(handle);
   return (
     <div className="flex min-h-12 w-full max-w-[34rem] items-stretch border border-ink">
@@ -76,7 +80,7 @@ export function VitrineLinkBar({ handle }: { handle: string }) {
           href={`/${handle}`}
           target="_blank"
           rel="noopener"
-          aria-label={`Abrir a vitrine ${HOST}/${handle} numa aba nova`}
+          aria-label={t("openLabel", { url: `${HOST}/${handle}` })}
           className="group flex min-w-0 flex-1 items-center gap-3 px-4 text-[16px] text-mute no-underline hover:bg-cream"
         >
           <span className="min-w-0 truncate">
@@ -93,7 +97,7 @@ export function VitrineLinkBar({ handle }: { handle: string }) {
         disabled={!url}
         className="flex-none cursor-pointer border-0 border-l border-ink bg-ink px-5 text-[11px] font-medium tracking-[0.18em] whitespace-nowrap text-white uppercase hover:bg-[#2b2925] disabled:opacity-60"
       >
-        {state === "copied" ? "Copiado" : "Copiar"}
+        {state === "copied" ? t("copied") : t("copy")}
       </button>
       {announce}
     </div>

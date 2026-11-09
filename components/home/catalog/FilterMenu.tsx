@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 /**
@@ -24,6 +25,7 @@ export function FilterMenu({
   children: ReactNode;
   options: ReactNode;
 }) {
+  const t = useTranslations("catalog");
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -74,7 +76,7 @@ export function FilterMenu({
         <div className="flex min-h-13 items-center justify-between border-b border-sand px-5 md:hidden">
           <span className="font-display text-[22px]">{title}</span>
           <button type="button" onClick={() => setOpen(false)} className="border-0 bg-transparent p-0 text-[14px] text-mute underline underline-offset-4">
-            Fechar
+            {t("close")}
           </button>
         </div>
         {options}

@@ -1,7 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { Link } from "@/lib/i18n/navigation";
+import { BRAND } from "@/lib/brand";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { productHref, withUtm } from "@/lib/vitrine/links";
@@ -141,6 +143,7 @@ function Chevron({ left }: { left?: boolean }) {
 
 /** Faixa que rola de lado, com título e setas (as setas somem quando tudo cabe na tela). */
 function Carousel({ title, label, children }: { title: string; label: string; children: ReactNode }) {
+  const t = useTranslations("common");
   const trackRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(true);
@@ -174,7 +177,7 @@ function Carousel({ title, label, children }: { title: string; label: string; ch
               <button
                 key={dir}
                 type="button"
-                aria-label={dir < 0 ? "Anterior" : "Próximo"}
+                aria-label={t(dir < 0 ? "previous" : "next")}
                 disabled={dir < 0 ? atStart : atEnd}
                 onClick={() => go(dir)}
                 className="flex size-12 items-center justify-center border border-sand bg-transparent text-ink hover:border-ink"
@@ -210,9 +213,11 @@ export function Storefront({
   /** Não vem na prévia do editor, que não mostra comentários nem o coração. */
   comments?: CommentList;
 }) {
+  const t = useTranslations("storefront");
+  const format = useFormatter();
   const viewer = useViewer(content.handle, preview);
   const firstName = content.name.split(" ")[0] || content.name;
-  const headline = content.headline.replace(/\*/g, "").trim() || `A vitrine de ${firstName}`;
+  const headline = content.headline.replace(/\*/g, "").trim() || t("defaultHeadline", { name: firstName });
   const banner = content.look.bannerUrl;
 
   const coupons = useMemo(() => content.coupons.filter((c) => isActive(c, today)), [content.coupons, today]);
@@ -224,11 +229,12 @@ export function Storefront({
   );
 
   const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))], [products]);
-  const [cat, setCat] = useState("Todos");
+  // "" é "todas as categorias": nenhuma categoria de produto tem nome vazio
+  const [cat, setCat] = useState("");
   const [query, setQuery] = useState("");
   const q = fold(query.trim());
   const shownProducts = products.filter(
-    (p) => (cat === "Todos" || p.category === cat) && (!q || fold(`${p.name} ${p.brand} ${p.category}`).includes(q)),
+    (p) => (!cat || p.category === cat) && (!q || fold(`${p.name} ${p.brand} ${p.category}`).includes(q)),
   );
 
   const [kitIdx, setKitIdx] = useState(0);
@@ -263,10 +269,10 @@ export function Storefront({
   const [copied, flash] = useFlash();
 
   const nav = [
-    ["#cupons", "Cupons", coupons.length > 0],
-    ["#produtos", "Produtos", products.length > 0],
-    ["#kits", "Kits", kits.length > 0],
-    ["#comentarios", "Comentários", Boolean(comments)],
+    ["#cupons", t("nav.coupons"), coupons.length > 0],
+    ["#produtos", t("nav.products"), products.length > 0],
+    ["#kits", t("nav.kits"), kits.length > 0],
+    ["#comentarios", t("nav.comments"), Boolean(comments)],
   ] as const;
 
   const send = (kind: Parameters<typeof track>[1], item?: string) => {
@@ -302,8 +308,8 @@ export function Storefront({
       <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-3.5 ${pad}`}>
         {/* "/" serve aos dois: o proxy leva quem entrou para /inicio e quem não entrou fica na landing.
             Na prévia do editor é só a aparência, para o clique não tirar a pessoa do editor. */}
-        <BackLink href={preview ? undefined : "/"} label="Início" labelClass="@max-2xl:hidden" />
-        <nav aria-label="Seções" className="flex flex-none gap-6 @max-2xl:hidden">
+        <BackLink href={preview ? undefined : "/"} label="home" labelClass="@max-2xl:hidden" />
+        <nav aria-label={t("nav.label")} className="flex flex-none gap-6 @max-2xl:hidden">
           {nav.map(([href, label, on]) =>
             on ? (
               <a key={href} href={href} className="text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold">
@@ -352,12 +358,12 @@ export function Storefront({
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               {products.length > 0 && (
                 <a href="#produtos" className={pillDark}>
-                  Ver produtos
+                  {t("seeProducts")}
                 </a>
               )}
               {coupons.length > 0 && (
                 <a href="#cupons" className={products.length > 0 ? pillLight : pillDark}>
-                  Ver cupons
+                  {t("seeCoupons")}
                 </a>
               )}
             </div>
@@ -365,7 +371,7 @@ export function Storefront({
           {/* no celular o menu de seções some: este link é o caminho até a conversa */}
           {comments && comments.total > 0 && (
             <a href="#comentarios" className="mt-1 text-[14px] text-mute underline underline-offset-4 hover:text-ink">
-              {comments.total === 1 ? "1 comentário" : `${comments.total.toLocaleString("pt-BR")} comentários`}
+              {t("commentCount", { count: comments.total })}
             </a>
           )}
         </div>
@@ -373,7 +379,7 @@ export function Storefront({
 
       {coupons.length > 0 && (
         <section id="cupons" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
-          <Carousel title="Cupons" label="Cupons ativos">
+          <Carousel title={t("couponsTitle")} label={t("couponsLabel")}>
             {coupons.map((c) => (
               <article key={c.id} className="box-border flex min-h-[290px] w-[300px] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-6 @max-md:w-[82%]">
                 <div className="flex min-w-0 items-center gap-2">
@@ -391,7 +397,7 @@ export function Storefront({
                   {c.condition && <span className="text-[15px] leading-snug text-mute">{c.condition}</span>}
                   {c.howTo && (
                     <details className="text-sm">
-                      <summary className="cursor-pointer py-1 font-medium underline underline-offset-2">Como usar</summary>
+                      <summary className="cursor-pointer py-1 font-medium underline underline-offset-2">{t("howTo")}</summary>
                       <ol className="m-0 mt-1 flex list-decimal flex-col gap-1 pl-5 leading-snug text-mute">
                         {c.howTo
                           .split("\n")
@@ -415,10 +421,10 @@ export function Storefront({
                       send("copy", c.id);
                       if (!preview) openStore(withUtm(c.storeUrl, content));
                     }}
-                    aria-label={c.storeUrl ? `Copiar cupom ${c.code} e abrir a loja ${c.brand}` : `Copiar cupom ${c.code}`}
+                    aria-label={c.storeUrl ? t("copyAndOpenLabel", { code: c.code, brand: c.brand }) : t("copyLabel", { code: c.code })}
                     className="flex min-h-12 items-center justify-center border-0 bg-ink px-3 text-[11px] font-medium tracking-[0.14em] whitespace-nowrap text-white uppercase hover:bg-[#2b2925]"
                   >
-                    {copied === `c:${c.id}` ? "Copiado!" : c.storeUrl ? "Copiar e ir para a loja" : "Copiar código"}
+                    {copied === `c:${c.id}` ? t("copied") : c.storeUrl ? t("copyAndOpen") : t("copyCode")}
                   </button>
                 </div>
               </article>
@@ -431,7 +437,7 @@ export function Storefront({
         <section id="produtos" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-6 pt-16 @3xl:pt-24 ${pad}`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <SectionTitle>
-              Produtos <span className="text-mute">({products.length})</span>
+              {t("productsTitle")} <span className="text-mute">({format.number(products.length)})</span>
             </SectionTitle>
             {products.length > 8 && (
               <div className="relative w-full max-w-[320px]">
@@ -443,8 +449,8 @@ export function Storefront({
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar"
-                  aria-label="Buscar produto ou marca"
+                  placeholder={t("search")}
+                  aria-label={t("searchLabel")}
                   className="box-border h-11 w-full border border-sand bg-white pr-4 pl-11 text-[15px] text-ink outline-none placeholder:text-mute focus:border-ink"
                 />
               </div>
@@ -453,14 +459,14 @@ export function Storefront({
 
           {categories.length > 1 && (
             <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0">
-              {["Todos", ...categories].map((c) => (
+              {["", ...categories].map((c) => (
                 <Chip key={c} active={c === cat} aria-pressed={c === cat} onClick={() => setCat(c)}>
-                  {c}
+                  {c || t("all")}
                 </Chip>
               ))}
             </div>
           )}
-          {shownProducts.length === 0 && <p className="m-0 text-[17px] text-mute">Nada encontrado para “{query.trim()}”.</p>}
+          {shownProducts.length === 0 && <p className="m-0 text-[17px] text-mute">{t("noResults", { query: query.trim() })}</p>}
 
           <div className="grid grid-cols-2 gap-x-3 gap-y-10 @3xl:grid-cols-3 @3xl:gap-x-4 @3xl:gap-y-12">
             {shownProducts.map((p) => (
@@ -475,7 +481,7 @@ export function Storefront({
                   </div>
                   <h3 className="m-0 pt-3 text-[15px] leading-snug font-medium underline-offset-2 [a:hover_&]:underline @max-2xl:text-sm">{p.name}</h3>
                 </ProductLink>
-                {p.soldOut && <span className="pt-0.5 text-[13px] text-mute">Esgotado</span>}
+                {p.soldOut && <span className="pt-0.5 text-[13px] text-mute">{t("soldOut")}</span>}
                 {p.videoUrl && <ReviewLink href={p.videoUrl} onClick={() => send("video", p.id)} />}
               </article>
             ))}
@@ -493,12 +499,12 @@ export function Storefront({
           onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setKitFocus(false)}
           className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-6 pt-16 @3xl:pt-24 ${pad}`}
         >
-          <SectionTitle>Kits</SectionTitle>
+          <SectionTitle>{t("kitsTitle")}</SectionTitle>
           {kits.length > 1 && (
             <div
               ref={kitTabs}
               role="tablist"
-              aria-label="Escolher kit"
+              aria-label={t("pickKit")}
               className="no-scrollbar relative -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0"
             >
               {kits.map((k, i) => (
@@ -512,7 +518,7 @@ export function Storefront({
                     setKitPicked(true);
                   }}
                 >
-                  {k.kit.name || `Kit ${i + 1}`}
+                  {k.kit.name || t("kitN", { n: i + 1 })}
                   {kitAuto && k === current && (
                     // a troca acontece quando a barra enche; com movimento reduzido ela some e os kits não trocam sozinhos
                     <span aria-hidden="true" className="absolute inset-x-4 bottom-1.5 h-0.5 overflow-hidden bg-white/25 motion-reduce:hidden">
@@ -556,7 +562,7 @@ export function Storefront({
                     senão a coluna estreita quebra os nomes e a lista passa muito do fim das fotos. */}
                 <div className="flex min-w-0 flex-col gap-5 @3xl:mb-3 @3xl:[grid-area:head] @min-[88rem]:mb-0">
                   <h3 className="m-0 font-display text-[clamp(36px,5cqw,56px)] leading-[1] font-normal text-balance">
-                    {k.kit.name || `Os favoritos de ${firstName}`}
+                    {k.kit.name || t("kitFallback", { name: firstName })}
                   </h3>
                   {k.kit.description && <p className="m-0 text-[17px] leading-relaxed">{k.kit.description}</p>}
                   {k.kit.signature && (
@@ -576,7 +582,7 @@ export function Storefront({
                           <ProductArt product={p} iconClassName="w-[64%]" strokeWidth={4} />
                         </div>
                         <span className="min-w-0 flex-1 text-[15px] font-medium underline-offset-2 [a:hover_&]:underline">{p.name}</span>
-                        {p.soldOut && <span className="flex-none text-[13px] text-mute">Esgotado</span>}
+                        {p.soldOut && <span className="flex-none text-[13px] text-mute">{t("soldOut")}</span>}
                       </ProductLink>
                     </li>
                   ))}
@@ -593,24 +599,22 @@ export function Storefront({
       <section className={`mx-auto max-w-[1440px] pt-20 @3xl:pt-28 ${pad}`}>
         <div className="flex flex-col items-center gap-4 bg-sand px-6 py-16 text-center @max-md:py-12">
           {/* quem chega aqui acabou de ver a vitrine de alguém: o convite parte dela */}
-          <span className="text-[12px] font-medium tracking-[0.22em] text-gold uppercase">Para quem cria conteúdo</span>
+          <span className="text-[12px] font-medium tracking-[0.22em] text-gold uppercase">{t("cta.kicker")}</span>
           <h2 className="m-0 font-display text-[clamp(32px,4.4cqw,52px)] leading-[1.05] font-normal text-balance">
-            Gostou desta vitrine? <em>Crie a sua.</em>
+            {t("cta.title")} <em>{t("cta.titleEm")}</em>
           </h2>
-          <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">
-            Reúna seus cupons e produtos favoritos num link só para a bio. É grátis e fica pronta em 2 minutos.
-          </p>
+          <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">{t("cta.text")}</p>
           <Link href="/criar-vitrine" className={`${pillDark} mt-2`}>
-            Criar minha vitrine
+            {t("cta.button")}
           </Link>
         </div>
       </section>
 
       <footer className={`mx-auto mt-14 flex max-w-[1440px] flex-wrap items-center justify-between gap-3 border-t border-sand py-8 text-[13px] text-mute ${pad}`}>
-        <Link href="/" aria-label="MyVitri" className="flex items-center text-inherit no-underline">
+        <Link href="/" aria-label={BRAND} className="flex items-center text-inherit no-underline">
           <Wordmark className="h-[14px] w-auto text-ink" />
         </Link>
-        <span>Cupons podem mudar na loja da marca. Links com identificação desta vitrine.</span>
+        <span>{t("footer")}</span>
       </footer>
     </div>
   );
@@ -627,6 +631,7 @@ function ProductLink({ href, onOpen, className, children }: { href: string; onOp
 }
 
 function ReviewLink({ href, onClick }: { href: string; onClick: () => void }) {
+  const t = useTranslations("storefront");
   return (
     <a
       href={href}
@@ -638,7 +643,7 @@ function ReviewLink({ href, onClick }: { href: string; onClick: () => void }) {
       <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
         <path d="M7 4.5v15l13-7.5z" />
       </svg>
-      Ver meu review
+      {t("review")}
     </a>
   );
 }

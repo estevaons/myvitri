@@ -1,5 +1,6 @@
 "use client";
 
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { kicker } from "@/components/home/chrome";
 import { ddmm } from "@/lib/vitrine/pricing";
@@ -9,9 +10,7 @@ import type { Stats } from "./stats";
  * Duas séries que se distinguem pela claridade (tinta e um dourado claro), não só pelo tom:
  * continuam separáveis para quem não enxerga cores, e as duas passam de 3:1 no fundo branco.
  */
-const SERIES = { views: { label: "Visitas", color: "#111111" }, clicks: { label: "Cliques", color: "#B07D3A" } };
-
-const nf = new Intl.NumberFormat("pt-BR");
+const SERIES = { views: { label: "visitsCol", color: "#111111" }, clicks: { label: "clicksCol", color: "#B07D3A" } } as const;
 
 /** Teto "redondo" do eixo: 1, 2, 5, 10, 20, 50… */
 function niceMax(n: number) {
@@ -25,6 +24,10 @@ function niceMax(n: number) {
  * com legenda, linha-guia e dica ao passar o mouse, e a tabela para quem precisar.
  */
 export function DailyChart({ days, period, today }: { days: Stats["days"]; period: number; today: string }) {
+  const t = useTranslations("metrics.chart");
+  const format = useFormatter();
+  const locale = useLocale();
+  const nf = { format: (n: number) => format.number(n) };
   const [hover, setHover] = useState<number | null>(null);
   // completa os dias sem nenhum evento com zero, para o eixo do tempo não pular
   const byDay = new Map(days.map((d) => [d.day, d]));
@@ -45,7 +48,7 @@ export function DailyChart({ days, period, today }: { days: Stats["days"]; perio
         {(["views", "clicks"] as const).map((k) => (
           <span key={k} className="flex items-center gap-2">
             <span aria-hidden="true" className="h-[3px] w-5" style={{ background: SERIES[k].color }} />
-            {SERIES[k].label}
+            {t(SERIES[k].label)}
           </span>
         ))}
       </div>
@@ -88,29 +91,29 @@ export function DailyChart({ days, period, today }: { days: Stats["days"]; perio
               className="pointer-events-none absolute -top-2 z-10 flex -translate-y-full flex-col gap-0.5 bg-ink px-3 py-2 text-[13px] whitespace-nowrap text-white"
               style={hover! > period / 2 ? { right: `${100 - x(hover!)}%` } : { left: `${x(hover!)}%` }}
             >
-              <span className="font-medium">{ddmm(shown.day)}</span>
+              <span className="font-medium">{ddmm(shown.day, locale)}</span>
               <span>
-                {nf.format(shown.views)} {shown.views === 1 ? "visita" : "visitas"} · {nf.format(shown.clicks)} {shown.clicks === 1 ? "clique" : "cliques"}
+                {t("visits", { count: shown.views })} · {t("clicks", { count: shown.clicks })}
               </span>
             </div>
           )}
-          {empty && <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-[15px] text-mute">Sem visitas neste período</span>}
+          {empty && <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-[15px] text-mute">{t("empty")}</span>}
         </div>
       </div>
       <div className="flex justify-between pl-11 text-[12px] text-mute tabular-nums">
-        <span>{ddmm(series[0].day)}</span>
-        <span>{ddmm(series[Math.floor(period / 2)].day)}</span>
-        <span>hoje</span>
+        <span>{ddmm(series[0].day, locale)}</span>
+        <span>{ddmm(series[Math.floor(period / 2)].day, locale)}</span>
+        <span>{t("today")}</span>
       </div>
       {!empty && (
         <details className="text-[14px]">
-          <summary className={`${kicker} cursor-pointer py-2 text-[11px] text-mute hover:text-ink`}>Ver como tabela</summary>
+          <summary className={`${kicker} cursor-pointer py-2 text-[11px] text-mute hover:text-ink`}>{t("table")}</summary>
           <table className="mt-2 w-full max-w-xl border-collapse tabular-nums">
             <thead>
               <tr className="text-left text-mute">
-                <th className="py-1.5 font-medium">Dia</th>
-                <th className="py-1.5 text-right font-medium">Visitas</th>
-                <th className="py-1.5 text-right font-medium">Cliques</th>
+                <th className="py-1.5 font-medium">{t("day")}</th>
+                <th className="py-1.5 text-right font-medium">{t("visitsCol")}</th>
+                <th className="py-1.5 text-right font-medium">{t("clicksCol")}</th>
               </tr>
             </thead>
             <tbody>
@@ -119,7 +122,7 @@ export function DailyChart({ days, period, today }: { days: Stats["days"]; perio
                 .reverse()
                 .map((d) => (
                   <tr key={d.day} className="border-t border-sand">
-                    <td className="py-1.5">{ddmm(d.day)}</td>
+                    <td className="py-1.5">{ddmm(d.day, locale)}</td>
                     <td className="py-1.5 text-right">{nf.format(d.views)}</td>
                     <td className="py-1.5 text-right">{nf.format(d.clicks)}</td>
                   </tr>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Children, useEffect, useRef, useState, type ReactNode } from "react";
 
 const arrow = "flex size-11 items-center justify-center border border-ink text-ink hover:bg-ink hover:text-white disabled:opacity-30";
@@ -28,6 +29,7 @@ export function Marquee({
   /** largura de cada item */
   itemClassName?: string;
 }) {
+  const t = useTranslations("common");
   const items = Children.toArray(children);
   const scroller = useRef<HTMLDivElement>(null);
   const first = useRef<HTMLUListElement>(null);
@@ -126,7 +128,7 @@ export function Marquee({
 
   return (
     <section
-      aria-roledescription="carrossel"
+      aria-roledescription={t("carousel")}
       aria-label={label}
       className="flex flex-col gap-4"
       onPointerEnter={pause}
@@ -147,10 +149,10 @@ export function Marquee({
       </div>
       {overflow && (
         <div className={`flex justify-end gap-2 ${className}`}>
-          <button type="button" aria-label="Anterior" className={arrow} onClick={() => step(-1)}>
+          <button type="button" aria-label={t("previous")} className={arrow} onClick={() => step(-1)}>
             <span aria-hidden="true">←</span>
           </button>
-          <button type="button" aria-label="Próximo" className={arrow} onClick={() => step(1)}>
+          <button type="button" aria-label={t("next")} className={arrow} onClick={() => step(1)}>
             <span aria-hidden="true">→</span>
           </button>
         </div>

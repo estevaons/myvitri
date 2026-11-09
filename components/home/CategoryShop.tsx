@@ -1,15 +1,18 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
+import { Link } from "@/lib/i18n/navigation";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import type { HomeProduct } from "@/lib/vitrine/data";
 
 const PAGE = 8;
-const ALL = "Todos";
+/** "Todas as categorias": nenhuma categoria de produto tem nome vazio. */
+const ALL = "";
 
 /** Os chips filtram a grade de achados logo abaixo; o título da seção já diz que é por categoria. */
 export function CategoryShop({ products }: { products: HomeProduct[] }) {
+  const t = useTranslations("categoryShop");
   const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))], [products]);
   const [cat, setCat] = useState(ALL);
   const [limit, setLimit] = useState(PAGE);
@@ -23,7 +26,7 @@ export function CategoryShop({ products }: { products: HomeProduct[] }) {
   return (
     <>
       {categories.length > 1 && (
-        <div role="group" aria-label="Filtrar por categoria" className="no-scrollbar -mx-5 flex gap-7 overflow-x-auto border-b border-sand px-5 md:mx-0 md:justify-center md:px-0">
+        <div role="group" aria-label={t("filter")} className="no-scrollbar -mx-5 flex gap-7 overflow-x-auto border-b border-sand px-5 md:mx-0 md:justify-center md:px-0">
           {[ALL, ...categories].map((c) => (
             <button
               key={c}
@@ -32,7 +35,7 @@ export function CategoryShop({ products }: { products: HomeProduct[] }) {
               onClick={() => pick(c)}
               className={`-mb-px min-h-11 flex-none border-0 border-b bg-transparent px-0 text-[12px] font-medium tracking-[0.2em] whitespace-nowrap uppercase ${c === cat ? "border-ink text-ink" : "border-transparent text-mute hover:text-ink"}`}
             >
-              {c}
+              {c || t("all")}
             </button>
           ))}
         </div>
@@ -47,7 +50,7 @@ export function CategoryShop({ products }: { products: HomeProduct[] }) {
             <div className="flex flex-1 flex-col gap-0.5 pt-3 text-[15px] leading-snug max-md:text-sm">
               <span className="font-medium">{p.name}</span>
               <span className="mt-2 text-[13px] text-mute">
-                Indicado por <span className="font-medium text-ink underline underline-offset-2">{p.creator}</span>
+                {t.rich("pickedBy", { creator: p.creator, b: (s) => <span className="font-medium text-ink underline underline-offset-2">{s}</span> })}
               </span>
             </div>
           </Link>
@@ -56,7 +59,7 @@ export function CategoryShop({ products }: { products: HomeProduct[] }) {
 
       {shown.length > limit && (
         <button type="button" onClick={() => setLimit((n) => n + PAGE)} className="min-h-12 self-center border border-ink bg-transparent px-7 text-[12px] font-medium tracking-[0.18em] text-ink uppercase hover:bg-ink hover:text-white">
-          Ver mais achados
+          {t("more")}
         </button>
       )}
     </>

@@ -81,7 +81,7 @@ O login com e-mail e senha e o recebimento de links por e-mail (confirmar conta 
 
 1. No Supabase: **Authentication → Providers → Email**: provedor ativado, **Confirm email** ligado e senha mínima de **8 caracteres** (o mesmo valor de `PASSWORD_MIN` em `lib/auth/password.ts`).
 2. No Supabase: **Authentication → URL Configuration**: *Site URL* `http://localhost:3000` e *Redirect URLs* com `http://localhost:3000/auth/callback`. Os links por e-mail só funcionam se o endereço de `/auth/callback` do ambiente estiver nessa lista.
-3. O envio de e-mails do SMTP padrão do Supabase é limitado e serve só para testes. Para uso real, configure um SMTP próprio em **Authentication → Emails**.
+3. O envio de e-mails do SMTP padrão do Supabase é limitado e serve só para testes. Para uso real, configure um SMTP próprio em **Authentication → Emails**. Os modelos de e-mail (confirmar conta e senha nova) são editados no mesmo lugar e hoje existem só em português; o app não os traduz.
 4. Os links por e-mail usam PKCE: abra-os no mesmo navegador em que a conta foi criada ou a senha foi pedida. Se a confirmação for aberta em outro navegador, o e-mail fica confirmado mas a troca por sessão falha, e a pessoa entra com a senha em `/entrar`.
 
 **Google**
@@ -116,6 +116,8 @@ npm run dev
 ```
 
 Abra [http://localhost:3000](http://localhost:3000).
+
+O site abre em português; a versão em inglês fica em [http://localhost:3000/en](http://localhost:3000/en).
 
 ### 6. Primeiro acesso ("usuário admin")
 
@@ -160,16 +162,20 @@ graph LR
 - **Editor:** rascunho salvo automaticamente em `vitrine_drafts`; **Publicar** grava tudo de uma vez pela função `publish_vitrine()` do Postgres. Nome, link e foto de perfil (Configurações, no menu da conta da home; sem foto própria vale a da conta Google, gravada em `avatar_url`, e sem nenhuma das duas a vitrine mostra as iniciais) e a capa (bloco "Sua vitrine" da home) não passam pelo rascunho: `updateProfileAction` e `updateCoverAction` gravam direto em `vitrines`, na hora. Sem capa, a vitrine mostra a primeira letra do nome.
 - **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()` e mostrados na página `/metricas` (a antiga aba do editor foi removida; `/editor?aba=metricas` redireciona).
 
+- **Idiomas (i18n):** o site inteiro existe em português (sem prefixo, o padrão: `/inicio`) e em inglês (prefixo `/en`: `/en/inicio`), com `next-intl`. As páginas ficam em `app/[locale]/`, os textos em `messages/pt-BR.json` e `messages/en.json` (mesmas chaves) e o idioma vem da URL; o cookie `NEXT_LOCALE` só lembra a última escolha, e o idioma do navegador é ignorado. O fuso é sempre `America/Sao_Paulo` e os preços, BRL. Fora do escopo: o conteúdo das creators não é traduzido, os e-mails do Supabase Auth continuam só em português (configurados no painel do Supabase) e o `llms.txt` é só em português. Como adicionar texto ou idioma: [Internacionalização](docs/architecture.md#internacionalização-i18n).
+
 Mais em [docs/architecture.md](docs/architecture.md).
 
 ### Estrutura de pastas
 
 ```text
-app/                 rotas (páginas, route handlers, imagens OG) + actions.ts + layout
-components/          auth/, editor/, storefront/, home/ (com catalog/ e tabs/), metrics/, brand/
-lib/                 brand.ts, supabase/ (clientes e tipos), vitrine/ (domínio, com catalog/)
+app/[locale]/        páginas e imagens por idioma (layout raiz incluso); /en/... é o inglês
+app/                 fora do idioma: actions.ts, api/, auth/callback, llms.txt, robots.ts, sitemap.ts, global-not-found.tsx
+components/          auth/, editor/, storefront/, home/ (com catalog/ e tabs/), metrics/, brand/ (com LocaleSwitcher), legal/ (termos e privacidade em pt e en)
+lib/                 brand.ts, i18n/ (idiomas e prefixo em routing.ts, navegação com idioma em navigation.ts, idioma por requisição e fuso em request.ts, tipagem das mensagens), supabase/ (clientes e tipos), vitrine/ (domínio, com catalog/)
 supabase/            migrations/ (SQL em ordem) e seed.sql
-proxy.ts             proxy do Next 16 (sessão, retorno do OAuth, / e /entrar → /inicio com sessão e /inicio → / sem sessão, /editor?aba=metricas → /metricas)
+messages/            pt-BR.json e en.json, catálogo de textos
+proxy.ts             proxy do Next 16 (idioma com next-intl, sessão, retorno do OAuth, / e /entrar → /inicio com sessão e /inicio → / sem sessão, /editor?aba=metricas → /metricas)
 docs/                architecture.md e database.md
 ```
 
