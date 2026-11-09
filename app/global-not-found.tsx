@@ -1,22 +1,36 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import NextLink from "next/link";
+import { ErrorScreen } from "@/components/brand/ErrorScreen";
+import { pillDark } from "@/components/home/chrome";
+import { BRAND } from "@/lib/brand";
+import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 
-export const metadata: Metadata = { title: "404", robots: { index: false } };
+export const metadata: Metadata = {
+  title: `404 · ${BRAND}`,
+  robots: { index: false },
+};
 
 /**
- * 404 de URLs que não passam pelo idioma (arquivos e APIs inexistentes). As páginas têm o 404 do
- * layout de app/[locale], no idioma de quem está navegando.
+ * 404 de URLs que não passam pelo idioma (arquivos e APIs inexistentes). Sem idioma na URL, o texto vai nas duas
+ * línguas. As páginas têm o 404 de app/[locale]/not-found.tsx, no idioma de quem está navegando.
  */
 export default function GlobalNotFound() {
   return (
-    <html lang="pt-BR">
-      <body className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-white p-6 text-center text-ink">
-        <h1 className="text-2xl font-semibold">404</h1>
-        <p>Página não encontrada · Page not found</p>
-        <Link href="/" className="underline">
-          myvitri.com
-        </Link>
+    <html lang="pt-BR" className={`${fontVariables} antialiased`}>
+      <body>
+        <ErrorScreen
+          code="404"
+          kicker="Erro 404 · Error 404"
+          title="Página não encontrada"
+          text="Page not found. O link pode estar errado ou o conteúdo saiu do ar."
+          homeHref="/"
+          homeLabel={BRAND}
+        >
+          <NextLink href="/" className={pillDark}>
+            Ir para o início
+          </NextLink>
+        </ErrorScreen>
       </body>
     </html>
   );

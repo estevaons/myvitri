@@ -898,5 +898,22 @@
     "termsDescription": "As regras para usar o {brand}.",
     "privacyTitle": "Política de Privacidade",
     "privacyDescription": "Como o {brand} coleta, usa e protege seus dados."
+  },
+  "fallback": {
+    "explore": "Explorar vitrines",
+    "create": "Criar minha vitrine",
+    "home": "Ir para o início",
+    "notFound": {
+      "kicker": "Erro 404",
+      "title": "Página não encontrada",
+      "text": "O link pode estar errado, ou esta vitrine saiu do ar. Que tal ver os cupons de outras pessoas?"
+    },
+    "error": {
+      "kicker": "Algo deu errado",
+      "title": "Não deu para abrir esta página",
+      "text": "Foi um problema do nosso lado, não do seu aparelho. Tente de novo em instantes.",
+      "retry": "Tentar de novo",
+      "code": "Código do erro: {digest}"
+    }
   }
 }

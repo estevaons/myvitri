@@ -898,5 +898,22 @@
     "termsDescription": "The rules for using {brand}.",
     "privacyTitle": "Privacy Policy",
     "privacyDescription": "How {brand} collects, uses and protects your data."
+  },
+  "fallback": {
+    "explore": "Explore storefronts",
+    "create": "Create my storefront",
+    "home": "Go to home",
+    "notFound": {
+      "kicker": "Error 404",
+      "title": "Page not found",
+      "text": "The link may be wrong, or this storefront is no longer online. How about checking out other people's coupons?"
+    },
+    "error": {
+      "kicker": "Something went wrong",
+      "title": "We couldn't open this page",
+      "text": "The problem is on our side, not your device. Please try again in a moment.",
+      "retry": "Try again",
+      "code": "Error code: {digest}"
+    }
   }
 }

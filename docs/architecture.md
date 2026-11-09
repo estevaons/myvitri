@@ -40,7 +40,7 @@ graph LR
 | Banco/Auth/Arquivos | Supabase (`@supabase/supabase-js`, `@supabase/ssr`) | `^2.118.0` / `^0.12.7` | Postgres + RLS, Auth (e-mail e senha e Google), Storage |
 | Imagens (servidor) | `sharp` | `^0.35.5` | Reduz e compõe as fotos de perfil e de produto das imagens OG/stories (`lib/vitrine/share-image.tsx`). Dependência direta desde que o QR code (`qrcode`) saiu |
 | Textos e idioma | `next-intl` | `^4.14.9` | Site em português e inglês: rotas em `app/[locale]/`, mensagens em `messages/{pt-BR,en}.json`, configuração em `lib/i18n/` e plugin em `next.config.ts` (veja [Internacionalização (i18n)](#internacionalização-i18n)) |
-| Analytics | `@vercel/analytics` | `^2.0.1` | `<Analytics />` em `app/[locale]/layout.tsx:41` |
+| Analytics | `@vercel/analytics` | `^2.0.1` | `<Analytics />` em `app/[locale]/layout.tsx:37` |
 | Linguagem | TypeScript strict | `^5` | Alias `@/*` → raiz (`tsconfig.json`) |
 
 Não há testes automatizados, CI, Dockerfile nem filas/jobs no repositório.
@@ -49,8 +49,8 @@ Não há testes automatizados, CI, Dockerfile nem filas/jobs no repositório.
 
 | Caminho | Papel |
 |---|---|
-| `app/[locale]/` | Todas as páginas e imagens (OG, stories, `apple-icon`), por idioma. O `layout.tsx` daqui é o layout raiz (`<html lang>`, fontes, `NextIntlClientProvider`, Analytics) e exporta `generateStaticParams` com os idiomas. `[...rest]/page.tsx` chama `notFound()` para URLs sem rota, o que dá um 404 dentro do layout do idioma |
-| `app/` (fora de `[locale]`) | O que não depende do idioma: `actions.ts` (todas as Server Actions), `api/*`, `auth/callback`, `llms.txt`, `robots.ts`, `sitemap.ts`, `globals.css` e `global-not-found.tsx` (o 404 de URLs que não passam pelo idioma, como arquivos e APIs inexistentes, ligado por `experimental.globalNotFound`) |
+| `app/[locale]/` | Todas as páginas e imagens (OG, stories, `apple-icon`), por idioma. O `layout.tsx` daqui é o layout raiz (`<html lang>`, fontes, `NextIntlClientProvider`, Analytics) e exporta `generateStaticParams` com os idiomas. `[...rest]/page.tsx` chama `notFound()` para URLs sem rota (e exporta `generateMetadata` com o título do 404, porque no navegador o Next resolve o metadata da rota). Também ficam aqui `not-found.tsx` (404 traduzido, usado pela vitrine inexistente de `[handle]` e pelo catch-all) e `error.tsx` (error boundary das páginas); veja [Páginas de erro e 404](#páginas-de-erro-e-404) |
+| `app/` (fora de `[locale]`) | O que não depende do idioma: `actions.ts` (todas as Server Actions), `api/*`, `auth/callback`, `llms.txt`, `robots.ts`, `sitemap.ts`, `globals.css`, `global-not-found.tsx` (o 404 de URLs que não passam pelo idioma, como arquivos e APIs inexistentes, ligado por `experimental.globalNotFound`) e `global-error.tsx` (falha no layout raiz) |
 | `components/auth/` | Telas de acesso (`AuthShell`, `SignInScreen`, `NewPasswordScreen`), `AuthPhoto` (Server Component, painel direito único de `/entrar`, `/criar-vitrine` e `/nova-senha`, só em md+: só a foto da arara `create_account/capa.webp`, sem logotipo sobre ela; decorativo, `aria-hidden`), `SignupForm` (criação de vitrine) e `LoginButton` (leva a `/entrar`) |
 | `components/editor/` | Editor (painéis, campos, upload) — tudo Client Component |
 | `components/metrics/` | Página de métricas: `MetricsView` (Server Component), `DailyChart` (gráfico, Client Component) e `stats.ts` (tipos da RPC, períodos, "hoje" em Brasília) |
@@ -58,10 +58,11 @@ Não há testes automatizados, CI, Dockerfile nem filas/jobs no repositório.
 | `components/home/` | Peças da landing, da home logada e das páginas legais (cabeçalho/rodapé e `SectionHead`, o cabeçalho de seção centrado: rótulo, `title` (string) e texto curto), `ScrollHeader` (Client Component usado só em `app/[locale]/page.tsx`, em volta do `SiteHeader`: fixa o header no topo e, quando a rolagem passa da altura do header aberto, liga `data-compact` e o header encolhe e ganha fundo de vidro; ver a rota `/`), `LookHero` (`LookHero.tsx`, a foto do hero), `Marquee` (a cópia da lista fica `aria-hidden` e com `tabindex="-1"` em `a, button`, mas sem `inert`, para que o clique funcione na parte dela que aparece na borda), `CopyLinkButton` (e `VitrineLinkBar`, a barra com o endereço da vitrine e o botão Copiar, ambos sobre o hook interno `useCopyLink`), `HomeView` (conteúdo de `/inicio`), `AccountMenu` (menu de conta e modal de configurações de `/inicio` e do editor, com prop opcional `onLeave`, que roda em Sair e nos links de Termos e Privacidade e pode cancelar com `preventDefault`, com o `ProfileBlock`: nome, link e foto de perfil, salvos por `updateProfileAction`), `CoverPicker` (enviar, trocar e remover a capa, por `updateCoverAction`), `CreatorCard` (card da home logada, com `favorited` obrigatório), `CreatorCover` (capa, usada na home e na aba Vitrines), `CoverLetter` (a capa de quem não enviou foto: a primeira letra do nome, também usada em `CreatorMosaic` e `Storefront`) e `Avatar`, `CreatorMosaic` (mosaico de vitrines da landing), `KitCard` e `KitMosaic`, `HomeSearch`) |
 | `components/home/catalog/` | Base das abas do `/inicio`: `params.ts` (estado na URL) e `FilterMenu.tsx` (menu de filtro/ordenação, Client Component) e `ui.tsx` (abas, menus de filtro, ordenação, moldura, "Ver mais", estado vazio) |
 | `components/home/tabs/` | Uma aba por arquivo (`FavoritasTab`, `VitrinesTab`, `ProdutosTab`, `KitsTab`, `MarcasTab`) e, nas subpastas `vitrines/`, `produtos/`, `kits/` e `marcas/`, os cards e o painel de comparação de marca |
-| `components/brand/` | Logotipo e ícone (SVG puro), `BackLink`, o voltar único do app (veja [O voltar do app](#o-voltar-do-app)) e `LocaleSwitcher` (troca de idioma no rodapé, usado por `SiteFooter`) |
+| `components/brand/` | Logotipo e ícone (SVG puro), `BackLink`, o voltar único do app (veja [O voltar do app](#o-voltar-do-app)) `LocaleSwitcher` (troca de idioma no rodapé, usado por `SiteFooter`) e `ErrorScreen` (tela compartilhada das páginas de erro e 404) |
 | `components/legal/` | Textos jurídicos longos, um componente por idioma: `TermsPt`, `TermsEn`, `PrivacyPt`, `PrivacyEn` (recebem a data de atualização) |
 | `lib/i18n/` | `routing.ts` (idiomas, prefixo, cookie e `withoutLocale`), `navigation.ts` (`Link`, `redirect`, `useRouter`, `usePathname`, `getPathname` com idioma), `request.ts` (idioma de cada renderização, fuso `TIME_ZONE` e carga das mensagens) e `next-intl.d.ts` (tipa as chaves a partir do pt-BR) |
-| `messages/` | `pt-BR.json` e `en.json`, o catálogo de textos (mesmas chaves nos dois, cerca de 720, em namespaces como `common`, `seo`, `landing`, `auth`, `errors`, `storefront`, `editor`, `legal`) |
+| `lib/fonts.ts` | Fontes do site (Inter e EB Garamond via `next/font`); exporta `fontVariables`, usado pelo layout de `[locale]`, `global-error.tsx` e `global-not-found.tsx` |
+| `messages/` | `pt-BR.json` e `en.json`, o catálogo de textos (mesmas chaves nos dois, cerca de 720, em namespaces como `common`, `seo`, `landing`, `auth`, `errors`, `fallback`, `storefront`, `editor`, `legal`) |
 | `lib/brand.ts` | Nome, domínio e e-mail de contato |
 | `lib/supabase/` | Clientes Supabase do servidor e tipos gerados |
 | `lib/vitrine/` | Domínio: tipos/schemas, `account.ts` (`accountOf`, monta o `Account` do menu da conta), cupom e dinheiro (`pricing.ts`), links (UTM da loja dos cupons, link do produto), persistência, cache de leitura, importação por link, imagens de divulgação, cookie de "claim", tipos de favoritos e comentários e o helper `reachServer` (`social.ts`) |
@@ -153,7 +154,7 @@ Todas as páginas e imagens ficam em `app/[locale]/`, e a URL de cada uma existe
 | `/sitemap.xml` | `app/sitemap.ts` | Metadata route | Uma entrada por idioma de cada página (`/`, `/criar-vitrine`, vitrines publicadas, `/privacidade`, `/termos`), cada uma com `alternates.languages` apontando para as outras versões. Sem banco, sai só com as páginas fixas |
 | `/robots.txt` | `app/robots.ts` | Metadata route | Libera o público e bloqueia `/editor`, `/inicio`, `/metricas` (e as versões `/en/...`), `/api/` e `/auth/` |
 | `/llms.txt` | `app/llms.txt/route.ts` | Route Handler `GET` | Resumo do site em Markdown para assistentes de IA. Só em português (mensagens `seo.site` em `pt-BR`), com um link para a versão em inglês entre as páginas |
-| qualquer outra URL | `app/[locale]/[...rest]/page.tsx`, `app/global-not-found.tsx` | 404 | Dentro de um idioma, `notFound()` renderiza o 404 no layout do idioma. Fora (arquivo ou API inexistente), vale `global-not-found.tsx`, bilíngue |
+| qualquer outra URL | `app/[locale]/[...rest]/page.tsx`, `app/global-not-found.tsx` | 404 | Dentro de um idioma, `notFound()` renderiza `app/[locale]/not-found.tsx` no layout do idioma. Fora (arquivo ou API inexistente), vale `global-not-found.tsx`, bilíngue. Veja [Páginas de erro e 404](#páginas-de-erro-e-404) |
 
 O topo do editor tem o `BackLink` "Início" (leva a `/inicio`) e a marca (leva a `/`). Os dois e o menu da conta passam por `confirmLeave` (`components/editor/Editor.tsx:165`), que pede confirmação se o rascunho ainda não terminou de salvar (a navegação é no cliente).
 
@@ -170,6 +171,25 @@ O topo do editor tem o `BackLink` "Início" (leva a `/inicio`) e a marca (leva a
 | sem os dois | só a aparência (prévia do editor) |
 
 `labelClass` define onde o rótulo some (padrão `max-md:hidden`; a vitrine usa `@max-2xl:hidden`) e `divider` desenha um fio à direita (usado em `SiteHeader`, `AuthShell` e no editor, não no `Storefront`). Onde aparece: `Storefront`, `AuthShell` (`/entrar`, `/criar-vitrine`, `/nova-senha`), `SiteHeader` (prop `back`, usada em `/metricas`, `/termos` e `/privacidade`; `action={null}` deixa o cabeçalho sem botão à direita, o padrão continua sendo **Entrar**) e o cabeçalho do editor.
+
+### Páginas de erro e 404
+
+Quando algo não existe ou quebra, a pessoa vê uma tela no visual do site (marca no topo, kicker dourado, título em serifa, texto e botões), sempre a mesma peça: `ErrorScreen` (`components/brand/ErrorScreen.tsx`). Ela não usa hooks nem o `Link` do next-intl, porque também serve às páginas que ficam fora do provedor de idioma; quem a chama passa os textos já prontos e o endereço do início. Mostra o número `404` grande ou, sem `code`, a etiqueta `TagMark`, e aceita uma `note` opcional.
+
+| Arquivo | Quando aparece | Idioma e textos |
+|---|---|---|
+| `app/[locale]/not-found.tsx` | `notFound()` da vitrine inexistente em `[handle]` e URLs sem rota (catch-all `[...rest]`) | Dentro do layout do idioma; namespace `fallback` das mensagens. `generateMetadata` define o título "Página não encontrada"/"Page not found". Botões **Explorar vitrines** e **Criar minha vitrine** |
+| `app/[locale]/[...rest]/page.tsx` | Catch-all | Exporta o mesmo `generateMetadata`: no navegador o Next resolve o metadata da rota, e sem ele o título voltaria ao padrão do site |
+| `app/[locale]/error.tsx` | Erro inesperado numa página (error boundary, componente cliente) | Traduzido (`fallback.error`). O botão **Tentar de novo** chama `retry()` (API do Next 16.3+), e `error.digest` aparece como "Código do erro", para cruzar com o log do servidor. Usa `<title>` do React, porque `error.tsx` não aceita metadata |
+| `app/global-error.tsx` | Falha no próprio layout raiz | Substitui o layout raiz e fica fora do `NextIntlClientProvider`: tem os textos pt-BR e en inline e escolhe o idioma pelo prefixo `/en` da URL (`usePathname`). Importa `globals.css` e as fontes |
+| `app/global-not-found.tsx` | URLs que não passam pelo idioma | Bilíngue, sem idioma na URL, com o mesmo visual |
+
+As fontes (Inter e EB Garamond, via `next/font`) vivem em `lib/fonts.ts`, que exporta `fontVariables`; o layout de `[locale]`, `global-error.tsx` e `global-not-found.tsx` aplicam essa string no `<html>`.
+
+Comportamentos a conhecer:
+
+- URLs fora do matcher do proxy (`/api/...`, `/auth/...`, arquivos com extensão) chegam a `[locale]` com um idioma inválido. O `notFound()` vem então do próprio layout raiz (`lib/i18n/request.ts`) e o Next mostra o 404 padrão dele, não o `global-not-found.tsx`.
+- O 404 de vitrine inexistente responde HTTP 200: o `notFound()` acontece depois de o streaming começar, dentro do `Suspense`. O Next injeta `noindex` na página.
 
 ### Abas do `/inicio`
 
@@ -377,8 +397,8 @@ O **editor** chama `await connection()` (`app/[locale]/editor/page.tsx:15`) para
 | Brave Search API | Fallback quando a loja bloqueia robôs | `lib/vitrine/import-link.ts:210-256` (`searchProduct` só quando a página não deu foto, `searchImage` quando ainda falta a foto) | não (`BRAVE_SEARCH_API_KEY`) |
 | Google Favicons (`google.com/s2/favicons`) | Último recurso de logo | `lib/vitrine/import-link.ts:325` | não |
 | Google Fonts (CSS API, em tempo de execução) | Fontes TTF das imagens OG/stories | `lib/vitrine/share-image.tsx:58-84` | não (cai na fonte padrão) |
-| Google Fonts (via `next/font`, no build) | Inter e Barlow Condensed do site | `app/[locale]/layout.tsx:2,10-12` | sim (no build) |
-| Vercel Web Analytics | Page views | `app/[locale]/layout.tsx:41` | não |
+| Google Fonts (via `next/font`, no build) | Inter e EB Garamond do site | `lib/fonts.ts` | sim (no build) |
+| Vercel Web Analytics | Page views | `app/[locale]/layout.tsx:37` | não |
 
 Imagens de produto e logos achados no site da loja são **hotlink** (URL externa exibida direto no `<img>`); só o que a creator envia vai para o Storage. A exceção são as imagens OG/stories: ali o **servidor** baixa as fotos (perfil e produtos) a cada geração, com `fetchPublic` (proteção contra SSRF, 4 s por requisição) e `sharp`.
 
@@ -503,9 +523,9 @@ sequenceDiagram
 
 - **Rotas:** todas as páginas estão em `app/[locale]/`, e `app/[locale]/layout.tsx` é o layout raiz (`<html lang>`, `NextIntlClientProvider`). `generateStaticParams` devolve os dois idiomas, porque com Cache Components cada root param precisa de um valor conhecido no build. `next.config.ts` liga `experimental.globalNotFound` e `app/global-not-found.tsx` cobre as URLs fora do idioma; `app/[locale]/[...rest]/page.tsx` dá 404 dentro do layout do idioma. O plugin `createNextIntlPlugin("./lib/i18n/request.ts")` aponta para essa configuração.
 - **Idioma de cada renderização** (`lib/i18n/request.ts`): nas páginas, fora de `"use cache"`, vem do segmento `[locale]` por `next/root-params`, que entra na chave do cache. Em Server Actions e route handlers o `root-params` lança erro, e então o idioma cai para o cabeçalho que o proxy grava (`requestLocale`). Um `locale` passado explicitamente (por exemplo `getTranslations({ locale, namespace })`) tem prioridade; dentro de `"use cache"` ele é obrigatório (ver Idioma e cache). Idioma desconhecido dá `notFound()`. O fuso é fixo (`TIME_ZONE = "America/Sao_Paulo"`) e as mensagens vêm de `messages/${locale}.json`.
-- **Navegação:** `lib/i18n/navigation.ts` exporta `Link`, `redirect`, `useRouter`, `usePathname` e `getPathname` do next-intl, que mantêm o prefixo do idioma atual. Todo o app usa esse módulo no lugar de `next/link` e de `useRouter` de `next/navigation` (exceção: `global-not-found.tsx`, que fica fora do idioma).
+- **Navegação:** `lib/i18n/navigation.ts` exporta `Link`, `redirect`, `useRouter`, `usePathname` e `getPathname` do next-intl, que mantêm o prefixo do idioma atual. Todo o app usa esse módulo no lugar de `next/link` e de `useRouter` de `next/navigation` (exceção: `global-not-found.tsx` e `global-error.tsx`, que ficam fora do idioma).
 - **Caminhos sem idioma:** os caminhos de volta (`?next=`, `Referer`, cookie `vitri_return`) são guardados sem prefixo, com `withoutLocale(path)` (`lib/i18n/routing.ts`), e `Link` e `redirect` põem o prefixo certo na hora de ir. Assim um link de volta vale em qualquer idioma. O `/auth/callback`, que fica fora de `[locale]`, redireciona sem prefixo e o proxy cuida do resto.
-- **Mensagens:** `messages/pt-BR.json` e `messages/en.json`, com as mesmas chaves. Plural e variações usam ICU (`plural`, `select`). Namespaces: `common`, `seo`, `landing`, `chrome`, `mosaic`, `categoryShop`, `lookHero`, `pitch`, `auth`, `errors` (com `errors.schema`), `vitrineDefaults`, `storefront`, `comments`, `share`, `counts`, `home`, `catalog`, `search`, `linkBar`, `cover`, `account`, `coupon`, `metrics`, `editor` e `legal`. `lib/i18n/next-intl.d.ts` tipa as chaves a partir do pt-BR: chave inexistente não compila.
+- **Mensagens:** `messages/pt-BR.json` e `messages/en.json`, com as mesmas chaves. Plural e variações usam ICU (`plural`, `select`). Namespaces: `common`, `seo`, `landing`, `chrome`, `mosaic`, `categoryShop`, `lookHero`, `pitch`, `auth`, `errors` (com `errors.schema`), `fallback`, `vitrineDefaults`, `storefront`, `comments`, `share`, `counts`, `home`, `catalog`, `search`, `linkBar`, `cover`, `account`, `coupon`, `metrics`, `editor` e `legal`. `lib/i18n/next-intl.d.ts` tipa as chaves a partir do pt-BR: chave inexistente não compila.
 - **SEO** (`lib/seo.tsx`): `pageMeta` (assíncrona) devolve título, descrição, canônico por idioma, `alternates.languages` (`pt-BR`, `en` e `x-default`, que é o português) e `og:locale`. `localizedPath(path, locale)` e `languageAlternates(path, absolute?)` são reaproveitados pelo `sitemap.ts`. Os JSON-LD levam `inLanguage` do idioma e `listNames` usa `Intl.ListFormat`. As páginas usam `generateMetadata`.
 - **Imagens de divulgação:** `shareImage(..., locale)` (`lib/vitrine/share-image.tsx`) traduz os textos das imagens OG e de stories; `opengraph-image` e `story` leem o `locale` dos params.
 - **Textos que precisam do idioma fora de componentes:** `reachServer(action, offlineMessage)` (`lib/vitrine/social.ts`) e `uploadImage(kind, file, unreadableMessage)` (`components/editor/upload.ts`) recebem a mensagem pronta do componente.
