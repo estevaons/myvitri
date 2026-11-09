@@ -3,7 +3,8 @@
     "favorite": {
       "on": "Saved",
       "off": "Save",
-      "label": "Save {name}'s storefront"
+      "label": "Save {name}'s storefront",
+      "count": "{count, plural, one {Saved by # person} other {Saved by # people}}"
     },
     "defaultHeadline": "{name}'s storefront",
     "nav": {
@@ -315,7 +316,8 @@
       "handleReserved": "That name is reserved",
       "nameRequired": "Enter your name"
     },
-    "imageUnreadable": "We couldn't open that image. Try another one."
+    "imageUnreadable": "We couldn't open that image. Try another one.",
+    "replyGone": "This comment was deleted and no longer takes replies."
   },
   "vitrineDefaults": {
     "headline": "Everything I use, with my discount.",
@@ -349,7 +351,16 @@
     "title": "Comments",
     "intro": "Questions, tips and what you think of {name}'s finds.",
     "empty": "No comments yet. Be the first to comment.",
-    "more": "See more ({n})"
+    "more": "See more ({n})",
+    "reply": "Reply",
+    "replyLabel": "Reply to {name}",
+    "replyField": "Your reply",
+    "replyPlaceholder": "Reply to {name}",
+    "replySubmit": "Reply",
+    "signInToReply": "Sign in to reply",
+    "replied": "Reply posted.",
+    "hideReplies": "Hide replies",
+    "showReplies": "{count, plural, one {View # reply} other {View # replies}}"
   },
   "share": {
     "headline": "{name}'s storefront",

@@ -3,8 +3,9 @@ import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Storefront } from "@/components/storefront/Storefront";
+import type { Locale } from "@/lib/i18n/routing";
 import { activeBrands, JsonLd, listNames, pageMeta, vitrineJsonLd } from "@/lib/seo";
-import { getComments, getPublicVitrine } from "@/lib/vitrine/data";
+import { getComments, getFavoriteCount, getPublicVitrine } from "@/lib/vitrine/data";
 import type { CommentList } from "@/lib/vitrine/social";
 
 const clean = (handle: string) => decodeURIComponent(handle).toLowerCase();
@@ -25,20 +26,26 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/[handle]
 }
 
 async function VitrinePage({ params }: Pick<PageProps<"/[locale]/[handle]">, "params">) {
-  const { handle } = await params;
-  const [vitrine, comments] = await Promise.all([
+  const { locale, handle } = await params;
+  const [vitrine, comments, favorites] = await Promise.all([
     getPublicVitrine(clean(handle)),
     // erro nos comentários não pode derrubar a vitrine, que é o que a pessoa veio ver
-    getComments(clean(handle)).catch((e): CommentList => {
+    // o layout já barrou idiomas desconhecidos com notFound()
+    getComments(clean(handle), locale as Locale).catch((e): CommentList => {
       console.error("getComments", e);
       return { total: 0, items: [] };
+    }),
+    // sem o número, o coração aparece sozinho
+    getFavoriteCount(clean(handle)).catch((e): null => {
+      console.error("getFavoriteCount", e);
+      return null;
     }),
   ]);
   if (!vitrine) notFound();
   return (
     <>
       <JsonLd data={await vitrineJsonLd(vitrine.content)} />
-      <Storefront content={vitrine.content} today={vitrine.today} comments={comments} />
+      <Storefront content={vitrine.content} today={vitrine.today} comments={comments} favorites={favorites} />
     </>
   );
 }

@@ -4,6 +4,8 @@ export const COMMENT_MAX = 500;
 
 export type VitrineComment = {
   id: string;
+  /** Comentário respondido; null num comentário da vitrine. Respostas têm um nível só. */
+  parentId: string | null;
   authorId: string;
   authorName: string;
   authorAvatarUrl: string;
@@ -15,8 +17,11 @@ export type VitrineComment = {
   createdAt: string;
 };
 
-/** Os comentários mais recentes e quantos a vitrine tem ao todo. */
-export type CommentList = { total: number; items: VitrineComment[] };
+/** Um comentário da vitrine e as respostas dele, das mais antigas para as mais novas. */
+export type CommentThread = VitrineComment & { replies: VitrineComment[] };
+
+/** Os comentários mais recentes, com as respostas, e quantos a vitrine tem ao todo (respostas incluídas). */
+export type CommentList = { total: number; items: CommentThread[] };
 
 /** Quem está vendo a vitrine. `owner`: é a dona, e pode apagar qualquer comentário dela. */
 export type Viewer = { user: null } | { user: { id: string; name: string; avatarUrl: string }; favorited: boolean; owner: boolean };

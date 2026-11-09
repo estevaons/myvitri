@@ -21,6 +21,7 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          parent_id: string | null
           vitrine_id: string
         }
         Insert: {
@@ -30,6 +31,7 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          parent_id?: string | null
           vitrine_id: string
         }
         Update: {
@@ -39,9 +41,17 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          parent_id?: string | null
           vitrine_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comments_vitrine_id_fkey"
             columns: ["vitrine_id"]
@@ -353,6 +363,7 @@ export type Database = {
     }
     Functions: {
       delete_my_account: { Args: never; Returns: undefined }
+      favorite_count: { Args: { target_handle: string }; Returns: number }
       fold: { Args: { t: string }; Returns: string }
       owns_vitrine: { Args: { v: string }; Returns: boolean }
       publish_vitrine: { Args: { content: Json }; Returns: string }

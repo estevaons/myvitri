@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "@/lib/i18n/navigation";
 import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
@@ -106,6 +106,7 @@ export function FavoriteButton({
   guest,
   loading = false,
   stay = false,
+  count = null,
 }: {
   variant: keyof typeof SHAPE;
   handle: string;
@@ -116,8 +117,11 @@ export function FavoriteButton({
   loading?: boolean;
   /** aba Favoritas: o card fica no lugar ao tirar o coração */
   stay?: boolean;
+  /** No perfil: quantas pessoas favoritaram, contando quem está vendo se `favorited`. null: não mostra. */
+  count?: number | null;
 }) {
   const t = useTranslations("storefront.favorite");
+  const format = useFormatter();
   const tErrors = useTranslations("errors");
   const router = useRouter();
   const [on, setOn] = useState(favorited);
@@ -170,7 +174,21 @@ export function FavoriteButton({
     return () => clearTimeout(timer);
   }, [guest, loading, handle]);
 
-  const label = variant === "profile" && <span>{t(on ? "on" : "off")}</span>;
+  // quem mais favoritou, fixado ao montar: depois de tocar no coração a página volta com o número já contando
+  // esta pessoa, mas `favorited` (de /api/eu) continua o de antes; o número acompanha só o coração de agora
+  const [others] = useState(() => (count === null ? null : Math.max(0, count - Number(favorited))));
+  const total = variant === "profile" && others !== null ? others + Number(on) : 0;
+  const ariaLabel = total > 0 ? `${t("label", { name })}. ${t("count", { count: total })}` : t("label", { name });
+  const label = variant === "profile" && (
+    <>
+      <span>{t(on ? "on" : "off")}</span>
+      {total > 0 && (
+        <span aria-hidden="true" title={t("count", { count: total })} className="border-l border-current/30 pl-2 tracking-normal lining-nums tabular-nums">
+          {format.number(total)}
+        </span>
+      )}
+    </>
+  );
 
   if (guest && !loading) {
     return (
@@ -179,7 +197,7 @@ export function FavoriteButton({
         onOpen={() => remember(handle)}
       >
         <Icon variant={variant} on={false} pop={false} />
-        <span className="sr-only">{t("label", { name })}</span>
+        <span className="sr-only">{ariaLabel}</span>
         {label}
       </LoginButton>
     );
@@ -192,7 +210,7 @@ export function FavoriteButton({
         onClick={() => change(!on)}
         aria-pressed={on}
         aria-busy={loading || pending}
-        aria-label={t("label", { name })}
+        aria-label={ariaLabel}
         className={`${SHAPE[variant]} ${variant === "profile" ? PROFILE_LOOK[on ? "on" : "off"] : ""} transition-colors ${loading ? "cursor-default" : "cursor-pointer"}`}
       >
         <Icon variant={variant} on={on} pop={pop} />

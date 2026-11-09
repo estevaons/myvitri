@@ -206,12 +206,15 @@ export function Storefront({
   today,
   preview = false,
   comments,
+  favorites = null,
 }: {
   content: VitrineContent;
   today: string;
   preview?: boolean;
   /** Não vem na prévia do editor, que não mostra comentários nem o coração. */
   comments?: CommentList;
+  /** Quantas pessoas favoritaram; null: não deu para contar. */
+  favorites?: number | null;
 }) {
   const t = useTranslations("storefront");
   const format = useFormatter();
@@ -347,6 +350,7 @@ export function Storefront({
                 loading={!viewer}
                 guest={!viewer?.user}
                 favorited={Boolean(viewer?.user && viewer.favorited)}
+                count={favorites}
               />
             </div>
           )}
