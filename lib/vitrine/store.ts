@@ -2,13 +2,13 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getUser } from "@/lib/supabase/server";
-import { COUPON_EXTRA, emptyContent, PRODUCT_EXTRA, TRACKING, type Coupon, type IconId, type Kit, type Product, type VitrineContent } from "./types";
+import { COUPON_EXTRA, emptyContent, pickProfile, PRODUCT_EXTRA, TRACKING, type Coupon, type IconId, type Kit, type Product, type VitrineContent, type VitrineProfile } from "./types";
 
 /**
  * Persistência das vitrines no Supabase. Toda leitura/escrita passa por aqui;
  * a autorização de escrita é garantida pelas policies RLS (dono = auth.uid()).
  */
-type Db = SupabaseClient<Database>;
+export type Db = SupabaseClient<Database>;
 type Tables = Database["public"]["Tables"];
 type VitrineRow = Tables["vitrines"]["Row"];
 type CouponRow = Tables["coupons"]["Row"];
@@ -26,7 +26,10 @@ const pickLook = (look: Partial<VitrineContent["look"]> | null | undefined, fall
   bannerUrl: look?.bannerUrl ?? fallback.bannerUrl,
 });
 
-const toCoupon = (c: CouponRow): Coupon => ({
+/** Sem vitrine_id e position: a busca devolve as linhas assim. */
+export type Fields<T> = Omit<T, "vitrine_id" | "position">;
+
+export const toCoupon = (c: Fields<CouponRow>): Coupon => ({
   id: c.id,
   brand: c.brand,
   code: c.code,
@@ -40,7 +43,7 @@ const toCoupon = (c: CouponRow): Coupon => ({
   startsAt: c.starts_at,
 });
 
-const toProduct = (p: ProductRow): Product => ({
+export const toProduct = (p: Fields<ProductRow>): Product => ({
   id: p.id,
   name: p.name,
   brand: p.brand,
@@ -54,6 +57,14 @@ const toProduct = (p: ProductRow): Product => ({
   videoUrl: p.video_url,
   soldOut: p.sold_out,
   priceCheckedAt: p.price_checked_at,
+});
+
+export const toKit = (k: Tables["kits"]["Row"]): Kit => ({
+  id: k.id,
+  name: k.name,
+  description: k.description,
+  signature: k.signature,
+  productIds: k.product_ids,
 });
 
 async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
@@ -77,15 +88,7 @@ async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
     tracking: { ...TRACKING, ...(v.tracking as object) },
     coupons: (coupons.data ?? []).map(toCoupon),
     products: (products.data ?? []).map(toProduct),
-    kits: (kits.data ?? []).map(
-      (k): Kit => ({
-        id: k.id,
-        name: k.name,
-        description: k.description,
-        signature: k.signature,
-        productIds: k.product_ids,
-      }),
-    ),
+    kits: (kits.data ?? []).map(toKit),
   };
 }
 
@@ -108,6 +111,19 @@ export type FeedVitrine =Pick<VitrineContent, "handle" | "name" | "avatarUrl" | 
 export async function listFeed(db: Db, limit: number): Promise<FeedVitrine[]> {
   const { data: rows, error } = await db.from("vitrines").select("*").order("updated_at", { ascending: false }).limit(limit);
   if (error) throw error;
+  return withItems(db, rows);
+}
+
+/** As mesmas vitrines do feed, escolhidas pelo endereço e na ordem pedida (o ranking das vitrines do dia). */
+export async function listFeedByHandles(db: Db, handles: string[]): Promise<FeedVitrine[]> {
+  if (!handles.length) return [];
+  const { data: rows, error } = await db.from("vitrines").select("*").in("handle", handles);
+  if (error) throw error;
+  rows.sort((a, b) => handles.indexOf(a.handle) - handles.indexOf(b.handle));
+  return withItems(db, rows);
+}
+
+async function withItems(db: Db, rows: VitrineRow[]): Promise<FeedVitrine[]> {
   if (!rows.length) return [];
 
   const ids = rows.map((v) => v.id);
@@ -130,6 +146,64 @@ export async function listFeed(db: Db, limit: number): Promise<FeedVitrine[]> {
   }));
 }
 
+/** Endereços das vitrines com mais cliques hoje (horário de Brasília). Só a ordem: as contagens ficam com o dono. */
+export async function topCreatorsToday(db: Db, limit: number) {
+  const { data, error } = await db.rpc("top_creators_today", { lim: limit });
+  if (error) throw error;
+  return data.map((r) => r.handle);
+}
+
+export type By = { handle: string; creator: string };
+export type FeedKit = By & { kit: Kit; products: Product[] };
+
+/** Kits publicados mais recentes, com os produtos deles. */
+export async function listRecentKits(db: Db, limit: number): Promise<FeedKit[]> {
+  const { data: kits, error } = await db
+    .from("kits")
+    .select("*, vitrines(handle, name)")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  if (!kits.length) return [];
+
+  const { data: products, error: productsError } = await db.from("products").select("*").in("id", [...new Set(kits.flatMap((k) => k.product_ids))]);
+  if (productsError) throw productsError;
+
+  return kits.map(({ vitrines: v, ...k }) => ({
+    handle: v.handle,
+    creator: v.name,
+    kit: toKit(k),
+    products: products.filter((p) => p.vitrine_id === k.vitrine_id).map(toProduct),
+  }));
+}
+
+/** O que `search_catalog` devolve: as linhas das tabelas (sem vitrine_id e position) mais quem indica. */
+type Hit<T> = Fields<T> & By;
+type CatalogRows = {
+  creators: { handle: string; name: string; avatar_url: string }[];
+  coupons: Hit<CouponRow>[];
+  products: Hit<ProductRow>[];
+};
+
+/**
+ * Busca de creators, marcas (pelos cupons) e produtos, sem acento e na ordem do banco: igual, começa com,
+ * contém. Cupons e produtos vêm em mais quantidade (6× o limite) para sobrar depois de agrupar e filtrar.
+ */
+export async function searchCatalog(db: Db, q: string, limit: number) {
+  const { data, error } = await db.rpc("search_catalog", { q, lim: limit });
+  if (error) throw error;
+  const rows = data as unknown as CatalogRows;
+  return {
+    creators: rows.creators.map((c) => ({ handle: c.handle, name: c.name, avatarUrl: c.avatar_url })),
+    coupons: rows.coupons.map((c) => ({ ...toCoupon(c), handle: c.handle, creator: c.creator })),
+    products: rows.products.map((p) => ({
+      ...toProduct(p),
+      handle: p.handle,
+      creator: p.creator,
+    })),
+  };
+}
+
 export async function isHandleTaken(db: Db, handle: string) {
   const { count, error } = await db.from("vitrines").select("id", { count: "exact", head: true }).eq("handle", handle);
   if (error) throw error;
@@ -148,6 +222,7 @@ export async function findMine() {
 /**
  * Rascunho do editor por cima da versão publicada. Ele pode ter itens ainda incompletos
  * (por isso não passa pelo schema da publicação); só conferimos o formato antes de usar.
+ * Nome, link, foto e capa não têm rascunho: valem os do banco, que mudam na home e nas configurações.
  */
 export async function findDraft(db: Db, ownerId: string, published: VitrineContent): Promise<VitrineContent | null> {
   const { data, error } = await db.from("vitrine_drafts").select("content").eq("owner_id", ownerId).maybeSingle();
@@ -162,10 +237,10 @@ export async function findDraft(db: Db, ownerId: string, published: VitrineConte
   return {
     ...published,
     ...d,
+    ...pickProfile(published),
     coupons: d.coupons!.map((c) => ({ ...COUPON_EXTRA, ...without(c, "color") })),
     products: d.products!.map((p) => ({ ...PRODUCT_EXTRA, ...p })),
     kits,
-    look: pickLook(d.look, published.look),
     show: { ...published.show, ...d.show },
     tracking: { ...published.tracking, ...d.tracking },
   };
@@ -198,6 +273,13 @@ export async function createVitrine(db: Db, ownerId: string, content: VitrineCon
   if (error) throw error;
 }
 
+/** Nome, link, foto e capa: valem na hora, sem passar pela publicação do editor. */
+export async function updateProfile(db: Db, ownerId: string, { handle, name, avatarUrl, look }: VitrineProfile) {
+  const { error } = await db.from("vitrines").update({ handle, name, avatar_url: avatarUrl, look, updated_at: new Date().toISOString() }).eq("owner_id", ownerId);
+  if (isUniqueViolation(error)) throw new HandleTakenError();
+  if (error) throw error;
+}
+
 /** Retorna o handle anterior (para invalidar o cache dele) e a data da publicação. */
 export async function publishVitrine(db: Db, ownerId: string, content: VitrineContent) {
   const { data: prev, error: prevError } = await db.from("vitrines").select("handle").eq("owner_id", ownerId).single();
@@ -206,4 +288,108 @@ export async function publishVitrine(db: Db, ownerId: string, content: VitrineCo
   if (isUniqueViolation(error)) throw new HandleTakenError();
   if (error) throw error;
   return { prevHandle: prev.handle, updatedAt: data };
+}
+
+/* Favoritos: lista privada de cada conta (RLS). */
+
+/** Quantas pessoas favoritaram a vitrine. Só o número é público: quem favoritou continua privado. */
+export async function favoriteCount(db: Db, handle: string) {
+  const { data, error } = await db.rpc("favorite_count", { target_handle: handle });
+  if (error) throw error;
+  return data;
+}
+
+/** Endereços das vitrines favoritas de alguém, da favoritada por último para a primeira. */
+export async function listFavoriteHandles(db: Db, userId: string) {
+  const { data, error } = await db.from("favorites").select("vitrines(handle)").eq("user_id", userId).order("created_at", { ascending: false });
+  if (error) throw error;
+  return data.flatMap((f) => f.vitrines?.handle ?? []);
+}
+
+/** Liga ou desliga o favorito. false: a vitrine não existe (o link pode ter mudado). */
+export async function setFavorite(db: Db, userId: string, handle: string, on: boolean) {
+  const { data: vitrine, error } = await db.from("vitrines").select("id").eq("handle", handle).maybeSingle();
+  if (error) throw error;
+  if (!vitrine) return false;
+  const favorites = db.from("favorites");
+  const { error: writeError } = on
+    ? await favorites.upsert({ user_id: userId, vitrine_id: vitrine.id }, { onConflict: "user_id,vitrine_id", ignoreDuplicates: true })
+    : await favorites.delete().eq("user_id", userId).eq("vitrine_id", vitrine.id);
+  if (writeError) throw writeError;
+  return true;
+}
+
+/** O que a vitrine pública precisa saber de quem está vendo, além da sessão. */
+export async function loadViewerState(db: Db, userId: string, handle: string) {
+  const { data, error } = await db.from("vitrines").select("owner_id, favorites(user_id)").eq("handle", handle).eq("favorites.user_id", userId).maybeSingle();
+  if (error) throw error;
+  return { favorited: Boolean(data?.favorites.length), owner: data?.owner_id === userId };
+}
+
+/* Comentários: leitura pública; quem escreveu ou a dona da vitrine apaga (RLS). */
+
+export class CommentRateLimitError extends Error {}
+/** O comentário respondido foi apagado nesse meio-tempo. */
+export class CommentGoneError extends Error {}
+
+/**
+ * Os `limit` comentários mais recentes da vitrine, as respostas deles (das mais antigas para as mais novas,
+ * na ordem da conversa) e o total, respostas incluídas.
+ */
+export async function listComments(db: Db, handle: string, limit: number) {
+  const [top, all] = await Promise.all([
+    db
+      .from("comments")
+      .select("id, parent_id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)")
+      .eq("vitrines.handle", handle)
+      .is("parent_id", null)
+      .order("created_at", { ascending: false })
+      .order("id")
+      .limit(limit),
+    db.from("comments").select("id, vitrines!inner(handle)", { count: "exact", head: true }).eq("vitrines.handle", handle),
+  ]);
+  if (top.error) throw top.error;
+  if (all.error) throw all.error;
+  if (!top.data.length) return { total: all.count ?? 0, rows: top.data, replies: [] };
+  const { data: replies, error } = await db
+    .from("comments")
+    .select("id, parent_id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)")
+    .in(
+      "parent_id",
+      top.data.map((c) => c.id),
+    )
+    .order("created_at")
+    .order("id");
+  if (error) throw error;
+  return { total: all.count ?? top.data.length + replies.length, rows: top.data, replies };
+}
+
+/**
+ * false: a vitrine não existe. Autor, nome e foto quem preenche é o banco, a partir da sessão. Com `parentId`,
+ * é uma resposta: o banco a pendura no comentário original, mesmo quando se responde a uma resposta.
+ */
+export async function addComment(db: Db, handle: string, body: string, parentId?: string) {
+  const { data: vitrine, error } = await db.from("vitrines").select("id").eq("handle", handle).maybeSingle();
+  if (error) throw error;
+  if (!vitrine) return false;
+  const { error: insertError } = await db.from("comments").insert({ vitrine_id: vitrine.id, body, parent_id: parentId ?? null });
+  if (insertError?.code === "VT429") throw new CommentRateLimitError();
+  // VT404: o gatilho não achou o comentário; 23503: ele foi apagado entre o gatilho e a gravação
+  if (insertError?.code === "VT404" || insertError?.code === "23503") throw new CommentGoneError();
+  if (insertError) throw insertError;
+  return true;
+}
+
+/** Devolve o endereço da vitrine do comentário apagado; null se a RLS não deixou ou ele já não existe. */
+export async function deleteComment(db: Db, id: string) {
+  const { data, error } = await db.from("comments").delete().eq("id", id).select("vitrines(handle)").maybeSingle();
+  if (error) throw error;
+  return data?.vitrines?.handle ?? null;
+}
+
+/** Vitrines em que a pessoa comentou: os comentários saem junto com a conta, e o cache delas precisa acompanhar. */
+export async function listCommentedHandles(db: Db, userId: string) {
+  const { data, error } = await db.from("comments").select("vitrines(handle)").eq("author_id", userId);
+  if (error) throw error;
+  return [...new Set(data.flatMap((c) => c.vitrines?.handle ?? []))];
 }

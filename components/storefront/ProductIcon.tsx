@@ -1,16 +1,5 @@
 import type { IconId } from "@/lib/vitrine/types";
 
-export const ICON_LABELS: Record<IconId, string> = {
-  Bikini: "Moda praia",
-  Glasses: "Óculos",
-  Jar: "Pote",
-  Bottle: "Garrafa",
-  Shoe: "Tênis",
-  Hat: "Chapéu",
-  Nuts: "Pacote",
-  Bag: "Bolsa",
-};
-
 function Paths({ icon }: { icon: IconId }) {
   switch (icon) {
     case "Glasses":

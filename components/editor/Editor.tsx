@@ -1,28 +1,28 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState, useTransition, type ReactNode } from "react";
-import { publishVitrine, saveDraftAction, signOutAction } from "@/app/actions";
+import { useTranslations } from "next-intl";
+import { useEffect, useState, useTransition, type MouseEvent, type ReactNode } from "react";
+import { publishVitrine, saveDraftAction } from "@/app/actions";
+import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
-import { HOST } from "@/lib/brand";
+import { AccountMenu, type Account } from "@/components/home/AccountMenu";
+import { Link } from "@/lib/i18n/navigation";
+import { BRAND, HOST } from "@/lib/brand";
 import { Storefront } from "@/components/storefront/Storefront";
-import type { VitrineContent } from "@/lib/vitrine/types";
+import { pickProfile, type VitrineContent } from "@/lib/vitrine/types";
 import { couponAlerts, CouponsPanel } from "./CouponsPanel";
-import { DeleteAccount } from "./DeleteAccount";
 import { KitsPanel } from "./KitsPanel";
-import { MetricsPanel } from "./MetricsPanel";
 import { ProfilePanel, type Update } from "./panels";
 import { ProductsPanel } from "./ProductsPanel";
 import { SharePanel } from "./SharePanel";
 
-/** [id, rótulo, nome na URL (?aba=…)] */
+/** [id, nome na URL (?aba=…)]; o rótulo vem de `editor.tabs.<id>` */
 const TABS = [
-  ["profile", "Perfil", "perfil"],
-  ["coupons", "Cupons", "cupons"],
-  ["products", "Produtos", "produtos"],
-  ["kits", "Kits", "kits"],
-  ["share", "Divulgar", "divulgar"],
-  ["metrics", "Métricas", "metricas"],
+  ["profile", "perfil"],
+  ["coupons", "cupons"],
+  ["products", "produtos"],
+  ["kits", "kits"],
+  ["share", "divulgar"],
 ] as const;
 type TabId = (typeof TABS)[number][0];
 
@@ -58,7 +58,6 @@ const TAB_ICONS: Record<TabId, ReactNode> = {
       <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
     </>
   ),
-  metrics: <path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3" />,
 };
 
 function DesktopIcon() {
@@ -83,22 +82,24 @@ export function Editor({
   published: initialPublished,
   draft: initialDraft,
   today,
-  email,
+  account,
   initialTab,
 }: {
   published: VitrineContent;
   draft: VitrineContent | null;
   today: string;
-  email: string;
+  account: Account;
   /** valor de ?aba= na URL, para voltar à mesma aba ao recarregar */
   initialTab?: string;
 }) {
+  const t = useTranslations("editor");
+  const tCommon = useTranslations("common");
   const [draft, setDraft] = useState(initialDraft ?? initialPublished);
   const [published, setPublished] = useState(initialPublished);
   // O que já está guardado no servidor (rascunho ou, sem rascunho, a versão publicada).
   const [savedJson, setSavedJson] = useState(() => JSON.stringify(initialDraft ?? initialPublished));
   const [saveFailed, setSaveFailed] = useState(false);
-  const [tab, setTab] = useState<TabId>(() => TABS.find(([, , slug]) => slug === initialTab)?.[0] ?? (draft.coupons.length ? "profile" : "coupons"));
+  const [tab, setTab] = useState<TabId>(() => TABS.find(([, slug]) => slug === initialTab)?.[0] ?? (draft.coupons.length ? "profile" : "coupons"));
   const openTab = (id: TabId, slug: string) => {
     setTab(id);
     const url = new URL(window.location.href);
@@ -108,6 +109,18 @@ export function Editor({
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [error, setError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+
+  // O estado acima só lê as props ao montar, e o Next mantém a tela viva ao navegar: nome, link, foto e capa, que mudam nas
+  // Configurações e na home, entram aqui sem tocar no que a pessoa está editando.
+  const profileJson = JSON.stringify(pickProfile(initialPublished));
+  const [seenProfile, setSeenProfile] = useState(profileJson);
+  if (profileJson !== seenProfile) {
+    const profile = pickProfile(initialPublished);
+    setSeenProfile(profileJson);
+    setDraft((d) => ({ ...d, ...profile }));
+    setPublished((p) => ({ ...p, ...profile }));
+    setSavedJson((s) => JSON.stringify({ ...JSON.parse(s), ...profile }));
+  }
 
   const draftJson = JSON.stringify(draft);
   const dirty = draftJson !== JSON.stringify(published);
@@ -147,23 +160,26 @@ export function Editor({
   };
 
   const panelProps = { draft, update };
-  const alerts = couponAlerts(draft.coupons, today).length;
+  const alerts =couponAlerts(draft.coupons, today).length;
+  // a navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso
+  const confirmLeave = (e: MouseEvent) => {
+    if (unsaved && !confirm(t("leaveConfirm"))) e.preventDefault();
+  };
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper text-ink lg:h-dvh">
       <header className="border-b border-[#E0DCD3] bg-white">
         <div className="flex flex-wrap items-center gap-3.5 px-5 py-3">
-          <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">
+          <BackLink href="/inicio" onClick={confirmLeave} label="home" divider />
+          <Link href="/" onClick={confirmLeave} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
             <Wordmark label="" className="h-[17px] w-auto" />
           </Link>
-          <span className="h-6 w-px bg-[#E0DCD3]" />
-          <span className="text-[15px] font-semibold">Editar vitrine</span>
           <div className="flex-1" />
-          <div role="group" aria-label="Tamanho da prévia" className="flex gap-0.5 rounded-xl bg-[#F2F0EB] p-[3px] max-sm:hidden">
+          <div role="group" aria-label={t("previewSize")} className="flex gap-0.5 rounded-xl bg-[#F2F0EB] p-[3px] max-sm:hidden">
             {(
               [
-                ["desktop", "Computador", <DesktopIcon key="d" />],
-                ["mobile", "Celular", <MobileIcon key="m" />],
+                ["desktop", t("desktop"), <DesktopIcon key="d" />],
+                ["mobile", t("mobile"), <MobileIcon key="m" />],
               ] as const
             ).map(([id, label, icon]) => (
               <button
@@ -180,46 +196,48 @@ export function Editor({
               </button>
             ))}
           </div>
-          {dirty ? (
-            <span className="flex items-center gap-2 text-[13px] font-semibold text-[#8A3B12]">
-              <span aria-hidden="true" className="size-2 rounded-full bg-[#E8590C]" />
-              Não publicado
-              <span className={`font-medium ${saveFailed ? "text-[#A3361B]" : "text-[#5E5A52]"}`}>
-                · {saveFailed ? "erro ao salvar rascunho" : unsaved ? "salvando…" : "rascunho salvo"}
-              </span>
+          {/* um estado de cada vez: com alterações, o aviso e o botão de publicar; sem elas, a confirmação e o caminho para ver o resultado. No celular, ganha uma linha só dele. */}
+          <div className="flex items-center gap-3.5 max-sm:order-last max-sm:w-full max-sm:justify-between">
+            <span role="status" className={`flex items-center gap-2 text-[13px] font-medium ${saveFailed ? "text-[#A3361B]" : dirty ? "text-ink" : "text-[#5E5A52]"}`}>
+              {dirty ? (
+                <>
+                  <span aria-hidden="true" className={`size-2 flex-none rounded-full ${saveFailed ? "bg-[#A3361B]" : "bg-[#E8590C]"}`} />
+                  {saveFailed ? t("draftFailed") : t("unpublished")}
+                </>
+              ) : (
+                <>
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1F6B3A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  {t("published")}
+                </>
+              )}
             </span>
-          ) : (
-            <span className="flex items-center gap-2 text-[13px] font-semibold text-[#1F6B3A]">
-              <span aria-hidden="true" className="size-2 rounded-full bg-[#1F9D55]" />
-              Publicado
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={publish}
-            disabled={saving || !dirty}
-            className="min-h-11 rounded-full border-0 bg-ink px-5 text-sm font-bold text-white"
-          >
-            {saving ? "Publicando…" : "Publicar"}
-          </button>
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              title={email ? `Sair de ${email}` : "Sair"}
-              onClick={(e) => {
-                if (unsaved && !confirm("Ainda estamos salvando suas alterações. Sair mesmo assim?")) e.preventDefault();
-              }}
-              className="min-h-11 border-0 bg-transparent px-2 text-sm font-semibold text-[#5E5A52] underline-offset-4 hover:underline"
-            >
-              Sair
-            </button>
-          </form>
+            {dirty ? (
+              <button type="button" onClick={publish} disabled={saving} className="min-h-11 flex-none cursor-pointer rounded-full border-0 bg-ink px-6 text-sm font-bold text-white transition-opacity hover:opacity-85 disabled:cursor-default disabled:opacity-60">
+                {saving ? t("publishing") : t("publish")}
+              </button>
+            ) : (
+              <Link
+                href={`/${published.handle}`}
+                target="_blank"
+                rel="noopener"
+                className="group flex min-h-11 flex-none items-center gap-1.5 rounded-full border border-[#D8D3C9] bg-white px-5 text-sm font-semibold text-ink no-underline transition-colors hover:border-ink"
+              >
+                {t("view")}
+                <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                  <path d="M7 17L17 7M9 7h8v8" />
+                </svg>
+              </Link>
+            )}
+          </div>
+          <AccountMenu account={account} onLeave={confirmLeave} />
         </div>
         {error && (
           <div role="alert" className="flex items-center gap-3 border-t border-[#F1C9BC] bg-[#FFF1EC] px-5 py-2.5 text-sm font-semibold text-[#A3361B]">
-            <span className="flex-1">Não deu para publicar: {error}</span>
+            <span className="flex-1">{t("publishError", { error })}</span>
             <button type="button" onClick={() => setError(null)} className="border-0 bg-transparent text-sm font-bold text-[#A3361B] underline">
-              Fechar
+              {t("close")}
             </button>
           </div>
         )}
@@ -229,10 +247,10 @@ export function Editor({
         <aside className="flex max-w-full min-w-0 flex-[1_1_400px] flex-col border-r border-[#EEEBE5] bg-white lg:max-w-[440px] lg:overflow-y-auto">
           <div
             role="tablist"
-            aria-label="Opções"
-            className="sticky top-0 z-10 grid grid-cols-6 gap-1 border-b border-[#EEEBE5] bg-white/95 px-3 py-2.5 backdrop-blur"
+            aria-label={t("tabs.label")}
+            className="sticky top-0 z-10 grid grid-cols-5 gap-1 border-b border-[#EEEBE5] bg-white/95 px-3 py-2.5 backdrop-blur"
           >
-            {TABS.map(([id, label, slug]) => (
+            {TABS.map(([id, slug]) => (
               <button
                 key={id}
                 type="button"
@@ -246,10 +264,10 @@ export function Editor({
                 <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === id ? 2 : 1.75} strokeLinecap="round" strokeLinejoin="round">
                   {TAB_ICONS[id]}
                 </svg>
-                <span className="max-w-full truncate">{label}</span>
+                <span className="max-w-full truncate">{t(`tabs.${id}`)}</span>
                 {id === "coupons" && alerts > 0 && (
                   <span
-                    aria-label={`${alerts} ${alerts === 1 ? "cupom vencendo" : "cupons vencendo"}`}
+                    aria-label={t("couponsExpiring", { count: alerts })}
                     className="absolute top-0.5 right-[calc(50%-24px)] inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#E8590C] px-1 text-[10px] font-bold text-white ring-2 ring-white"
                   >
                     {alerts}
@@ -259,17 +277,11 @@ export function Editor({
             ))}
           </div>
           <div role="tabpanel" className="flex flex-col gap-8 px-5 pt-6 pb-10">
-            {tab === "profile" && (
-              <>
-                <ProfilePanel {...panelProps} />
-                <DeleteAccount handle={published.handle} />
-              </>
-            )}
+            {tab === "profile" && <ProfilePanel {...panelProps} />}
             {tab === "coupons" && <CouponsPanel {...panelProps} today={today} />}
             {tab === "products" && <ProductsPanel {...panelProps} />}
             {tab === "kits" && <KitsPanel {...panelProps} />}
             {tab === "share" && <SharePanel {...panelProps} publishedHandle={published.handle} publishedJson={JSON.stringify(published)} />}
-            {tab === "metrics" && <MetricsPanel draft={draft} today={today} />}
           </div>
         </aside>
 

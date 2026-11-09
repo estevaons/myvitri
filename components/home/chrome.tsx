@@ -1,6 +1,10 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { LoginButton } from "@/components/auth/forms";
+import { BackLink } from "@/components/brand/BackLink";
+import { LocaleSwitcher } from "@/components/brand/LocaleSwitcher";
 import { Wordmark } from "@/components/brand/Logo";
+import { Link } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 
 /** Peças comuns da home e da página de criar vitrine, no mesmo visual das vitrines. */
@@ -14,21 +18,31 @@ export const pillLight =
 /** Rótulo pequeno em caixa alta, usado acima dos títulos e nos cabeçalhos do rodapé. */
 export const kicker = "text-[12px] font-medium tracking-[0.22em] uppercase";
 
-export function SiteHeader({ links }: { links: [href: string, label: string][] }) {
+/**
+ * `back` põe o voltar para o início à esquerda, nas páginas de dentro. `action` substitui o botão da direita
+ * (padrão: Entrar; `null` deixa sem botão).
+ */
+export function SiteHeader({ links, back, action = <LoginButton className={pillLight} /> }: { links: [href: string, label: string][]; back?: string; action?: ReactNode }) {
+  const t = useTranslations("common");
   return (
-    <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-4 ${pad}`}>
-      <Link href="/" aria-label="MyVitri — início" className="flex text-ink no-underline">
-        <Wordmark label="" className="h-[19px] w-auto" />
-      </Link>
+    // as classes group-data só valem dentro do ScrollHeader; a linha some porque ele traz a dele, de ponta a ponta
+    <header
+      className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-4 transition-[padding,border-color] duration-200 ease-out group-data-[compact]/header:border-transparent group-data-[compact]/header:py-2 motion-reduce:transition-none ${pad}`}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        {back && <BackLink href={back} label="home" divider />}
+        <Link href="/" aria-label={t("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
+          <Wordmark label="" className="h-[19px] w-auto" />
+        </Link>
+      </div>
       <nav className="flex items-center gap-7">
         {links.map(([href, label]) => (
-          <Link key={href} href={href} className={`${kicker} whitespace-nowrap text-ink no-underline hover:text-gold max-md:hidden`}>
+          // com muitos links eles só cabem do lg em diante: no tablet passariam por cima da marca
+          <Link key={href} href={href} className={`${kicker} whitespace-nowrap text-ink no-underline hover:text-gold ${links.length > 2 ? "max-lg:hidden" : "max-md:hidden"}`}>
             {label}
           </Link>
         ))}
-        <Link href="/editor" className={pillLight}>
-          Minha vitrine
-        </Link>
+        {action}
       </nav>
     </header>
   );
@@ -46,58 +60,76 @@ export function SectionHead({ kicker: label, title, text, children }: { kicker: 
   );
 }
 
-const FOOTER: [title: string, links: [href: string, label: string][]][] = [
-  [
-    "Para quem compra",
-    [
-      ["/#vitrines", "Vitrines"],
-      ["/#cupons", "Cupons ativos"],
-      ["/#categorias", "Categorias"],
-      ["/#marcas", "Marcas"],
-    ],
-  ],
-  [
-    "Para quem divulga",
-    [
-      ["/criar-vitrine", "Criar minha vitrine"],
-      ["/editor", "Entrar"],
-      ["/#vitrines", "Ver vitrines"],
-    ],
-  ],
-];
+type FooterColumn = [title: string, links: [href: string, label: string][]];
 
-export function SiteFooter() {
+/**
+ * Rodapé do site. `signedIn`, nas páginas de quem entrou (/inicio, /metricas), deixa só a linha final: as colunas
+ * levam para a landing e para "Entrar", que não servem a quem já está dentro.
+ */
+export function SiteFooter({ signedIn = false }: { signedIn?: boolean }) {
+  const t = useTranslations("chrome");
+  const columns: FooterColumn[] = [
+    [
+      t("forShoppers"),
+      [
+        ["/#vitrines", t("footerVitrines")],
+        ["/#cupons", t("footerCoupons")],
+        ["/#categorias", t("footerCategories")],
+        ["/#marcas", t("footerBrands")],
+      ],
+    ],
+    [
+      t("forCreators"),
+      [
+        ["/criar-vitrine", t("createMine")],
+        // não é link: abre o modal de login
+        ["#entrar", t("signIn")],
+        ["/#vitrines", t("seeVitrines")],
+      ],
+    ],
+  ];
   return (
-    <footer className={`mx-auto mt-20 max-w-[1440px] md:mt-28 ${pad}`}>
-      <div className="grid gap-10 border-t border-sand py-12 md:grid-cols-[2fr_1fr_1fr]">
-        <div className="flex max-w-xs flex-col gap-3">
-          <Wordmark className="h-[19px] w-auto self-start text-ink" />
-          <p className="m-0 text-[15px] leading-relaxed text-mute">Os achados de quem você segue, cada um na sua vitrine.</p>
+    <footer className={`mx-auto max-w-[1440px] ${signedIn ? "mt-24 md:mt-32" : "mt-20 md:mt-28"} ${pad}`}>
+      {!signedIn && (
+        <div className="grid gap-10 border-t border-sand py-12 md:grid-cols-[2fr_1fr_1fr]">
+          <div className="flex max-w-xs flex-col gap-3">
+            <Wordmark className="h-[19px] w-auto self-start text-ink" />
+            <p className="m-0 text-[15px] leading-relaxed text-mute">{t("tagline")}</p>
+          </div>
+          {columns.map(([title, links]) => (
+            <nav key={title} aria-label={title} className="flex flex-col gap-3">
+              <span className={kicker}>{title}</span>
+              {links.map(([href, label]) =>
+                href === "#entrar" ? (
+                  <LoginButton key={href} className="self-start text-left text-[15px] text-mute hover:text-ink">
+                    {label}
+                  </LoginButton>
+                ) : (
+                  <Link key={href} href={href} className="text-[15px] text-mute no-underline hover:text-ink">
+                    {label}
+                  </Link>
+                ),
+              )}
+            </nav>
+          ))}
         </div>
-        {FOOTER.map(([title, links]) => (
-          <nav key={title} aria-label={title} className="flex flex-col gap-3">
-            <span className={kicker}>{title}</span>
-            {links.map(([href, label]) => (
-              <Link key={href} href={href} className="text-[15px] text-mute no-underline hover:text-ink">
-                {label}
-              </Link>
-            ))}
-          </nav>
-        ))}
-      </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-sand py-6 text-[13px] text-mute">
         <span>
-          © {BRAND} · Preços e cupons podem mudar na loja da marca.
+          © {BRAND} · {t("notice")}
         </span>
-        <nav aria-label="Informações legais" className="flex gap-5">
-          <Link href="/privacidade" className="text-inherit no-underline hover:text-ink">
-            Privacidade
-          </Link>
-          <Link href="/termos" className="text-inherit no-underline hover:text-ink">
-            Termos
-          </Link>
-          <span>Feito no Brasil</span>
-        </nav>
+        <div className="flex flex-wrap gap-x-5 gap-y-3">
+          <nav aria-label={t("legal")} className="flex gap-5">
+            <Link href="/privacidade" className="text-inherit no-underline hover:text-ink">
+              {t("privacy")}
+            </Link>
+            <Link href="/termos" className="text-inherit no-underline hover:text-ink">
+              {t("terms")}
+            </Link>
+            <span>{t("madeIn")}</span>
+          </nav>
+          <LocaleSwitcher />
+        </div>
       </div>
     </footer>
   );

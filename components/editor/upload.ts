@@ -43,13 +43,16 @@ const EXT: Record<string, string> = { "image/webp": "webp", "image/png": "png", 
 
 export const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp,image/svg+xml,image/gif";
 
-/** Reduz e envia; devolve a URL pública ou a mensagem de erro para mostrar. */
-export async function uploadImage(kind: ImageKind, file: File): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+/**
+ * Reduz e envia; devolve a URL pública ou a mensagem de erro para mostrar. `unreadable` é a mensagem
+ * (no idioma da página) para imagem que o navegador não consegue abrir: `errors.imageUnreadable`.
+ */
+export async function uploadImage(kind: ImageKind, file: File, unreadable: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   let blob: Blob;
   try {
     blob = await shrinkImage(file, kind);
   } catch {
-    return { ok: false, error: "Não conseguimos abrir essa imagem. Tente outra." };
+    return { ok: false, error: unreadable };
   }
   const form = new FormData();
   form.set("file", new File([blob], `imagem.${EXT[blob.type] ?? "webp"}`, { type: blob.type }));

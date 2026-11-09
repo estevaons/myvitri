@@ -1,16 +1,24 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState, type ReactNode } from "react";
-import Link from "next/link";
 import { useFormStatus } from "react-dom";
-import { claimAction, createVitrineAction, signInAction, type FormState } from "@/app/actions";
-import { HOST } from "@/lib/brand";
+import { claimAction, createVitrineAction, requestPasswordResetAction, signInAction, signInWithPasswordAction, updatePasswordAction, type FormState } from "@/app/actions";
+import { BackLink } from "@/components/brand/BackLink";
+import { Wordmark } from "@/components/brand/Logo";
+import { AuthPhoto } from "@/components/auth/AuthPhoto";
+import { Link, useRouter } from "@/lib/i18n/navigation";
+import { withoutLocale } from "@/lib/i18n/routing";
+import { PASSWORD_MIN } from "@/lib/auth/password";
+import { BRAND, HOST } from "@/lib/brand";
 
 /** Campos retos com contorno areia, como a busca da vitrine; no foco o contorno escurece. */
 const field = "box-border flex h-12 w-full min-w-0 items-center border border-sand bg-white px-4 text-base text-ink outline-none placeholder:text-mute focus:border-ink";
 const label = "flex flex-col gap-1.5 text-left text-[13px] font-medium";
 const box = "flex flex-col gap-4";
-const submit = "min-h-12 border-0 bg-ink px-6 text-[12px] font-medium tracking-[0.18em] text-white uppercase hover:bg-[#2b2925]";
+const submit = "min-h-12 cursor-pointer border-0 bg-ink px-6 text-[12px] font-medium tracking-[0.18em] text-white uppercase hover:bg-[#2b2925]";
+const secondary = "min-h-12 cursor-pointer border border-sand bg-white px-6 text-[12px] font-medium tracking-[0.18em] text-ink uppercase hover:border-ink";
+const textLink = "font-medium text-ink underline underline-offset-2";
 
 function GoogleLogo() {
   return (
@@ -25,29 +33,83 @@ function GoogleLogo() {
   );
 }
 
+/** O botão diz o que acontece só quando foi ele o clicado: em /criar-vitrine, dois botões enviam o mesmo formulário (`via`). */
 function GoogleButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
+  const t = useTranslations("auth");
+  const { pending, data } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className={`${submit} flex items-center justify-center gap-3 pl-3`}>
+    <button type="submit" name="via" value="google" disabled={pending} className={`${secondary} flex items-center justify-center gap-3 pl-3`}>
       <GoogleLogo />
-      {pending ? "Abrindo o Google…" : label}
+      {pending && data?.get("via") === "google" ? t("openingGoogle") : label}
     </button>
   );
 }
 
-/** Aviso de aceite logo abaixo do botão do Google, com os links que a verificação do Google pede. */
+function SubmitButton({ label, busy, via }: { label: string; busy: string; via?: string }) {
+  const { pending, data } = useFormStatus();
+  return (
+    <button type="submit" name={via && "via"} value={via} disabled={pending} className={submit}>
+      {pending && (!via || data?.get("via") === via) ? busy : label}
+    </button>
+  );
+}
+
+function EmailField({ value }: { value?: string }) {
+  const t = useTranslations("auth");
+  return (
+    <label className={label}>
+      {t("email")}
+      {/* defaultValue: depois de um erro o formulário é reiniciado, e o e-mail digitado continua lá */}
+      <input name="email" type="email" defaultValue={value} placeholder={t("emailPlaceholder")} autoComplete="email" autoCapitalize="none" spellCheck={false} className={field} />
+    </label>
+  );
+}
+
+function PasswordField({ title, isNew = false }: { title?: string; isNew?: boolean }) {
+  const t = useTranslations("auth");
+  return (
+    <label className={label}>
+      {title ?? t("password")}
+      <input
+        name="password"
+        type="password"
+        autoComplete={isNew ? "new-password" : "current-password"}
+        minLength={isNew ? PASSWORD_MIN : undefined}
+        placeholder={isNew ? t("passwordMin", { min: PASSWORD_MIN }) : undefined}
+        className={field}
+      />
+    </label>
+  );
+}
+
+function OrDivider() {
+  const t = useTranslations("auth");
+  return (
+    <div className="flex items-center gap-3 text-[13px] text-mute">
+      <span aria-hidden="true" className="h-px flex-1 bg-sand" />
+      {t("or")}
+      <span aria-hidden="true" className="h-px flex-1 bg-sand" />
+    </div>
+  );
+}
+
+/** Aviso de aceite no fim dos formulários de acesso, com os links que a verificação do Google pede. */
 function Consent() {
+  const t = useTranslations("auth");
   return (
     <p className="m-0 text-center text-[13px] leading-snug text-mute">
-      Ao continuar, você concorda com os{" "}
-      <Link href="/termos" className="text-inherit underline underline-offset-2">
-        Termos de Uso
-      </Link>{" "}
-      e a{" "}
-      <Link href="/privacidade" className="text-inherit underline underline-offset-2">
-        Política de Privacidade
-      </Link>
-      .
+      {t.rich("consent", {
+        terms: (s) => (
+          <Link href="/termos" className="text-inherit underline underline-offset-2">
+            {s}
+          </Link>
+        ),
+        privacy: (s) => (
+          <Link href="/privacidade" className="text-inherit underline underline-offset-2">
+            {s}
+          </Link>
+        ),
+      })}
     </p>
   );
 }
@@ -55,7 +117,17 @@ function Consent() {
 function ErrorText({ children }: { children?: string }) {
   if (!children) return null;
   return (
-    <p role="alert" className="m-0 pl-4 text-sm font-semibold text-[#A3361B]">
+    <p role="alert" className="m-0 text-sm font-semibold text-[#A3361B]">
+      {children}
+    </p>
+  );
+}
+
+/** Deu certo e agora é com o e-mail da pessoa. */
+function NoticeText({ children }: { children?: string }) {
+  if (!children) return null;
+  return (
+    <p role="status" className="m-0 bg-cream p-4 text-[15px] leading-relaxed text-ink">
       {children}
     </p>
   );
@@ -71,31 +143,37 @@ function toHandle(text: string) {
     .slice(0, 30);
 }
 
+type Claim = { name: string; setName: (v: string) => void; handle: string; setCustom: (v: string | null) => void };
+
 /**
  * Nome + link. O link acompanha o nome enquanto a pessoa não mexe nele;
  * se ela apagar o link, volta a acompanhar.
  */
-function ClaimFields({ initialName = "" }: { initialName?: string }) {
+function useClaim(initialName = ""): Claim {
   const [name, setName] = useState(initialName);
   const [custom, setCustom] = useState<string | null>(null);
-  const handle = custom ?? toHandle(name);
+  return { name, setName, handle: custom ?? toHandle(name), setCustom };
+}
+
+function ClaimFields({ claim: { name, setName, handle, setCustom } }: { claim: Claim }) {
+  const t = useTranslations("auth.claim");
   return (
     <>
       <label className={label}>
-        Seu nome
+        {t("name")}
         <input
           name="name"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Como aparece na vitrine"
+          placeholder={t("namePlaceholder")}
           autoComplete="name"
           maxLength={60}
           className={field}
         />
       </label>
       <label className={label}>
-        Seu link
+        {t("link")}
         {/* o prefixo fica dentro da pílula; o contorno de foco vale para o conjunto */}
         <span className={`${field} gap-0 focus-within:border-ink focus-within:bg-white`}>
           <span className="flex-none text-mute">{HOST}/</span>
@@ -107,33 +185,87 @@ function ClaimFields({ initialName = "" }: { initialName?: string }) {
               const v = toHandle(e.target.value.replace(/^@/, ""));
               setCustom(v || null);
             }}
-            placeholder="seunome"
+            placeholder={t("linkPlaceholder")}
             autoComplete="off"
             autoCapitalize="none"
             spellCheck={false}
             pattern="[a-z0-9_.]{3,30}"
-            title="De 3 a 30 letras, números, ponto ou _"
+            title={t("linkRule")}
             className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink outline-none placeholder:text-[#B5B5B5]"
           />
         </span>
       </label>
-      <span className="-mt-2.5 pl-5 text-left text-[13px] text-mute">É o endereço que vai na sua bio.</span>
+      <span className="-mt-2.5 pl-5 text-left text-[13px] text-mute">{t("linkHint")}</span>
     </>
   );
 }
 
-/** Landing: link + nome → login com o Google. */
-export function ClaimForm() {
-  const [state, action] = useActionState<FormState, FormData>(claimAction, {});
+/** Para onde a seta de /entrar leva: a página de origem (sem idioma), menos as que exigem login, que trariam de volta para cá. */
+const backFrom = (next: string) => (/^\/(inicio|editor|metricas|nova-senha)(?![^/?#])/.test(next) ? "/" : next);
+
+/**
+ * As telas de acesso: formulário à esquerda e, no desktop, a foto com o logotipo à direita (AuthPhoto). A seta volta para `back` ou,
+ * com `onBack`, para o passo anterior da própria tela.
+ */
+function AuthShell({ back = "/", onBack, children }: { back?: string; onBack?: () => void; children: ReactNode }) {
+  const t = useTranslations("common");
   return (
-    <form action={action} className="flex w-full max-w-[560px] flex-col gap-3">
-      <div className={box}>
-        <ClaimFields />
-        <GoogleButton label="Criar com Google" />
+    <main className="grid min-h-dvh grid-cols-[minmax(0,1fr)] bg-white text-ink md:grid-cols-2">
+      <div className="flex flex-col gap-10 px-5 py-6 md:px-12 md:py-8">
+        <div className="flex items-center gap-3">
+          <BackLink href={onBack ? undefined : back} onClick={onBack} divider />
+          <Link href="/" aria-label={t("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
+            <Wordmark label="" className="h-[19px] w-auto" />
+          </Link>
+        </div>
+        <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center gap-4 pb-10">{children}</div>
       </div>
-      <ErrorText>{state.error}</ErrorText>
-      <Consent />
-    </form>
+      <AuthPhoto />
+    </main>
+  );
+}
+
+function AuthTitle({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="flex flex-col gap-3 pb-3">
+      <h1 className="m-0 font-display text-[clamp(40px,4.6vw,56px)] leading-[1] font-normal">{title}</h1>
+      <p className="m-0 text-[17px] text-mute">{text}</p>
+    </div>
+  );
+}
+
+/**
+ * Criar conta: nome + link e, depois, e-mail e senha ou Google.
+ * Os dois botões enviam o mesmo formulário: e-mail e senha não têm `required` para o do Google poder seguir
+ * sem eles (a ação confere). O de e-mail vem primeiro porque é o que o Enter aciona.
+ */
+export function SignupForm() {
+  const t = useTranslations("auth");
+  const [state, action] = useActionState<FormState, FormData>(claimAction, {});
+  const claim = useClaim();
+  return (
+    <AuthShell>
+      <form action={action} className="flex flex-col gap-3">
+        <AuthTitle title={t("signup.title")} text={t("signup.text")} />
+        <div className={box}>
+          <ClaimFields claim={claim} />
+          <EmailField value={state.email} />
+          <PasswordField isNew />
+          <SubmitButton label={t("signup.submit")} busy={t("creating")} via="email" />
+          <ErrorText>{state.error}</ErrorText>
+          <NoticeText>{state.notice}</NoticeText>
+          <OrDivider />
+          <GoogleButton label={t("signup.google")} />
+        </div>
+        <Consent />
+      </form>
+      <p className="m-0 text-center text-[15px] text-mute">
+        {t("signup.hasAccount")}{" "}
+        <Link href="/entrar" className={textLink}>
+          {t("signIn")}
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
 
@@ -149,28 +281,133 @@ function Panel({ title, text, children }: { title: string; text: string; childre
   );
 }
 
-export function SignInPanel({ loginError }: { loginError?: boolean }) {
+/** A página atual, sem o aviso de erro do login nem o idioma, para voltar a ela depois de entrar. */
+function herePath() {
+  const url = new URL(location.href);
+  url.searchParams.delete("erro");
+  return withoutLocale(url.pathname + url.search);
+}
+
+function PasswordSignIn({ next, onForgot }: { next: string; onForgot: () => void }) {
+  const t = useTranslations("auth");
+  const [state, action] = useActionState<FormState, FormData>(signInWithPasswordAction, {});
+  return (
+    <form action={action} className={box}>
+      <input type="hidden" name="next" value={next} />
+      <EmailField value={state.email} />
+      <PasswordField />
+      <button type="button" onClick={onForgot} className="-mt-2 cursor-pointer self-end border-0 bg-transparent p-0 text-[13px] text-mute underline underline-offset-2 hover:text-ink">
+        {t("forgot")}
+      </button>
+      <SubmitButton label={t("signIn")} busy={t("signingIn")} />
+      <ErrorText>{state.error}</ErrorText>
+    </form>
+  );
+}
+
+function GoogleSignIn({ next, loginError }: { next: string; loginError: boolean }) {
+  const t = useTranslations("auth");
   const [state, action] = useActionState<FormState, FormData>(signInAction, {});
   return (
-    <Panel title="Entrar na sua vitrine" text="Use sua conta Google. Sem senha nova para lembrar.">
-      <form action={action} className="flex flex-col gap-3">
-        <GoogleButton label="Entrar com Google" />
-        <ErrorText>{state.error ?? (loginError ? "O login com o Google não foi concluído. Tente de novo." : undefined)}</ErrorText>
-        <Consent />
+    <form action={action} className="flex flex-col gap-3">
+      <input type="hidden" name="next" value={next} />
+      <GoogleButton label={t("signInGoogle")} />
+      <ErrorText>{state.error ?? (loginError ? t("loginFailed") : undefined)}</ErrorText>
+      <Consent />
+    </form>
+  );
+}
+
+function ForgotPassword() {
+  const t = useTranslations("auth");
+  const [state, action] = useActionState<FormState, FormData>(requestPasswordResetAction, {});
+  return (
+    <>
+      <AuthTitle title={t("newPassword.title")} text={t("forgotText")} />
+      <form action={action} className={box}>
+        <EmailField value={state.email} />
+        <SubmitButton label={t("sendLink")} busy={t("sending")} />
+        <ErrorText>{state.error}</ErrorText>
+        <NoticeText>{state.notice}</NoticeText>
       </form>
-    </Panel>
+    </>
+  );
+}
+
+/** /entrar: e-mail e senha ou Google. `next` é a página para onde voltar depois. */
+export function SignInScreen({ next, loginError }: { next: string; loginError: boolean }) {
+  const t = useTranslations("auth");
+  const [forgot, setForgot] = useState(false);
+  return (
+    <AuthShell back={backFrom(next)} onBack={forgot ? () => setForgot(false) : undefined}>
+      {forgot ? (
+        <ForgotPassword />
+      ) : (
+        <>
+          <AuthTitle title={t("signInTitle")} text={t("signInText")} />
+          <PasswordSignIn next={next} onForgot={() => setForgot(true)} />
+          <OrDivider />
+          <GoogleSignIn next={next} loginError={loginError} />
+          <p className="m-0 text-center text-[15px] text-mute">
+            {t("noAccount")}{" "}
+            <Link href="/criar-vitrine" className={textLink}>
+              {t("signup.submit")}
+            </Link>
+          </p>
+        </>
+      )}
+    </AuthShell>
+  );
+}
+
+/** /nova-senha: quem chegou pelo link do e-mail escolhe a senha. */
+export function NewPasswordScreen() {
+  const t = useTranslations("auth");
+  const [state, action] = useActionState<FormState, FormData>(updatePasswordAction, {});
+  return (
+    <AuthShell>
+      <AuthTitle title={t("newPassword.title")} text={t("newPassword.text")} />
+      <form action={action} className={box}>
+        <PasswordField title={t("newPassword.field")} isNew />
+        <SubmitButton label={t("newPassword.submit")} busy={t("saving")} />
+        <ErrorText>{state.error}</ErrorText>
+      </form>
+    </AuthShell>
+  );
+}
+
+/**
+ * "Entrar" de qualquer página: leva a /entrar, que devolve à página em que a pessoa estava (com aba e
+ * filtros), lida no clique. `onOpen` guarda o que ela ia fazer (favoritar, comentar) para terminar na volta.
+ */
+export function LoginButton({ className, children, onOpen }: { className?: string; children?: ReactNode; onOpen?: () => void }) {
+  const t = useTranslations("auth");
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onOpen?.();
+        router.push(`/entrar?next=${encodeURIComponent(herePath())}`);
+      }}
+      className={`cursor-pointer ${className ?? ""}`}
+    >
+      {children ?? t("signIn")}
+    </button>
   );
 }
 
 export function CreateVitrinePanel({ suggestedName }: { suggestedName: string }) {
+  const t = useTranslations("auth");
   const [state, action, pending] = useActionState<FormState, FormData>(createVitrineAction, {});
+  const claim = useClaim(suggestedName);
   return (
-    <Panel title="Escolha o link da sua vitrine" text="É o endereço que vai na sua bio. Dá para trocar depois.">
+    <Panel title={t("claimPanel.title")} text={t("claimPanel.text")}>
       <form action={action} className="flex flex-col gap-3">
         <div className={box}>
-          <ClaimFields initialName={suggestedName} />
+          <ClaimFields claim={claim} />
           <button type="submit" disabled={pending} className={submit}>
-            {pending ? "Criando…" : "Criar vitrine"}
+            {pending ? t("creating") : t("claimPanel.submit")}
           </button>
         </div>
         <ErrorText>{state.error}</ErrorText>

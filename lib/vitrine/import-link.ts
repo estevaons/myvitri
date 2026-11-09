@@ -6,10 +6,8 @@ export type ImportedProduct = {
   name: string;
   brand: string;
   imageUrl: string;
-  price: number | null;
   /** false = esgotado na loja; null = a página não diz */
   available: boolean | null;
-  url: string;
   /** page: lido da loja · search: loja bloqueou, veio do índice da Brave · link: só o que o endereço diz */
   source: "page" | "search" | "link";
 };
@@ -31,6 +29,13 @@ function isPrivateAddress(ip: string) {
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168)
   );
+}
+
+/** A loja recusou a página; `url` é onde os redirecionamentos pararam, ainda útil para ler o endereço do produto. */
+class StoreRefused extends Error {
+  constructor(readonly url: string) {
+    super("A loja não respondeu");
+  }
 }
 
 /** Bloqueia SSRF: só http(s) público, checando o IP resolvido. */
@@ -56,7 +61,7 @@ export async function fetchPublic(raw: string, { accept, maxBytes, timeoutMs = 8
       url = await assertPublicUrl(new URL(next, url).toString());
       continue;
     }
-    if (!res.ok || !res.body) throw new Error("A loja não respondeu");
+    if (!res.ok || !res.body) throw new StoreRefused(url.toString());
     const reader = res.body.getReader();
     const chunks: Uint8Array[] = [];
     let size = 0;
@@ -132,11 +137,6 @@ const findProductLd = (html: string) =>
 const str = (v: unknown): string =>
   typeof v === "string" ? v : Array.isArray(v) ? str(v[0]) : v && typeof v === "object" ? str((v as Json).name ?? (v as Json).url) : "";
 
-function toCents(v: unknown): number | null {
-  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v.replace(",", ".")) : NaN;
-  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
-}
-
 /** schema.org/OutOfStock, "out of stock", "oos"… → false; InStock/"in stock" → true. */
 function readAvailability(v: string): boolean | null {
   const s = v.toLowerCase().replace(/^https?:\/\/schema\.org\//, "").replace(/[\s_-]/g, "");
@@ -146,21 +146,21 @@ function readAvailability(v: string): boolean | null {
   return null;
 }
 
+/** Os dados do produto na página; null se ela só tem um título, como as telas de bloqueio ("Robot Check", "Just a moment…"). */
 function readPage({ html, url }: { html: string; url: string }) {
   const ld = findProductLd(html);
   const offers = ld?.offers as Json | Json[] | undefined;
   const offer = Array.isArray(offers) ? offers[0] : offers;
 
-  const title = str(ld?.name) || meta(html, "og:title") || decode(html.match(/<title[^>]*>([^<]*)/i)?.[1] ?? "");
+  const title = str(ld?.name) || meta(html, "og:title");
   const image = str(ld?.image) || meta(html, "og:image");
+  if (!title && !image) return null;
 
   return {
     name: title.slice(0, 80),
     brand: (str(ld?.brand) || meta(html, "og:site_name")).slice(0, 60),
     imageUrl: image ? new URL(image, url).toString() : "",
-    price: toCents(offer?.price ?? offer?.lowPrice) ?? toCents(meta(html, "product:price:amount") || meta(html, "og:price:amount")),
     available: readAvailability(str(offer?.availability) || meta(html, "product:availability") || meta(html, "og:availability")),
-    url,
   };
 }
 
@@ -169,6 +169,8 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /**
  * O que dá para tirar só do endereço, para lojas que bloqueiam robôs:
  * nike.com.br/bola-de-futebol-society-094751.html → "Bola de futebol society", código "094751", marca "Nike".
+ * Sem pelo menos duas palavras não há nome: amzn.to/3aBc é só um código, e buscar por ele traria a foto de outra coisa.
+ * `detailed`: com três ou mais palavras, o nome é específico o bastante para aceitar uma foto de fora da loja.
  */
 function readLink(url: URL) {
   const host = url.hostname.replace(/^www\./, "");
@@ -179,10 +181,12 @@ function readLink(url: URL) {
     ?.replace(/\.(html?|aspx?|php)$/i, "") ?? "";
   const words = slug.split(/[-_+\s]+/).filter(Boolean);
   const code = words.find((w) => /^\d{4,}$/.test(w)) ?? "";
+  const real = words.filter((w) => /^\p{L}{2,}$/u.test(w)).length;
   return {
     host,
     code,
-    name: capitalize(words.filter((w) => !/^\d{4,}$/.test(w)).join(" ").toLowerCase()).slice(0, 80),
+    detailed: real >= 3,
+    name: real >= 2 ? capitalize(words.filter((w) => !/^\d{4,}$/.test(w)).join(" ").toLowerCase()).slice(0, 80) : "",
     brand: capitalize(host.split(".")[0]).slice(0, 60),
   };
 }
@@ -222,11 +226,11 @@ async function brave<T>(path: string, params: Record<string, string>): Promise<T
 
 const httpsOnly = (src?: string) => (src?.startsWith("https://") ? src : "");
 
-type BraveWebResult = { url?: string; product?: { name?: string; price?: string; thumbnail?: { original?: string } } };
+type BraveWebResult = { url?: string; product?: { name?: string; thumbnail?: { original?: string } } };
 
 /**
  * A Brave lê as páginas das lojas como buscador e guarda os dados do produto.
- * Só aceita o resultado do mesmo endereço colado, para não trazer o preço de outro produto.
+ * Só aceita o resultado do mesmo endereço colado, para não trazer a foto de outro produto.
  */
 async function searchProduct(link: URL, query: string) {
   const data = await brave<{ web?: { results?: BraveWebResult[] } }>("web/search", { q: query, count: "10" });
@@ -235,39 +239,52 @@ async function searchProduct(link: URL, query: string) {
   if (!hit?.product) return null;
   return {
     name: decode(hit.product.name ?? "").slice(0, 80),
-    price: toCents(hit.product.price),
     imageUrl: httpsOnly(hit.product.thumbnail?.original),
   };
 }
 
 type BraveImage = { url?: string; properties?: { url?: string } };
 
-/** Só a foto, pela busca de imagens, preferindo resultados da própria loja. */
-async function searchImage(query: string, host: string) {
+/** Só a foto, pela busca de imagens: de preferência da própria loja; de outro site, só com `anyHost`, quando o nome é confiável. */
+async function searchImage(query: string, host: string, anyHost: boolean) {
   const data = await brave<{ results?: BraveImage[] }>("images/search", { q: query, count: "10", safesearch: "strict" });
   const results = data?.results ?? [];
-  const pick = results.find((r) => hostOf(r.url).endsWith(host)) ?? results[0];
+  const pick = results.find((r) => hostOf(r.url).endsWith(host)) ?? (anyHost ? results[0] : undefined);
   return httpsOnly(pick?.properties?.url);
 }
 
+/**
+ * Lê nome, marca e foto do produto. O link colado pode ser de afiliado ou encurtado: o endereço final dos redirecionamentos serve só
+ * para esta leitura, e quem chama guarda o link como veio. Sem um nome confiável, falha em vez de trazer a foto de outro produto.
+ */
 export async function importProductFromUrl(raw: string): Promise<ImportedProduct> {
-  const link = await assertPublicUrl(raw);
-  const page = await fetchHtml(raw).then(readPage, () => null);
-  const fromLink = readLink(link);
+  const pasted = await assertPublicUrl(raw);
+  let link = pasted;
+  const page = await fetchHtml(raw).then(
+    (fetched) => {
+      link = new URL(fetched.url);
+      return readPage(fetched);
+    },
+    (e: unknown) => {
+      if (e instanceof StoreRefused) link = new URL(e.url);
+      return null;
+    },
+  );
+  // o endereço final costuma dizer mais, mas pode ser uma tela de bloqueio: aí vale o que foi colado
+  const final = readLink(link);
+  const fromLink = final.name ? final : readLink(pasted);
+  if (!page?.name && !fromLink.name) throw new Error("Não deu para ler o produto");
   const query = `${page?.name || fromLink.name} ${fromLink.code}`.trim();
-  // Busca só quando a página não deu preço ou foto (loja bloqueou ou não publica os dados).
-  const found = page?.price && page.imageUrl ? null : await searchProduct(link, query);
+  // Busca só quando a página não deu foto (loja bloqueou ou não publica os dados).
+  const found = page?.imageUrl ? null : await searchProduct(link, query);
 
   const product = {
     name: page?.name || found?.name || fromLink.name,
     brand: page?.brand || fromLink.brand,
     imageUrl: page?.imageUrl || found?.imageUrl || "",
-    price: page?.price ?? found?.price ?? null,
     available: page?.available ?? null,
-    url: page?.url ?? link.toString(),
   };
-  if (!product.name) throw new Error("Não deu para ler o produto");
-  if (!product.imageUrl) product.imageUrl = await searchImage(query, fromLink.host);
+  if (!product.imageUrl) product.imageUrl = await searchImage(query, fromLink.host, Boolean(page?.name || found?.name) || fromLink.detailed);
   return { ...product, source: page ? "page" : found ? "search" : "link" };
 }
 

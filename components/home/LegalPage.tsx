@@ -1,20 +1,27 @@
+import { useFormatter, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { pad, SiteFooter, SiteHeader } from "./chrome";
 
-/** Moldura das páginas de privacidade e termos: título em serifa, data de atualização e texto corrido legível. */
+/**
+ * Moldura das páginas de privacidade e termos: título em serifa, data de atualização e texto corrido legível.
+ * `updated` é AAAA-MM-DD, escrita por extenso no idioma da página.
+ */
 export function LegalPage({ title, updated, intro, children }: { title: string; updated: string; intro: ReactNode; children: ReactNode }) {
+  const t = useTranslations("legal");
+  const format = useFormatter();
   return (
     <div className="overflow-hidden bg-white text-ink">
       <SiteHeader
+        back="/"
         links={[
-          ["/", "Explorar vitrines"],
-          ["/criar-vitrine", "Criar vitrine"],
+          ["/", t("explore")],
+          ["/criar-vitrine", t("create")],
         ]}
       />
       <article className={`mx-auto flex max-w-[760px] flex-col gap-10 pt-10 md:pt-16 ${pad}`}>
         <header className="flex flex-col gap-4">
           <h1 className="m-0 font-display text-[clamp(44px,7vw,80px)] leading-[1] font-normal">{title}</h1>
-          <p className="m-0 text-[15px] text-mute">Atualizada em {updated}</p>
+          <p className="m-0 text-[15px] text-mute">{t("updated", { date: format.dateTime(new Date(`${updated}T12:00:00Z`), { dateStyle: "long", timeZone: "UTC" }) })}</p>
           <div className="text-[17px] leading-relaxed">{intro}</div>
         </header>
         {children}

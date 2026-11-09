@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { findLogoAction } from "@/app/actions";
 import { IMAGE_ACCEPT, uploadImage } from "./upload";
@@ -12,6 +13,8 @@ const isLink = (s: string) => /^https?:\/\/[^/\s]+\.[^/\s]+/i.test(s.trim());
  * e mostra como opções (sem escolher por conta própria); colar o link da imagem fica como alternativa.
  */
 export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; logoUrl: string; onChange: (url: string) => void }) {
+  const t = useTranslations("editor.logo");
+  const tErrors = useTranslations("errors");
   const [found, setFound] = useState<{ for: string; logos: string[]; error?: string } | null>(null);
   const [searching, setSearching] = useState(false);
   const [broken, setBroken] = useState<string[]>([]);
@@ -24,7 +27,7 @@ export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; 
   const upload = async (file: File) => {
     setUploadError("");
     setUploading(true);
-    const res = await uploadImage("logo", file);
+    const res = await uploadImage("logo", file, tErrors("imageUnreadable"));
     setUploading(false);
     if (!res.ok) return setUploadError(res.error);
     onChange(res.url);
@@ -49,13 +52,13 @@ export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; 
   const options = (found?.for === storeUrl ? found.logos : []).filter((src) => !broken.includes(src));
   const searched = found?.for === storeUrl;
   const status = !isLink(storeUrl) && !logoUrl && !pasting
-    ? "Toque no + para enviar uma imagem, ou preencha o link da loja e a gente busca o logo."
+    ? t("status.start")
     : searched && found.error
       ? found.error
       : searched && !options.length && !logoUrl && !pasting
-        ? "Não achamos um logo no site. Toque no + para enviar uma imagem."
+        ? t("status.notFound")
         : options.length && !logoUrl
-          ? `${options.length === 1 ? "Achamos este" : "Achamos estes"} no site da loja. Toque para usar.`
+          ? t("status.found", { count: options.length })
           : "";
 
   // O logo atual entra junto das opções (escolhido).
@@ -64,14 +67,14 @@ export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; 
 
   return (
     <div className="flex flex-col gap-2">
-      <span className={labelCls}>Logo da marca (opcional)</span>
-      <div role="group" aria-label="Logo da marca" aria-busy={searching} className="flex flex-wrap items-center gap-2.5">
+      <span className={labelCls}>{t("label")}</span>
+      <div role="group" aria-label={t("group")} aria-busy={searching} className="flex flex-wrap items-center gap-2.5">
         {circles.map((src, i) => (
           <span key={src} className="relative">
             <button
               type="button"
               aria-pressed={src === logoUrl}
-              aria-label={src === logoUrl ? "Logo em uso" : `Usar logo ${i + 1} do site da loja`}
+              aria-label={src === logoUrl ? t("inUse") : t("use", { n: i + 1 })}
               onClick={() => {
                 onChange(src);
                 setPasting(false);
@@ -88,8 +91,8 @@ export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; 
             {src === logoUrl && (
               <button
                 type="button"
-                aria-label="Remover logo"
-                title="Remover logo"
+                aria-label={t("remove")}
+                title={t("remove")}
                 onClick={() => {
                   onChange("");
                   setTyped("");
@@ -110,8 +113,8 @@ export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; 
           type="button"
           onClick={() => setPasting(!pasting)}
           aria-expanded={pasting}
-          aria-label="Enviar ou colar outro logo"
-          title="Enviar ou colar outro logo"
+          aria-label={t("other")}
+          title={t("other")}
           className={`${circle} border-dashed transition-colors ${pasting ? "border-[#8F897E] text-ink" : "border-[#D6D0C5] text-[#8F897E] hover:border-[#8F897E] hover:text-ink"}`}
         >
           <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -121,7 +124,7 @@ export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; 
       </div>
       {searching || uploading ? (
         <span role="status" className="text-xs text-[#77726A]">
-          {uploading ? "Enviando imagem…" : "Procurando no site da loja…"}
+          {uploading ? t("uploading") : t("searching")}
         </span>
       ) : (
         status && (
@@ -139,7 +142,7 @@ export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; 
               <path d="M12 15V3M7 8l5-5 5 5" />
               <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
             </svg>
-            {uploading ? "Enviando…" : "Enviar imagem"}
+            {uploading ? t("sending") : t("send")}
             <input
               type="file"
               accept={IMAGE_ACCEPT}
@@ -166,17 +169,17 @@ export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; 
               setTyped(url);
               onChange(url.trim());
             }}
-            placeholder="Cole o link da imagem (https://…)"
+            placeholder={t("urlPlaceholder")}
             inputMode="url"
-            aria-label="Link da imagem do logo"
+            aria-label={t("urlLabel")}
             className={`${inputCls} bg-white`}
           />
           {typed && broken.includes(typed.trim()) ? (
             <span role="alert" className="text-xs font-medium text-[#A3361B]">
-              Essa imagem não abriu. Confira se o link termina em .png, .jpg, .svg ou .webp.
+              {t("broken")}
             </span>
           ) : (
-            <span className="text-xs leading-snug text-[#77726A]">Uma imagem quadrada fica melhor. Aparece num círculo ao lado do nome da marca.</span>
+            <span className="text-xs leading-snug text-[#77726A]">{t("tip")}</span>
           )}
           {isLink(storeUrl) && !searched && !searching && (
             <button

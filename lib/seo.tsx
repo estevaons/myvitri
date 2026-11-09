@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
+import { routing, type Locale } from "@/lib/i18n/routing";
 import { BRAND, CONTACT_EMAIL, SITE_URL } from "@/lib/brand";
-import { isActive, priceProducts } from "@/lib/vitrine/pricing";
+import { isActive } from "@/lib/vitrine/pricing";
 import type { VitrineContent } from "@/lib/vitrine/types";
 
 /**
@@ -8,19 +10,45 @@ import type { VitrineContent } from "@/lib/vitrine/types";
  * O que vai aqui precisa bater com o que a página mostra: dado estruturado que a página não tem é tratado como spam.
  */
 
-export const DESCRIPTION =
-  "Cupons de desconto e produtos indicados por quem você segue, reunidos na vitrine de cada pessoa. Para quem divulga marcas, todos os cupons num link só.";
+/** Caminho de uma página no idioma: o português fica sem prefixo, os outros ganham `/en` etc. */
+export function localizedPath(path: string, locale: Locale) {
+  if (locale === routing.defaultLocale) return path;
+  return path === "/" ? `/${locale}` : `/${locale}${path}`;
+}
+
+/** Endereço de cada idioma da página, para o `hreflang` e o sitemap. `x-default` é o português. */
+export function languageAlternates(path: string, absolute = false) {
+  const base = absolute ? SITE_URL : "";
+  return Object.fromEntries([
+    ...routing.locales.map((l) => [l, `${base}${localizedPath(path, l)}`]),
+    ["x-default", `${base}${localizedPath(path, routing.defaultLocale)}`],
+  ]) as Record<string, string>;
+}
+
+/** "pt-BR" → "pt_BR", como o Open Graph pede. */
+const ogLocale = (locale: Locale) => (locale === "en" ? "en_US" : locale.replace("-", "_"));
 
 /**
- * Título, descrição, link canônico e prévia do link de uma página.
+ * Título, descrição, link canônico, versões em outros idiomas e prévia do link de uma página.
  * O `openGraph` de uma página substitui o do layout inteiro, por isso o nome do site e o idioma vão aqui.
+ * `path` é o caminho sem idioma ("/termos").
  */
-export function pageMeta({ title, description, path, ogType = "website" }: { title: string; description: string; path: string; ogType?: "website" | "profile" }): Metadata {
+export async function pageMeta({ title, description, path, ogType = "website" }: { title: string; description: string; path: string; ogType?: "website" | "profile" }): Promise<Metadata> {
+  const locale = (await getLocale()) as Locale;
+  const url = localizedPath(path, locale);
   return {
     title,
     description,
-    alternates: { canonical: path },
-    openGraph: { type: ogType, siteName: BRAND, locale: "pt_BR", url: path, title, description },
+    alternates: { canonical: url, languages: languageAlternates(path) },
+    openGraph: {
+      type: ogType,
+      siteName: BRAND,
+      locale: ogLocale(locale),
+      alternateLocale: routing.locales.filter((l) => l !== locale).map(ogLocale),
+      url,
+      title,
+      description,
+    },
     twitter: { card: "summary_large_image", title, description },
   };
 }
@@ -33,35 +61,39 @@ export function JsonLd({ data }: { data: object }) {
 const ORG_ID = `${SITE_URL}/#organization`;
 const SITE_ID = `${SITE_URL}/#website`;
 
-export const siteJsonLd = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      "@id": ORG_ID,
-      name: BRAND,
-      url: SITE_URL,
-      logo: `${SITE_URL}/apple-icon`,
-      email: CONTACT_EMAIL,
-      areaServed: "BR",
-    },
-    { "@type": "WebSite", "@id": SITE_ID, name: BRAND, url: SITE_URL, inLanguage: "pt-BR", description: DESCRIPTION, publisher: { "@id": ORG_ID } },
-  ],
-};
+export async function siteJsonLd() {
+  const [locale, t] = await Promise.all([getLocale(), getTranslations("seo.site")]);
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": ORG_ID,
+        name: BRAND,
+        url: SITE_URL,
+        logo: `${SITE_URL}/apple-icon`,
+        email: CONTACT_EMAIL,
+        areaServed: "BR",
+      },
+      { "@type": "WebSite", "@id": SITE_ID, name: BRAND, url: SITE_URL, inLanguage: locale, description: t("description"), publisher: { "@id": ORG_ID } },
+    ],
+  };
+}
 
 /** Página de vendas: o app em si, grátis para começar, e as perguntas frequentes que a página mostra. */
-export function appJsonLd(faq: [question: string, answer: string][]) {
+export async function appJsonLd(faq: [question: string, answer: string][]) {
+  const [locale, t] = await Promise.all([getLocale(), getTranslations("seo.app")]);
   return {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "WebApplication",
         name: BRAND,
-        url: `${SITE_URL}/criar-vitrine`,
+        url: `${SITE_URL}${localizedPath("/criar-vitrine", locale as Locale)}`,
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
-        inLanguage: "pt-BR",
-        description: "Vitrine de cupons e produtos em um link só, para quem divulga marcas colocar na bio.",
+        inLanguage: locale,
+        description: t("description"),
         offers: { "@type": "Offer", price: 0, priceCurrency: "BRL" },
         publisher: { "@id": ORG_ID },
       },
@@ -80,22 +112,22 @@ export function activeBrands(content: VitrineContent, today: string) {
   return [...seen.values()];
 }
 
-/** "A, B e C", ou "A, B, C e mais 4" quando a lista é longa. */
-export function listNames(names: string[], max = 4) {
+/** "A, B e C", ou "A, B, C e mais 4" quando a lista é longa, no formato de lista do idioma. */
+export async function listNames(names: string[], max = 4) {
+  const [locale, t] = await Promise.all([getLocale(), getTranslations("seo")]);
   const shown = names.slice(0, max);
   const rest = names.length - shown.length;
-  if (rest > 0) return `${shown.join(", ")} e mais ${rest}`;
-  return shown.length > 1 ? `${shown.slice(0, -1).join(", ")} e ${shown.at(-1)}` : (shown[0] ?? "");
+  return new Intl.ListFormat(locale, { type: "conjunction" }).format(rest > 0 ? [...shown, t("andMore", { count: rest })] : shown);
 }
 
-/** Perfil da creator e os produtos da vitrine com o preço que aparece na tela (já com o cupom). */
-export function vitrineJsonLd(content: VitrineContent, today: string) {
-  const url = `${SITE_URL}/${content.handle}`;
-  const coupons = content.coupons.filter((c) => isActive(c, today));
-  const products = priceProducts(content.products, coupons);
+/** Perfil da creator e os produtos da vitrine, sem preço: a vitrine não mostra, e o preço vale o da loja. */
+export async function vitrineJsonLd(content: VitrineContent) {
+  const [locale, t] = await Promise.all([getLocale(), getTranslations("seo.vitrine")]);
+  const url = `${SITE_URL}${localizedPath(`/${content.handle}`, locale as Locale)}`;
+  const products = content.products;
   const person = {
     "@type": "Person",
-    "@id": `${url}#person`,
+    "@id": `${SITE_URL}/${content.handle}#person`,
     name: content.name,
     alternateName: `@${content.handle}`,
     url,
@@ -109,14 +141,14 @@ export function vitrineJsonLd(content: VitrineContent, today: string) {
         "@type": "ProfilePage",
         "@id": url,
         url,
-        name: `Vitrine de ${content.name}`,
-        inLanguage: "pt-BR",
+        name: t("profileName", { name: content.name }),
+        inLanguage: locale,
         isPartOf: { "@id": SITE_ID },
         mainEntity: person,
         breadcrumb: {
           "@type": "BreadcrumbList",
           itemListElement: [
-            { "@type": "ListItem", position: 1, name: BRAND, item: SITE_URL },
+            { "@type": "ListItem", position: 1, name: BRAND, item: `${SITE_URL}${localizedPath("/", locale as Locale)}` },
             { "@type": "ListItem", position: 2, name: content.name, item: url },
           ],
         },
@@ -125,7 +157,7 @@ export function vitrineJsonLd(content: VitrineContent, today: string) {
         ? [
             {
               "@type": "ItemList",
-              name: `Produtos indicados por ${content.name}`,
+              name: t("productsBy", { name: content.name }),
               url: `${url}#produtos`,
               numberOfItems: products.length,
               itemListElement: products.map((p, i) => ({
@@ -137,15 +169,7 @@ export function vitrineJsonLd(content: VitrineContent, today: string) {
                   ...(p.brand && { brand: { "@type": "Brand", name: p.brand } }),
                   ...(p.category && { category: p.category }),
                   ...(p.imageUrl && { image: p.imageUrl }),
-                  ...(p.price > 0 && {
-                    offers: {
-                      "@type": "Offer",
-                      price: (p.final / 100).toFixed(2),
-                      priceCurrency: "BRL",
-                      availability: p.soldOut ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
-                      ...((p.affiliateUrl || p.url) && { url: p.affiliateUrl || p.url }),
-                    },
-                  }),
+                  ...((p.affiliateUrl || p.url) && { url: p.affiliateUrl || p.url }),
                 },
               })),
             },

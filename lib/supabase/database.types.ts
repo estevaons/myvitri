@@ -13,6 +13,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      comments: {
+        Row: {
+          author_avatar_url: string
+          author_id: string
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          parent_id: string | null
+          vitrine_id: string
+        }
+        Insert: {
+          author_avatar_url?: string
+          author_id?: string
+          author_name?: string
+          body: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          vitrine_id: string
+        }
+        Update: {
+          author_avatar_url?: string
+          author_id?: string
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          vitrine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_vitrine_id_fkey"
+            columns: ["vitrine_id"]
+            isOneToOne: false
+            referencedRelation: "vitrines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupons: {
         Row: {
           brand: string
@@ -78,6 +126,7 @@ export type Database = {
           id: number
           item_id: string | null
           kind: string
+          visitor: string | null
           vitrine_id: string
         }
         Insert: {
@@ -85,6 +134,7 @@ export type Database = {
           id?: never
           item_id?: string | null
           kind: string
+          visitor?: string | null
           vitrine_id: string
         }
         Update: {
@@ -92,11 +142,38 @@ export type Database = {
           id?: never
           item_id?: string | null
           kind?: string
+          visitor?: string | null
           vitrine_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "events_vitrine_id_fkey"
+            columns: ["vitrine_id"]
+            isOneToOne: false
+            referencedRelation: "vitrines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          user_id: string
+          vitrine_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id?: string
+          vitrine_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+          vitrine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_vitrine_id_fkey"
             columns: ["vitrine_id"]
             isOneToOne: false
             referencedRelation: "vitrines"
@@ -110,6 +187,7 @@ export type Database = {
           id: string
           position: number
           product_ids: string[]
+          published_at: string
           signature: string
           style: Json
           name: string
@@ -120,6 +198,7 @@ export type Database = {
           id: string
           position: number
           product_ids?: string[]
+          published_at?: string
           signature?: string
           style?: Json
           name: string
@@ -130,6 +209,7 @@ export type Database = {
           id?: string
           position?: number
           product_ids?: string[]
+          published_at?: string
           signature?: string
           style?: Json
           name?: string
@@ -283,8 +363,12 @@ export type Database = {
     }
     Functions: {
       delete_my_account: { Args: never; Returns: undefined }
+      favorite_count: { Args: { target_handle: string }; Returns: number }
+      fold: { Args: { t: string }; Returns: string }
       owns_vitrine: { Args: { v: string }; Returns: boolean }
       publish_vitrine: { Args: { content: Json }; Returns: string }
+      search_catalog: { Args: { lim?: number; q: string }; Returns: Json }
+      top_creators_today: { Args: { lim?: number }; Returns: { handle: string }[] }
       vitrine_stats: { Args: { days?: number }; Returns: Json }
     }
     Enums: {

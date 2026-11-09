@@ -1,16 +1,16 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { ProductArt } from "@/components/storefront/ProductIcon";
-import { formatBRL, kitTotals, priceProducts, type PricedProduct } from "@/lib/vitrine/pricing";
-import type { Kit, VitrineContent } from "@/lib/vitrine/types";
+import { kitItems, type Kit, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import type { Update } from "./panels";
 import { AddButton, Empty, Field, FormActions, H, Hint, Row, TextInput, inputCls, labelCls, newId, reorder, useDragSort } from "./ui";
 
 const MAX_ITEMS = 4;
 
 /** Miniatura do kit na lista: a foto do primeiro produto sobre o cinza da vitrine. */
-function KitThumb({ items }: { items: PricedProduct[] }) {
+function KitThumb({ items }: { items: Product[] }) {
   return (
     <span aria-hidden="true" className="relative flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] bg-cream">
       {items[0] && <ProductArt product={items[0]} iconClassName="w-[78%]" strokeWidth={4} />}
@@ -19,9 +19,9 @@ function KitThumb({ items }: { items: PricedProduct[] }) {
 }
 
 export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Update }) {
+  const t = useTranslations("editor.kits");
   const [openId, setOpenId] = useState<string | null>(null);
   const sort = useDragSort((from, to) => update((d) => ({ ...d, kits: reorder(d.kits, from, to) })));
-  const priced = priceProducts(draft.products, draft.coupons);
   const firstName = draft.name.split(" ")[0] || draft.name;
 
   const setKit = (id: string, patch: Partial<Kit>) => update((d) => ({ ...d, kits: d.kits.map((k) => (k.id === id ? { ...k, ...patch } : k)) }));
@@ -34,31 +34,27 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
 
   return (
     <div className="flex flex-col gap-2.5">
-      <H>Kits montados por você</H>
-      <Hint>Junte até {MAX_ITEMS} produtos num combo. A vitrine soma os preços e mostra quanto a pessoa economiza.</Hint>
-      {draft.products.length === 0 ? (
-        <Empty>Adicione produtos primeiro para montar um kit.</Empty>
-      ) : (
-        draft.kits.length === 0 && <Empty>Nenhum kit ainda. Que tal o seu “kit praia” ou “kit treino”?</Empty>
-      )}
+      <H>{t("title")}</H>
+      <Hint>{t("hint", { max: MAX_ITEMS })}</Hint>
+      {draft.products.length === 0 ? <Empty>{t("needProducts")}</Empty> : draft.kits.length === 0 && <Empty>{t("empty")}</Empty>}
       {draft.kits.map((k, i) => {
-        const totals = kitTotals(k, priced);
+        const items = kitItems(k, draft.products);
         return (
           <Row
             key={k.id}
             pos={i + 1}
-            title={k.name || "Novo kit"}
-            sub={totals.items.length ? `${totals.items.length} itens · ${formatBRL(totals.final)}` : "Sem produtos"}
-            thumb={<KitThumb items={totals.items} />}
+            title={k.name || t("new")}
+            sub={items.length ? t("items", { count: items.length }) : t("noProducts")}
+            thumb={<KitThumb items={items} />}
             open={openId === k.id}
             onOpen={() => setOpenId(openId === k.id ? null : k.id)}
             sort={sort}
             total={draft.kits.length}
           >
-            <Field label="Nome do kit" hint="Vira o título da seção e o botão de escolha quando houver mais de um kit.">
-              <TextInput value={k.name} onChange={(name) => setKit(k.id, { name })} maxLength={60} placeholder={`Ex.: Kit praia da ${firstName}`} autoFocus={!k.name} />
+            <Field label={t("name")} hint={t("nameHint")}>
+              <TextInput value={k.name} onChange={(name) => setKit(k.id, { name })} maxLength={60} placeholder={t("namePlaceholder", { name: firstName })} autoFocus={!k.name} />
             </Field>
-            <Field label="Descrição">
+            <Field label={t("description")}>
               <textarea
                 value={k.description}
                 onChange={(e) => setKit(k.id, { description: e.target.value })}
@@ -67,14 +63,14 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
                 className={`${inputCls} h-auto resize-y py-2.5 leading-snug`}
               />
             </Field>
-            <Field label="Assinatura">
-              <TextInput value={k.signature} onChange={(signature) => setKit(k.id, { signature })} maxLength={80} placeholder="Ex.: Uso esse combo todo fim de semana" />
+            <Field label={t("signature")}>
+              <TextInput value={k.signature} onChange={(signature) => setKit(k.id, { signature })} maxLength={80} placeholder={t("signaturePlaceholder")} />
             </Field>
             <fieldset className="m-0 flex min-w-0 flex-col gap-1 border-0 p-0">
               <legend className={`mb-1.5 ${labelCls}`}>
-                Produtos ({k.productIds.length}/{MAX_ITEMS})
+                {t("products", { n: k.productIds.length, max: MAX_ITEMS })}
               </legend>
-              {priced.map((p) => {
+              {draft.products.map((p) => {
                 const checked = k.productIds.includes(p.id);
                 const full = !checked && k.productIds.length >= MAX_ITEMS;
                 return (
@@ -91,29 +87,23 @@ export function KitsPanel({ draft, update }: { draft: VitrineContent; update: Up
                     <span aria-hidden="true" className="relative flex size-9 flex-none items-center justify-center overflow-hidden rounded-lg bg-cream">
                       <ProductArt product={p} iconClassName="w-[70%]" strokeWidth={4} />
                     </span>
-                    <span className="min-w-0 flex-1 truncate font-medium" title={p.name}>{p.name || "Produto sem nome"}</span>
-                    {p.price > 0 && <span className="flex-none text-[13px] text-[#5E5A52]">{formatBRL(p.final)}</span>}
+                    <span className="min-w-0 flex-1 truncate font-medium" title={p.name}>{p.name || t("unnamed")}</span>
                   </label>
                 );
               })}
             </fieldset>
-            {totals.save > 0 && (
-              <Hint>
-                Total {formatBRL(totals.final)} · economia de {formatBRL(totals.save)}
-              </Hint>
-            )}
             <FormActions
               onDone={() => setOpenId(null)}
               onRemove={() => {
                 update((d) => ({ ...d, kits: d.kits.filter((x) => x.id !== k.id) }));
                 setOpenId(null);
               }}
-              removeLabel="Excluir"
+              removeLabel={t("remove")}
             />
           </Row>
         );
       })}
-      {draft.products.length > 0 && <AddButton onClick={add}>+ Montar kit</AddButton>}
+      {draft.products.length > 0 && <AddButton onClick={add}>{t("add")}</AddButton>}
     </div>
   );
 }

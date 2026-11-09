@@ -33,8 +33,13 @@ export async function takeClaim(): Promise<Claim | null> {
   return null;
 }
 
-/** Vitrine nova; quem entra pelo Google já ganha a foto da conta. */
-export function starterContent(user: User, handle: string, name: string) {
+/** A foto da conta Google; vazia para quem só usa e-mail e senha. Só https, a mesma regra dos comentários. */
+export function googlePhoto(user: User) {
   const { avatar_url } = user.user_metadata as { avatar_url?: string };
-  return { ...emptyContent(handle, name), avatarUrl: avatar_url?.startsWith("https://") ? avatar_url : "" };
+  return avatar_url?.startsWith("https://") ? avatar_url : "";
+}
+
+/** Vitrine nova; quem entra pelo Google já ganha a foto da conta. `intro` vem das mensagens `vitrineDefaults`. */
+export function starterContent(user: User, handle: string, name: string, intro: Parameters<typeof emptyContent>[2]) {
+  return { ...emptyContent(handle, name, intro), avatarUrl: googlePhoto(user) };
 }

@@ -7,7 +7,7 @@ import { SITE_URL } from "@/lib/brand";
  */
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/editor", "/api/", "/auth/"] },
+    rules: { userAgent: "*", allow: "/", disallow: ["/editor", "/inicio", "/metricas", "/en/editor", "/en/inicio", "/en/metricas", "/api/", "/auth/"] },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }
