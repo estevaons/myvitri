@@ -54,6 +54,9 @@ npx supabase db push
    - `20261105010100_comments.sql`: tabela `comments`, o trigger `comments_stamp` e as policies dos comentários da vitrine pública. Sem ela, a vitrine abre com a lista de comentários vazia e comentar falha.
    - `20261109000000_comment_replies.sql`: coluna `comments.parent_id`, índice e a nova `stamp_comment()` (respostas aos comentários). Sem ela, responder falha e a lista de comentários da vitrine também (a consulta pede `parent_id`).
    - `20261109000100_favorite_count.sql`: função `favorite_count()`, o número de favoritos mostrado no perfil da vitrine. Sem ela, a consulta falha e a vitrine aparece sem o número (o coração continua).
+   - `20261109000000_profiles_onboarding.sql`: tabela `profiles` (respostas do onboarding de `/boas-vindas` e origem do cadastro), as políticas RLS dela, o preenchimento das contas existentes (marcadas com `onboarding_version = 0`, para não passarem pelo onboarding) e o schema `analytics`, com as views `account_activation` e `funnel_steps`. **Já foi aplicada no Supabase remoto** em 2026-11-09 (as 4 contas existentes foram marcadas com versão 0). Quem monta outro ambiente precisa aplicá-la: sem ela a leitura de `profiles` falha e o app segue sem mostrar o onboarding.
+   - `20261110000000_onboarding_outro.sql`: onboarding versão 2. Troca "rede social" pelas redes em "Como conheceu" (`heard_from`), aceita `outro` na faixa de audiência, cria `profiles.other_answers` (texto livre das opções "Outro") e recria `analytics.account_activation` com essa coluna. **Ainda não foi aplicada no Supabase remoto** (pendente de aplicação). Sem ela, salvar o onboarding falha nas respostas novas.
+   - `20261110010000_session_recording_consent.sql`: consentimento de gravação de sessão. Cria `profiles.recording_opt_in` (default `false`) e `profiles.recording_opt_in_at` e recria `analytics.account_activation` com `recording_opt_in` no fim. **Ainda não foi aplicada no Supabase remoto** (pendente de aplicação). Sem ela, gravar o onboarding e ler o consentimento falham (o app trata a leitura como "não consentiu").
 
 3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. O `supabase/seed.sql` atual usa as colunas antigas `tab`/`title` de `kits` e precisa ser ajustado para `name` antes de rodar.
 
@@ -105,6 +108,8 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | sim | Supabase → Project Settings → API | URL do projeto (`https://<ref>.supabase.co`) |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | sim | Supabase → Project Settings → API Keys | Chave publicável (`sb_publishable_…`). Não existe chave de serviço no projeto. |
 | `BRAVE_SEARCH_API_KEY` | não | brave.com/search/api | Fallback quando a loja bloqueia a leitura da página do produto |
+| `NEXT_PUBLIC_POSTHOG_KEY` | não | PostHog → Project Settings (chave do projeto, pública) | Liga o PostHog (funis e retenção, navegador e servidor). Sem ela, nada é enviado: dev e preview funcionam sem a conta |
+| `NEXT_PUBLIC_POSTHOG_HOST` | não | Região do projeto no PostHog | Endereço do PostHog. Padrão `https://us.i.posthog.com` (EUA); para a UE, `https://eu.i.posthog.com` |
 | `TRACK_SALT` | não em dev, recomendada em produção | string aleatória longa, só do servidor | Reservada para o hash diário anônimo de visitante (`events.visitor`). O código de `/api/t` ainda não a usa. |
 
 ### 5. Instalar e subir o servidor
@@ -162,6 +167,8 @@ graph LR
 - **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")` (`"minutes"` para o ranking e a busca da home logada, que passa por `GET /api/busca`); os catálogos das abas de `/inicio` (`lib/vitrine/catalog/`) usam a tag `home` e filtram em memória a partir da URL; a publicação invalida com `updateTag`. Comentários e o número de favoritos têm cache próprio (tags `comentarios:{handle}` e `favoritos:{handle}`); o que é por pessoa (coração, formulário, botão de excluir) vem de `GET /api/eu` no navegador.
 - **Favoritos e comentários:** tabelas `favorites` (lista privada de cada conta) e `comments` (leitura pública, com respostas em um nível, preenchida por um trigger do banco a partir da sessão); veja [docs/database.md](docs/database.md).
 - **Editor:** rascunho salvo automaticamente em `vitrine_drafts`; **Publicar** grava tudo de uma vez pela função `publish_vitrine()` do Postgres. Nome, link e foto de perfil (Configurações, no menu da conta da home; sem foto própria vale a da conta Google, gravada em `avatar_url`, e sem nenhuma das duas a vitrine mostra as iniciais) e a capa (bloco "Sua vitrine" da home) não passam pelo rascunho: `updateProfileAction` e `updateCoverAction` gravam direto em `vitrines`, na hora. Sem capa, a vitrine mostra a primeira letra do nome.
+- **Onboarding:** quem acabou de criar a conta responde algumas perguntas em `/boas-vindas` (ou pula) antes de usar `/inicio` ou `/editor`; as respostas e a origem do cadastro (cookie `vitri_ref`) ficam em `profiles`.
+- **Analytics (dois níveis, fora da métrica das creators):** views no schema `analytics` do Postgres (`account_activation`, `funnel_steps`, só pelo SQL Editor) e PostHog (opcional, `posthog-js` no navegador e `posthog-node` nas Server Actions, com o id interno da conta como identificador). A página `/privacidade` (pt e en) declara o PostHog (pageviews, cliques com o texto do elemento, mapas de calor e desempenho do carregamento, gravação de sessões só de quem marcar o consentimento no onboarding (implementada, desligada para todos os demais; exige o Session Replay ativado no projeto do PostHog)), o Vercel Analytics, o cookie `vitri_ref` (30 dias) e as respostas do onboarding em `profiles`. Não há banner de consentimento.
 - **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()` e mostrados na página `/metricas` (a antiga aba do editor foi removida; `/editor?aba=metricas` redireciona).
 
 - **Idiomas (i18n):** o site inteiro existe em português (sem prefixo, o padrão: `/inicio`) e em inglês (prefixo `/en`: `/en/inicio`), com `next-intl`. As páginas ficam em `app/[locale]/`, os textos em `messages/pt-BR.json` e `messages/en.json` (mesmas chaves) e o idioma vem da URL; o cookie `NEXT_LOCALE` só lembra a última escolha, e o idioma do navegador é ignorado. O fuso é sempre `America/Sao_Paulo` e os preços, BRL. Fora do escopo: o conteúdo das creators não é traduzido, os e-mails do Supabase Auth continuam só em português (configurados no painel do Supabase) e o `llms.txt` é só em português. Como adicionar texto ou idioma: [Internacionalização](docs/architecture.md#internacionalização-i18n).
@@ -173,11 +180,11 @@ Mais em [docs/architecture.md](docs/architecture.md).
 ```text
 app/[locale]/        páginas e imagens por idioma (layout raiz incluso); /en/... é o inglês
 app/                 fora do idioma: actions.ts, api/, auth/callback, llms.txt, robots.ts, sitemap.ts, global-not-found.tsx, global-error.tsx
-components/          auth/, editor/, storefront/, home/ (com catalog/ e tabs/), metrics/, brand/ (com LocaleSwitcher e ErrorScreen, a tela dos erros e 404), legal/ (termos e privacidade em pt e en)
-lib/                 brand.ts, fonts.ts, i18n/ (idiomas e prefixo em routing.ts, navegação com idioma em navigation.ts, idioma por requisição e fuso em request.ts, tipagem das mensagens), supabase/ (clientes e tipos), vitrine/ (domínio, com catalog/)
+components/          analytics/ (PostHog), auth/, editor/, onboarding/ (perguntas de /boas-vindas), storefront/, home/ (com catalog/ e tabs/), metrics/, brand/ (com LocaleSwitcher e ErrorScreen, a tela dos erros e 404), legal/ (termos e privacidade em pt e en)
+lib/                 analytics/ (PostHog e cookie de atribuição), onboarding/ (opções, Zod e gravação em profiles), brand.ts, fonts.ts, i18n/ (idiomas e prefixo em routing.ts, navegação com idioma em navigation.ts, idioma por requisição e fuso em request.ts, tipagem das mensagens), supabase/ (clientes e tipos), vitrine/ (domínio, com catalog/)
 supabase/            migrations/ (SQL em ordem) e seed.sql
 messages/            pt-BR.json e en.json, catálogo de textos
-proxy.ts             proxy do Next 16 (idioma com next-intl, sessão, retorno do OAuth, / e /entrar → /inicio com sessão e /inicio → / sem sessão, /editor?aba=metricas → /metricas)
+proxy.ts             proxy do Next 16 (idioma com next-intl, sessão, retorno do OAuth, cookie de atribuição `vitri_ref`, / e /entrar → /inicio com sessão e /inicio → / sem sessão, /editor?aba=metricas → /metricas)
 docs/                architecture.md e database.md
 ```
 

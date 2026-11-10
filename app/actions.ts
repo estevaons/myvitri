@@ -11,6 +11,9 @@ import { DELETE_WORDS } from "@/lib/auth/account";
 import { PASSWORD_MIN } from "@/lib/auth/password";
 import { safePath, saveReturn } from "@/lib/auth/return-to";
 import { HOST } from "@/lib/brand";
+import { track } from "@/lib/analytics/server";
+import { onboardingSchema } from "@/lib/onboarding/options";
+import { saveOnboardingProfile, takeAttribution } from "@/lib/onboarding/store";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
 import { commentsTag, favoritesTag, HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
 import { googlePhoto, saveClaim, starterContent } from "@/lib/vitrine/claim";
@@ -34,7 +37,8 @@ import {
 } from "@/lib/vitrine/store";
 import { emptyContent, pickProfile, vitrineContentSchema, vitrineProfileSchema, type VitrineContent, type VitrineProfile } from "@/lib/vitrine/types";
 
-export type FormState = { error?: string; notice?: string; handle?: string; name?: string; email?: string };
+/** `sent`: o link foi enviado por e-mail (confirmar a conta ou senha nova); a tela mostra o modal de "confira seu e-mail". */
+export type FormState = { error?: string; sent?: "confirm" | "reset"; handle?: string; name?: string; email?: string };
 
 /**
  * As mensagens saem no idioma da página que chamou a ação: Server Actions não têm o segmento [locale],
@@ -155,7 +159,7 @@ export async function requestPasswordResetAction(_prev: FormState, form: FormDat
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: await callbackUrl() });
   // só erros que valem para qualquer e-mail: nenhum deles revela se a conta existe
   if (error && ["email_address_not_authorized", "over_email_send_rate_limit", "over_request_rate_limit", "email_provider_disabled"].includes(error.code ?? "")) return { email, error: await authErrorText(error.code) };
-  return { email, notice: t("resetSent", { email }) };
+  return { email, sent: "reset" };
 }
 
 /** Tela /nova-senha: quem chegou pelo link do e-mail já tem sessão. */
@@ -177,6 +181,7 @@ async function createAndOpen(handle: string, name: string, state: FormState): Pr
   if (!user) return { ...state, error: t("sessionExpired") };
   try {
     await createVitrine(supabase, user.id, starterContent(user, handle, name, await intro()));
+    await track(user.id, "vitrine_created", { via: "form" });
   } catch (e) {
     if (e instanceof HandleTakenError) return { ...state, error: t("handleTaken", { url: `${HOST}/${handle}` }) };
     throw e;
@@ -206,7 +211,7 @@ async function signUpWithEmail(state: FormState & { handle: string; name: string
   if (error) return { ...state, email, error: await authErrorText(error.code) };
   if (data.session) return createAndOpen(state.handle, state.name, state);
   await saveClaim({ handle: state.handle, name: state.name });
-  return { ...state, email, notice: t("confirmSent", { email }) };
+  return { ...state, email, sent: "confirm" };
 }
 
 /** Criar vitrine: escolhe o link e cria a conta, com e-mail e senha ou com o Google. Logado, cria direto. */
@@ -242,6 +247,75 @@ export async function createVitrineAction(_prev: FormState, form: FormData): Pro
   const parsed = vitrineContentSchema.safeParse(emptyContent(handle, name));
   if (!parsed.success) return { handle, name, error: await issueText(parsed.error) };
   return createAndOpen(handle, name, { handle, name });
+}
+
+export type OnboardingState = { error?: string };
+
+function readOnboarding(form: FormData) {
+  const list = (name: string) => form.getAll(name).map(String).filter(Boolean);
+  const one = (name: string) => String(form.get(name) ?? "") || null;
+  // texto do "Outro": até 60 caracteres, vazio vira null
+  const other = (name: string) => String(form.get(name) ?? "").trim().slice(0, 60) || null;
+  return {
+    persona: String(form.get("persona") ?? ""),
+    networks: list("networks"),
+    audience: one("audience"),
+    niches: list("niches"),
+    interests: list("interests"),
+    heardFrom: one("heardFrom"),
+    marketingOptIn: form.get("marketingOptIn") === "on",
+    recording: form.get("recording") === "on",
+    other: {
+      networks: other("otherNetworks"),
+      audience: other("otherAudience"),
+      niches: other("otherNiches"),
+      heardFrom: other("otherHeardFrom"),
+      interests: other("otherInterests"),
+    },
+  };
+}
+
+/** Respostas de /boas-vindas. Quem grava é a própria pessoa (RLS); a origem do cadastro vai junto, uma vez. */
+export async function saveOnboardingAction(_prev: OnboardingState, form: FormData): Promise<OnboardingState> {
+  const parsed = onboardingSchema.safeParse(readOnboarding(form));
+  if (!parsed.success) return { error: (await getTranslations("onboarding"))("errors.choose") };
+  const { supabase, user } = await getUser();
+  if (!user) return { error: (await errors())("sessionExpired") };
+  try {
+    await saveOnboardingProfile(supabase, user.id, parsed.data, await takeAttribution());
+  } catch (e) {
+    console.error("saveProfile", e);
+    return { error: (await getTranslations("onboarding"))("errors.save") };
+  }
+  const a = parsed.data;
+  // $set: estas propriedades ficam no perfil da pessoa no PostHog, para segmentar qualquer funil
+  await track(user.id, "onboarding_completed", {
+    persona: a.persona,
+    networks: a.networks,
+    audience: a.audience,
+    niches: a.niches,
+    interests: a.interests,
+    heard_from: a.heardFrom,
+    marketing_opt_in: a.marketingOptIn,
+    recording_opt_in: a.recording,
+    $set: { persona: a.persona, audience_band: a.audience, heard_from: a.heardFrom, marketing_opt_in: a.marketingOptIn },
+  });
+  // creator monta a vitrine (editor); comprador vai para a home. A página de origem (`next`) só vale para quem pulou.
+  return go(a.persona === "creator" ? "/editor" : "/inicio");
+}
+
+/** "Pular" no onboarding: conta como respondido para não perguntar de novo, sem respostas. */
+export async function skipOnboardingAction(form: FormData) {
+  const { supabase, user } = await getUser();
+  if (!user) return go("/entrar");
+  try {
+    await saveOnboardingProfile(supabase, user.id, null, await takeAttribution());
+  } catch (e) {
+    console.error("skipProfile", e);
+    return go("/boas-vindas");
+  }
+  await track(user.id, "onboarding_skipped");
+  return go(safePath(form.get("next")) ?? "/inicio");
 }
 
 export async function signOutAction() {
@@ -364,6 +438,7 @@ export async function publishVitrine(content: VitrineContent): Promise<PublishRe
   try {
     const { prevHandle, updatedAt } = await publish(supabase, user.id, parsed.data);
     await deleteDraft(supabase, user.id).catch((e) => console.error("deleteDraft", e));
+    await track(user.id, "vitrine_published", { coupons: parsed.data.coupons.length, products: parsed.data.products.length, kits: parsed.data.kits.length });
     updateTag(vitrineTag(prevHandle));
     if (prevHandle !== parsed.data.handle) updateTag(vitrineTag(parsed.data.handle));
     updateTag(HOME_TAG);

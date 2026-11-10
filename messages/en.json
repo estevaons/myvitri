@@ -86,6 +86,13 @@
     "signInGoogle": "Sign in with Google",
     "loginFailed": "Sign-in wasn't completed. Try again.",
     "forgotText": "We'll send a link to your email. It also works if you used to sign in only with Google.",
+    "emailSent": {
+      "title": "Check your email",
+      "confirm": "We sent a confirmation link to:",
+      "reset": "If there's an account for this address, we sent a link to create a new password:",
+      "resetHint": "Open it in this browser. Not there? Check your spam.",
+      "ok": "Got it"
+    },
     "sendLink": "Send link",
     "sending": "Sending…",
     "signInTitle": "Sign in to your account",
@@ -279,14 +286,12 @@
   "errors": {
     "googleFailed": "We couldn't open Google sign-in. Try again.",
     "enterEmail": "Enter your email.",
-    "resetSent": "If there's an account for {email}, we've sent a link to create a new password. Open the link in this same browser.",
     "passwordMin": "Use at least {min} characters.",
     "linkExpired": "This link has expired. Go back to the sign-in screen and request another one.",
     "samePassword": "Use a password different from your current one.",
     "sessionExpired": "Your session expired. Sign in again.",
     "handleTaken": "{url} is already taken",
     "signupPasswordMin": "Use a password with at least {min} characters.",
-    "confirmSent": "We've sent a confirmation link to {email}. Open it in this same browser to finish. If that email already has an account, nothing is sent: just sign in.",
     "deleteMismatch": "The link you typed doesn't match.",
     "deleteTypeWord": "Type {word} to confirm.",
     "deleteFailed": "We couldn't delete the account. Try again.",
@@ -914,6 +919,109 @@
       "text": "The problem is on our side, not your device. Please try again in a moment.",
       "retry": "Try again",
       "code": "Error code: {digest}"
+    }
+  },
+  "onboarding": {
+    "title": "Welcome to MyVitri",
+    "intro": "Two quick questions to make everything feel like yours.",
+    "skip": "Skip for now",
+    "step": "Step {current} of {total}",
+    "back": "Back",
+    "next": "Continue",
+    "finish": "Finish",
+    "saving": "Saving…",
+    "persona": {
+      "question": "What brings you here?",
+      "creator": "Build my coupon storefront",
+      "creatorHint": "I'm a creator and promote brands",
+      "shopper": "Find coupons to shop with",
+      "shopperHint": "I want to find brand discounts"
+    },
+    "networks": {
+      "title": "Where do you promote most?",
+      "hint": "You can pick more than one."
+    },
+    "audience": {
+      "title": "How big is your audience?",
+      "hint": "An estimate is fine."
+    },
+    "niches": {
+      "title": "What are your niches?",
+      "hint": "Up to 3. We use this to suggest brands and categories in your editor."
+    },
+    "heardFrom": {
+      "title": "How did you hear about MyVitri?"
+    },
+    "optIn": {
+      "title": "I want to receive brand proposals",
+      "hint": "We can let you know when brands want to work with you. You can change this later."
+    },
+    "recording": {
+      "title": "I want to join the testing program, with my browsing recorded",
+      "hint": "We record how you move around MyVitri, to find what gets in the way. Typing fields do not appear in the recording. You can withdraw later by email."
+    },
+    "interests": {
+      "title": "What do you usually buy?",
+      "hint": "Pick as many as you like. Your home page shows coupons for these topics."
+    },
+    "other": {
+      "label": "Which one?",
+      "placeholder": "Type here"
+    },
+    "options": {
+      "networks": {
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "youtube": "YouTube",
+        "kwai": "Kwai",
+        "pinterest": "Pinterest",
+        "whatsapp": "WhatsApp",
+        "telegram": "Telegram",
+        "blog": "Blog",
+        "outra": "Other"
+      },
+      "audience": {
+        "menos-1k": "Under 1 thousand",
+        "1k-10k": "1 to 10 thousand",
+        "10k-50k": "10 to 50 thousand",
+        "50k-200k": "50 to 200 thousand",
+        "200k-1m": "200 thousand to 1 million",
+        "acima-1m": "Over 1 million",
+        "outro": "Other"
+      },
+      "niches": {
+        "moda": "Fashion",
+        "beleza": "Beauty",
+        "casa": "Home and decor",
+        "maternidade": "Parenting",
+        "fitness": "Fitness",
+        "tecnologia": "Tech",
+        "games": "Games",
+        "pets": "Pets",
+        "alimentacao": "Food",
+        "viagem": "Travel",
+        "saude": "Health",
+        "outro": "Other"
+      },
+      "heardFrom": {
+        "outra-creator": "Another creator's storefront",
+        "indicacao": "Recommended by someone",
+        "google": "Google search",
+        "anuncio": "Ad",
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "youtube": "YouTube",
+        "kwai": "Kwai",
+        "pinterest": "Pinterest",
+        "whatsapp": "WhatsApp",
+        "telegram": "Telegram",
+        "blog": "Blog",
+        "outro": "Other"
+      }
+    },
+    "errors": {
+      "choose": "Pick an option to continue.",
+      "save": "Couldn't save right now. Try again."
     }
   }
 }

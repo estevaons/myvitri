@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { redirect } from "@/lib/i18n/navigation";
 import { CreateVitrinePanel } from "@/components/auth/forms";
 import { Editor } from "@/components/editor/Editor";
+import { IdentifyUser } from "@/components/analytics/IdentifyUser";
+import { needsOnboarding, recordingConsent } from "@/lib/onboarding/store";
 import { accountOf } from "@/lib/vitrine/account";
 import { findDraft, findMine } from "@/lib/vitrine/store";
 
@@ -19,13 +21,27 @@ async function EditorLoader({ searchParams }: Pick<PageProps<"/[locale]/editor">
   await connection();
   const { supabase, user, vitrine } = await findMine();
   const { aba } = await searchParams;
-  if (!user) return redirect({ href: { pathname: "/entrar", query: { next: "/editor" } }, locale: await getLocale() });
+  const locale = await getLocale();
+  if (!user) return redirect({ href: { pathname: "/entrar", query: { next: "/editor" } }, locale });
+  // quem acabou de criar a conta responde o onboarding antes de editar (volta para cá depois)
+  if (await needsOnboarding(supabase, user.id)) return redirect({ href: { pathname: "/boas-vindas", query: { next: "/editor" } }, locale });
+  const recording = await recordingConsent(supabase, user.id);
   if (!vitrine) {
     const meta = user.user_metadata as { name?: string };
-    return <CreateVitrinePanel suggestedName={meta.name ?? ""} />;
+    return (
+      <>
+        <IdentifyUser id={user.id} recording={recording} />
+        <CreateVitrinePanel suggestedName={meta.name ?? ""} />
+      </>
+    );
   }
   const draft = await findDraft(supabase, user.id, vitrine);
-  return <Editor published={vitrine} draft={draft} today={new Date().toISOString().slice(0, 10)} account={accountOf(user, vitrine)} initialTab={typeof aba === "string" ? aba : undefined} />;
+  return (
+    <>
+      <IdentifyUser id={user.id} recording={recording} />
+      <Editor published={vitrine} draft={draft} today={new Date().toISOString().slice(0, 10)} account={accountOf(user, vitrine)} initialTab={typeof aba === "string" ? aba : undefined} />
+    </>
+  );
 }
 
 export default function Page({ searchParams }: PageProps<"/[locale]/editor">) {

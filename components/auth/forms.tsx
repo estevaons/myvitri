@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { claimAction, createVitrineAction, requestPasswordResetAction, signInAction, signInWithPasswordAction, updatePasswordAction, type FormState } from "@/app/actions";
 import { BackLink } from "@/components/brand/BackLink";
@@ -123,13 +123,48 @@ function ErrorText({ children }: { children?: string }) {
   );
 }
 
-/** Deu certo e agora é com o e-mail da pessoa. */
-function NoticeText({ children }: { children?: string }) {
-  if (!children) return null;
+/**
+ * Deu certo e agora é com o e-mail da pessoa: modal com o endereço em destaque. Um <dialog> nativo (Esc ou
+ * clique no fundo fecham, o foco fica dentro). Abre a cada envio, mesmo que o e-mail seja o mesmo (`state` muda).
+ */
+function EmailSentDialog({ state }: { state: FormState }) {
+  const t = useTranslations("auth.emailSent");
+  const ref = useRef<HTMLDialogElement>(null);
+  const kind = state.sent;
+  useEffect(() => {
+    if (kind) ref.current?.showModal();
+  }, [state, kind]);
+  if (!kind) return null;
   return (
-    <p role="status" className="m-0 bg-cream p-4 text-[15px] leading-relaxed text-ink">
-      {children}
-    </p>
+    <dialog
+      ref={ref}
+      aria-labelledby="titulo-email-enviado"
+      onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
+      className="m-auto box-border w-[calc(100%-32px)] max-w-[420px] border-0 bg-white p-0 text-ink backdrop:bg-ink/40"
+    >
+      <div className="flex flex-col items-center gap-5 px-6 pt-8 pb-6 text-center md:px-8">
+        <span aria-hidden="true" className="flex size-14 items-center justify-center rounded-full bg-cream text-ink">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="5" width="18" height="14" rx="1.5" />
+            <path d="M3.5 6l8.5 7 8.5-7" />
+          </svg>
+        </span>
+        <div className="flex w-full flex-col items-center gap-3">
+          <h2 id="titulo-email-enviado" className="m-0 font-display text-[28px] leading-none font-normal whitespace-nowrap sm:text-[34px]">
+            {t("title")}
+          </h2>
+          <p className="m-0 text-[16px] leading-relaxed text-mute">{t(kind)}</p>
+          {/* o endereço numa linha própria: quebra só se não couber, e nunca no meio da frase */}
+          <p className="m-0 max-w-full bg-cream px-3 py-2 text-[15px] font-medium text-ink [overflow-wrap:anywhere]">{state.email}</p>
+        </div>
+        {kind === "reset" && <p className="m-0 text-[14px] leading-snug text-mute">{t("resetHint")}</p>}
+        <form method="dialog" className="w-full">
+          <button type="submit" autoFocus className={`${submit} w-full`}>
+            {t("ok")}
+          </button>
+        </form>
+      </div>
+    </dialog>
   );
 }
 
@@ -253,7 +288,7 @@ export function SignupForm() {
           <PasswordField isNew />
           <SubmitButton label={t("signup.submit")} busy={t("creating")} via="email" />
           <ErrorText>{state.error}</ErrorText>
-          <NoticeText>{state.notice}</NoticeText>
+          <EmailSentDialog state={state} />
           <OrDivider />
           <GoogleButton label={t("signup.google")} />
         </div>
@@ -328,7 +363,7 @@ function ForgotPassword() {
         <EmailField value={state.email} />
         <SubmitButton label={t("sendLink")} busy={t("sending")} />
         <ErrorText>{state.error}</ErrorText>
-        <NoticeText>{state.notice}</NoticeText>
+        <EmailSentDialog state={state} />
       </form>
     </>
   );

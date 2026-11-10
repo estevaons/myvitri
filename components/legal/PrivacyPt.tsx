@@ -42,14 +42,41 @@ export function PrivacyPt({ updated }: { updated: string }) {
         </p>
         <p>
           <strong>Quem visita uma vitrine.</strong> Contamos visitas e cliques (por exemplo, “cupom copiado” ou “clique para ir à loja”)
-          para mostrar métricas a quem é dono da vitrine. Cada registro guarda só o tipo do evento, o item clicado e a data e hora. Não guardamos nome,
-          e-mail, endereço IP nem qualquer identificador pessoal junto com esses eventos.
+          para mostrar métricas a quem é dono da vitrine. Cada registro guarda só o tipo do evento, o item clicado e a data e hora. Nesses
+          registros não guardamos nome, e-mail nem endereço IP. Além disso, o site envia ao PostHog (veja o item 6) um registro de cada
+          página aberta, com um identificador anônimo guardado no seu navegador. Esse identificador não tem nome nem e-mail, mas o PostHog
+          recebe o endereço IP e dados técnicos do navegador junto com esses registros.
+        </p>
+        <p>
+          <strong>Uso do site (PostHog).</strong> Para entender onde as pessoas clicam e como as páginas são usadas, o PostHog também
+          registra: cliques em botões e links, com o texto visível do elemento clicado (por exemplo, “Copiar cupom”); cliques, movimentos
+          do cursor e até onde a página foi rolada, usados nos mapas de calor; e medidas de desempenho do carregamento das páginas. Não
+          gravamos a tela nem vídeos das sessões sem o seu consentimento (veja “Gravação de sessões” abaixo).
+        </p>
+        <p>
+          <strong>Gravação de sessões (somente com consentimento).</strong> Para entender onde as pessoas travam, quem participa do programa de testes
+          pode ter a navegação gravada pelo PostHog. A gravação só começa se você marcar, expressamente, a opção de aceitar gravação. Campos
+          de digitação ficam mascarados, e o que você digita não aparece na gravação. Textos da tela, como nomes de vitrines e cupons, podem
+          aparecer. Quem não consentiu não é gravado, e você pode retirar o consentimento a qualquer momento (veja o item 9).
         </p>
         <p>
           <strong>Quem favorita ou comenta.</strong> Os mesmos dados do login. A lista de favoritas é privada. O
           comentário é público: o texto aparece na vitrine com a data, o seu nome e, se você entrar com o Google, a sua foto de perfil, para qualquer pessoa
           que abrir a página. Você pode apagar seus comentários a qualquer momento, e quem é dono da vitrine também pode apagar os que
           estão nela.
+        </p>
+        <p>
+          <strong>Respostas do onboarding.</strong> Depois de criar a conta, pedimos algumas informações para entender quem usa o {BRAND}:
+          se você é criador de conteúdo ou comprador; em quais redes publica (ou que tipo de produto procura); a faixa de audiência, os
+          nichos e como chegou até nós; e se quer receber novidades por e-mail. Você pode pular essa etapa. As respostas ficam no seu
+          perfil e são apagadas junto com a conta. Não pedimos CPF, telefone nem dados sensíveis. Se você escrever um texto na opção
+          “Outro”, guardamos o texto como você escreveu, por isso não inclua dados pessoais nele.
+        </p>
+        <p>
+          <strong>Origem da primeira visita.</strong> Para saber como as pessoas chegam ao {BRAND}, guardamos num cookie, por 30 dias, de
+          onde veio a sua primeira visita: parâmetros de campanha (UTM), a vitrine que indicou o link, o domínio do site de origem e a
+          página de entrada. Se você criar a conta, esses dados passam para o seu perfil. Nesse cookie não guardamos o endereço IP nem a
+          URL completa de origem.
         </p>
         <p>
           <strong>Registros técnicos.</strong> Nossos provedores de hospedagem podem registrar, por pouco tempo, dados como endereço IP,
@@ -64,9 +91,12 @@ export function PrivacyPt({ updated }: { updated: string }) {
           <li>Publicar sua vitrine e mostrar a você as métricas de visitas e cliques (execução do contrato).</li>
           <li>Guardar suas vitrines favoritas e publicar seus comentários com seu nome e foto (execução do contrato).</li>
           <li>Falar com você sobre sua conta, mudanças importantes no serviço ou pedidos que você fizer (legítimo interesse).</li>
+          <li>Entender como as pessoas chegam ao {BRAND} e usam o site, para melhorar o produto (legítimo interesse).</li>
+          <li>Entender onde as pessoas travam, por meio de gravações de sessão, somente de quem consentiu (consentimento).</li>
+          <li>Enviar novidades por e-mail apenas para quem aceitou receber (consentimento, que pode ser retirado a qualquer momento).</li>
           <li>Manter o site seguro, evitar abusos e cumprir obrigações legais.</li>
         </ul>
-        <p>Não vendemos seus dados, não os usamos para publicidade e não traçamos perfis de quem visita as vitrines.</p>
+        <p>Não vendemos seus dados e não os usamos para publicidade. Quem visita uma vitrine não é identificado por nome ou e-mail.</p>
       </Section>
 
       <Section title="4. Dados recebidos do Google">
@@ -87,8 +117,10 @@ export function PrivacyPt({ updated }: { updated: string }) {
           <li>Cookies temporários que guardam o link escolhido (até 10 minutos, enquanto você entra) e a página para onde voltar (até 1 hora, no caso do link de senha nova).</li>
           <li>Um cookie que lembra o idioma do site que você escolheu por último (até 1 ano).</li>
           <li>Um registro na sessão do navegador para não contar a mesma visita duas vezes; ele some quando a aba é fechada.</li>
+          <li>Um cookie de origem (<code>vitri_ref</code>), que guarda de onde veio a primeira visita e expira em 30 dias (veja o item 2).</li>
+          <li>Um identificador anônimo guardado pelo PostHog no armazenamento local do navegador (não é cookie), para reconhecer o navegador entre visitas.</li>
         </ul>
-        <p>Não usamos cookies de publicidade nem ferramentas de rastreamento de terceiros.</p>
+        <p>Não usamos cookies de publicidade. A medição de uso é feita pelo PostHog e pela Vercel (veja o item 6).</p>
       </Section>
 
       <Section title="6. Com quem compartilhamos">
@@ -98,7 +130,7 @@ export function PrivacyPt({ updated }: { updated: string }) {
             <strong>Supabase</strong>: banco de dados e autenticação.
           </li>
           <li>
-            <strong>Vercel</strong>: hospedagem do site.
+            <strong>Vercel</strong>: hospedagem do site e medição de acessos (Vercel Analytics).
           </li>
           <li>
             <strong>Google</strong>: login com a conta Google.
@@ -106,6 +138,10 @@ export function PrivacyPt({ updated }: { updated: string }) {
           <li>
             <strong>Brave Search</strong>: quando você importa um produto por link, podemos consultar o endereço ou o nome do produto
             para completar a foto. Nenhum dado pessoal seu é enviado.
+          </li>
+          <li>
+            <strong>PostHog</strong>: medição do uso do site (páginas abertas, cliques, mapas de calor, desempenho, gravações de sessão de quem consentiu, eventos da seção 2 e a identificação de quem entra). Por
+            padrão, os dados ficam em servidores nos Estados Unidos.
           </li>
         </ul>
         <p>
@@ -127,7 +163,8 @@ export function PrivacyPt({ updated }: { updated: string }) {
           (no menu da sua foto, “Excluir minha conta”): na mesma hora apagamos a conta, a vitrine, os cupons, os produtos, os kits, o rascunho, as
           métricas, as favoritas e os comentários que você escreveu, e o link fica livre. Se preferir, peça a exclusão por {mail} e fazemos em até 15 dias. Cópias de segurança do banco
           de dados e registros técnicos dos provedores são apagados automaticamente em prazos curtos. Só guardamos algo depois disso se
-          a lei obrigar.
+          a lei obrigar. Os dados do onboarding saem junto com a conta. Os eventos já enviados ao PostHog não são apagados automaticamente
+          com a conta: seguem o prazo de retenção configurado no projeto, inclusive as gravações de sessão.
         </p>
       </Section>
 
@@ -138,8 +175,9 @@ export function PrivacyPt({ updated }: { updated: string }) {
           <li>corrigir dados incompletos ou desatualizados (a maior parte pode ser editada direto nas Configurações e no editor);</li>
           <li>excluir sua conta e seus dados por conta própria, nas Configurações (no menu da sua foto, “Excluir minha conta”);</li>
           <li>pedir a portabilidade dos dados;</li>
+          <li>revisar ou remover as respostas do onboarding e os dados de origem da primeira visita;</li>
           <li>saber com quem compartilhamos seus dados;</li>
-          <li>revogar o consentimento, quando ele for a base do tratamento.</li>
+          <li>revogar o consentimento, quando ele for a base do tratamento, inclusive para as gravações de sessão.</li>
         </ul>
         <p>
           Para os demais pedidos, escreva para {mail} a partir do e-mail da sua conta. Respondemos em até 15 dias. Você também pode remover o acesso do{" "}

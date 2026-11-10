@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { routing } from "@/lib/i18n/routing";
 import { BRAND, SITE_URL } from "@/lib/brand";
 import { fontVariables } from "@/lib/fonts";
+import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import "../globals.css";
 
 /** Um layout raiz por idioma, gerados no build (com Cache Components, cada root param precisa de um valor). */
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
         {/* mensagens e idioma para os componentes cliente (useTranslations) */}
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
         <Analytics />
+        <PostHogProvider />
       </body>
     </html>
   );

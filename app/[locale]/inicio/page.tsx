@@ -3,8 +3,10 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { flatParams, tabOf } from "@/components/home/catalog/params";
+import { IdentifyUser } from "@/components/analytics/IdentifyUser";
 import { HomeView, type ForYou } from "@/components/home/HomeView";
 import { redirect } from "@/lib/i18n/navigation";
+import { needsOnboarding, recordingConsent } from "@/lib/onboarding/store";
 import { accountOf } from "@/lib/vitrine/account";
 import { getHomeFeed, getRecentKits, getTopCreators, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
 import { findMineContent, findMineSummary, listFavoriteHandles } from "@/lib/vitrine/store";
@@ -52,6 +54,9 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, 
   const { supabase, user } = await getUser();
   // o proxy já manda quem não entrou para a landing; isto cobre a sessão que cai entre ele e esta leitura
   if (!user) return redirect({ href: "/", locale: await getLocale() });
+  // quem acabou de criar a conta responde o onboarding antes (volta para cá depois)
+  if (await needsOnboarding(supabase, user.id)) return redirect({ href: { pathname: "/boas-vindas", query: { next: "/inicio" } }, locale: await getLocale() });
+  const recording = await recordingConsent(supabase, user.id);
 
   // a vitrine completa só na aba "Para você"; nas outras basta o nome, o endereço e a foto do cabeçalho.
   // Só as abas com o coração precisam saber as favoritas.
@@ -66,7 +71,12 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, 
   const name = firstName(vitrine?.name || meta.name || "") || user.email?.split("@")[0] || "";
 
   const forYou: ForYou | null = forYouRows && { vitrine: content, ranked: forYouRows[0].ranked, creators: forYouRows[0].creators, kits: forYouRows[1] };
-  return <HomeView name={name} account={accountOf(user, vitrine)} tab={tab} params={params} forYou={forYou} favorites={favorites} />;
+  return (
+    <>
+      <IdentifyUser id={user.id} recording={recording} />
+      <HomeView name={name} account={accountOf(user, vitrine)} tab={tab} params={params} forYou={forYou} favorites={favorites} />
+    </>
+  );
 }
 
 export default function Page({ searchParams }: PageProps<"/[locale]/inicio">) {

@@ -11,6 +11,8 @@ Pense no banco como um **arquivo de pastas de uma loja de departamento**:
 - Quem entra com e-mail e senha ou com o Google (mesmo sem ter vitrine) pode **favoritar** vitrines, numa lista privada (`favorites`), e **comentar** nelas (`comments`, com respostas em um nível): o comentário é público, e apaga quem escreveu ou a dona da vitrine.
 - Ao lado da pasta oficial existe um **rascunho**: enquanto a creator edita, tudo vai para o rascunho. Só quando ela clica em **Publicar** o conteúdo do rascunho substitui o que está na pasta oficial.
 - Existe ainda um **caderno de visitas** (`events`): toda vez que alguém abre a vitrine ou clica no produto ou em "copiar cupom", uma linha anônima é anotada ali. É daí que saem os gráficos de métricas.
+- Cada conta tem ainda uma **ficha de boas-vindas** (`profiles`): as poucas perguntas que a pessoa responde logo depois de criar a conta (se divulga ou só procura cupons, em quais redes, o tamanho do público, como conheceu o MyVitri) e de onde ela veio (um "primeiro toque" de atribuição, sem IP). Quem pulou também ganha uma ficha, só marcada como pulada, para não ser perguntada de novo.
+- Fora do app, num **escritório separado** (o schema `analytics`), ficam duas planilhas prontas que cruzam contas, fichas, vitrines e visitas para mostrar o funil de ativação. O app nunca lê esse escritório e a chave pública não abre a porta dele.
 - As **fotos** enviadas (capa, perfil, logos de marca) não ficam no banco: ficam em "baldes" de arquivos (Supabase Storage), cada usuário na sua própria pasta.
 
 Quem cuida da segurança é o próprio banco: regras chamadas **RLS** (Row Level Security) dizem "qualquer pessoa pode **ler** uma vitrine, mas só a dona pode **alterar**". O app nunca usa uma chave de administrador; ele sempre fala com o banco "como" a pessoa logada (ou como visitante anônimo).
@@ -18,7 +20,7 @@ Quem cuida da segurança é o próprio banco: regras chamadas **RLS** (Row Level
 ## Visão técnica
 
 - **SGBD:** PostgreSQL gerenciado pelo [Supabase](https://supabase.com) (PostgREST 14.18, segundo `database.types.ts:12`).
-- **Schemas usados:** `public` (tabelas do app), `auth` (usuários, gerenciado pelo Supabase Auth), `storage` (buckets e objetos) e `extensions` (`unaccent` e `pg_trgm`, usadas na busca).
+- **Schemas usados:** `public` (tabelas do app), `analytics` (views de análise, fora da API), `auth` (usuários, gerenciado pelo Supabase Auth), `storage` (buckets e objetos) e `extensions` (`unaccent` e `pg_trgm`, usadas na busca).
 - **Acesso:** sempre via `@supabase/supabase-js` com a **chave publicável** (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Não existe `service_role` no código. Toda autorização é RLS + funções `security invoker`, com duas exceções `security definer` (`delete_my_account` e `top_creators_today`, que só devolve a ordem do ranking). Há ainda um trigger, `comments_stamp`, em `comments` (função `stamp_comment()`, `security invoker`).
 - **IDs dos itens** (`coupons.id`, `products.id`, `kits.id`) **não têm default**: são UUIDs gerados no navegador (`crypto.randomUUID()` em `components/editor/ui.tsx:14`) e enviados na publicação. Isso mantém o ID estável entre publicações, o que permite que as métricas (`events.item_id`) continuem apontando para o item certo.
 - **Dinheiro em centavos** (`int`): `coupons.value` quando `kind = 'fixed'` e a coluna legado `products.price`.
@@ -41,6 +43,7 @@ erDiagram
     AUTH_USERS ||--o{ COMMENTS : "author_id (cascade)"
     VITRINES ||--o{ COMMENTS : "vitrine_id (cascade)"
     COMMENTS ||--o{ COMMENTS : "parent_id (cascade)"
+    AUTH_USERS ||--o| PROFILES : "user_id (cascade)"
 
     AUTH_USERS {
         uuid id PK
@@ -124,6 +127,26 @@ erDiagram
         text body "1 a 500 chars apos trim"
         timestamptz created_at "preenchido pelo trigger"
     }
+    PROFILES {
+        uuid user_id PK,FK "default auth.uid"
+        text persona "creator ou shopper, nulo se pulou"
+        text_array networks "ate 9"
+        text audience_band
+        text_array niches "ate 3"
+        text_array interests "ate 12"
+        text heard_from
+        jsonb other_answers "texto livre dos Outro"
+        boolean marketing_opt_in
+        timestamptz opt_in_at
+        boolean recording_opt_in "aceite de gravacao de sessao"
+        timestamptz recording_opt_in_at
+        jsonb signup_source "primeiro toque de atribuicao"
+        int onboarding_version "0 conta anterior, 1 e 2 versoes das perguntas"
+        timestamptz onboarded_at
+        timestamptz skipped_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
     EVENTS {
         bigint id PK
         uuid vitrine_id FK
@@ -157,6 +180,9 @@ erDiagram
 | 14 | `20261105010100_comments.sql` | Cria `comments`, os índices `comments_vitrine_idx` e `comments_author_idx`, a função `stamp_comment()`, o trigger `comments_stamp` (`before insert`) e as policies. |
 | 15 | `20261109000000_comment_replies.sql` | Adiciona `comments.parent_id` (FK para `comments(id)` **on delete cascade**), o índice parcial `comments_parent_idx` e recria `stamp_comment()` para tratar respostas (sobe para o original, copia a vitrine, erro `VT404`). RLS inalterada. |
 | 16 | `20261109000100_favorite_count.sql` | Cria `favorite_count(target_handle text)` (`security definer`), que devolve quantas pessoas favoritaram a vitrine, e libera a execução só para `anon` e `authenticated`. `favorites` segue privada. |
+| 17 | `20261109000000_profiles_onboarding.sql` | Cria `profiles` (respostas do onboarding e origem do cadastro) com RLS do dono (select, insert e update), preenche uma linha com `onboarding_version = 0` para cada conta já existente e cria o schema `analytics` (fora da API) com as views `analytics.account_activation` e `analytics.funnel_steps`. **Já aplicada no Supabase remoto** (projeto `buhpwscgfutkrufhcyej`) em 2026-11-09: o preenchimento marcou as 4 contas existentes na época com versão 0. |
+| 18 | `20261110000000_onboarding_outro.sql` | Onboarding versão 2. Zera `heard_from = 'rede-social'` (a rede exata não foi informada), troca os `CHECK` `profiles_heard_from_check` (agora com as redes `instagram`, `tiktok`, `youtube`, `kwai`, `pinterest`, `whatsapp`, `telegram`, `blog`, no lugar de `rede-social`) e `profiles_audience_band_check` (ganha `outro`), adiciona `profiles.other_answers` (`jsonb`, texto livre das opções "Outro") e recria `analytics.account_activation` com `other_answers` no fim. **Ainda não foi aplicada no Supabase remoto** (pendente de aplicação): sem ela, gravar `audience_band = 'outro'`, as novas opções de `heard_from` ou `other_answers` falha, e o onboarding não é salvo. |
+| 19 | `20261110010000_session_recording_consent.sql` | Consentimento de gravação de sessão: adiciona `profiles.recording_opt_in` (`boolean`, default `false`) e `profiles.recording_opt_in_at` (`timestamptz`) e recria `analytics.account_activation` com `recording_opt_in` no fim. **Ainda não foi aplicada no Supabase remoto** (pendente de aplicação): sem ela, gravar o onboarding e ler o consentimento falham. |
 | — | `supabase/seed.sql` | Vitrine de demonstração `/marinacosta`. Insere em `kits` pelas colunas antigas `tab`/`title`. |
 
 ## Tabelas
@@ -314,6 +340,46 @@ Comentários na vitrine pública. `20261105010100_comments.sql`. Sem edição: p
 
 **Trigger `comments_stamp`** (`before insert`, `for each row`, função `stamp_comment()`; veja [Funções (RPC)](#funções-rpc)): como a chave publicável é pública e dá para chamar a API sem passar pelo app, nada que identifica o comentário vem do cliente. O trigger preenche autor, nome, foto e `created_at` a partir da sessão, faz o `trim` do corpo e limita a 5 comentários por minuto por pessoa. Numa resposta, também resolve o original (se `parent_id` já é uma resposta, usa o `parent_id` dela), copia a `vitrine_id` dele (a resposta nunca fica em outra vitrine) e levanta `VT404` se o comentário não existe.
 
+### `public.profiles`
+
+Ficha de onboarding de cada conta, uma linha por usuário. `20261109000000_profiles_onboarding.sql`. Quem não tem linha ainda não passou pelo onboarding: `/inicio` e `/editor` mandam essa pessoa para `/boas-vindas` (`needsOnboarding`, `lib/onboarding/store.ts`). Quem pulou também tem linha (só `skipped_at` preenchido). Não confundir com `events`: `events` continua sendo só a métrica anônima das vitrines das creators; `profiles` é dado da conta e alimenta a análise de ativação.
+
+| Coluna | Tipo | Nulo? | Default | Restrições / observações |
+|---|---|---|---|---|
+| `user_id` | `uuid` | não | `auth.uid()` | PK, FK → `auth.users(id)` **on delete cascade** |
+| `persona` | `text` | sim | — | `CHECK persona in ('creator','shopper')`. Nulo se a pessoa pulou |
+| `networks` | `text[]` | não | `'{}'` | `CHECK cardinality(networks) <= 9`. Redes que usa (valores em `NETWORKS`, `lib/onboarding/options.ts`) |
+| `audience_band` | `text` | sim | — | `CHECK` em `menos-1k`, `1k-10k`, `10k-50k`, `50k-200k`, `200k-1m`, `acima-1m`, `outro` (o `outro` vem de `20261110000000_onboarding_outro.sql`) |
+| `niches` | `text[]` | não | `'{}'` | `CHECK cardinality(niches) <= 3` |
+| `interests` | `text[]` | não | `'{}'` | `CHECK cardinality(interests) <= 12` (resposta de quem escolheu `shopper`) |
+| `heard_from` | `text` | sim | — | `CHECK` em `outra-creator`, `indicacao`, `google`, `anuncio`, `instagram`, `tiktok`, `youtube`, `kwai`, `pinterest`, `whatsapp`, `telegram`, `blog`, `outro` (`20261110000000_onboarding_outro.sql`; `rede-social` saiu e as linhas antigas viraram `null`) |
+| `other_answers` | `jsonb` | não | `'{}'` | `CHECK jsonb_typeof = 'object' and pg_column_size <= 1000` (`20261110000000_onboarding_outro.sql`). Texto livre das opções "Outro" ("Outra", em redes): chave = nome da pergunta (`networks`, `audience`, `niches`, `heardFrom`, `interests`), valor com até 60 caracteres. Só entra a chave cuja opção está marcada (`otherAnswers`, `lib/onboarding/store.ts`); quem pulou grava `{}` |
+| `marketing_opt_in` | `boolean` | não | `false` | Aceite de receber propostas de marcas |
+| `opt_in_at` | `timestamptz` | sim | — | Quando aceitou (`saveOnboardingProfile` só preenche se `marketing_opt_in`) |
+| `recording_opt_in` | `boolean` | não | `false` | Aceite de ter a navegação gravada (PostHog Session Replay) no programa de testes; checkbox opcional da última tela do onboarding (`20261110010000_session_recording_consent.sql`). Lido por `recordingConsent` (`lib/onboarding/store.ts`) para ligar a gravação no navegador. Só contas criadas depois dessa mudança veem o checkbox; as anteriores ficam `false` |
+| `recording_opt_in_at` | `timestamptz` | sim | — | Quando aceitou (`saveOnboardingProfile` só preenche se `recording_opt_in`) |
+| `signup_source` | `jsonb` | não | `'{}'` | `CHECK jsonb_typeof = 'object' and pg_column_size <= 2000`. Primeiro toque de atribuição, vindo do cookie `vitri_ref`: `source`, `medium`, `campaign` (utm), `ref` (handle de vitrine), `referrer_host` (só o domínio), `landing` e `first_seen_at`. Sem IP nem URL completa |
+| `onboarding_version` | `int` | não | `1` | `CHECK >= 0`. `0` = conta anterior ao onboarding (não é perguntada, fora do funil); `1` = primeira versão das perguntas; `2` = versão atual (`ONBOARDING_VERSION`, `lib/onboarding/options.ts`): redes em "Como conheceu" e campo "Outro". O default do banco continua `1`, mas o app sempre grava a versão atual |
+| `onboarded_at` | `timestamptz` | sim | — | Quando respondeu |
+| `skipped_at` | `timestamptz` | sim | — | Quando pulou (nulo se respondeu) |
+| `created_at` | `timestamptz` | não | `now()` | |
+| `updated_at` | `timestamptz` | não | `now()` | Gravado pelo app a cada upsert |
+
+**Tipos:** a entrada `profiles` de `lib/supabase/database.types.ts` foi escrita à mão a partir da migração (não veio do gerador).
+
+**Índices:** só a PK. Os valores de `persona`, `audience_band` e `heard_from` são conferidos no banco; o texto de `other_answers` é limitado a 60 caracteres por pergunta pelo Zod (`onboardingSchema`) e a 1000 bytes pelo banco; as listas `networks`, `niches` e `interests` são conferidas pelo Zod (`onboardingSchema`), para trocar opções sem migração. A gravação é um `upsert` por `user_id` (`saveOnboardingProfile`), feito pela própria pessoa (RLS).
+
+## Schema `analytics` (análise, fora da API)
+
+Criado na mesma migração. É para consulta manual (SQL Editor ou um papel administrativo), não para o app: o schema não é exposto pelo PostgREST e `revoke all` o tira de `public`, `anon` e `authenticated`. As views rodam com o dono, enxergam todas as contas (inclusive `auth.users`) e por isso o schema não deve ser exposto no painel da API. O app não lê essas views.
+
+| View | O que devolve |
+|---|---|
+| `analytics.account_activation` | Uma linha por conta (`auth.users`, com `left join` em `profiles`, `vitrines`, cupons, produtos e `events`): `user_id`, `signed_up_at`, `onboarding_version`, `persona`, `onboarded_at`, `skipped_at`, `audience_band`, `niches`, `networks`, `heard_from`, `marketing_opt_in`, a atribuição achatada (`utm_source`, `utm_medium`, `utm_campaign`, `ref`, `referrer_host`), `has_vitrine`, `items` (cupons mais produtos), `first_view_at` e `first_click_at` (primeiro evento `view` e primeiro de outro tipo na vitrine da conta) e, no fim, `other_answers` (texto livre das opções "Outro"; a coluna existe a partir da migração `20261110000000`) e `recording_opt_in` (a partir da migração `20261110010000`) |
+| `analytics.funnel_steps` | Funil das contas com `onboarding_version` diferente de 0, em `ord`, `step`, `total`: 1 Conta criada, 2 Respondeu o onboarding, 3 Pulou o onboarding, 4 Criou a vitrine, 5 Adicionou cupom ou produto, 6 Recebeu a 1ª visita, 7 Teve o 1º clique |
+
+O PostHog (eventos de navegador e de servidor) é a outra camada de análise e não grava nada no banco; veja [Analytics](architecture.md#analytics-duas-camadas).
+
 ## Storage (arquivos)
 
 | Bucket | Público? | Limite | MIME aceitos | Quem usa | Migração |
@@ -404,6 +470,8 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
 | `comments` | select | `anon`, `authenticated` | `true` (pública) |
 | `comments` | insert | `authenticated` | `author_id = auth.uid()` (o trigger já força esse valor) |
 | `comments` | delete | `authenticated` | `author_id = auth.uid()` **ou** `owns_vitrine(vitrine_id)` (quem escreveu ou a dona da vitrine). Sem update. Apagar o original apaga as respostas em cascata |
+| `profiles` | select / insert / update | `authenticated` | `user_id = (select auth.uid())` (insert: `with check`; update: `using` e `with check`). **Sem delete**: a linha sai pela cascata de `delete_my_account()` |
+| `analytics.*` | — | nenhum | Sem grants para `anon` e `authenticated`; o schema não é exposto pela API |
 | `events` | insert | `anon`, `authenticated` | `created_at` entre `now() - 1 min` e `now() + 1 min` **e** a vitrine existe |
 | `events` | select | `authenticated` | `owns_vitrine(vitrine_id)` (o ranking público passa por `top_creators_today()`, `security definer`, que só expõe a ordem) |
 | `storage.objects` (`brand-logos`, `vitrine-photos`) | insert / select / delete | `authenticated` | primeira pasta do caminho = `auth.uid()` |
@@ -420,6 +488,7 @@ graph TD
     V -->|cascade| E[events]
     U -->|cascade| F[favorites]
     V -->|cascade| F
+    U -->|cascade| PR[profiles]
     U -->|cascade| M[comments]
     V -->|cascade| M
     C -->|set null em products.coupon_id| P
@@ -444,6 +513,7 @@ O app trabalha em `camelCase` (`VitrineContent`), o banco em `snake_case`. A con
 | nome, link, foto e capa → banco | `updateProfile`: `UPDATE` direto em `vitrines` (`handle`, `name`, `avatar_url`, `look`, `updated_at`), sem a RPC e sem o rascunho; vem de `updateProfileAction` e `updateCoverAction`, validados por `vitrineProfileSchema` (`lib/vitrine/types.ts`) | `lib/vitrine/store.ts:277` |
 | rascunho → `VitrineContent` | `findDraft` (completa campos novos, remove legados e sempre usa nome, link, foto e capa da linha publicada em `vitrines`, nunca os do rascunho, via `pickProfile`) | `lib/vitrine/store.ts:227` |
 | linha → `Kit` | `toKit` | `lib/vitrine/store.ts:62` |
+| respostas do onboarding → `profiles` | `saveOnboardingProfile`: `upsert` por `user_id` (`answers` nulo = pulou). Leitura de "já passou?" em `needsOnboarding` | `lib/onboarding/store.ts` |
 
 `toCoupon`, `toProduct` e `toKit` são exportados e também usados pelos catálogos das abas de `/inicio` (`lib/vitrine/catalog/*`), que leem `vitrines`, `coupons`, `products` e `kits` com o cliente público (sem cookies), pela mesma RLS de leitura aberta.
 

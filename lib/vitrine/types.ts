@@ -5,7 +5,7 @@ export const SECTION_IDS = ["ticker", "products", "coupons", "kits", "cta"] as c
 
 export const RESERVED_HANDLES = new Set([
   "editor", "api", "admin", "login", "entrar", "sair", "cadastro", "app", "www",
-  "vitri", "myvitri", "ajuda", "termos", "privacidade", "_next", "favicon.ico",
+  "vitri", "myvitri", "ajuda", "termos", "privacidade", "boas-vindas", "_next", "favicon.ico",
   "robots.txt", "sitemap.xml", "llms.txt",
 ]);
 

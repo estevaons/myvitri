@@ -255,7 +255,7 @@ function PasswordBlock({ account }: { account: Account }) {
   return (
     <Block title={t("password")}>
       <p className="m-0 text-[15px] leading-relaxed text-mute">{hasPassword ? t("passwordChange") : t("passwordCreate")}</p>
-      {state.notice ? (
+      {state.sent ? (
         <p role="status" className="m-0 bg-cream p-3 text-[14px] leading-relaxed">
           {t("linkSent", { email: account.email })}
         </p>

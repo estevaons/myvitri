@@ -2,6 +2,7 @@ import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
+import { track } from "@/lib/analytics/server";
 import { routing } from "@/lib/i18n/routing";
 import { takeReturn } from "@/lib/auth/return-to";
 import { getUser } from "@/lib/supabase/server";
@@ -42,6 +43,8 @@ export async function GET(request: NextRequest) {
   if (!existing && parsed?.success) {
     try {
       await createVitrine(supabase, data.user.id, parsed.data);
+      // esta rota recebe a volta do Google e o link de confirmação por e-mail: o provedor da conta diz qual foi
+      await track(data.user.id, "vitrine_created", { via: data.user.app_metadata?.provider === "google" ? "google" : "email" });
       revalidateTag(vitrineTag(parsed.data.handle), { expire: 0 });
     } catch (e) {
       // link ocupado nesse meio-tempo: o editor pede outro
