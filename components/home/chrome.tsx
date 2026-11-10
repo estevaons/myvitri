@@ -43,7 +43,8 @@ export function SiteHeader({
       <div className="flex min-w-0 items-center gap-3">
         {back && <BackLink href={back} label="home" divider />}
         <Link href={home} aria-label={t("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
-          <Wordmark label="" className="h-[19px] w-auto" />
+          {/* no celular a marca é menor, para sobrar respiro entre ela e os botões da direita */}
+          <Wordmark label="" className="h-[15px] w-auto md:h-[19px]" />
         </Link>
       </div>
       <nav className="flex items-center gap-7">
@@ -108,15 +109,16 @@ export function SiteFooter({ signedIn = false }: { signedIn?: boolean }) {
             <p className="m-0 text-[15px] leading-relaxed text-mute">{t("tagline")}</p>
           </div>
           {columns.map(([title, links]) => (
-            <nav key={title} aria-label={title} className="flex flex-col gap-3">
-              <span className={kicker}>{title}</span>
+            // no celular os links ganham altura de dedo (e o espaço entre eles diminui na mesma medida, para a coluna não crescer)
+            <nav key={title} aria-label={title} className="flex flex-col gap-3 max-md:gap-0">
+              <span className={`${kicker} max-md:mb-1`}>{title}</span>
               {links.map(([href, label]) =>
                 href === null ? (
-                  <LoginButton key={label} className="self-start text-left text-[15px] text-mute hover:text-ink">
+                  <LoginButton key={label} className="self-start text-left text-[15px] text-mute hover:text-ink max-md:py-2.5">
                     {label}
                   </LoginButton>
                 ) : (
-                  <Link key={label} href={href} className="text-[15px] text-mute no-underline hover:text-ink">
+                  <Link key={label} href={href} className="text-[15px] text-mute no-underline hover:text-ink max-md:py-2.5">
                     {label}
                   </Link>
                 ),
@@ -125,7 +127,7 @@ export function SiteFooter({ signedIn = false }: { signedIn?: boolean }) {
           ))}
         </div>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-sand py-6 text-[13px] text-mute">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-sand py-6 text-[13px] text-mute max-md:[&_nav>*]:py-2">
         <span>
           © {BRAND} · {t("notice")}
         </span>

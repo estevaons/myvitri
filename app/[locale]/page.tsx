@@ -55,9 +55,10 @@ export default async function Home() {
             ["marcas", t("nav.brands")],
           ]}
           action={
-            // no celular os dois encolhem (espaçamento das letras menor) para caber ao lado da marca
-            <div className="flex items-center gap-3 md:gap-2">
-              <LoginButton className={`${kicker} whitespace-nowrap text-ink hover:text-gold max-md:text-[11px] max-md:tracking-[0.12em] md:px-2`} />
+            // no celular os dois encolhem (espaçamento das letras menor) para caber ao lado da marca; o Entrar ganha a altura
+            // do botão vizinho como área de toque, e o padding lateral dele faz o respiro entre os dois
+            <div className="flex items-center gap-1 md:gap-2">
+              <LoginButton className={`${kicker} flex min-h-10 items-center whitespace-nowrap px-2 text-ink hover:text-gold max-md:text-[11px] max-md:tracking-[0.12em]`} />
               <Link
                 href="/criar-vitrine"
                 className={`${pillDark} whitespace-nowrap transition-[min-height] duration-200 ease-out group-data-[compact]/header:min-h-10 motion-reduce:transition-none max-md:min-h-10 max-md:px-3.5 max-md:text-[11px] max-md:tracking-[0.12em]`}
@@ -129,8 +130,9 @@ export default async function Home() {
                   <span className="font-display text-[46px] leading-[0.95] font-normal lining-nums md:text-[58px]">{couponOff(c)}</span>
                   {c.condition && <span className="text-[15px] leading-snug text-mute">{c.condition}</span>}
                 </div>
-                <span className="mt-auto flex items-center justify-between gap-3 border-t border-sand pt-4 text-[13px]">
-                  <span className="truncate">
+                {/* no celular o card é estreito: o nome de quem divulga vai numa linha e o "pegar cupom" embaixo, em vez de virar "com ..." */}
+                <span className="mt-auto flex items-center justify-between gap-3 border-t border-sand pt-4 text-[13px] max-md:flex-col max-md:items-start max-md:gap-2">
+                  <span className="max-w-full truncate">
                     {t.rich("coupons.with", { creator: c.creator, b: (s) => <span className="font-medium">{s}</span> })}
                   </span>
                   <span className={`flex-none ${kicker} text-[11px] text-gold`}>{t("coupons.get")}</span>

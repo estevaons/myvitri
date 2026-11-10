@@ -9,7 +9,7 @@ import { VitrineLinkBar } from "./CopyLinkButton";
 import { CoverPicker } from "./CoverPicker";
 import { CreatorCard, CreatorCover } from "./CreatorCard";
 import { HomeSearch } from "./HomeSearch";
-import { Marquee } from "./Marquee";
+import { Carousel } from "./Carousel";
 import { PostCard } from "./PostCard";
 import type { TabId, TabParams } from "./catalog/params";
 import { NavPending } from "./catalog/NavPending";
@@ -22,6 +22,8 @@ import { VitrinesTab } from "./tabs/VitrinesTab";
 
 /** Espaço entre as seções, o mesmo da landing; a primeira fica mais perto das abas, logo acima dela. */
 const section = `mx-auto flex max-w-[1440px] flex-col pt-24 first:pt-10 md:pt-32 md:first:pt-14`;
+/** Trilho dos carrosséis: a margem da página, e o encaixe dos cards respeitando a mesma margem (o `scroll-px` acompanha o `pad`). */
+const track = `${pad} scroll-px-5 md:scroll-px-12`;
 
 function Stat({ n, label }: { n: number; label: string }) {
   return (
@@ -184,11 +186,11 @@ function ForYouTab({ vitrine, ranked, creators, posts, favorites }: ForYou & { f
               text={ranked ? t("rankedText") : t("newText")}
             />
           </div>
-          <Marquee label={ranked ? t("rankedTitle") : t("newTitle")} className={pad} itemClassName="w-[220px] md:w-[300px]">
+          <Carousel label={ranked ? t("rankedTitle") : t("newTitle")} className={track} itemClassName="w-[220px] md:w-[300px]">
             {creators.map((c) => (
               <CreatorCard key={c.handle} c={c} favorited={favorites.includes(c.handle)} />
             ))}
-          </Marquee>
+          </Carousel>
         </section>
       )}
 
@@ -197,11 +199,11 @@ function ForYouTab({ vitrine, ranked, creators, posts, favorites }: ForYou & { f
           <div className={pad}>
             <SectionHead kicker={t("postsKicker")} title={t("postsTitle")} text={t("postsText")} />
           </div>
-          <Marquee label={t("postsTitle")} className={pad} itemClassName="w-[220px] md:w-[300px]">
+          <Carousel label={t("postsTitle")} className={track} itemClassName="w-[220px] md:w-[300px]">
             {posts.map((p) => (
               <PostCard key={p.id} p={p} />
             ))}
-          </Marquee>
+          </Carousel>
         </section>
       )}
     </div>
