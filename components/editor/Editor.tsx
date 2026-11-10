@@ -12,7 +12,7 @@ import { Storefront } from "@/components/storefront/Storefront";
 import { vitrineAddress } from "@/lib/vitrine/links";
 import { pickProfile, type VitrineContent } from "@/lib/vitrine/types";
 import { couponAlerts, CouponsPanel } from "./CouponsPanel";
-import { KitsPanel } from "./KitsPanel";
+import { PostsPanel } from "./PostsPanel";
 import { ProfilePanel, type Update } from "./panels";
 import { ProductsPanel } from "./ProductsPanel";
 import { SharePanel } from "./SharePanel";
@@ -22,7 +22,7 @@ const TABS = [
   ["profile", "profile"],
   ["coupons", "coupons"],
   ["products", "products"],
-  ["kits", "kits"],
+  ["posts", "outfits"],
   ["share", "share"],
 ] as const;
 type TabId = (typeof TABS)[number][0];
@@ -47,10 +47,11 @@ const TAB_ICONS: Record<TabId, ReactNode> = {
       <path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
     </>
   ),
-  kits: (
+  posts: (
     <>
-      <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" />
-      <path d="M12 22V12M3.3 7l7.7 4.73a2 2 0 0 0 2 0L20.7 7M7.5 4.27l9 5.15" />
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
     </>
   ),
   share: (
@@ -281,7 +282,7 @@ export function Editor({
             {tab === "profile" && <ProfilePanel {...panelProps} />}
             {tab === "coupons" && <CouponsPanel {...panelProps} today={today} />}
             {tab === "products" && <ProductsPanel {...panelProps} />}
-            {tab === "kits" && <KitsPanel {...panelProps} />}
+            {tab === "posts" && <PostsPanel {...panelProps} />}
             {tab === "share" && <SharePanel {...panelProps} publishedHandle={published.handle} publishedJson={JSON.stringify(published)} />}
           </div>
         </aside>

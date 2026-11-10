@@ -7,7 +7,7 @@ import { HomeSkeleton } from "@/components/home/HomeSkeleton";
 import { HomeView, type ForYou } from "@/components/home/HomeView";
 import { redirect } from "@/lib/i18n/navigation";
 import { accountOf } from "@/lib/vitrine/account";
-import { getHomeFeed, getRecentKits, getTopCreators, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
+import { getHomeFeed, getRecentPosts, getTopCreators, type HomeCreator, type HomePost } from "@/lib/vitrine/data";
 import { findMineContent, findMineSummary, listFavoriteHandles } from "@/lib/vitrine/store";
 import { getUser } from "@/lib/supabase/server";
 
@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? "";
 
-/** Sem banco (ou sem a migração do ranking e dos kits) a home ainda abre, só sem os carrosséis. */
+/** Sem banco (ou sem a migração do ranking e dos posts) a home ainda abre, só sem os carrosséis. */
 const orEmpty =
   <T,>(label: string) =>
   (e: unknown): T[] => {
@@ -48,7 +48,7 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, 
   const tab = tabOf(params);
   const forYouTab = tab === "for-you";
   // os carrosséis (em cache, sem sessão) só são lidos na aba "Para você" e já começam antes da sessão
-  const rows = forYouTab ? Promise.all([loadCreators(), getRecentKits().catch(orEmpty<HomeKit>("getRecentKits"))]) : null;
+  const rows = forYouTab ? Promise.all([loadCreators(), getRecentPosts().catch(orEmpty<HomePost>("getRecentPosts"))]) : null;
 
   const { supabase, user } = await getUser();
   // o proxy já manda quem não entrou para a landing; isto cobre a sessão que cai entre ele e esta leitura
@@ -66,7 +66,7 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, 
   const meta = user.user_metadata as { name?: string };
   const name = firstName(vitrine?.name || meta.name || "") || user.email?.split("@")[0] || "";
 
-  const forYou: ForYou | null = forYouRows && { vitrine: content, ranked: forYouRows[0].ranked, creators: forYouRows[0].creators, kits: forYouRows[1] };
+  const forYou: ForYou | null = forYouRows && { vitrine: content, ranked: forYouRows[0].ranked, creators: forYouRows[0].creators, posts: forYouRows[1] };
   return <HomeView name={name} account={accountOf(user, vitrine)} tab={tab} params={params} forYou={forYou} favorites={favorites} />;
 }
 

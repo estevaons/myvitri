@@ -6,6 +6,8 @@ export type VitrineComment = {
   id: string;
   /** Comentário respondido; null num comentário da vitrine. Respostas têm um nível só. */
   parentId: string | null;
+  /** Numa resposta a outra resposta, qual delas (a lista mostra "@Nome"); null no resto, ou se ela foi apagada. */
+  replyToId: string | null;
   authorId: string;
   authorName: string;
   authorAvatarUrl: string;

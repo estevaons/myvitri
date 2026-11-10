@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SOCIALS, socialUrl, type SocialNetwork } from "./socials";
 
 export const ICONS = ["Bikini", "Glasses", "Jar", "Bottle", "Shoe", "Hat", "Nuts", "Bag"] as const;
 export const SECTION_IDS = ["ticker", "products", "coupons", "kits", "cta"] as const;
@@ -19,6 +20,8 @@ const httpUrl = z
 
 const text = (max: number) => z.string().trim().max(max);
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+/** @, usuário ou link do perfil daquela rede (vazio = não mostra). */
+const social = (network: SocialNetwork) => text(200).refine((v) => v === "" || socialUrl(network, v) !== null, "socialInvalid");
 
 export const couponSchema = z
   .object({
@@ -60,12 +63,22 @@ export const productSchema = z.object({
   priceCheckedAt: z.string().max(40).nullable(),
 });
 
-export const kitSchema = z.object({
+/** Quantos produtos um post pode marcar. */
+export const POST_MAX_ITEMS = 8;
+
+/**
+ * Foto da creator usando um conjunto, com as peças (produtos da vitrine) listadas embaixo, na ordem escolhida.
+ * Substituiu os kits: o kit era a lista sem a foto.
+ */
+export const postSchema = z.object({
   id: z.uuid(),
-  name: text(60).min(1, "kitName"),
-  description: text(240),
-  signature: text(80),
-  productIds: z.array(z.uuid()).max(4),
+  photoUrl: httpUrl.min(1, "postPhoto"),
+  caption: text(300),
+  productIds: z
+    .array(z.uuid())
+    .min(1, "postItems")
+    .max(POST_MAX_ITEMS)
+    .refine((ids) => new Set(ids).size === ids.length, "postItems"),
 });
 
 export const vitrineContentSchema = z.object({
@@ -91,9 +104,11 @@ export const vitrineContentSchema = z.object({
   show: z.record(z.enum(SECTION_IDS), z.boolean()),
   /** UTM nos links das lojas, para a marca ver de onde veio a venda */
   tracking: z.object({ utm: z.boolean(), campaign: text(60) }),
+  /** redes sociais, discretas embaixo do nome (lib/vitrine/socials.ts) */
+  socials: z.object({ instagram: social("instagram"), tiktok: social("tiktok"), youtube: social("youtube"), x: social("x") }),
   coupons: z.array(couponSchema).max(100),
   products: z.array(productSchema).max(200),
-  kits: z.array(kitSchema).max(20),
+  posts: z.array(postSchema).max(30),
 });
 
 /** O que muda na home e nas configurações, salvo na hora: o editor não tem cópia própria disso. */
@@ -108,12 +123,12 @@ export const TRACKING: z.infer<typeof vitrineContentSchema>["tracking"] = { utm:
 
 export type Coupon = z.infer<typeof couponSchema>;
 export type Product = z.infer<typeof productSchema>;
-export type Kit = z.infer<typeof kitSchema>;
+export type Post = z.infer<typeof postSchema>;
 export type VitrineContent = z.infer<typeof vitrineContentSchema>;
 
-/** Os produtos do kit na ordem dele; id sem produto (removido, esgotado fora da lista) fica de fora. */
-export function kitItems<P extends { id: string }>(kit: Pick<Kit, "productIds">, products: P[]) {
-  return kit.productIds.map((id) => products.find((p) => p.id === id)).filter((p): p is P => !!p);
+/** As peças do post na ordem dele; id sem produto (removido, esgotado fora da lista) fica de fora. */
+export function postItems<P extends { id: string }>(post: Pick<Post, "productIds">, products: P[]) {
+  return post.productIds.map((id) => products.find((p) => p.id === id)).filter((p): p is P => !!p);
 }
 export type IconId = (typeof ICONS)[number];
 export type SectionId = (typeof SECTION_IDS)[number];
@@ -128,8 +143,9 @@ export function emptyContent(handle: string, name: string, intro: Pick<VitrineCo
     look: { bannerUrl: "" },
     show: { ticker: true, products: true, coupons: true, kits: true, cta: true },
     tracking: TRACKING,
+    socials: SOCIALS,
     coupons: [],
     products: [],
-    kits: [],
+    posts: [],
   };
 }

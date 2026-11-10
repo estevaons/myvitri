@@ -9,7 +9,8 @@ import { Wordmark } from "@/components/brand/Logo";
 import { productHref, withUtm } from "@/lib/vitrine/links";
 import { couponOff, isActive } from "@/lib/vitrine/pricing";
 import type { CommentList, Viewer } from "@/lib/vitrine/social";
-import { kitItems, type Product, type VitrineContent } from "@/lib/vitrine/types";
+import { SOCIAL_LABELS, socialLinks, type SocialNetwork } from "@/lib/vitrine/socials";
+import { postItems, type Post, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import { Comments } from "./Comments";
 import { CoverLetter } from "@/components/home/CreatorCard";
 import { FavoriteButton } from "./FavoriteButton";
@@ -19,13 +20,6 @@ import { ProductArt } from "./ProductIcon";
  * Vitrine pública com visual fixo, no espírito das lojas de esporte: branco, cinza claro atrás dos produtos,
  * títulos em caixa alta e botões em pílula. Quem é dono da vitrine só muda o conteúdo e a capa.
  */
-
-/**
- * Grade das fotos do kit conforme o número de itens (1 a 4). Toda célula é quadrada como a foto de loja;
- * célula de outro formato sobra faixa do cinza em volta, que não bate com o fundo da foto.
- * Com 3, a primeira ocupa 2×2 e as outras duas ficam empilhadas ao lado.
- */
-const KIT_GRID = ["grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-2"];
 
 const pad = "px-5 @3xl:px-12";
 // botões retos em caixa alta espaçada, os mesmos da home
@@ -73,7 +67,7 @@ function openStore(url: string) {
 }
 
 /** Métrica anônima da vitrine pública; nunca bloqueia nem falha visivelmente. */
-function track(handle: string, kind: "view" | "buy" | "copy" | "kit" | "video", item?: string) {
+function track(handle: string, kind: "view" | "buy" | "copy" | "video" | "post", item?: string) {
   try {
     const body = JSON.stringify({ h: handle, k: kind, i: item });
     if (!navigator.sendBeacon?.("/api/t", new Blob([body], { type: "application/json" }))) {
@@ -156,6 +150,56 @@ function Chip({ active, children, ...rest }: { active: boolean; children: ReactN
     >
       {children}
     </button>
+  );
+}
+
+/** Ícones das redes, em traço, no tamanho do texto pequeno. */
+const SOCIAL_ICONS: Record<SocialNetwork, ReactNode> = {
+  instagram: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
+    </>
+  ),
+  tiktok: <path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5M14 3c.4 2.7 2.3 4.6 5 5" />,
+  youtube: (
+    <>
+      <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
+      <path d="m10 9.5 4.5 2.5-4.5 2.5z" fill="currentColor" />
+    </>
+  ),
+  x: <path d="M4 4l11.7 16H20L8.3 4zM4 20l6.8-6.8M13.2 10.8 20 4" />,
+};
+
+/**
+ * Redes da creator, discretas: só ícones em cinza, que escurecem no hover. Da largura @2xl para cima ficam logo abaixo
+ * da capa, alinhados à direita dela (o bloco de quem indica começa 40px acima do fim da capa, por isso o `top-12`); no
+ * celular não há espaço ao lado da foto e eles ficam centralizados embaixo do @. Nada aparece sem rede válida.
+ */
+function SocialLinks({ socials, name }: { socials: VitrineContent["socials"]; name: string }) {
+  const t = useTranslations("storefront");
+  const links = socialLinks(socials);
+  if (!links.length) return null;
+  return (
+    <ul className="m-0 -mt-1 flex list-none items-center gap-0.5 p-0 @2xl:absolute @2xl:top-12 @2xl:-right-2 @2xl:mt-0">
+      {links.map(([n, url]) => (
+        <li key={n}>
+          <a
+            href={url}
+            target="_blank"
+            rel="me noopener noreferrer"
+            aria-label={t("socialLink", { name, network: SOCIAL_LABELS[n] })}
+            title={SOCIAL_LABELS[n]}
+            className="flex size-8 items-center justify-center text-mute/70 transition-colors hover:text-ink"
+          >
+            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              {SOCIAL_ICONS[n]}
+            </svg>
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -252,9 +296,10 @@ export function Storefront({
   const coupons = useMemo(() => content.coupons.filter((c) => isActive(c, today)), [content.coupons, today]);
   // esgotados vão para o fim da lista
   const products = useMemo(() => [...content.products].sort((a, b) => Number(a.soldOut) - Number(b.soldOut)), [content.products]);
-  const kits = useMemo(
-    () => content.kits.map((k) => ({ kit: k, items: kitItems(k, products) })).filter((k) => k.items.length > 0),
-    [content.kits, products],
+  // post sem foto ou sem nenhum produto que ainda exista não aparece
+  const posts = useMemo(
+    () => content.posts.map((p) => ({ post: p, items: postItems(p, products) })).filter((p) => p.post.photoUrl && p.items.length > 0),
+    [content.posts, products],
   );
 
   const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))], [products]);
@@ -266,34 +311,6 @@ export function Storefront({
     (p) => (!cat || p.category === cat) && (!q || fold(`${p.name} ${p.brand} ${p.category}`).includes(q)),
   );
 
-  const [kitIdx, setKitIdx] = useState(0);
-  const current = kits[Math.min(kitIdx, kits.length - 1)];
-
-  // Com mais de um kit, eles se revezam sozinhos até a pessoa escolher um. Pausa com o mouse ou o foco
-  // na seção e fora da tela; no editor não roda, para não trocar o kit que está sendo editado.
-  const [kitPicked, setKitPicked] = useState(false);
-  const [kitHover, setKitHover] = useState(false);
-  const [kitFocus, setKitFocus] = useState(false);
-  const [kitSeen, setKitSeen] = useState(false);
-  const kitRef = useRef<HTMLElement>(null);
-  const kitTabs = useRef<HTMLDivElement>(null);
-  const kitAuto = !preview && kits.length > 1 && !kitPicked;
-  const kitPaused = kitHover || kitFocus || !kitSeen;
-  const hasKits = kits.length > 0;
-  useEffect(() => {
-    const el = kitRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setKitSeen(e.isIntersecting), { threshold: 0.4 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [hasKits]);
-  // no celular os chips rolam de lado: traz o chip do kit que entrou para a vista
-  useEffect(() => {
-    if (!kitAuto) return;
-    const list = kitTabs.current;
-    const chip = list?.children[kitIdx] as HTMLElement | undefined;
-    if (list && chip) list.scrollTo({ left: chip.offsetLeft - 20, behavior: "smooth" });
-  }, [kitAuto, kitIdx]);
 
   const [copied, flash] = useFlash();
   // cupons em que a cópia na hora falhou: true se a segunda tentativa copiou, false se o visitante copia à mão
@@ -318,7 +335,7 @@ export function Storefront({
   const nav = [
     ["#cupons", t("nav.coupons"), coupons.length > 0],
     ["#produtos", t("nav.products"), products.length > 0],
-    ["#kits", t("nav.kits"), kits.length > 0],
+    ["#outfits", t("nav.posts"), posts.length > 0],
     ["#comentarios", t("nav.comments"), Boolean(comments)],
   ] as const;
 
@@ -340,13 +357,14 @@ export function Storefront({
   }, [preview, content.handle]);
 
   /** Liga o produto ao link dele: o de afiliado ou, sem ele, o da loja. Esgotado ou sem link não é clicável. */
-  const linkProps = (p: Product, kitId?: string) => ({
+  const linkProps = (p: Product, postId?: string) => ({
     href: p.soldOut ? "" : productHref(p),
     onOpen: (e: MouseEvent) => {
       // na prévia do editor o clique não tira a pessoa da página
       if (preview) e.preventDefault();
       send("buy", p.id);
-      if (kitId) send("kit", kitId);
+      // o clique também conta para o post de onde veio
+      if (postId) send("post", postId);
     },
   });
 
@@ -383,6 +401,7 @@ export function Storefront({
             <span className="font-display text-[22px] leading-tight font-medium break-words">{content.name}</span>
             <span className="text-[13px] break-words text-mute">@{content.handle}</span>
           </div>
+          <SocialLinks socials={content.socials} name={content.name} />
           {/* favoritar fica junto de quem indica, não no cabeçalho; na prévia do editor não aparece */}
           {!preview && (
             <div className="pt-1.5">
@@ -548,108 +567,9 @@ export function Storefront({
         </section>
       )}
 
-      {current && (
-        <section
-          id="kits"
-          ref={kitRef}
-          onMouseEnter={() => setKitHover(true)}
-          onMouseLeave={() => setKitHover(false)}
-          onFocus={() => setKitFocus(true)}
-          onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setKitFocus(false)}
-          className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-6 pt-16 @3xl:pt-24 ${pad}`}
-        >
-          <SectionTitle>{t("kitsTitle")}</SectionTitle>
-          {kits.length > 1 && (
-            <div
-              ref={kitTabs}
-              role="tablist"
-              aria-label={t("pickKit")}
-              className="no-scrollbar relative -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0"
-            >
-              {kits.map((k, i) => (
-                <Chip
-                  key={k.kit.id}
-                  role="tab"
-                  aria-selected={k === current}
-                  active={k === current}
-                  onClick={() => {
-                    setKitIdx(i);
-                    setKitPicked(true);
-                  }}
-                >
-                  {k.kit.name || t("kitN", { n: i + 1 })}
-                  {kitAuto && k === current && (
-                    // a troca acontece quando a barra enche; com movimento reduzido ela some e os kits não trocam sozinhos
-                    <span aria-hidden="true" className="absolute inset-x-4 bottom-1.5 h-0.5 overflow-hidden bg-white/25 motion-reduce:hidden">
-                      <span
-                        onAnimationEnd={() => setKitIdx((n) => (n + 1) % kits.length)}
-                        style={{ animationPlayState: kitPaused ? "paused" : "running" }}
-                        className="block h-full origin-left animate-kit-progress bg-white"
-                      />
-                    </span>
-                  )}
-                </Chip>
-              ))}
-            </div>
-          )}
-
-          {/* Todos os kits ficam na mesma célula da grade: a área tem sempre a altura do maior, a página não pula na troca
-              e o kit que sai se desfaz enquanto o próximo entra deslizando. */}
-          <div className="grid">
-            {kits.map((k, i) => {
-              const on = k === current;
-              const side = i < kitIdx ? "-translate-x-4" : "translate-x-4";
-              return (
-                <div
-                  key={k.kit.id}
-                  aria-hidden={!on}
-                  inert={!on}
-                  className={`col-start-1 row-start-1 grid items-start self-start gap-y-5 transition-[opacity,translate] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none @3xl:grid-cols-[1.1fr_1fr] @3xl:gap-x-12 @3xl:[grid-template-areas:'head_head'_'photos_body'] @min-[88rem]:grid-rows-[auto_1fr] @min-[88rem]:[grid-template-areas:'photos_head'_'photos_body'] ${on ? "opacity-100" : `pointer-events-none opacity-0 ${side}`}`}
-                >
-                <div aria-hidden="true" className={`mb-3 grid gap-1 @3xl:mb-0 @3xl:[grid-area:photos] ${KIT_GRID[k.items.length - 1]}`}>
-                  {k.items.map((p, i) => (
-                    <div
-                      key={p.id}
-                      className={`relative flex aspect-square items-center justify-center overflow-hidden bg-cream ${k.items.length === 3 && i === 0 ? "col-span-2 row-span-2" : ""}`}
-                    >
-                      <ProductArt product={p} iconClassName="w-[52%]" />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Título e texto só cabem ao lado das fotos em tela bem larga; antes disso ficam em cima, na largura toda,
-                    senão a coluna estreita quebra os nomes e a lista passa muito do fim das fotos. */}
-                <div className="flex min-w-0 flex-col gap-5 @3xl:mb-3 @3xl:[grid-area:head] @min-[88rem]:mb-0">
-                  <h3 className="m-0 font-display text-[clamp(36px,5cqw,56px)] leading-[1] font-normal text-balance">
-                    {k.kit.name || t("kitFallback", { name: firstName })}
-                  </h3>
-                  {k.kit.description && <p className="m-0 text-[17px] leading-relaxed">{k.kit.description}</p>}
-                  {k.kit.signature && (
-                    <p className="m-0 text-[15px] text-mute">
-                      “{k.kit.signature}” · {firstName}
-                    </p>
-                  )}
-                </div>
-
-                <ul className="m-0 flex min-w-0 list-none flex-col border-t border-sand p-0 @3xl:[grid-area:body]">
-                  {k.items.map((p) => (
-                    <li key={p.id} className="border-b border-sand">
-                      {/* cada item leva ao link dele, como na lista de produtos; o clique também conta para o kit */}
-                      <ProductLink {...linkProps(p, k.kit.id)} className="flex items-center gap-4 py-2.5 text-ink no-underline">
-                        {/* com a lista estreita ao lado das fotos, a miniatura repetiria a foto vizinha e espremeria o nome */}
-                        <div aria-hidden="true" className="relative flex size-16 flex-none items-center justify-center overflow-hidden bg-cream @3xl:hidden @min-[88rem]:flex">
-                          <ProductArt product={p} iconClassName="w-[64%]" strokeWidth={4} />
-                        </div>
-                        <span className="min-w-0 flex-1 text-[15px] font-medium underline-offset-2 [a:hover_&]:underline">{p.name}</span>
-                        {p.soldOut && <span className="flex-none text-[13px] text-mute">{t("soldOut")}</span>}
-                      </ProductLink>
-                    </li>
-                  ))}
-                </ul>
-                </div>
-              );
-            })}
-          </div>
+      {posts.length > 0 && (
+        <section id="outfits" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
+          <OutfitCarousel outfits={posts} firstName={firstName} link={linkProps} />
         </section>
       )}
 
@@ -678,6 +598,229 @@ export function Storefront({
         <span>{t("footer")}</span>
       </footer>
     </div>
+  );
+}
+
+/** Tempo de cada outfit na tela antes de passar sozinho para o próximo. */
+const OUTFIT_MS = 6000;
+
+type Outfit = { post: Post; items: Product[] };
+type LinkFor = (p: Product, postId: string) => { href: string; onOpen: (e: MouseEvent) => void };
+
+/**
+ * Outfits (no código, posts): um por vez, na largura toda da seção, sem o próximo cortado na borda. A troca é um
+ * crossfade com a foto aproximando devagar, e passa sozinha a cada `OUTFIT_MS`, com a barra de progresso mostrando
+ * quanto falta. Para quando o mouse está em cima, quando algo dentro tem o foco, com o botão de pausa e para quem
+ * pede menos movimento (aí também não há animação). No celular, arrastar para o lado troca de outfit.
+ */
+function OutfitCarousel({ outfits, firstName, link }: { outfits: Outfit[]; firstName: string; link: LinkFor }) {
+  const t = useTranslations("storefront");
+  const tCommon = useTranslations("common");
+  const total = outfits.length;
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [reduced, setReduced] = useState(false);
+  const touchX = useRef<number | null>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  const current = Math.min(index, total - 1);
+  const running = total > 1 && !paused && !hovering && !focused && !reduced;
+  const go = (to: number) => setIndex(((to % total) + total) % total);
+
+  // o tempo recomeça a cada troca (manual ou automática) e quando a pausa termina
+  useEffect(() => {
+    if (!running) return;
+    const id = setTimeout(() => setIndex((i) => (i + 1) % total), OUTFIT_MS);
+    return () => clearTimeout(id);
+  }, [running, current, total]);
+
+  const arrow = "flex size-12 items-center justify-center border border-sand bg-transparent text-ink hover:border-ink";
+
+  return (
+    <>
+      <div className={`flex items-center justify-between gap-4 ${pad}`}>
+        <SectionTitle>{t("postsTitle")}</SectionTitle>
+        {total > 1 && (
+          <div className="flex gap-3">
+            {/* sem a troca automática (menos movimento), não há o que pausar */}
+            {!reduced && (
+              <button type="button" aria-label={paused ? t("outfitsPlay") : t("outfitsPause")} onClick={() => setPaused(!paused)} className={`${arrow} @max-2xl:size-10`}>
+                {paused ? (
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 4.5v15l13-7.5z" />
+                </svg>
+              ) : (
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
+                </svg>
+              )}
+              </button>
+            )}
+            <button type="button" aria-label={tCommon("previous")} onClick={() => go(current - 1)} className={`${arrow} @max-2xl:hidden`}>
+              <Chevron left />
+            </button>
+            <button type="button" aria-label={tCommon("next")} onClick={() => go(current + 1)} className={`${arrow} @max-2xl:hidden`}>
+              <Chevron />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div
+        role="region"
+        aria-roledescription={tCommon("carousel")}
+        aria-label={t("postsLabel", { name: firstName })}
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+        onFocus={() => setFocused(true)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+        }}
+        onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+        onTouchEnd={(e) => {
+          const start = touchX.current;
+          touchX.current = null;
+          if (start === null) return;
+          const dx = e.changedTouches[0].clientX - start;
+          if (Math.abs(dx) > 40) go(current + (dx < 0 ? 1 : -1));
+        }}
+        className={`mt-6 @3xl:mt-8 ${pad}`}
+      >
+        {/* os slides ficam empilhados na mesma célula: a altura é a do maior, e a troca não mexe no resto da página */}
+        <div aria-live={running ? "off" : "polite"} className="grid">
+          {outfits.map(({ post, items }, i) => (
+            <OutfitSlide
+              key={post.id}
+              post={post}
+              items={items}
+              active={i === current}
+              n={i + 1}
+              total={total}
+              alt={t("postAlt", { name: firstName })}
+              link={(p) => link(p, post.id)}
+            />
+          ))}
+        </div>
+
+        {total > 1 && (
+          <div className="mt-4 flex gap-2 @3xl:mt-5">
+            {outfits.map(({ post }, i) => (
+              <button
+                key={post.id}
+                type="button"
+                aria-label={t("outfitGo", { n: i + 1, total })}
+                aria-current={i === current ? "true" : undefined}
+                onClick={() => go(i)}
+                className="group/bar flex h-6 flex-1 items-center border-0 bg-transparent p-0"
+              >
+                <span className="relative block h-[3px] w-full overflow-hidden bg-sand group-hover/bar:bg-ink/25">
+                  {/* a barra do outfit atual enche no ritmo da troca (parada, fica cheia); as anteriores ficam cheias */}
+                  <span
+                    key={i === current ? `${current}-${running}` : "idle"}
+                    className={`absolute inset-y-0 left-0 w-full origin-left bg-ink ${i > current ? "scale-x-0" : i === current && running ? "animate-outfit-progress" : ""}`}
+                  />
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+/**
+ * Um outfit: a foto da creator usando o conjunto, inteira no recorte 4:5, e ao lado (embaixo, no celular) as peças,
+ * cada uma levando ao link dela, e o número do outfit. Os inativos ficam na mesma célula, transparentes e fora do foco.
+ */
+function OutfitSlide({
+  post,
+  items,
+  active,
+  n,
+  total,
+  alt,
+  link,
+}: {
+  post: Post;
+  items: Product[];
+  active: boolean;
+  n: number;
+  total: number;
+  alt: string;
+  link: (p: Product) => { href: string; onOpen: (e: MouseEvent) => void };
+}) {
+  const t = useTranslations("storefront");
+  const two = (x: number) => String(x).padStart(2, "0");
+  return (
+    <article
+      aria-roledescription="slide"
+      aria-label={`${n} / ${total}`}
+      aria-hidden={!active}
+      inert={!active}
+      className={`col-start-1 row-start-1 flex flex-col bg-cream transition-opacity duration-700 ease-out motion-reduce:transition-none @3xl:grid @3xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] ${
+        active ? "z-10 opacity-100" : "pointer-events-none opacity-0"
+      }`}
+    >
+      <div className="relative aspect-[4/5] overflow-hidden bg-sand">
+        {/* eslint-disable-next-line @next/next/no-img-element -- foto enviada pela creator para o bucket */}
+        <img
+          src={post.photoUrl}
+          alt={alt}
+          loading={n === 1 ? "eager" : "lazy"}
+          className={`absolute inset-0 size-full object-cover ease-out motion-reduce:transition-none ${active ? "scale-100 transition-transform duration-[7000ms]" : "scale-[1.08] transition-none"}`}
+        />
+      </div>
+      <div className="flex min-w-0 flex-col gap-6 p-5 @3xl:justify-between @3xl:p-12 @6xl:p-16">
+        <div className="flex flex-col gap-4">
+          <span
+            className={`text-[12px] font-medium tracking-[0.22em] text-gold uppercase transition-all delay-150 duration-700 motion-reduce:transition-none ${active ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}
+          >
+            {t("outfitPieces", { count: items.length })}
+          </span>
+          <ul className="m-0 flex list-none flex-col p-0">
+            {items.map((p, i) => (
+              <li
+                key={p.id}
+                style={{ transitionDelay: active ? `${250 + i * 90}ms` : "0ms" }}
+                className={`border-b border-ink/10 transition-all duration-700 ease-out last:border-0 motion-reduce:transition-none ${active ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
+              >
+                <ProductLink {...link(p)} className="group/piece flex items-center gap-4 py-3 text-ink no-underline @3xl:py-4">
+                  <div aria-hidden="true" className="relative flex size-16 flex-none items-center justify-center overflow-hidden bg-white @3xl:size-20">
+                    <ProductArt product={p} iconClassName="w-[64%]" strokeWidth={4} />
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    {p.brand && <span className="text-[11px] font-medium tracking-[0.18em] text-mute uppercase">{p.brand}</span>}
+                    <span className="text-[15px] leading-snug font-medium underline-offset-2 group-hover/piece:underline @3xl:text-[17px]">{p.name}</span>
+                    {p.soldOut && <span className="text-[13px] text-mute">{t("soldOut")}</span>}
+                  </div>
+                  {!p.soldOut && (
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="flex-none text-mute transition-transform group-hover/piece:translate-x-0.5 group-hover/piece:text-ink">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  )}
+                </ProductLink>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {total > 1 && (
+          <span aria-hidden="true" className="font-display text-[clamp(28px,3.4cqw,52px)] leading-none lining-nums text-ink/80 @max-3xl:hidden">
+            {two(n)}
+            <span className="text-ink/30"> / {two(total)}</span>
+          </span>
+        )}
+      </div>
+    </article>
   );
 }
 

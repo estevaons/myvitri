@@ -1,5 +1,6 @@
 /** Tipos de evento da vitrine pública (tabela `events`, gravados por POST /api/t). */
-export type EventKind = "view" | "buy" | "copy" | "kit" | "video";
+/** "kit" só aparece em eventos antigos, de quando a vitrine tinha kits. */
+export type EventKind = "view" | "buy" | "copy" | "kit" | "video" | "post";
 
 /** O que a RPC `vitrine_stats(days)` devolve. */
 export type Stats = {

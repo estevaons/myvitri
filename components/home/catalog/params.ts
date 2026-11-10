@@ -7,7 +7,7 @@ import type { Href } from "@/lib/i18n/navigation";
  */
 
 /** Ids das abas na URL — a primeira é a padrão. Os rótulos ficam nas mensagens (`catalog.tabs`). */
-export const TABS = ["for-you", "saved", "storefronts", "products", "kits", "brands"] as const;
+export const TABS = ["for-you", "saved", "storefronts", "products", "outfits", "brands"] as const;
 export type TabId = (typeof TABS)[number];
 
 /** Parâmetros da URL achatados: um valor por chave, só os não vazios. */

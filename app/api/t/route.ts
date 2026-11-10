@@ -1,6 +1,6 @@
 import { createPublicSupabase } from "@/lib/supabase/server";
 
-const KINDS = new Set(["view", "buy", "copy", "kit", "video"]);
+const KINDS = new Set(["view", "buy", "copy", "video", "post"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BOT = /bot|crawl|spider|preview|facebookexternalhit|whatsapp|slurp|headless/i;
 

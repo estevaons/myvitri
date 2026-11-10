@@ -22,7 +22,7 @@ export function VitrineCard({ v, today, favorited, stay = false }: { v: CatalogV
   const stats = [
     card.products > 0 && t("products", { count: card.products }),
     card.coupons > 0 && t("coupons", { count: card.coupons }),
-    v.kits > 0 && t("kits", { count: v.kits }),
+    v.posts > 0 && t("posts", { count: v.posts }),
   ].filter((s) => s !== false);
   return (
     // `stay` (aba Favoritas): sem o coração, o card fica esmaecido no lugar, para dar para voltar atrás

@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormatter, useTranslations } from "next-intl";
-import { useEffect, useEffectEvent, useOptimistic, useRef, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
+import { useEffect, useEffectEvent, useOptimistic, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 import { addCommentAction, deleteCommentAction } from "@/app/actions";
 import { LoginButton } from "@/components/auth/forms";
 import { COMMENT_MAX, reachServer, type CommentList, type CommentThread, type Viewer, type VitrineComment } from "@/lib/vitrine/social";
@@ -12,6 +12,11 @@ const STEP = 10;
 const WARN_LEFT = 100;
 /** Conversas com mais respostas que isto começam fechadas, só com o botão "Ver N respostas". */
 const REPLIES_OPEN = 2;
+/**
+ * Quantos níveis abaixo do comentário original a lista recua. Uma resposta mais funda fica no último nível,
+ * com o "@Nome" de quem ela responde, para a coluna de texto não ficar estreita demais no celular.
+ */
+const MAX_DEPTH = 3;
 
 const send =
   "flex min-h-10 flex-none cursor-pointer items-center justify-center border-0 bg-ink px-5 text-[11px] font-medium tracking-[0.16em] text-white uppercase hover:bg-[#2b2925]";
@@ -22,7 +27,8 @@ const errorText = "m-0 text-sm font-semibold text-[#A3361B]";
 
 /**
  * O que estava sendo escrito e, depois de abrir o login, para onde voltar: o campo da vitrine (`handle`) ou a
- * resposta a um comentário (`handle#id`). Vale só nesta aba do navegador.
+ * resposta numa conversa (`handle#id`, e `handle#id>resposta` quando era a resposta a uma resposta). O rascunho
+ * é um por conversa. Vale só nesta aba do navegador.
  */
 const draftKey = (target: string) => `vitri:comentario:${target}`;
 const RETURNING = "vitri:comentar";
@@ -44,10 +50,14 @@ function store(key: string, value: string) {
   }
 }
 
-/** Conversa cuja resposta ficou pela metade quando a pessoa foi entrar. */
+const resumeTarget = (handle: string, thread: string, to: string | null) => replyTarget(handle, thread) + (to ? `>${to}` : "");
+
+/** Conversa (e a resposta dentro dela, se era o caso) cuja resposta ficou pela metade quando a pessoa foi entrar. */
 function returningReply(handle: string) {
   const target = readStored(RETURNING);
-  return target.startsWith(`${handle}#`) ? target.slice(handle.length + 1) : null;
+  if (!target.startsWith(`${handle}#`)) return null;
+  const [thread, to = null] = target.slice(handle.length + 1).split(">");
+  return { thread, to };
 }
 
 const noop = () => () => {};
@@ -105,6 +115,7 @@ type ComposerText = { field: string; placeholder: string; submit: string; signIn
  */
 function Composer({
   target,
+  resume = target,
   text: copy,
   user,
   reply = false,
@@ -113,6 +124,8 @@ function Composer({
 }: {
   /** O que identifica o rascunho e a volta do login: `handle`, ou `handle#id` numa resposta. */
   target: string;
+  /** O que guardar para a volta do login, se for diferente de `target` (a resposta a uma resposta). */
+  resume?: string;
   text: ComposerText;
   user: { name: string; avatarUrl: string } | null;
   /** Campo de resposta: menor, com foco ao abrir e com "Cancelar". */
@@ -136,7 +149,7 @@ function Composer({
   };
 
   const onMount = useEffectEvent(() => {
-    const back = Boolean(user) && readStored(RETURNING) === target;
+    const back = Boolean(user) && readStored(RETURNING) === resume;
     if (back) {
       store(RETURNING, "");
       field.current?.scrollIntoView({ block: "center" });
@@ -212,7 +225,7 @@ function Composer({
                 {copy.submit}
               </button>
             ) : (
-              <LoginButton className={send} onOpen={() => store(RETURNING, target)}>
+              <LoginButton className={send} onOpen={() => store(RETURNING, resume)}>
                 {hasText ? t("signInAndPost") : copy.signIn}
               </LoginButton>
             )}
@@ -235,6 +248,8 @@ type RowProps = {
   comment: VitrineComment;
   /** Resposta: foto menor. */
   small?: boolean;
+  /** Numa resposta a outra resposta, o nome de quem ela responde: vai no começo do texto. */
+  replyingTo?: string;
   mine: boolean;
   canDelete: boolean;
   onDelete: () => void;
@@ -242,7 +257,7 @@ type RowProps = {
   onReply: (() => void) | null;
 };
 
-function CommentRow({ comment, small = false, mine, canDelete, onDelete, onReply }: RowProps) {
+function CommentRow({ comment, small = false, replyingTo, mine, canDelete, onDelete, onReply }: RowProps) {
   const t = useTranslations("comments");
   const [confirming, setConfirming] = useState(false);
   const sending = isSending(comment);
@@ -274,7 +289,14 @@ function CommentRow({ comment, small = false, mine, canDelete, onDelete, onReply
             </span>
           )}
         </div>
-        <p className="m-0 text-[15px] leading-relaxed break-words whitespace-pre-line">{comment.body}</p>
+        <p className="m-0 text-[15px] leading-relaxed break-words whitespace-pre-line">
+          {replyingTo && (
+            <>
+              <span className="font-medium text-gold">@{replyingTo}</span>{" "}
+            </>
+          )}
+          {comment.body}
+        </p>
         {onReply && !sending && (
           <button
             type="button"
@@ -299,11 +321,60 @@ function applyChange(list: CommentThread[], c: Change): CommentThread[] {
   return list.map((x) => (x.id === parentId ? { ...x, replies: [...x.replies, c.add] } : x));
 }
 
+/**
+ * Recuo das respostas: a foto e o espaço até o texto de quem é respondido, para a resposta começar alinhada ao
+ * texto dele (comentário original: 40 + 14; resposta: 32 + 12).
+ */
+const ROOT_INDENT = 54;
+const REPLY_INDENT = 44;
+
+type ReplyNode = { comment: VitrineComment; depth: number; up: ReplyNode | null; kids: ReplyNode[] };
+
+/**
+ * A conversa como árvore: cada resposta embaixo da resposta que ela responde (`replyToId`) ou, sem isso, do
+ * comentário original. No banco a conversa é plana (um `parent_id` só); o recuo é só na tela.
+ */
+function replyTree(replies: VitrineComment[]) {
+  const byId = new Map<string, ReplyNode>();
+  const top: ReplyNode[] = [];
+  for (const r of replies) {
+    // em ordem cronológica: a resposta respondida já está no mapa (se ainda existe)
+    let up = (r.replyToId && byId.get(r.replyToId)) || null;
+    while (up && up.depth >= MAX_DEPTH) up = up.up;
+    const node: ReplyNode = { comment: r, depth: up ? up.depth + 1 : 1, up, kids: [] };
+    byId.set(r.id, node);
+    (up ? up.kids : top).push(node);
+  }
+  return { top, byId };
+}
+
+/** O que fica embaixo de um comentário: respostas, o campo de responder ou o "Ver N respostas". */
+type Item = { key: string; content: ReactNode };
+
+/** Um comentário e, recuados embaixo dele, as respostas a ele (e o campo de responder, se for ali). */
+function Branched({ indent, row, items }: { indent: number; row: ReactNode; items: Item[] }) {
+  return (
+    <>
+      {row}
+      {items.length > 0 && (
+        <ul className="m-0 mt-4 flex list-none flex-col gap-4 p-0" style={{ paddingLeft: indent }}>
+          {items.map((it) => (
+            <li key={it.key}>{it.content}</li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
 /** Comentários e respostas. */
 const countAll = (list: CommentThread[]) => list.reduce((n, x) => n + 1 + x.replies.length, 0);
 
-/** O que a pessoa está respondendo: a conversa (comentário original) e o nome de quem ela quer responder. */
-type ReplyTo = { thread: string; name: string };
+/**
+ * O que a pessoa está respondendo: a conversa (comentário original), a resposta dentro dela (null quando é o
+ * próprio comentário original) e o nome de quem ela quer responder.
+ */
+type ReplyTo = { thread: string; to: string | null; name: string };
 
 /** Comentários da vitrine: o título, o campo e, abaixo, a lista com as respostas. */
 export function Comments({
@@ -330,9 +401,12 @@ export function Comments({
   const [status, setStatus] = useState("");
   // quem voltou do login no meio de uma resposta encontra o campo dela aberto (só aparece com `viewer`, depois da hidratação)
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(() => {
-    const thread = returningReply(handle);
-    const original = comments.items.find((x) => x.id === thread);
-    return original ? { thread: original.id, name: original.authorName } : null;
+    const back = returningReply(handle);
+    const original = comments.items.find((x) => x.id === back?.thread);
+    if (!original) return null;
+    // a resposta pode ter sido apagada enquanto a pessoa entrava: aí responde à conversa
+    const target = original.replies.find((r) => r.id === back?.to);
+    return target ? { thread: original.id, to: target.id, name: target.authorName } : { thread: original.id, to: null, name: original.authorName };
   });
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set(replyTo ? [replyTo.thread] : []));
   const [, startDelete] = useTransition();
@@ -341,10 +415,10 @@ export function Comments({
   const total = comments.total + countAll(items) - countAll(comments.items);
   const remaining = items.length - shown;
 
-  const optimistic = (body: string, parentId: string | null): VitrineComment | null => {
+  const optimistic = (body: string, parentId: string | null, replyToId: string | null = null): VitrineComment | null => {
     if (!user) return null;
     const now = new Date().toISOString();
-    return { id: `enviando:${now}`, parentId, authorId: user.id, authorName: user.name || t("you"), authorAvatarUrl: user.avatarUrl, body, byOwner: owner, dateLabel: "", createdAt: now };
+    return { id: `enviando:${now}`, parentId, replyToId, authorId: user.id, authorName: user.name || t("you"), authorAvatarUrl: user.avatarUrl, body, byOwner: owner, dateLabel: "", createdAt: now };
   };
 
   const onSend = async (body: string) => {
@@ -355,17 +429,18 @@ export function Comments({
     return result.ok ? null : result.error;
   };
 
-  const onReply = (thread: string) => async (body: string) => {
-    const add = optimistic(body, thread);
+  // o banco pendura a resposta na conversa e guarda a resposta respondida (`to`), se houver
+  const onReply = (thread: string, to: string | null) => async (body: string) => {
+    const add = optimistic(body, thread, to);
     if (add) change({ add });
-    const result = await reachServer(addCommentAction(handle, body, thread), tErrors("offline"));
+    const result = await reachServer(addCommentAction(handle, body, to ?? thread), tErrors("offline"));
     setStatus(result.ok ? t("replied") : "");
     if (result.ok) setReplyTo((r) => (r?.thread === thread ? null : r));
     return result.ok ? null : result.error;
   };
 
-  const openReply = (thread: string, name: string) => {
-    setReplyTo({ thread, name });
+  const openReply = (thread: string, to: string | null, name: string) => {
+    setReplyTo({ thread, to, name });
     setExpanded((s) => new Set(s).add(thread));
   };
 
@@ -386,12 +461,13 @@ export function Comments({
     });
   };
 
-  const rowProps = (c: VitrineComment, thread: string) => ({
+  const rowProps = (c: VitrineComment, thread: string, replyingTo?: string) => ({
     comment: c,
+    replyingTo,
     mine: user?.id === c.authorId,
     canDelete: owner || user?.id === c.authorId,
     onDelete: () => onDelete(c.id),
-    onReply: viewer ? () => openReply(thread, c.authorName) : null,
+    onReply: viewer ? () => openReply(thread, c.id === thread ? null : c.id, c.authorName) : null,
   });
 
   return (
@@ -428,44 +504,62 @@ export function Comments({
               const replying = viewer && !isSending(c) && replyTo?.thread === c.id ? replyTo : null;
               const collapsible = c.replies.length > REPLIES_OPEN;
               const open = !collapsible || expanded.has(c.id);
-              return (
-                <li key={c.id} className="border-b border-sand py-5">
-                  <CommentRow {...rowProps(c, c.id)} />
-                  {(c.replies.length > 0 || replying) && (
-                    // alinhado ao texto do comentário: foto (40px) + espaço (14px)
-                    <div className="mt-4 flex flex-col gap-4 pl-[54px]">
-                      {collapsible && (
-                        <button type="button" onClick={() => toggle(c.id)} aria-expanded={open} className={`${quiet} self-start`}>
+              const tree = replyTree(c.replies);
+              // o campo aparece embaixo de quem está sendo respondido (ou de quem recebe a resposta, no último nível)
+              const target = replying?.to ? tree.byId.get(replying.to) : undefined;
+              const host = !replying ? null : !target ? c.id : target.depth >= MAX_DEPTH ? (target.up?.comment.id ?? c.id) : target.comment.id;
+              const composerAt = (id: string): Item[] =>
+                replying && host === id
+                  ? [
+                      {
+                        key: "composer",
+                        content: (
+                          <Composer
+                            key={c.id}
+                            target={replyTarget(handle, c.id)}
+                            resume={resumeTarget(handle, c.id, replying.to)}
+                            text={{
+                              field: t("replyField"),
+                              placeholder: t("replyPlaceholder", { name: firstNameOf(replying.name) }),
+                              submit: t("replySubmit"),
+                              signIn: t("signInToReply"),
+                            }}
+                            user={user}
+                            reply
+                            onSend={onReply(c.id, replying.to)}
+                            onCancel={() => setReplyTo(null)}
+                          />
+                        ),
+                      },
+                    ]
+                  : [];
+              const replyItems = (nodes: ReplyNode[]): Item[] =>
+                nodes.map((n) => {
+                  const answered = n.comment.replyToId ? tree.byId.get(n.comment.replyToId) : undefined;
+                  // o recuo já mostra a quem ela responde; o "@Nome" fica para quando ela não está logo embaixo
+                  const mention = answered && answered !== n.up ? answered.comment.authorName : undefined;
+                  return {
+                    key: n.comment.id,
+                    content: (
+                      <Branched indent={REPLY_INDENT} row={<CommentRow {...rowProps(n.comment, c.id, mention)} small />} items={[...replyItems(n.kids), ...composerAt(n.comment.id)]} />
+                    ),
+                  };
+                });
+              const toggleItem: Item[] = collapsible
+                ? [
+                    {
+                      key: "toggle",
+                      content: (
+                        <button type="button" onClick={() => toggle(c.id)} aria-expanded={open} className={quiet}>
                           {open ? t("hideReplies") : t("showReplies", { count: c.replies.length })}
                         </button>
-                      )}
-                      {open && c.replies.length > 0 && (
-                        <ul className="m-0 flex list-none flex-col gap-4 p-0">
-                          {c.replies.map((r) => (
-                            <li key={r.id}>
-                              <CommentRow {...rowProps(r, c.id)} small />
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {replying && (
-                        <Composer
-                          key={c.id}
-                          target={replyTarget(handle, c.id)}
-                          text={{
-                            field: t("replyField"),
-                            placeholder: t("replyPlaceholder", { name: firstNameOf(replying.name) }),
-                            submit: t("replySubmit"),
-                            signIn: t("signInToReply"),
-                          }}
-                          user={user}
-                          reply
-                          onSend={onReply(c.id)}
-                          onCancel={() => setReplyTo(null)}
-                        />
-                      )}
-                    </div>
-                  )}
+                      ),
+                    },
+                  ]
+                : [];
+              return (
+                <li key={c.id} className="border-b border-sand py-5">
+                  <Branched indent={ROOT_INDENT} row={<CommentRow {...rowProps(c, c.id)} />} items={[...toggleItem, ...(open ? replyItems(tree.top) : []), ...composerAt(c.id)]} />
                 </li>
               );
             })}
