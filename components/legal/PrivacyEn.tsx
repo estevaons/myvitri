@@ -49,8 +49,8 @@ export function PrivacyEn({ updated }: { updated: string }) {
           and send new-password links. Your password is stored encrypted by Supabase, and no one at {BRAND} can read it.
         </p>
         <p>
-          <strong>Storefront content.</strong> The display name, chosen link, photo, texts, coupons, products, store and affiliate links and
-          kits you add. This content is meant to be public and is shown to anyone who opens your storefront.
+          <strong>Storefront content.</strong> The display name, chosen link, photo, texts, links to your social profiles (Instagram, TikTok,
+          YouTube and X), coupons, products, store and affiliate links and outfits (the photo, caption and tagged items) you add. This content is meant to be public and is shown to anyone who opens your storefront.
         </p>
         <p>
           <strong>Storefront visitors.</strong> We count visits and clicks (for example, “coupon copied” or “click to go to the store”) to show
@@ -58,9 +58,15 @@ export function PrivacyEn({ updated }: { updated: string }) {
           name, email, IP address or any personal identifier with these events.
         </p>
         <p>
+          <strong>Site usage statistics.</strong> We use Vercel Web Analytics and Vercel Speed Insights to learn which pages are most visited
+          and whether the site loads quickly. They record, in aggregate, the page visited, the referring site, country, device type, browser,
+          operating system and page performance measurements. They do not use cookies and do not identify visitors: Vercel tells visits apart
+          with a temporary code that is discarded every day.
+        </p>
+        <p>
           <strong>People who save storefronts or comment.</strong> The same sign-in data. The list of saved storefronts is private. Comments
-          are public: the text appears on the storefront with the date, your name and, if you sign in with Google, your profile photo, to anyone
-          who opens the page. You can delete your comments at any time, and the storefront owner can also delete the ones on it.
+          and replies are public: the text appears on the storefront with the date, your name and, if you sign in with Google, your profile photo, to anyone
+          who opens the page. You can delete your comments at any time, and the storefront owner can also delete the ones on it. Deleting a comment also deletes its replies.
         </p>
         <p>
           <strong>Technical logs.</strong> Our hosting providers may log, for a short time, data such as IP address, browser and pages
@@ -75,6 +81,7 @@ export function PrivacyEn({ updated }: { updated: string }) {
           <li>To publish your storefront and show you visit and click metrics (performance of contract).</li>
           <li>To keep your saved storefronts and publish your comments with your name and photo (performance of contract).</li>
           <li>To contact you about your account, important changes to the service or requests you make (legitimate interest).</li>
+          <li>To understand, in aggregate, how the site is used and whether it loads well, so we can improve it (legitimate interest).</li>
           <li>To keep the site secure, prevent abuse and comply with legal obligations.</li>
         </ul>
         <p>We do not sell your data, we do not use it for advertising and we do not profile storefront visitors.</p>
@@ -100,9 +107,12 @@ export function PrivacyEn({ updated }: { updated: string }) {
             new-password link).
           </li>
           <li>A cookie that remembers the site language you last chose (up to 1 year).</li>
-          <li>An entry in the browser session so the same visit is not counted twice; it disappears when the tab is closed.</li>
+          <li>
+            Entries in the browser session so the same visit is not counted twice, to keep a comment draft and to remember the storefront you
+            wanted to save while you sign in; they disappear when the tab is closed.
+          </li>
         </ul>
-        <p>We do not use advertising cookies or third-party tracking tools.</p>
+        <p>We do not use advertising or tracking cookies. The site usage statistics (section 2) do not use cookies either.</p>
       </Section>
 
       <Section title="6. Who we share data with">
@@ -112,16 +122,21 @@ export function PrivacyEn({ updated }: { updated: string }) {
             <strong>Supabase</strong>: database and authentication.
           </li>
           <li>
-            <strong>Vercel</strong>: site hosting.
+            <strong>Vercel</strong>: site hosting and usage and performance statistics (Web Analytics and Speed Insights).
           </li>
           <li>
             <strong>Google</strong>: sign-in with a Google account.
           </li>
           <li>
-            <strong>Brave Search</strong>: when you import a product by link, we may look up the address or product name to complete the photo.
-            None of your personal data is sent.
+            <strong>Brave Search, Google and the store&apos;s site</strong>: when you import a product by link, we open the store&apos;s page
+            and may query Brave Search (with the product address or name) and Google&apos;s icon service (with the store&apos;s domain) to
+            complete the photo and logo. None of your personal data is sent.
           </li>
         </ul>
+        <p>
+          Product photos and brand logos may be loaded directly from the stores&apos; sites or from Google&apos;s icon service. When you open a
+          storefront, your browser connects to those sites, which receive technical data such as your IP address, under their own policies.
+        </p>
         <p>
           Links to stores may carry campaign parameters (UTM) that identify the storefront they came from, never the visitor. We may also share
           data when required by law or a court order.
@@ -138,8 +153,8 @@ export function PrivacyEn({ updated }: { updated: string }) {
       <Section title="8. How long we keep data">
         <p>
           We keep your account and storefront data for as long as the account exists. You can delete your account whenever you want in Settings
-          (in your photo&apos;s menu, “Delete my account”): we immediately delete the account, the storefront, coupons, products, kits, draft,
-          metrics, saved storefronts and the comments you wrote, and the link becomes available. If you prefer, request deletion at {mail} and we
+          (in your photo&apos;s menu, “Delete my account”): we immediately delete the account, the storefront, coupons, products, outfits, uploaded
+          photos, draft, metrics, saved storefronts and the comments you wrote, and the link becomes available. If you prefer, request deletion at {mail} and we
           will do it within 15 days. Database backups and providers&apos; technical logs are deleted automatically within short periods. We only
           keep anything after that if the law requires it.
         </p>

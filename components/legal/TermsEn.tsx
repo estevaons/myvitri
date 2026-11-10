@@ -32,7 +32,7 @@ export function TermsEn({ updated }: { updated: string }) {
     >
       <Section title="1. What MyVitri is">
         <p>
-          {BRAND} lets anyone build a public storefront, with its own link, gathering the discount coupons, products and kits they
+          {BRAND} lets anyone build a public storefront, with its own link, gathering the discount coupons, products and outfits they
           recommend. Visitors can copy coupons and go on to the brand&apos;s store. The service is currently free; if any feature becomes
           paid, we will let you know in advance.
         </p>
@@ -51,7 +51,11 @@ export function TermsEn({ updated }: { updated: string }) {
 
       <Section title="3. Your storefront content">
         <ul>
-          <li>You are responsible for the coupons, prices, products, texts, images and links you publish, and you warrant that you have the right to share them.</li>
+          <li>
+            You are responsible for the coupons, prices, products, texts, images and links you publish, and you warrant that you have the right
+            to share them. In outfit photos, only post images of yourself or that you are authorized to use, including of any people who appear
+            in them.
+          </li>
           <li>
             When a recommendation is advertising (paid, in exchange for products or for a commission), follow the advertising disclosure rules of
             Brazil&apos;s Consumer Protection Code and CONAR.
@@ -65,8 +69,11 @@ export function TermsEn({ updated }: { updated: string }) {
 
       <Section title="4. Comments">
         <ul>
-          <li>Comments are public and show your name and, if you sign in with Google, your profile photo. You are responsible for what you write.</li>
-          <li>You can delete your comments whenever you want. The storefront owner can also delete any comment on it.</li>
+          <li>Comments and replies are public and show your name and, if you sign in with Google, your profile photo. You are responsible for what you write.</li>
+          <li>
+            You can delete your comments whenever you want. The storefront owner can also delete any comment on it. Deleting a comment also
+            deletes its replies.
+          </li>
         </ul>
       </Section>
 
