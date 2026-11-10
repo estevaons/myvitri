@@ -146,7 +146,8 @@ export function HomeSearch() {
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate text-[15px] font-medium">{b.brand}</span>
                     <span className="truncate text-[13px] text-mute">
-                      {t("brandLine", { off: couponOff(b.best), where: b.creators > 1 ? tCount("inVitrines", { count: b.creators }) : tCount("with", { name: b.creator }) })}
+                      {/* a busca só traz marcas pelos cupons: `best` sempre vem */}
+                      {t("brandLine", { off: b.best ? couponOff(b.best) : "", where: b.creators > 1 ? tCount("inVitrines", { count: b.creators }) : tCount("with", { name: b.creator }) })}
                     </span>
                   </span>
                 </Link>

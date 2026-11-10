@@ -32,9 +32,10 @@ export async function GET() {
     `- [English version](${SITE_URL}/en): the same pages in English, under /en (for example /en/create-storefront, /en/terms and /en/privacy)`,
   ];
 
-  if (feed?.brands.length) {
+  const withCoupon = feed?.brands.filter((b) => b.best) ?? [];
+  if (withCoupon.length) {
     lines.push("", "## Marcas com cupom ativo", "");
-    for (const b of feed.brands) lines.push(`- ${b.brand}: até ${couponOff(b.best)}, na [vitrine de ${b.creator}](${SITE_URL}${vitrinePath(b.handle)})`);
+    for (const b of withCoupon) lines.push(`- ${b.brand}: até ${couponOff(b.best!)}, na [vitrine de ${b.creator}](${SITE_URL}${vitrinePath(b.handle)})`);
   }
 
   if (vitrines.length) {

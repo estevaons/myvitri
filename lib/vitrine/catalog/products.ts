@@ -31,7 +31,7 @@ const norm = (s: string) =>
     .trim();
 
 /** Valor curto e legível para a URL: "Skin Care" → "skin-care". */
-const slug = (s: string) =>
+export const slug = (s: string) =>
   norm(s)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");

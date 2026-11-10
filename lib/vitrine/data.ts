@@ -100,7 +100,8 @@ export type HomeCreator = By & {
 };
 export type HomeCoupon = Coupon & By;
 export type HomeProduct = Product & By;
-export type HomeBrand = By & { brand: string; logoUrl: string; best: Coupon; creators: number };
+/** `best`: o melhor cupom ativo da marca, ou null quando ela só aparece nos produtos à venda. */
+export type HomeBrand = By & { brand: string; logoUrl: string; best: Coupon | null; creators: number; products: number };
 export type HomeFeed = { creators: HomeCreator[]; coupons: HomeCoupon[]; products: HomeProduct[]; brands: HomeBrand[] };
 
 /** Percentual sempre na frente de valor fixo; dentro de cada tipo, o maior. */
@@ -135,17 +136,30 @@ const toHomeCreator = ({ v, by, coupons, products }: ReturnType<typeof live>): H
   products: products.length,
 });
 
-/** Uma marca por nome; o selo mostra o melhor cupom dela e leva à vitrine de quem o oferece. Mantém a ordem de chegada. */
-export function groupBrands(coupons: HomeCoupon[]): HomeBrand[] {
+/**
+ * Uma marca por nome; o selo mostra o melhor cupom dela e leva à vitrine de quem o oferece. As marcas com cupom vêm
+ * primeiro, na ordem de chegada; depois as que só aparecem nos produtos (o produto ligado a um cupom conta na marca dele).
+ */
+export function groupBrands(coupons: HomeCoupon[], products: HomeProduct[] = []): HomeBrand[] {
   const brands = new Map<string, HomeBrand>();
   const brandCreators = new Map<string, Set<string>>();
+  const couponBrand = new Map<string, string>();
+  const seen = (key: string, handle: string) => brandCreators.set(key, (brandCreators.get(key) ?? new Set()).add(handle));
   for (const c of coupons) {
     const key = c.brand.trim().toLowerCase();
-    const seen = brandCreators.get(key) ?? new Set();
-    brandCreators.set(key, seen.add(c.handle));
+    couponBrand.set(c.id, key);
+    seen(key, c.handle);
     const b = brands.get(key);
-    if (!b || rank(c) > rank(b.best)) brands.set(key, { brand: c.brand, logoUrl: c.logoUrl || b?.logoUrl || "", best: c, handle: c.handle, creator: c.creator, creators: 0 });
+    if (!b || rank(c) > rank(b.best!)) brands.set(key, { brand: c.brand, logoUrl: c.logoUrl || b?.logoUrl || "", best: c, handle: c.handle, creator: c.creator, creators: 0, products: b?.products ?? 0 });
     else if (!b.logoUrl) b.logoUrl = c.logoUrl;
+  }
+  for (const p of products) {
+    const key = (p.couponId && couponBrand.get(p.couponId)) || p.brand.trim().toLowerCase();
+    if (!key) continue;
+    seen(key, p.handle);
+    const b = brands.get(key);
+    if (b) b.products++;
+    else brands.set(key, { brand: p.brand.trim(), logoUrl: "", best: null, handle: p.handle, creator: p.creator, creators: 0, products: 1 });
   }
   return [...brands].map(([key, b]) => ({ ...b, creators: brandCreators.get(key)!.size }));
 }
@@ -166,7 +180,7 @@ export async function getHomeFeed(): Promise<HomeFeed> {
     creators: live.slice(0, 8).map(toHomeCreator),
     coupons: coupons.slice(0, 8),
     products: products.slice(0, 48),
-    brands: groupBrands(coupons).slice(0, 8),
+    brands: groupBrands(coupons, products).slice(0, 8),
   };
 }
 
