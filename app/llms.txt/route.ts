@@ -1,6 +1,7 @@
 import { BRAND, CONTACT_EMAIL, HOST, SITE_URL } from "@/lib/brand";
 import { getTranslations } from "next-intl/server";
 import { getHomeFeed, getPublicHandles } from "@/lib/vitrine/data";
+import { vitrinePath } from "@/lib/vitrine/links";
 import { couponOff } from "@/lib/vitrine/pricing";
 
 /**
@@ -20,7 +21,7 @@ export async function GET() {
     "",
     `> ${t("description")}`,
     "",
-    `O ${BRAND} é uma plataforma brasileira de vitrines: cada pessoa que divulga marcas (creators, influenciadoras, atletas) tem uma página em ${HOST}/nome com os cupons de desconto de todas as marcas parceiras, os produtos que usa e kits de produtos. Quem compra abre a vitrine, copia o cupom da marca ou clica no produto e compra direto na loja. O ${BRAND} não vende produtos; os cupons podem mudar na loja da marca.`,
+    `O ${BRAND} é uma plataforma brasileira de vitrines: cada pessoa que divulga marcas (creators, influenciadoras, atletas) tem uma página em ${HOST}/@nome com os cupons de desconto de todas as marcas parceiras, os produtos que usa e kits de produtos. Quem compra abre a vitrine, copia o cupom da marca ou clica no produto e compra direto na loja. O ${BRAND} não vende produtos; os cupons podem mudar na loja da marca.`,
     "",
     "## Páginas",
     "",
@@ -28,17 +29,17 @@ export async function GET() {
     `- [Criar vitrine](${SITE_URL}/criar-vitrine): como funciona para quem divulga marcas, grátis para começar`,
     `- [Termos de Uso](${SITE_URL}/termos)`,
     `- [Política de Privacidade](${SITE_URL}/privacidade)`,
-    `- [English version](${SITE_URL}/en): the same pages in English, under /en`,
+    `- [English version](${SITE_URL}/en): the same pages in English, under /en (for example /en/create-storefront, /en/terms and /en/privacy)`,
   ];
 
   if (feed?.brands.length) {
     lines.push("", "## Marcas com cupom ativo", "");
-    for (const b of feed.brands) lines.push(`- ${b.brand}: até ${couponOff(b.best)}, na [vitrine de ${b.creator}](${SITE_URL}/${b.handle})`);
+    for (const b of feed.brands) lines.push(`- ${b.brand}: até ${couponOff(b.best)}, na [vitrine de ${b.creator}](${SITE_URL}${vitrinePath(b.handle)})`);
   }
 
   if (vitrines.length) {
     lines.push("", "## Vitrines", "");
-    for (const v of vitrines) lines.push(`- [${v.name}](${SITE_URL}/${v.handle}): cupons e produtos indicados por ${v.name} (@${v.handle})`);
+    for (const v of vitrines) lines.push(`- [${v.name}](${SITE_URL}${vitrinePath(v.handle)}): cupons e produtos indicados por ${v.name} (@${v.handle})`);
   }
 
   lines.push("", "## Contato", "", `- ${CONTACT_EMAIL}`, "");

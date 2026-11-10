@@ -4,10 +4,10 @@ import { hrefWith, limitOf, type TabParams } from "../catalog/params";
 import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
 import { VitrineCard } from "./vitrines/VitrineCard";
 
-/** Ordens na URL (`?ordem=`), a primeira é a padrão. Os rótulos ficam em `catalog.vitrines.sorts`. */
-const SORTS = ["alta", "recentes", "desconto", "cupons"] as const;
+/** Ordens na URL (`?sort=`), a primeira é a padrão. Os rótulos ficam em `catalog.vitrines.sorts`. */
+const SORTS = ["trending", "recent", "discount", "coupons"] as const;
 
-const FILTER_KEYS = ["cat", "marca", "vencendo"] as const;
+const FILTER_KEYS = ["category", "brand", "expiring"] as const;
 
 /** O filtro ativo continua na lista mesmo fora das mais frequentes, para dar para tirá-lo. */
 const withActive = (options: CatalogOption[], active: string | undefined): CatalogOption[] =>
@@ -21,31 +21,31 @@ const byRecent = (a: CatalogVitrine, b: CatalogVitrine) => b.updatedAt.localeCom
  * que muda a cada clique, do cache de minutos.
  */
 export async function VitrinesTab({ params, favorites = [] }: { params: TabParams; favorites?: string[] }) {
-  const sort = SORTS.find((id) => id === params.ordem) ?? SORTS[0];
+  const sort = SORTS.find((id) => id === params.sort) ?? SORTS[0];
   const [{ vitrines, categories, brands, today }, trending, t, tCount] = await Promise.all([
     getVitrinesCatalog(),
-    sort === "alta" ? getTrendingHandles() : [],
+    sort === "trending" ? getTrendingHandles() : [],
     getTranslations("catalog"),
     getTranslations("counts"),
   ]);
 
-  const cat = params.cat && keyOf(params.cat);
-  const brand = params.marca && keyOf(params.marca);
+  const cat = params.category && keyOf(params.category);
+  const brand = params.brand && keyOf(params.brand);
   const filtered = vitrines.filter(
     (v) =>
       (!cat || v.categoryKeys.includes(cat)) &&
       (!brand || v.brandKeys.includes(brand)) &&
-      (params.vencendo !== "1" || v.expiring !== null),
+      (params.expiring !== "1" || v.expiring !== null),
   );
 
   // o catálogo já vem do mais recente para o mais antigo; o sort é estável, então o empate fica assim
   const pos = new Map(trending.map((h, i) => [h, i]));
   const sorted =
-    sort === "alta"
+    sort === "trending"
       ? filtered.toSorted((a, b) => (pos.get(a.card.handle) ?? Infinity) - (pos.get(b.card.handle) ?? Infinity) || byRecent(a, b))
-      : sort === "desconto"
+      : sort === "discount"
         ? filtered.toSorted((a, b) => bestRank(b) - bestRank(a) || byRecent(a, b))
-        : sort === "cupons"
+        : sort === "coupons"
           ? filtered.toSorted((a, b) => b.card.coupons - a.card.coupons || byRecent(a, b))
           : filtered.toSorted(byRecent);
 
@@ -55,12 +55,12 @@ export async function VitrinesTab({ params, favorites = [] }: { params: TabParam
   const clearHref = hrefWith(params, Object.fromEntries(FILTER_KEYS.map((k) => [k, null])));
 
   // o liga/desliga só aparece se houver alguma vitrine para mostrar com ele (ou se já estiver ligado)
-  const showExpiring = vitrines.some((v) => v.expiring) || params.vencendo;
+  const showExpiring = vitrines.some((v) => v.expiring) || params.expiring;
   const filters = (
     <>
-      <FilterChips label={t("filters.category")} param="cat" options={withActive(categories, params.cat)} params={params} />
-      <FilterChips label={t("filters.brand")} param="marca" options={withActive(brands, params.marca)} params={params} />
-      {showExpiring && <ToggleChip label={t("filters.expiringCoupon")} param="vencendo" params={params} />}
+      <FilterChips label={t("filters.category")} param="category" options={withActive(categories, params.category)} params={params} />
+      <FilterChips label={t("filters.brand")} param="brand" options={withActive(brands, params.brand)} params={params} />
+      {showExpiring && <ToggleChip label={t("filters.expiringCoupon")} param="expiring" params={params} />}
     </>
   );
 

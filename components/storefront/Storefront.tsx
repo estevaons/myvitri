@@ -600,19 +600,21 @@ export function Storefront({
 
       {comments && <Comments handle={content.handle} firstName={firstName} comments={comments} viewer={viewer} className={pad} />}
 
-      <section className={`mx-auto max-w-[1440px] pt-20 @3xl:pt-28 ${pad}`}>
-        <div className="flex flex-col items-center gap-4 bg-sand px-6 py-16 text-center @max-md:py-12">
-          {/* quem chega aqui acabou de ver a vitrine de alguém: o convite parte dela */}
-          <span className="text-[12px] font-medium tracking-[0.22em] text-gold uppercase">{t("cta.kicker")}</span>
-          <h2 className="m-0 font-display text-[clamp(32px,4.4cqw,52px)] leading-[1.05] font-normal text-balance">
-            {t("cta.title")} <em>{t("cta.titleEm")}</em>
-          </h2>
-          <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">{t("cta.text")}</p>
-          <Link href="/criar-vitrine" className={`${pillDark} mt-2`}>
-            {t("cta.button")}
-          </Link>
-        </div>
-      </section>
+      {!preview && viewer?.user === null && (
+        <section className={`mx-auto max-w-[1440px] pt-20 @3xl:pt-28 ${pad}`}>
+          <div className="flex flex-col items-center gap-4 bg-sand px-6 py-16 text-center @max-md:py-12">
+            {/* quem chega aqui acabou de ver a vitrine de alguém: o convite parte dela */}
+            <span className="text-[12px] font-medium tracking-[0.22em] text-gold uppercase">{t("cta.kicker")}</span>
+            <h2 className="m-0 font-display text-[clamp(32px,4.4cqw,52px)] leading-[1.05] font-normal text-balance">
+              {t("cta.title")} <em>{t("cta.titleEm")}</em>
+            </h2>
+            <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">{t("cta.text")}</p>
+            <Link href="/criar-vitrine" className={`${pillDark} mt-2`}>
+              {t("cta.button")}
+            </Link>
+          </div>
+        </section>
+      )}
 
       <footer className={`mx-auto mt-14 flex max-w-[1440px] flex-wrap items-center justify-between gap-3 border-t border-sand py-8 text-[13px] text-mute ${pad}`}>
         <Link href="/" aria-label={BRAND} className="flex items-center text-inherit no-underline">

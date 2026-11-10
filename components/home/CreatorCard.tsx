@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { FavoriteButton } from "@/components/storefront/FavoriteButton";
 import type { HomeCreator } from "@/lib/vitrine/data";
 
@@ -68,7 +68,7 @@ export function CreatorCard({ c, favorited }: { c: HomeCreator; favorited: boole
     .join(" · ");
   return (
     <div className="relative min-w-0">
-      <Link href={`/${c.handle}`} className="group flex min-w-0 flex-col text-ink no-underline">
+      <Link href={vitrineHref(c.handle)} className="group flex min-w-0 flex-col text-ink no-underline">
         <CreatorCover c={c} />
         {/* no celular o card é estreito: os números descem para a linha de baixo em vez de cortar */}
         <span className="flex min-w-0 flex-col pt-3 text-[14px] text-mute group-hover:text-ink md:flex-row md:text-[15px]">

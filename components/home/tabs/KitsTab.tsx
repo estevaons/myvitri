@@ -4,7 +4,7 @@ import { hrefWith, limitOf, type TabParams } from "../catalog/params";
 import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore } from "../catalog/ui";
 import { KitCatalogCard } from "./kits/KitCatalogCard";
 
-const FILTERS = ["cat", "creator"] as const;
+const FILTERS = ["category", "creator"] as const;
 
 /**
  * Aba "Kits" do /inicio: todos os kits publicados com algum produto à venda, dos mais recentes para os mais antigos.
@@ -15,7 +15,7 @@ export async function KitsTab({ params }: { params: TabParams }) {
   const shown = queryKits(kits, params);
   const limit = limitOf(params);
   const filtered = FILTERS.some((f) => params[f]);
-  const clearHref = hrefWith(params, { cat: null, creator: null });
+  const clearHref = hrefWith(params, { category: null, creator: null });
 
   return (
     <CatalogFrame
@@ -23,7 +23,7 @@ export async function KitsTab({ params }: { params: TabParams }) {
       text={t("kits.text")}
       filters={
         <>
-          <FilterChips label={t("filters.category")} param="cat" options={categories} params={params} />
+          <FilterChips label={t("filters.category")} param="category" options={categories} params={params} />
           <FilterChips label={t("filters.vitrine")} param="creator" options={creators} params={params} />
         </>
       }

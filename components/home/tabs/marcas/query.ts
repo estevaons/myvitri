@@ -5,15 +5,15 @@ import type { TabParams } from "../../catalog/params";
 
 /** Filtros e ordem da aba Marcas, a partir da URL. Funções puras: o servidor monta a aba com elas. */
 
-/** Ordens na URL (`?ordem=`), a primeira é a padrão. Os rótulos ficam em `catalog.brands.sorts`. */
-export const SORTS = ["desconto", "creators", "vencendo", "az"] as const;
+/** Ordens na URL (`?sort=`), a primeira é a padrão. Os rótulos ficam em `catalog.brands.sorts`. */
+export const SORTS = ["discount", "creators", "expiring", "az"] as const;
 
 /** "Vencendo esta semana": algum cupom da marca vence em até 7 dias. */
 const SOON_DAYS = 7;
 /** O filtro por letra só ajuda quando a lista já é longa. */
 export const LETTER_MIN = 24;
 /** Marcas que começam com número ou símbolo. */
-export const OTHER_LETTER = "outros";
+export const OTHER_LETTER = "other";
 
 /** Primeira letra sem acento ("Água" → "a"); número ou símbolo → OTHER_LETTER. */
 export function letterOf(name: string) {
@@ -33,13 +33,13 @@ export const expiringSoon = (b: CatalogBrand, today: string) => {
   return c !== null && (daysLeft(c, today) ?? Infinity) <= SOON_DAYS;
 };
 
-type Filter = "cat" | "vencendo" | "letra";
+type Filter = "category" | "expiring" | "letter";
 
 /** Passa nos filtros da URL, menos `skip`: as opções de cada filtro saem das marcas que os outros deixam. */
 export function passes(b: CatalogBrand, p: TabParams, today: string, skip?: Filter) {
-  if (skip !== "cat" && p.cat && !b.categories.includes(p.cat)) return false;
-  if (skip !== "vencendo" && p.vencendo === "1" && !expiringSoon(b, today)) return false;
-  if (skip !== "letra" && p.letra && letterOf(b.brand) !== p.letra) return false;
+  if (skip !== "category" && p.category && !b.categories.includes(p.category)) return false;
+  if (skip !== "expiring" && p.expiring === "1" && !expiringSoon(b, today)) return false;
+  if (skip !== "letter" && p.letter && letterOf(b.brand) !== p.letter) return false;
   return true;
 }
 
@@ -50,7 +50,7 @@ const byCreators = (a: CatalogBrand, b: CatalogBrand) => b.creators.length - a.c
 const byExpiry = (a: CatalogBrand, b: CatalogBrand) => (soonest(a)?.expiresAt ?? "9999").localeCompare(soonest(b)?.expiresAt ?? "9999");
 
 /** Empates caem no maior desconto e depois no nome, para a ordem não pular entre recarregamentos. */
-export function sortBrands(list: CatalogBrand[], ordem: string | undefined) {
+export function sortBrands(list: CatalogBrand[], sort: string | undefined) {
   const chain = (...fns: ((a: CatalogBrand, b: CatalogBrand) => number)[]) => (a: CatalogBrand, b: CatalogBrand) => {
     for (const f of fns) {
       const d = f(a, b);
@@ -59,11 +59,11 @@ export function sortBrands(list: CatalogBrand[], ordem: string | undefined) {
     return 0;
   };
   const cmp =
-    ordem === "creators"
+    sort === "creators"
       ? chain(byCreators, byBest, byName)
-      : ordem === "vencendo"
+      : sort === "expiring"
         ? chain(byExpiry, byBest, byName)
-        : ordem === "az"
+        : sort === "az"
           ? byName
           : chain(byBest, byCreators, byName);
   return [...list].sort(cmp);

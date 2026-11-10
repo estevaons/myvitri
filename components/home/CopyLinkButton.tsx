@@ -2,8 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { HOST } from "@/lib/brand";
+import { vitrineAddress, vitrinePath } from "@/lib/vitrine/links";
 import { pillLight } from "./chrome";
 
 const noop = () => () => {};
@@ -20,7 +21,7 @@ function useCopyLink(handle: string) {
   const field = useRef<HTMLInputElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const origin = useOrigin();
-  const url = origin ? `${origin}/${handle}` : "";
+  const url = origin ? `${origin}${vitrinePath(handle)}` : "";
   useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => {
     if (state === "manual") field.current?.select();
@@ -77,14 +78,14 @@ export function VitrineLinkBar({ handle }: { handle: string }) {
         manualField("min-w-0 flex-1 border-0 bg-white px-4 text-[15px] outline-none")
       ) : (
         <Link
-          href={`/${handle}`}
+          href={vitrineHref(handle)}
           target="_blank"
           rel="noopener"
-          aria-label={t("openLabel", { url: `${HOST}/${handle}` })}
+          aria-label={t("openLabel", { url: vitrineAddress(handle) })}
           className="group flex min-w-0 flex-1 items-center gap-3 px-4 text-[16px] text-mute no-underline hover:bg-cream"
         >
           <span className="min-w-0 truncate">
-            {HOST}/<em className="font-display text-[1.3em] leading-none text-ink">{handle}</em>
+            {HOST}/@<em className="font-display text-[1.3em] leading-none text-ink">{handle}</em>
           </span>
           <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto flex-none text-ink transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
             <path d="M7 17L17 7M9 7h8v8" />

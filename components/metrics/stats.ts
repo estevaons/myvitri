@@ -16,7 +16,7 @@ export type Stats = {
 export const PERIODS = [7, 30, 90] as const;
 export type Period = (typeof PERIODS)[number];
 
-/** `?periodo=7|30|90`; qualquer outra coisa vira o padrão, 30. */
+/** `?period=7|30|90`; qualquer outra coisa vira o padrão, 30. */
 export const parsePeriod = (v: string | string[] | undefined): Period => PERIODS.find((p) => String(p) === v) ?? 30;
 
 /** Hoje (AAAA-MM-DD) no horário de Brasília, o mesmo fuso em que a RPC agrupa os dias. */

@@ -1,4 +1,4 @@
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import type { HomeKit } from "@/lib/vitrine/data";
 import type { Product } from "@/lib/vitrine/types";
@@ -29,7 +29,7 @@ export function KitMosaic({ items: all }: { items: Product[] }) {
 /** Card de kit da home logada; leva aos kits da vitrine de quem montou. */
 export function KitCard({ k }: { k: HomeKit }) {
   return (
-    <Link href={`/${k.handle}#kits`} className="group flex min-w-0 flex-col text-ink no-underline">
+    <Link href={vitrineHref(k.handle, "kits")} className="group flex min-w-0 flex-col text-ink no-underline">
       <KitMosaic items={k.items} />
       <div className="flex min-w-0 flex-col gap-0.5 pt-3 text-[15px] leading-snug max-md:text-sm">
         <span className="font-display text-[24px] leading-[1.1] md:text-[28px]">{k.name}</span>

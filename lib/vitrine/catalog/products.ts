@@ -121,13 +121,13 @@ export async function queryProducts(params: Record<string, string>) {
 
   const items = products.filter(
     (p) =>
-      (!params.cat || p.catKey === params.cat) &&
-      (!params.marca || p.brandKey === params.marca) &&
+      (!params.category || p.catKey === params.category) &&
+      (!params.brand || p.brandKey === params.brand) &&
       (params.video !== "1" || !!p.videoUrl),
   );
 
   const brandChips = brands.slice(0, BRAND_CHIPS);
-  const picked = brands.find(([key]) => key === params.marca);
+  const picked = brands.find(([key]) => key === params.brand);
   if (picked && !brandChips.includes(picked)) brandChips.push(picked);
 
   return {

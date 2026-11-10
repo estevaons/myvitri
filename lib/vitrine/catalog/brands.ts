@@ -16,7 +16,7 @@ export type BrandCreator = { handle: string; name: string; avatarUrl: string };
 export type BrandCoupon = Coupon & BrandCreator;
 
 export type CatalogBrand = {
-  /** nome sem espaços nas pontas, em minúsculas (como `groupBrands`); vai na URL (`?marca=`) */
+  /** nome sem espaços nas pontas, em minúsculas (como `groupBrands`); vai na URL (`?brand=`) */
   key: string;
   brand: string;
   logoUrl: string;

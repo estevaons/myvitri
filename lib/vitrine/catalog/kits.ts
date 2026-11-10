@@ -106,8 +106,8 @@ export async function getKitCatalog(): Promise<KitCatalog> {
   };
 }
 
-export type KitQuery = { cat?: string; creator?: string };
+export type KitQuery = { category?: string; creator?: string };
 
 /** Filtra no servidor; a ordem é a do banco, do mais recente para o mais antigo. */
 export const queryKits = (kits: CatalogKit[], q: KitQuery): CatalogKit[] =>
-  kits.filter((k) => (!q.cat || k.cats.includes(q.cat)) && (!q.creator || k.handle === q.creator));
+  kits.filter((k) => (!q.category || k.cats.includes(q.category)) && (!q.creator || k.handle === q.creator));

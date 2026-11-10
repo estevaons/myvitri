@@ -7,8 +7,8 @@ import { claimAction, createVitrineAction, requestPasswordResetAction, signInAct
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { AuthPhoto } from "@/components/auth/AuthPhoto";
-import { Link, useRouter } from "@/lib/i18n/navigation";
-import { withoutLocale } from "@/lib/i18n/routing";
+import { hrefOf, Link, useRouter } from "@/lib/i18n/navigation";
+import { internalPath } from "@/lib/i18n/routing";
 import { PASSWORD_MIN } from "@/lib/auth/password";
 import { BRAND, HOST } from "@/lib/brand";
 
@@ -176,7 +176,7 @@ function ClaimFields({ claim: { name, setName, handle, setCustom } }: { claim: C
         {t("link")}
         {/* o prefixo fica dentro da pílula; o contorno de foco vale para o conjunto */}
         <span className={`${field} gap-0 focus-within:border-ink focus-within:bg-white`}>
-          <span className="flex-none text-mute">{HOST}/</span>
+          <span className="flex-none text-mute">{HOST}/@</span>
           <input
             name="handle"
             required
@@ -213,7 +213,7 @@ function AuthShell({ back = "/", onBack, children }: { back?: string; onBack?: (
     <main className="grid min-h-dvh grid-cols-[minmax(0,1fr)] bg-white text-ink md:grid-cols-2">
       <div className="flex flex-col gap-10 px-5 py-6 md:px-12 md:py-8">
         <div className="flex items-center gap-3">
-          <BackLink href={onBack ? undefined : back} onClick={onBack} divider />
+          <BackLink href={onBack ? undefined : hrefOf(back)} onClick={onBack} divider />
           <Link href="/" aria-label={t("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
             <Wordmark label="" className="h-[19px] w-auto" />
           </Link>
@@ -284,8 +284,8 @@ function Panel({ title, text, children }: { title: string; text: string; childre
 /** A página atual, sem o aviso de erro do login nem o idioma, para voltar a ela depois de entrar. */
 function herePath() {
   const url = new URL(location.href);
-  url.searchParams.delete("erro");
-  return withoutLocale(url.pathname + url.search);
+  url.searchParams.delete("error");
+  return internalPath(url.pathname + url.search);
 }
 
 function PasswordSignIn({ next, onForgot }: { next: string; onForgot: () => void }) {
@@ -388,7 +388,7 @@ export function LoginButton({ className, children, onOpen }: { className?: strin
       type="button"
       onClick={() => {
         onOpen?.();
-        router.push(`/entrar?next=${encodeURIComponent(herePath())}`);
+        router.push({ pathname: "/entrar", query: { next: herePath() } });
       }}
       className={`cursor-pointer ${className ?? ""}`}
     >

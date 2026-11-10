@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { HOST } from "@/lib/brand";
 import type { HomeCreator } from "@/lib/vitrine/data";
 import { CoverLetter } from "./CreatorCard";
@@ -30,7 +30,7 @@ function Tile({ c, lead = false, className }: { c: HomeCreator; lead?: boolean; 
   const t = useTranslations("mosaic");
   const cover = Boolean(c.bannerUrl);
   return (
-    <Link href={`/${c.handle}`} className={`group relative block min-w-0 overflow-hidden bg-sand no-underline ${cover ? "text-white" : "text-ink"} ${className}`}>
+    <Link href={vitrineHref(c.handle)} className={`group relative block min-w-0 overflow-hidden bg-sand no-underline ${cover ? "text-white" : "text-ink"} ${className}`}>
       {c.bannerUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- capa vem de URL arbitrária
         <img src={c.bannerUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
