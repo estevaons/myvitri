@@ -396,7 +396,26 @@ async function saveProfile(patch: Partial<VitrineProfile>): Promise<SocialResult
   updateTag(vitrineTag(vitrine.handle));
   if (vitrine.handle !== parsed.data.handle) updateTag(vitrineTag(parsed.data.handle));
   updateTag(HOME_TAG);
+
+  // Foto de perfil e capa trocadas não ficam guardadas: liberam espaço da cota de upload da pessoa.
+  const stale = [
+    vitrine.avatarUrl !== parsed.data.avatarUrl && ownPhotoPath(vitrine.avatarUrl, user.id),
+    vitrine.look.bannerUrl !== parsed.data.look.bannerUrl && ownPhotoPath(vitrine.look.bannerUrl, user.id),
+  ].filter((path): path is string => !!path);
+  if (stale.length) {
+    const { error } = await supabase.storage.from("vitrine-photos").remove(stale);
+    if (error) console.error("removeStalePhotos", error);
+  }
   return { ok: true };
+}
+
+/** Caminho no bucket vitrine-photos de uma URL pública do projeto, só quando o arquivo está na pasta da pessoa. */
+function ownPhotoPath(url: string, userId: string) {
+  const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/vitrine-photos/`;
+  if (!url.startsWith(prefix)) return null;
+  const path = decodeURIComponent(url.slice(prefix.length).split("?")[0]);
+  const [folder, file, ...rest] = path.split("/");
+  return folder === userId && file && !rest.length ? path : null;
 }
 
 /** Configurações: nome, link e foto de perfil. */
@@ -473,7 +492,9 @@ export async function uploadImageAction(kind: ImageKind, form: FormData): Promis
   const { error } = await bucket.upload(path, file, { contentType: file.type, cacheControl: "31536000" });
   if (error) {
     console.error("uploadImage", kind, error);
-    return { ok: false, error: t("uploadFailed") };
+    // O caminho é sempre a pasta da pessoa: recusa da policy aqui é a cota ou o ritmo de upload (storage_upload_allowed).
+    const refused = "statusCode" in error && error.statusCode === "403";
+    return { ok: false, error: t(refused ? "uploadLimit" : "uploadFailed") };
   }
   return { ok: true, url: bucket.getPublicUrl(path).data.publicUrl };
 }

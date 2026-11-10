@@ -311,6 +311,7 @@
     "logoFailed": "We couldn't open the store's website. Check the link.",
     "imageType": "Use a PNG, JPG, SVG or WebP image.",
     "uploadFailed": "We couldn't upload the image. Try again.",
+    "uploadLimit": "You've reached the image upload limit. Wait a few minutes and try again; if it persists, email contato@myvitri.com.",
     "offline": "We couldn't reach the server. Check your connection and try again.",
     "schema": {
       "invalid": "Check the details you entered.",
