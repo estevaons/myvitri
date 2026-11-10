@@ -11,7 +11,7 @@ import { kicker, pad, pillDark } from "./chrome";
  * Veio de /criar-vitrine, que agora é só o formulário de criar a conta.
  */
 
-/** As peças que a mulher da foto do topo (`/hero/retrato.webp`) está usando: `/hero/<id>.webp` e `pitch.outfitsPieces.<id>`. */
+/** As peças que a mulher da foto do topo (`/hero/retrato.webp`, recortada em `/hero/retrato-outfit.webp`) está usando: `/hero/<id>.webp` e `pitch.outfitsPieces.<id>`. */
 const OUTFIT = ["blazer", "calca", "bolsa"] as const;
 /** O resto do que a vitrine faz, sem desenho: os três de cima já mostram como ela é. */
 const MORE = ["metrics", "stories", "utm", "dates", "video", "soldOut"] as const;
@@ -83,7 +83,8 @@ export function CreatorPitch() {
             {/* um outfit em miniatura: a foto do topo da página, recortada na mulher, e as peças que ela usa ao lado */}
             <div className="flex w-[78%] items-center gap-3 bg-white p-2.5">
               <div className="relative aspect-[4/5] w-[46%] flex-none overflow-hidden bg-sand">
-                <Image src="/hero/retrato.webp" alt="" fill sizes="(min-width: 768px) 180px, 36vw" className="origin-[50%_62%] scale-[2.1] object-cover object-[50%_60%]" />
+                {/* recorte da /hero/retrato.webp já em 4:5: ampliar a foto inteira com CSS deixava a versão pequena do next/image embaçada */}
+                <Image src="/hero/retrato-outfit.webp" alt="" fill sizes="(min-width: 768px) 180px, 36vw" className="object-cover" />
               </div>
               <ul className="m-0 flex min-w-0 flex-1 list-none flex-col p-0">
                 {OUTFIT.map((id) => (
