@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { routing } from "@/lib/i18n/routing";
@@ -35,6 +36,8 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
         {/* mensagens e idioma para os componentes cliente (useTranslations) */}
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
         <Analytics />
+        {/* tempo real de carregamento e resposta (LCP, INP, CLS) medido nos aparelhos dos visitantes */}
+        <SpeedInsights />
       </body>
     </html>
   );

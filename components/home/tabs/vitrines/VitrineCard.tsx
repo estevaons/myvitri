@@ -53,7 +53,7 @@ export function VitrineCard({ v, today, favorited, stay = false }: { v: CatalogV
           )}
         </div>
       </Link>
-      <FavoriteButton variant="card" handle={card.handle} name={card.creator} favorited={favorited} guest={false} stay={stay} />
+      <FavoriteButton variant="card" handle={card.handle} name={card.creator} favorited={favorited} guest={false} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
+import { AuthSkeleton } from "@/components/auth/AuthSkeleton";
 import { SignInScreen } from "@/components/auth/forms";
 import { internalPath } from "@/lib/i18n/routing";
 import { safePath } from "@/lib/auth/return-to";
@@ -20,7 +21,7 @@ async function Screen({ searchParams }: Pick<PageProps<"/[locale]/entrar">, "sea
 /** Tela de entrar: quem já tem sessão nem chega aqui, o proxy leva para /inicio. */
 export default function Page({ searchParams }: PageProps<"/[locale]/entrar">) {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-white" />}>
+    <Suspense fallback={<AuthSkeleton screen="signIn" />}>
       <Screen searchParams={searchParams} />
     </Suspense>
   );
