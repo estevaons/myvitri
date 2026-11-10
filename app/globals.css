@@ -13,20 +13,6 @@
   --color-gold: #7a5f30;
 }
 
-/* Kits da vitrine: a barra no chip ativo mede o tempo até o próximo kit entrar. */
-@theme {
-  --animate-kit-progress: kit-progress 7s linear;
-
-  @keyframes kit-progress {
-    from {
-      transform: scaleX(0);
-    }
-    to {
-      transform: scaleX(1);
-    }
-  }
-}
-
 /* Retorno de favoritar e comentar. Quem usa as classes aplica com motion-safe:, para respeitar quem reduz movimento. */
 @theme {
   --animate-heart-pop: heart-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
@@ -52,6 +38,35 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+}
+
+/* Barra no topo do /inicio enquanto a aba ou o filtro escolhido carrega: corre rápido no começo e vai
+   desacelerando sem chegar ao fim, já que não se sabe quanto falta. */
+@theme {
+  --animate-nav-progress: nav-progress 8s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+
+  @keyframes nav-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(0.92);
+    }
+  }
+}
+
+/* Barra de progresso do outfit atual na vitrine: enche no tempo de cada outfit (`OUTFIT_MS`, em Storefront.tsx). */
+@theme {
+  --animate-outfit-progress: outfit-progress 6s linear forwards;
+
+  @keyframes outfit-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
     }
   }
 }

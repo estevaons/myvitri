@@ -4,7 +4,7 @@
  */
 
 /** Ids das abas na URL — a primeira é a padrão. Os rótulos ficam nas mensagens (`catalog.tabs`). */
-export const TABS = ["para-voce", "favoritas", "vitrines", "produtos", "kits", "marcas"] as const;
+export const TABS = ["para-voce", "favoritas", "vitrines", "produtos", "outfits", "marcas"] as const;
 export type TabId = (typeof TABS)[number];
 
 /** Parâmetros da URL achatados: um valor por chave, só os não vazios. */

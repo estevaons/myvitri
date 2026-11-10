@@ -57,13 +57,23 @@ export async function proxy(incoming: NextRequest) {
         },
       },
     });
-    if (path !== "/" && path !== "/inicio" && path !== "/entrar") {
+    if (path === "/inicio") {
+      // Cada aba e filtro do /inicio passa por aqui, então basta o JWT (conferido aqui mesmo, sem ir ao Supabase).
+      // Uma sessão já encerrada ainda passa até o JWT expirar, mas a página confere no Supabase e manda para a
+      // landing, que confere também e fica nela: não há vaivém.
+      const { data } = await supabase.auth.getClaims();
+      if (!data?.claims) {
+        const redirect = NextResponse.redirect(localized("/"));
+        renewed.forEach(({ name, value, options }) => redirect.cookies.set(name, value, options));
+        return redirect;
+      }
+    } else if (path !== "/" && path !== "/entrar") {
       await supabase.auth.getClaims();
     } else {
-      // Estas rotas mandam umas para as outras, então confere a sessão no Supabase: getClaims só valida o JWT
+      // A landing e o /entrar mandam para o /inicio, então conferem a sessão no Supabase: getClaims só valida o JWT
       // e aceitaria uma sessão já encerrada até ele expirar, com "/" e "/inicio" se redirecionando sem fim.
       const { data } = await supabase.auth.getUser();
-      const target = path === "/inicio" ? (data.user ? null : "/") : data.user ? "/inicio" : null;
+      const target = data.user ? "/inicio" : null;
       if (target) {
         const redirect = NextResponse.redirect(localized(target));
         // leva junto os cookies da sessão que acabaram de ser renovados

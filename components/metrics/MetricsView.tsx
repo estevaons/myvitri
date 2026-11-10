@@ -6,7 +6,7 @@ import { CopyLinkButton } from "@/components/home/CopyLinkButton";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import { HOST } from "@/lib/brand";
 import { couponOff, couponStatus, daysLeft, ddmm, expiryValues } from "@/lib/vitrine/pricing";
-import type { Coupon, Kit, Product, VitrineContent } from "@/lib/vitrine/types";
+import { postItems, type Coupon, type Post, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import { DailyChart } from "./DailyChart";
 import { PERIODS, type EventKind, type Period, type Stats } from "./stats";
 
@@ -109,16 +109,12 @@ function Thumb({ children }: { children?: ReactNode }) {
   );
 }
 
-function KitThumb({ items }: { items: Product[] }) {
-  if (items.length <= 1) return <Thumb>{items[0] && <ProductArt product={items[0]} iconClassName="w-[56%]" strokeWidth={3.6} />}</Thumb>;
+function PostThumb({ url }: { url: string }) {
   return (
-    <div aria-hidden="true" className="grid size-16 flex-none grid-cols-2 grid-rows-2 gap-px overflow-hidden bg-white">
-      {items.slice(0, 4).map((p) => (
-        <div key={p.id} className="relative flex items-center justify-center overflow-hidden bg-cream">
-          <ProductArt product={p} iconClassName="w-[60%]" strokeWidth={4} />
-        </div>
-      ))}
-    </div>
+    <Thumb>
+      {/* eslint-disable-next-line @next/next/no-img-element -- foto enviada pela creator para o bucket */}
+      <img src={url} alt="" loading="lazy" className="size-full object-cover" />
+    </Thumb>
   );
 }
 
@@ -271,7 +267,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
 
   const products = new Map<string, Product>(vitrine.products.map((p) => [p.id, p]));
   const coupons = new Map<string, Coupon>(vitrine.coupons.map((c) => [c.id, c]));
-  const kits = new Map<string, Kit>(vitrine.kits.map((k) => [k.id, k]));
+  const posts = new Map<string, Post>(vitrine.posts.map((p) => [p.id, p]));
   const items = stats?.items ?? [];
   const top = (kind: string) =>
     items
@@ -282,7 +278,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
   const views = total("view");
   const toStore = total("buy") + total("copy");
   const copied = total("copy");
-  const clicks = toStore + total("kit") + total("video");
+  const clicks = toStore + total("post") + total("video");
   const alerts = alertsOf(vitrine, today, t, (c) => tCoupon("expiry", expiryValues(c, today, locale)), locale);
 
   const productRows: RankRow[] = top("buy").map(({ id, n }) => {
@@ -320,15 +316,15 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
       ),
     };
   });
-  const kitRows: RankRow[] = top("kit").map(({ id, n }) => {
-    const k = kits.get(id);
-    const kitItems = k ? k.productIds.map((pid) => products.get(pid)).filter((p): p is Product => !!p) : [];
+  const postRows: RankRow[] = top("post").map(({ id, n }) => {
+    const p = posts.get(id);
+    const items = p ? postItems(p, vitrine.products) : [];
     return {
       id,
       n,
-      thumb: k ? <KitThumb items={kitItems} /> : <Thumb />,
-      title: k?.name ?? t("removed"),
-      sub: k ? t("items", { count: kitItems.length }) : t("gone"),
+      thumb: p ? <PostThumb url={p.photoUrl} /> : <Thumb />,
+      title: p ? t("postN", { n: vitrine.posts.indexOf(p) + 1 }) : t("removed"),
+      sub: p ? t("items", { count: items.length }) : t("gone"),
     };
   });
 
@@ -378,10 +374,10 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
               />
               <Kpi label={t("kpi.copied")} value={copied} delta={<Delta cur={copied} prev={prevOf("copy")} period={period} />} />
               <Kpi
-                label={t("kpi.kitsReviews")}
-                value={total("kit") + total("video")}
-                hint={t("kpi.kitsReviewsHint")}
-                delta={<Delta cur={total("kit") + total("video")} prev={prevOf("kit", "video")} period={period} />}
+                label={t("kpi.postsReviews")}
+                value={total("post") + total("video")}
+                hint={t("kpi.postsReviewsHint")}
+                delta={<Delta cur={total("post") + total("video")} prev={prevOf("post", "video")} period={period} />}
               />
             </dl>
           </section>
@@ -433,7 +429,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
                     rows={[
                       { label: t("clicks.products"), value: total("buy"), note: pct(total("buy"), clicks) },
                       { label: t("clicks.coupons"), value: total("copy"), note: pct(total("copy"), clicks) },
-                      { label: t("clicks.kits"), value: total("kit"), note: pct(total("kit"), clicks) },
+                      { label: t("clicks.posts"), value: total("post"), note: pct(total("post"), clicks) },
                       { label: t("clicks.videos"), value: total("video"), note: pct(total("video"), clicks) },
                     ]}
                   />
@@ -444,11 +440,11 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
                 <Ranking label={t("top.products")} title={t("top.productsTitle")} unit={(n) => t("unitClicks", { count: n })} rows={productRows} empty={t("top.productsEmpty")} />
                 <Ranking label={t("top.coupons")} title={t("top.couponsTitle")} unit={(n) => t("unitCopies", { count: n })} rows={couponRows} empty={t("top.couponsEmpty")} />
                 <Ranking
-                  label={t("top.kits")}
-                  title={t("top.kitsTitle")}
-                  unit={(n) => t("unitUses", { count: n })}
-                  rows={kitRows}
-                  empty={vitrine.kits.length ? t("top.kitsEmpty") : t("top.noKits")}
+                  label={t("top.posts")}
+                  title={t("top.postsTitle")}
+                  unit={(n) => t("unitClicks", { count: n })}
+                  rows={postRows}
+                  empty={vitrine.posts.length ? t("top.postsEmpty") : t("top.noPosts")}
                 />
               </section>
             </>

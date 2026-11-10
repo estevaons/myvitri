@@ -11,13 +11,13 @@ import {
   listFeed,
   listFeedByHandles,
   listHandles,
-  listRecentKits,
+  listRecentPosts,
   searchCatalog,
   topCreatorsToday,
   type FeedVitrine,
 } from "./store";
 import type { CommentList, VitrineComment } from "./social";
-import { kitItems, type Coupon, type Product, type VitrineContent } from "./types";
+import { postItems, type Coupon, type Product, type VitrineContent } from "./types";
 
 export const vitrineTag = (handle: string) => `vitrine:${handle}`;
 /** Invalidado junto com a vitrine ao publicar: a home mostra o que acabou de entrar. */
@@ -67,6 +67,7 @@ export async function getComments(handle: string, locale: Locale): Promise<Comme
   const toComment = (c: (typeof rows)[number]): VitrineComment => ({
     id: c.id,
     parentId: c.parent_id,
+    replyToId: c.reply_to_id,
     authorId: c.author_id,
     authorName: c.author_name,
     authorAvatarUrl: c.author_avatar_url,
@@ -184,24 +185,24 @@ export async function getTopCreators(): Promise<HomeCreator[]> {
   return liveFeed(await listFeedByHandles(db, handles), todayISO()).map(toHomeCreator);
 }
 
-export type HomeKit = By & { id: string; name: string; description: string; items: Product[] };
+export type HomePost = By & { id: string; photoUrl: string; caption: string; items: Product[] };
 
-/** Últimos kits publicados. Kits sem nenhum produto à venda ficam de fora. */
-export async function getRecentKits(): Promise<HomeKit[]> {
+/** Últimos posts publicados. Posts sem nenhuma peça à venda ficam de fora. */
+export async function getRecentPosts(): Promise<HomePost[]> {
   "use cache";
   cacheTag(HOME_TAG);
   cacheLife("hours");
 
-  return (await listRecentKits(createPublicSupabase(), 12))
-    .map(({ kit, handle, creator, products }): HomeKit => ({
+  return (await listRecentPosts(createPublicSupabase(), 12))
+    .map(({ post, handle, creator, products }): HomePost => ({
       handle,
       creator,
-      id: kit.id,
-      name: kit.name,
-      description: kit.description,
-      items: kitItems(kit, products.filter((p) => !p.soldOut)),
+      id: post.id,
+      photoUrl: post.photoUrl,
+      caption: post.caption,
+      items: postItems(post, products.filter((p) => !p.soldOut)),
     }))
-    .filter((k) => k.items.length > 0);
+    .filter((p) => p.items.length > 0);
 }
 
 export type SearchCreator = { handle: string; name: string; avatarUrl: string };

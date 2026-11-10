@@ -343,7 +343,7 @@ export async function deleteCommentAction(id: string): Promise<SocialResult> {
 }
 
 /** Listas do conteúdo cujo erro de validação diz o item ("Cupom 2: …"). */
-const ITEM_LISTS = new Set(["coupons", "products", "kits"]);
+const ITEM_LISTS = new Set(["coupons", "products", "posts"]);
 
 export type PublishResult = { ok: true; updatedAt: string } | { ok: false; error: string };
 
@@ -454,6 +454,7 @@ const UPLOADS = {
   cover: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
   avatar: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
   product: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
+  post: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
 } satisfies Record<string, { bucket: string; types: Record<string, string>; maxBytes: number }>;
 export type ImageKind = keyof typeof UPLOADS;
 

@@ -11,7 +11,7 @@
       "label": "Seções",
       "coupons": "Cupons",
       "products": "Produtos",
-      "kits": "Kits",
+      "posts": "Outfits",
       "comments": "Comentários"
     },
     "seeProducts": "Ver produtos",
@@ -31,10 +31,14 @@
     "all": "Todos",
     "noResults": "Nada encontrado para “{query}”.",
     "soldOut": "Esgotado",
-    "kitsTitle": "Kits",
-    "pickKit": "Escolher kit",
-    "kitN": "Kit {n}",
-    "kitFallback": "Os favoritos de {name}",
+    "postsTitle": "Outfits",
+    "postsLabel": "Outfits de {name}",
+    "postAlt": "Foto de {name} usando as peças do outfit",
+    "outfitPieces": "{count, plural, one {# peça neste look} other {# peças neste look}}",
+    "outfitsPause": "Pausar a troca dos outfits",
+    "outfitsPlay": "Voltar a trocar os outfits sozinho",
+    "outfitGo": "Ver o outfit {n} de {total}",
+    "socialLink": "{name} no {network}",
     "cta": {
       "kicker": "Para quem cria conteúdo",
       "title": "Gostou desta vitrine?",
@@ -232,8 +236,9 @@
     "productsText": "Cole o link do produto e a gente puxa nome e foto. Um clique no produto e seu público vai direto para o seu link de afiliado.",
     "productsSample": "Tênis de couro",
     "productsRef": "ref=voce",
-    "kitsTitle": "Kits que vendem mais",
-    "kitsText": "Monte combos como “kit praia” ou “kit treino”, cada produto com o seu link.",
+    "outfitsTitle": "Outfits que vendem o look",
+    "outfitsText": "Poste uma foto sua usando o look e liste embaixo cada peça, cada uma com o seu link.",
+    "outfitsPieces": { "blazer": "Blazer de lã", "calca": "Calça de alfaiataria", "bolsa": "Bolsa de couro" },
     "moreTitle": "E ainda",
     "more": {
       "metricsTitle": "Veja o que funciona",
@@ -297,7 +302,7 @@
     "commentRate": "Muitos comentários em pouco tempo. Espere um minuto.",
     "commentFailed": "Não deu para comentar. Tente de novo.",
     "commentDeleteFailed": "Não deu para excluir este comentário.",
-    "publishItem": "{item, select, coupons {Cupom} products {Produto} other {Kit}} {n}: {message}",
+    "publishItem": "{item, select, coupons {Cupom} products {Produto} other {Outfit}} {n}: {message}",
     "publishFailed": "Erro ao salvar. Tente de novo.",
     "importFailed": "Não conseguimos ler esse link. Preencha os dados à mão.",
     "logoFailed": "Não conseguimos abrir o site da loja. Confira o link.",
@@ -307,11 +312,13 @@
     "schema": {
       "invalid": "Confira os dados preenchidos.",
       "httpUrl": "Use um link que comece com https://",
+      "socialInvalid": "Confira o link da rede social",
       "brandRequired": "Informe a marca",
       "codeRequired": "Informe o código",
       "couponDates": "O cupom vence antes de começar",
       "productName": "Informe o nome do produto",
-      "kitName": "Dê um nome ao kit",
+      "postPhoto": "Envie a foto do outfit",
+      "postItems": "Escolha ao menos uma peça do outfit",
       "handleRule": "Use de 3 a 30 letras minúsculas, números, ponto ou _",
       "handleReserved": "Esse nome é reservado",
       "nameRequired": "Informe seu nome"
@@ -374,7 +381,7 @@
     "products": "{count, plural, one {# produto} other {# produtos}}",
     "coupons": "{count, plural, one {# cupom} other {# cupons}}",
     "activeCoupons": "{count, plural, one {# cupom ativo} other {# cupons ativos}}",
-    "kits": "{count, plural, one {# kit} other {# kits}}",
+    "posts": "{count, plural, one {# outfit} other {# outfits}}",
     "vitrines": "{count, plural, one {# vitrine} other {# vitrines}}",
     "brands": "{count, plural, one {# marca} other {# marcas}}",
     "inVitrines": "{count, plural, one {em # vitrine} other {em # vitrines}}",
@@ -390,7 +397,7 @@
       "openLabel": "Abrir a vitrine {name}",
       "statProducts": "{count, plural, one {Produto} other {Produtos}}",
       "statCoupons": "{count, plural, one {Cupom ativo} other {Cupons ativos}}",
-      "statKits": "{count, plural, one {Kit} other {Kits}}",
+      "statPosts": "{count, plural, one {Outfit} other {Outfits}}",
       "metrics": "Ver métricas",
       "edit": "Editar vitrine",
       "view": "Ver minha vitrine"
@@ -410,9 +417,13 @@
       "newTitle": "Vitrines novas",
       "rankedText": "As vitrines que mais receberam cliques hoje.",
       "newText": "As últimas vitrines a entrar no ar.",
-      "kitsKicker": "Acabaram de sair",
-      "kitsTitle": "Últimos kits",
-      "kitsText": "Combinações montadas por quem indica."
+      "postsKicker": "Acabaram de sair",
+      "postsTitle": "Últimos outfits",
+      "postsText": "Fotos de quem indica, com cada peça do conjunto."
+    },
+    "post": {
+      "items": "{count, plural, one {# peça} other {# peças}}",
+      "by": "Postado por <strong>{name}</strong>"
     }
   },
   "catalog": {
@@ -422,7 +433,7 @@
       "favoritas": "Favoritas",
       "vitrines": "Vitrines",
       "produtos": "Produtos",
-      "kits": "Kits",
+      "outfits": "Outfits",
       "marcas": "Marcas"
     },
     "removeFilter": "Tirar o filtro {label}: {value}",
@@ -449,13 +460,13 @@
       "emptyText": "Toque no coração de uma vitrine para encontrar ela aqui depois.",
       "explore": "Explorar vitrines"
     },
-    "kits": {
-      "title": "Kits",
-      "text": "Combinações montadas por quem indica.",
-      "filteredTitle": "Nenhum kit com esses filtros",
-      "filteredText": "Tire um filtro para ver mais combinações.",
-      "emptyTitle": "Ainda não há kits",
-      "emptyText": "Quando alguém publicar um kit, ele aparece aqui."
+    "posts": {
+      "title": "Outfits",
+      "text": "Fotos de quem indica usando os produtos, com cada peça listada.",
+      "filteredTitle": "Nenhum outfit com esses filtros",
+      "filteredText": "Tire um filtro para ver mais outfits.",
+      "emptyTitle": "Ainda não há outfits",
+      "emptyText": "Quando alguém publicar um outfit, ele aparece aqui."
     },
     "brands": {
       "title": "Marcas",
@@ -583,7 +594,6 @@
     "down": "caiu",
     "unitClicks": "{count, plural, one {clique} other {cliques}}",
     "unitCopies": "{count, plural, one {cópia} other {cópias}}",
-    "unitUses": "{count, plural, one {uso} other {usos}}",
     "items": "{count, plural, one {# item} other {# itens}}",
     "alerts": {
       "couponName": "Cupom {code} · {brand}",
@@ -626,8 +636,8 @@
       "toStore": "Cliques para a loja",
       "toStoreHint": "{pct} de quem visitou",
       "copied": "Cupons copiados",
-      "kitsReviews": "Kits e reviews",
-      "kitsReviewsHint": "compras pelos kits e vídeos abertos"
+      "postsReviews": "Outfits e reviews",
+      "postsReviewsHint": "peças abertas pelos outfits e vídeos abertos"
     },
     "empty": {
       "kicker": "Sem visitas nos últimos {period} dias",
@@ -655,7 +665,7 @@
       "empty": "Nenhum clique ainda.",
       "products": "Produtos",
       "coupons": "Cupons",
-      "kits": "Kits",
+      "posts": "Outfits",
       "videos": "Reviews em vídeo"
     },
     "top": {
@@ -666,10 +676,10 @@
       "coupons": "Cupons",
       "couponsTitle": "Mais copiados",
       "couponsEmpty": "Nenhum cupom copiado ainda.",
-      "kits": "Kits",
-      "kitsTitle": "Mais usados",
-      "kitsEmpty": "Nenhum kit usado ainda.",
-      "noKits": "Você ainda não montou nenhum kit."
+      "posts": "Outfits",
+      "postsTitle": "Mais clicados",
+      "postsEmpty": "Nenhuma peça clicada nos outfits ainda.",
+      "noPosts": "Você ainda não publicou nenhum outfit."
     },
     "footnote": "Uma visita por pessoa a cada vez que ela abre a vitrine. Os dias seguem o horário de Brasília.",
     "noVitrine": {
@@ -687,7 +697,8 @@
       "day": "Dia",
       "visitsCol": "Visitas",
       "clicksCol": "Cliques"
-    }
+    },
+    "postN": "Outfit {n}"
   },
   "editor": {
     "tabs": {
@@ -695,7 +706,7 @@
       "profile": "Perfil",
       "coupons": "Cupons",
       "products": "Produtos",
-      "kits": "Kits",
+      "posts": "Outfits",
       "share": "Divulgar"
     },
     "couponsExpiring": "{count, plural, one {# cupom vencendo} other {# cupons vencendo}}",
@@ -716,6 +727,12 @@
       "headline": "Frase de destaque",
       "headlineHint": "Aparece em letras grandes, logo abaixo da capa.",
       "sub": "Texto de apoio"
+    },
+    "socials": {
+      "title": "Redes sociais",
+      "hint": "Aparecem discretas embaixo do seu nome. Pode ser o @ ou o link do perfil.",
+      "placeholder": "@seuusuario",
+      "invalid": "Não parece um perfil do {network}. Use o @ ou o link do perfil."
     },
     "ui": {
       "percentLabel": "Porcentagem de desconto",
@@ -828,24 +845,22 @@
       "addHint": "Pode ser seu link de afiliado ou o da loja. A gente puxa nome e foto, e o clique leva ao link que você colou.",
       "manual": "Adicionar manualmente"
     },
-    "kits": {
-      "title": "Kits montados por você",
-      "hint": "Junte até {max} produtos num combo. Na vitrine, cada um leva para o link dele.",
-      "needProducts": "Adicione produtos primeiro para montar um kit.",
-      "empty": "Nenhum kit ainda. Que tal o seu “kit praia” ou “kit treino”?",
-      "new": "Novo kit",
-      "items": "{count, plural, one {# item} other {# itens}}",
-      "noProducts": "Sem produtos",
-      "name": "Nome do kit",
-      "nameHint": "Vira o título da seção e o botão de escolha quando houver mais de um kit.",
-      "namePlaceholder": "Ex.: Kit praia da {name}",
-      "description": "Descrição",
-      "signature": "Assinatura",
-      "signaturePlaceholder": "Ex.: Uso esse combo todo fim de semana",
-      "products": "Produtos ({n}/{max})",
+    "posts": {
+      "title": "Seus outfits",
+      "hint": "Poste uma foto sua usando o outfit e liste embaixo cada peça, até {max}. Na vitrine, cada peça leva ao link dela.",
+      "needProducts": "Adicione produtos primeiro para listar as peças de um outfit.",
+      "empty": "Nenhum outfit ainda. Que tal o do treino de hoje?",
+      "postN": "Outfit {n}",
+      "items": "{count, plural, =0 {Nenhuma peça} one {# peça} other {# peças}}",
+      "noPhoto": "Sem foto",
+      "photo": "Foto",
+      "photoHint": "Uma foto sua usando as peças. Vertical fica melhor: a vitrine mostra no formato 4:5.",
+      "pickFirst": "Escolha abaixo as peças que aparecem na foto.",
+      "untag": "Tirar {name} do outfit",
+      "addProducts": "Escolher peças ({n}/{max})",
       "unnamed": "Produto sem nome",
       "remove": "Excluir",
-      "add": "+ Montar kit"
+      "add": "+ Novo outfit"
     },
     "share": {
       "where": {
@@ -882,7 +897,7 @@
     },
     "delete": {
       "open": "Excluir minha conta",
-      "withVitrine": "Apaga sua conta, a vitrine {url}, os cupons, produtos, kits e métricas. Não dá para desfazer.",
+      "withVitrine": "Apaga sua conta, a vitrine {url}, os cupons, produtos, outfits e métricas. Não dá para desfazer.",
       "withoutVitrine": "Apaga sua conta, seus favoritos e seus comentários. Não dá para desfazer.",
       "confirm": "Para confirmar, digite {word}",
       "deleting": "Excluindo…",

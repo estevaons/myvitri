@@ -4,7 +4,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import { createPublicSupabase } from "@/lib/supabase/server";
 import { HOME_TAG, live, rank, todayISO, type HomeCreator } from "../data";
 import { daysLeft } from "../pricing";
-import { toCoupon, toProduct, topCreatorsToday, type FeedVitrine } from "../store";
+import { isMissingTable, toCoupon, toProduct, topCreatorsToday, type FeedVitrine } from "../store";
 import type { Coupon } from "../types";
 
 /**
@@ -24,8 +24,8 @@ export type CatalogVitrine = {
   /** Marcas dos cupons ativos (o melhor primeiro) e depois dos produtos, sem repetir. */
   brands: string[];
   brandKeys: string[];
-  /** Kits com pelo menos um produto à venda. */
-  kits: number;
+  /** Posts com pelo menos uma peça à venda. */
+  posts: number;
   /** O maior desconto entre os cupons ativos. */
   best: Coupon | null;
   /** Validade (AAAA-MM-DD) do cupom ativo que vence primeiro, se for em até 7 dias; o card monta o "Vence em 3 dias". */
@@ -71,7 +71,7 @@ function tally(values: string[]) {
 
 /**
  * Vitrines publicadas com cupom ativo ou produto à venda, mais recentes primeiro, com as opções de filtro.
- * Quatro leituras das tabelas inteiras (vitrines, cupons, produtos e kits), nunca uma por vitrine; as
+ * Quatro leituras das tabelas inteiras (vitrines, cupons, produtos e posts), nunca uma por vitrine; as
  * tabelas só guardam o que já foi publicado (o rascunho mora em `vitrine_drafts`).
  */
 export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
@@ -81,13 +81,17 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
   cacheLife("hours");
 
   const db = createPublicSupabase();
-  const [rows, coupons, products, kits] = await Promise.all([
+  const [rows, coupons, products, posts] = await Promise.all([
     readAll((a, b) =>
       db.from("vitrines").select("id, handle, name, avatar_url, look, updated_at").order("updated_at", { ascending: false }).order("id").range(a, b),
     ),
     readAll((a, b) => db.from("coupons").select("*").order("vitrine_id").order("position").order("id").range(a, b)),
     readAll((a, b) => db.from("products").select("*").order("vitrine_id").order("position").order("id").range(a, b)),
-    readAll((a, b) => db.from("kits").select("vitrine_id, product_ids").order("vitrine_id").order("id").range(a, b)),
+    // sem a migração dos posts, a aba continua abrindo, com zero posts
+    readAll((a, b) => db.from("posts").select("vitrine_id, product_ids").order("vitrine_id").order("id").range(a, b)).catch((e) => {
+      if (isMissingTable(e)) return [];
+      throw e;
+    }),
   ]);
 
   const group = <T extends { vitrine_id: string }>(list: T[]) => {
@@ -97,7 +101,7 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
   };
   const couponsOf = group(coupons);
   const productsOf = group(products);
-  const kitsOf = group(kits);
+  const postsOf = group(posts);
 
   const today = todayISO();
   const vitrines: CatalogVitrine[] = [];
@@ -140,7 +144,7 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
       categoryKeys: categories.map(([k]) => k),
       brands: [...brands.values()],
       brandKeys: [...brands.keys()],
-      kits: (kitsOf.get(row.id) ?? []).filter((k) => k.product_ids.some((id) => forSale.has(id))).length,
+      posts: (postsOf.get(row.id) ?? []).filter((p) => p.product_ids.some((id) => forSale.has(id))).length,
       best: active[0] ?? null,
       expiring: soonest?.c.expiresAt ?? null,
       updatedAt: row.updated_at,

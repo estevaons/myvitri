@@ -11,7 +11,7 @@
       "label": "Sections",
       "coupons": "Coupons",
       "products": "Products",
-      "kits": "Kits",
+      "posts": "Outfits",
       "comments": "Comments"
     },
     "seeProducts": "See products",
@@ -31,10 +31,14 @@
     "all": "All",
     "noResults": "Nothing found for “{query}”.",
     "soldOut": "Sold out",
-    "kitsTitle": "Kits",
-    "pickKit": "Choose a kit",
-    "kitN": "Kit {n}",
-    "kitFallback": "{name}'s favorites",
+    "postsTitle": "Outfits",
+    "postsLabel": "{name}'s outfits",
+    "postAlt": "Photo of {name} wearing the outfit's pieces",
+    "outfitPieces": "{count, plural, one {# piece in this look} other {# pieces in this look}}",
+    "outfitsPause": "Pause the outfits",
+    "outfitsPlay": "Resume the outfits",
+    "outfitGo": "Show outfit {n} of {total}",
+    "socialLink": "{name} on {network}",
     "cta": {
       "kicker": "For content creators",
       "title": "Like this storefront?",
@@ -232,8 +236,9 @@
     "productsText": "Paste the product link and we pull in the name and photo. One click on the product and your audience goes straight to your affiliate link.",
     "productsSample": "Leather sneakers",
     "productsRef": "ref=you",
-    "kitsTitle": "Kits that sell more",
-    "kitsText": "Build bundles like “beach kit” or “workout kit”, each product with its own link.",
+    "outfitsTitle": "Outfits that sell the look",
+    "outfitsText": "Post a photo of you wearing the look and list each piece below it, each with its own link.",
+    "outfitsPieces": { "blazer": "Wool blazer", "calca": "Tailored trousers", "bolsa": "Leather bag" },
     "moreTitle": "And also",
     "more": {
       "metricsTitle": "See what works",
@@ -297,7 +302,7 @@
     "commentRate": "Too many comments in a short time. Wait a minute.",
     "commentFailed": "We couldn't post your comment. Try again.",
     "commentDeleteFailed": "We couldn't delete this comment.",
-    "publishItem": "{item, select, coupons {Coupon} products {Product} other {Kit}} {n}: {message}",
+    "publishItem": "{item, select, coupons {Coupon} products {Product} other {Outfit}} {n}: {message}",
     "publishFailed": "Error while saving. Try again.",
     "importFailed": "We couldn't read that link. Fill in the details by hand.",
     "logoFailed": "We couldn't open the store's website. Check the link.",
@@ -307,11 +312,13 @@
     "schema": {
       "invalid": "Check the details you entered.",
       "httpUrl": "Use a link that starts with https://",
+      "socialInvalid": "Check the social media link",
       "brandRequired": "Enter the brand",
       "codeRequired": "Enter the code",
       "couponDates": "The coupon expires before it starts",
       "productName": "Enter the product name",
-      "kitName": "Give the kit a name",
+      "postPhoto": "Upload the outfit's photo",
+      "postItems": "Choose at least one piece for the outfit",
       "handleRule": "Use 3 to 30 lowercase letters, numbers, dots or _",
       "handleReserved": "That name is reserved",
       "nameRequired": "Enter your name"
@@ -374,7 +381,7 @@
     "products": "{count, plural, one {# product} other {# products}}",
     "coupons": "{count, plural, one {# coupon} other {# coupons}}",
     "activeCoupons": "{count, plural, one {# active coupon} other {# active coupons}}",
-    "kits": "{count, plural, one {# kit} other {# kits}}",
+    "posts": "{count, plural, one {# outfit} other {# outfits}}",
     "vitrines": "{count, plural, one {# storefront} other {# storefronts}}",
     "brands": "{count, plural, one {# brand} other {# brands}}",
     "inVitrines": "{count, plural, one {in # storefront} other {in # storefronts}}",
@@ -390,7 +397,7 @@
       "openLabel": "Open the {name} storefront",
       "statProducts": "{count, plural, one {Product} other {Products}}",
       "statCoupons": "{count, plural, one {Active coupon} other {Active coupons}}",
-      "statKits": "{count, plural, one {Kit} other {Kits}}",
+      "statPosts": "{count, plural, one {Outfit} other {Outfits}}",
       "metrics": "See metrics",
       "edit": "Edit storefront",
       "view": "View my storefront"
@@ -410,9 +417,13 @@
       "newTitle": "New storefronts",
       "rankedText": "The storefronts with the most clicks today.",
       "newText": "The latest storefronts to go live.",
-      "kitsKicker": "Just out",
-      "kitsTitle": "Latest kits",
-      "kitsText": "Bundles put together by the people who recommend them."
+      "postsKicker": "Just out",
+      "postsTitle": "Latest outfits",
+      "postsText": "Photos from creators, with every piece of the outfit."
+    },
+    "post": {
+      "items": "{count, plural, one {# piece} other {# pieces}}",
+      "by": "Posted by <strong>{name}</strong>"
     }
   },
   "catalog": {
@@ -422,7 +433,7 @@
       "favoritas": "Saved",
       "vitrines": "Storefronts",
       "produtos": "Products",
-      "kits": "Kits",
+      "outfits": "Outfits",
       "marcas": "Brands"
     },
     "removeFilter": "Remove the {label} filter: {value}",
@@ -449,13 +460,13 @@
       "emptyText": "Tap the heart on a storefront to find it here later.",
       "explore": "Explore storefronts"
     },
-    "kits": {
-      "title": "Kits",
-      "text": "Bundles put together by the people who recommend them.",
-      "filteredTitle": "No kits with these filters",
-      "filteredText": "Remove a filter to see more bundles.",
-      "emptyTitle": "No kits yet",
-      "emptyText": "When someone publishes a kit, it shows up here."
+    "posts": {
+      "title": "Outfits",
+      "text": "Photos of creators using the products, with every piece listed.",
+      "filteredTitle": "No outfits match these filters",
+      "filteredText": "Remove a filter to see more outfits.",
+      "emptyTitle": "No outfits yet",
+      "emptyText": "When someone publishes an outfit, it shows up here."
     },
     "brands": {
       "title": "Brands",
@@ -583,7 +594,6 @@
     "down": "down",
     "unitClicks": "{count, plural, one {click} other {clicks}}",
     "unitCopies": "{count, plural, one {copy} other {copies}}",
-    "unitUses": "{count, plural, one {use} other {uses}}",
     "items": "{count, plural, one {# item} other {# items}}",
     "alerts": {
       "couponName": "Coupon {code} · {brand}",
@@ -626,8 +636,8 @@
       "toStore": "Clicks to store",
       "toStoreHint": "{pct} of visitors",
       "copied": "Coupons copied",
-      "kitsReviews": "Kits and reviews",
-      "kitsReviewsHint": "purchases via kits and videos opened"
+      "postsReviews": "Outfits and reviews",
+      "postsReviewsHint": "pieces opened from outfits and videos played"
     },
     "empty": {
       "kicker": "No visits in the last {period} days",
@@ -655,7 +665,7 @@
       "empty": "No clicks yet.",
       "products": "Products",
       "coupons": "Coupons",
-      "kits": "Kits",
+      "posts": "Outfits",
       "videos": "Video reviews"
     },
     "top": {
@@ -666,10 +676,10 @@
       "coupons": "Coupons",
       "couponsTitle": "Most copied",
       "couponsEmpty": "No coupons copied yet.",
-      "kits": "Kits",
-      "kitsTitle": "Most used",
-      "kitsEmpty": "No kits used yet.",
-      "noKits": "You haven't built any kits yet."
+      "posts": "Outfits",
+      "postsTitle": "Most clicked",
+      "postsEmpty": "No outfit pieces clicked yet.",
+      "noPosts": "You haven't published an outfit yet."
     },
     "footnote": "One visit per person each time they open the storefront. Days follow Brasília time.",
     "noVitrine": {
@@ -687,7 +697,8 @@
       "day": "Day",
       "visitsCol": "Visits",
       "clicksCol": "Clicks"
-    }
+    },
+    "postN": "Outfit {n}"
   },
   "editor": {
     "tabs": {
@@ -695,7 +706,7 @@
       "profile": "Profile",
       "coupons": "Coupons",
       "products": "Products",
-      "kits": "Kits",
+      "posts": "Outfits",
       "share": "Promote"
     },
     "couponsExpiring": "{count, plural, one {# coupon expiring} other {# coupons expiring}}",
@@ -716,6 +727,12 @@
       "headline": "Headline",
       "headlineHint": "Shown in large letters, right below the cover.",
       "sub": "Supporting text"
+    },
+    "socials": {
+      "title": "Social media",
+      "hint": "Shown subtly below your name. Use your @ or the profile link.",
+      "placeholder": "@yourusername",
+      "invalid": "This doesn't look like a {network} profile. Use your @ or the profile link."
     },
     "ui": {
       "percentLabel": "Discount percentage",
@@ -828,24 +845,22 @@
       "addHint": "It can be your affiliate link or the store's. We pull in the name and photo, and clicks go to the link you pasted.",
       "manual": "Add manually"
     },
-    "kits": {
-      "title": "Kits you put together",
-      "hint": "Combine up to {max} products in a bundle. On your storefront, each one goes to its own link.",
-      "needProducts": "Add products first to build a kit.",
-      "empty": "No kits yet. How about your “beach kit” or “workout kit”?",
-      "new": "New kit",
-      "items": "{count, plural, one {# item} other {# items}}",
-      "noProducts": "No products",
-      "name": "Kit name",
-      "nameHint": "Becomes the section title and the picker button when there's more than one kit.",
-      "namePlaceholder": "E.g. {name}'s beach kit",
-      "description": "Description",
-      "signature": "Signature",
-      "signaturePlaceholder": "E.g. I use this combo every weekend",
-      "products": "Products ({n}/{max})",
+    "posts": {
+      "title": "Your outfits",
+      "hint": "Post a photo of you wearing an outfit and list each piece below, up to {max}. On your storefront, each piece goes to its own link.",
+      "needProducts": "Add products first to list the pieces of an outfit.",
+      "empty": "No outfits yet. How about today's workout look?",
+      "postN": "Outfit {n}",
+      "items": "{count, plural, =0 {No pieces} one {# piece} other {# pieces}}",
+      "noPhoto": "No photo",
+      "photo": "Photo",
+      "photoHint": "A photo of you wearing the pieces. Portrait works best: your storefront shows it at 4:5.",
+      "pickFirst": "Choose below the pieces that show up in the photo.",
+      "untag": "Remove {name} from the outfit",
+      "addProducts": "Choose pieces ({n}/{max})",
       "unnamed": "Unnamed product",
       "remove": "Delete",
-      "add": "+ Build kit"
+      "add": "+ New outfit"
     },
     "share": {
       "where": {
@@ -882,7 +897,7 @@
     },
     "delete": {
       "open": "Delete my account",
-      "withVitrine": "Deletes your account, the storefront {url}, its coupons, products, kits and metrics. This can't be undone.",
+      "withVitrine": "Deletes your account, the storefront {url}, its coupons, products, outfits and metrics. This can't be undone.",
       "withoutVitrine": "Deletes your account, your saved storefronts and your comments. This can't be undone.",
       "confirm": "To confirm, type {word}",
       "deleting": "Deleting…",

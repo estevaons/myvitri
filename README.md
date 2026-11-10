@@ -2,13 +2,13 @@
 
 > 📚 **Documentação:** [arquitetura](docs/architecture.md) e [banco de dados](docs/database.md).
 
-O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **vitrine pública** com os **cupons de desconto** das marcas que divulgam, os **produtos** que indicam (foto e nome, com o clique levando ao link que a creator colou, de afiliado ou da loja) e **kits** de produtos. O cupom é só da marca e fica na seção Cupons. A vitrine fica num link curto (`myvitri.com/seunome`) para a bio do Instagram/TikTok. O seguidor copia o cupom da marca e abre o produto na loja — o MyVitri não vende nada.
+O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **vitrine pública** com os **cupons de desconto** das marcas que divulgam, os **produtos** que indicam (foto e nome, com o clique levando ao link que a creator colou, de afiliado ou da loja) e **posts** (a foto da creator usando um conjunto, com a lista das peças). O cupom é só da marca e fica na seção Cupons. A vitrine fica num link curto (`myvitri.com/seunome`) para a bio do Instagram/TikTok. O seguidor copia o cupom da marca e abre o produto na loja — o MyVitri não vende nada.
 
 | | |
 |---|---|
 | **Stack** | Next.js 16 (App Router, Cache Components) · React 19 · TypeScript · Tailwind CSS v4 · Zod 4 |
 | **Backend** | Supabase: Postgres com RLS, Auth (e-mail e senha, e Google), Storage |
-| **Hospedagem** | Vercel (inferido: Web Analytics + integração) |
+| **Hospedagem** | Vercel (inferido: Web Analytics + integração), funções em Portland (`pdx1`, `vercel.json`), junto ao Supabase |
 | **Idioma do produto e do código** | Português do Brasil |
 
 > ⚠️ **Este projeto usa Next.js 16**, que mudou APIs e convenções (ex.: `proxy.ts` no lugar de `middleware.ts`, `updateTag`, `"use cache"`). Antes de escrever código, leia o guia correspondente em `node_modules/next/dist/docs/` — veja [`AGENTS.md`](AGENTS.md).
@@ -48,14 +48,17 @@ npx supabase db push
 
    Aplique também as mais recentes:
 
-   - `20261104000000_landing_home.sql`: a busca da home logada (`GET /api/busca`), os carrosséis de `/inicio` ("Vitrines do dia" e "Últimos kits") e a ordem "Em alta hoje" da aba Vitrines dependem dela. Sem ela, a busca responde 500 e a página abre sem os carrosséis.
+   - `20261104000000_landing_home.sql`: a busca da home logada (`GET /api/busca`), os carrosséis de `/inicio` ("Vitrines do dia" e, antes dos posts, "Últimos kits") e a ordem "Em alta hoje" da aba Vitrines dependem dela. Sem ela, a busca responde 500 e a página abre sem os carrosséis.
    - `20261105000000_metrics_previous.sql`: faz `vitrine_stats()` devolver também o período anterior, usado para a variação ("↑ 18% vs. 30 dias anteriores") em `/metricas`. Sem ela a página de métricas funciona, só sem as variações.
    - `20261105010000_favorites.sql`: tabela `favorites` (o coração nas vitrines e a aba **Favoritas** de `/inicio`). Sem ela, favoritar falha e a aba fica vazia.
    - `20261105010100_comments.sql`: tabela `comments`, o trigger `comments_stamp` e as policies dos comentários da vitrine pública. Sem ela, a vitrine abre com a lista de comentários vazia e comentar falha.
    - `20261109000000_comment_replies.sql`: coluna `comments.parent_id`, índice e a nova `stamp_comment()` (respostas aos comentários). Sem ela, responder falha e a lista de comentários da vitrine também (a consulta pede `parent_id`).
    - `20261109000100_favorite_count.sql`: função `favorite_count()`, o número de favoritos mostrado no perfil da vitrine. Sem ela, a consulta falha e a vitrine aparece sem o número (o coração continua).
+   - `20261110000000_posts.sql`: tabela `posts`, o tipo de evento `post` e a nova `publish_vitrine()`, que grava os posts e deixa de apagar os kits antigos. Sem ela, a vitrine, o catálogo e o carrossel abrem normalmente, só sem outfits (os "posts" do banco), mas publicar com a função antiga não grava os outfits do editor (e apaga os kits que existirem). Aplicada no Supabase do projeto `vitri` em 10/11/2026.
+   - `20261110020000_vitrine_socials.sql`: coluna `vitrines.socials` (redes sociais da creator: Instagram, TikTok, YouTube e X) e a nova `publish_vitrine()`, que passa a gravar também as redes. Aplicada no Supabase do projeto `vitri` em 10/11/2026. Num banco sem ela, o editor guarda as redes no rascunho, mas publicar não as grava e a vitrine pública não mostra os ícones.
+   - `20261110030000_comment_reply_to.sql`: coluna `comments.reply_to_id` e a nova `stamp_comment()`, para a resposta a uma resposta guardar a quem responde (o app usa para montar a árvore de respostas e o "@Nome"). Aplicada no Supabase do projeto `vitri` em 10/11/2026. Sem ela, a consulta de comentários (que pede `reply_to_id`) falha.
 
-3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. O `supabase/seed.sql` atual usa as colunas antigas `tab`/`title` de `kits` e precisa ser ajustado para `name` antes de rodar.
+3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. O `supabase/seed.sql` atual usa as colunas antigas `tab`/`title` de `kits` e precisa ser ajustado para `name` antes de rodar (os kits não são mais usados pelo app).
 
 **Opção B — Supabase local (Docker)**
 
@@ -157,7 +160,7 @@ graph LR
     U -->|imagens públicas| ST
 ```
 
-- **Páginas:** landing com hero de texto e foto (`LookHero`, imagem `public/hero/retrato.webp`), vitrines, cupons, categorias e marcas (`/`, estática; quem tem sessão é redirecionado para `/inicio`), home (`/inicio`, só para quem entrou: sem sessão o proxy leva para `/`; com saudação, busca de vitrines, marcas e produtos e seis abas cujo estado fica na URL, `?aba=`: **Para você**, com o bloco da própria vitrine e os carrosséis de vitrines do dia e últimos kits, **Favoritas** (as vitrines marcadas com o coração, só de quem entrou) e os catálogos **Vitrines**, **Produtos**, **Kits** e **Marcas**, com filtros, ordem e "Ver mais"; o **Entrar** do site, `LoginButton`, leva a `/entrar` e depois do login volta à mesma página), entrar (`/entrar`, e-mail e senha ou Google, com "Esqueci minha senha"), senha nova (`/nova-senha`, para quem chegou pelo link do e-mail), métricas da vitrine (`/metricas`, só logado), criação de conta/vitrine (`/criar-vitrine`, nome, link, e-mail e senha ou Google, com a foto da arara ao lado no desktop; a venda e o FAQ ficam no fim da landing), vitrine pública (`/{handle}`, com coração de favoritar e comentários de quem entrou), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
+- **Páginas:** landing com hero de texto e foto (`LookHero`, imagem `public/hero/retrato.webp`), vitrines, cupons, categorias e marcas (`/`, estática; quem tem sessão é redirecionado para `/inicio`), home (`/inicio`, só para quem entrou: sem sessão o proxy leva para `/`; com saudação, busca de vitrines, marcas e produtos e seis abas cujo estado fica na URL, `?aba=`: **Para você**, com o bloco da própria vitrine e os carrosséis de vitrines do dia e últimos outfits, **Favoritas** (as vitrines marcadas com o coração, só de quem entrou) e os catálogos **Vitrines**, **Produtos**, **Outfits** e **Marcas**, com filtros, ordem e "Ver mais"; o **Entrar** do site, `LoginButton`, leva a `/entrar` e depois do login volta à mesma página), entrar (`/entrar`, e-mail e senha ou Google, com "Esqueci minha senha"), senha nova (`/nova-senha`, para quem chegou pelo link do e-mail), métricas da vitrine (`/metricas`, só logado), criação de conta/vitrine (`/criar-vitrine`, nome, link, e-mail e senha ou Google, com a foto da arara ao lado no desktop; a venda e o FAQ ficam no fim da landing), vitrine pública (`/{handle}`, com coração de favoritar e comentários de quem entrou), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
 - **Mutações:** todas em Server Actions (`app/actions.ts`); a autorização é feita pelo banco (RLS), o app nunca usa chave de serviço.
 - **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")` (`"minutes"` para o ranking e a busca da home logada, que passa por `GET /api/busca`); os catálogos das abas de `/inicio` (`lib/vitrine/catalog/`) usam a tag `home` e filtram em memória a partir da URL; a publicação invalida com `updateTag`. Comentários e o número de favoritos têm cache próprio (tags `comentarios:{handle}` e `favoritos:{handle}`); o que é por pessoa (coração, formulário, botão de excluir) vem de `GET /api/eu` no navegador.
 - **Favoritos e comentários:** tabelas `favorites` (lista privada de cada conta) e `comments` (leitura pública, com respostas em um nível, preenchida por um trigger do banco a partir da sessão); veja [docs/database.md](docs/database.md).

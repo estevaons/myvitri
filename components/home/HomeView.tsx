@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 import { HOST } from "@/lib/brand";
-import { summarizeVitrine, type HomeCreator, type HomeKit } from "@/lib/vitrine/data";
+import { summarizeVitrine, type HomeCreator, type HomePost } from "@/lib/vitrine/data";
 import type { VitrineContent } from "@/lib/vitrine/types";
 import { AccountMenu, type Account } from "./AccountMenu";
 import { kicker, pad, pillDark, pillLight, SectionHead, SiteFooter, SiteHeader } from "./chrome";
@@ -9,13 +9,14 @@ import { VitrineLinkBar } from "./CopyLinkButton";
 import { CoverPicker } from "./CoverPicker";
 import { CreatorCard, CreatorCover } from "./CreatorCard";
 import { HomeSearch } from "./HomeSearch";
-import { KitCard } from "./KitCard";
 import { Marquee } from "./Marquee";
+import { PostCard } from "./PostCard";
 import type { TabId, TabParams } from "./catalog/params";
+import { NavPending } from "./catalog/NavPending";
 import { TabNav } from "./catalog/ui";
 import { FavoritasTab } from "./tabs/FavoritasTab";
-import { KitsTab } from "./tabs/KitsTab";
 import { MarcasTab } from "./tabs/MarcasTab";
+import { PostsTab } from "./tabs/PostsTab";
 import { ProdutosTab } from "./tabs/ProdutosTab";
 import { VitrinesTab } from "./tabs/VitrinesTab";
 
@@ -59,7 +60,7 @@ function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
             <dl className="m-0 grid flex-1 basis-[22rem] grid-cols-3 gap-6">
               <Stat n={card.products} label={t("statProducts", { count: card.products })} />
               <Stat n={card.coupons} label={t("statCoupons", { count: card.coupons })} />
-              <Stat n={vitrine.kits.length} label={t("statKits", { count: vitrine.kits.length })} />
+              <Stat n={vitrine.posts.length} label={t("statPosts", { count: vitrine.posts.length })} />
             </dl>
             <Link href="/metricas" className={`${kicker} group flex items-center gap-2 pb-1 text-[11px] whitespace-nowrap text-ink no-underline hover:text-gold`}>
               {t("metrics")}
@@ -107,7 +108,7 @@ function CreateVitrine() {
 }
 
 /** "Para você": a própria vitrine (ou o convite) e os carrosséis. */
-export type ForYou = { vitrine: VitrineContent | null; ranked: boolean; creators: HomeCreator[]; kits: HomeKit[] };
+export type ForYou = { vitrine: VitrineContent | null; ranked: boolean; creators: HomeCreator[]; posts: HomePost[] };
 
 /**
  * Home de quem entrou: saudação e busca, as abas e o conteúdo da aba atual. `forYou` só vem
@@ -149,21 +150,26 @@ export function HomeView({
 
       {/* espaço antes das abas como irmão, não em volta: o sticky só prende dentro do próprio pai */}
       <div aria-hidden="true" className="h-5 md:h-6" />
-      <TabNav current={tab} />
+      {/* o pai das abas vai até o rodapé, então elas continuam presas no topo a página toda */}
+      <NavPending>
+        <TabNav current={tab} />
 
-      {tab === "para-voce" && forYou && <ForYouTab {...forYou} favorites={favorites} />}
-      {tab === "favoritas" && <FavoritasTab params={params} favorites={favorites} />}
-      {tab === "vitrines" && <VitrinesTab params={params} favorites={favorites} />}
-      {tab === "produtos" && <ProdutosTab params={params} />}
-      {tab === "kits" && <KitsTab params={params} />}
-      {tab === "marcas" && <MarcasTab params={params} />}
+        <div className="transition-opacity duration-200 group-aria-busy:opacity-50 group-aria-busy:delay-100">
+          {tab === "para-voce" && forYou && <ForYouTab {...forYou} favorites={favorites} />}
+          {tab === "favoritas" && <FavoritasTab params={params} favorites={favorites} />}
+          {tab === "vitrines" && <VitrinesTab params={params} favorites={favorites} />}
+          {tab === "produtos" && <ProdutosTab params={params} />}
+          {tab === "outfits" && <PostsTab params={params} />}
+          {tab === "marcas" && <MarcasTab params={params} />}
+        </div>
 
-      <SiteFooter signedIn />
+        <SiteFooter signedIn />
+      </NavPending>
     </div>
   );
 }
 
-function ForYouTab({ vitrine, ranked, creators, kits, favorites }: ForYou & { favorites: string[] }) {
+function ForYouTab({ vitrine, ranked, creators, posts, favorites }: ForYou & { favorites: string[] }) {
   const t = useTranslations("home.forYou");
   return (
     // div, e não fragmento: é ela que faz da primeira seção a first-child que `section` aproxima das abas
@@ -187,14 +193,14 @@ function ForYouTab({ vitrine, ranked, creators, kits, favorites }: ForYou & { fa
         </section>
       )}
 
-      {kits.length > 0 && (
+      {posts.length > 0 && (
         <section className={`${section} gap-10`}>
           <div className={pad}>
-            <SectionHead kicker={t("kitsKicker")} title={t("kitsTitle")} text={t("kitsText")} />
+            <SectionHead kicker={t("postsKicker")} title={t("postsTitle")} text={t("postsText")} />
           </div>
-          <Marquee label={t("kitsTitle")} className={pad} itemClassName="w-[220px] md:w-[300px]">
-            {kits.map((k) => (
-              <KitCard key={k.id} k={k} />
+          <Marquee label={t("postsTitle")} className={pad} itemClassName="w-[220px] md:w-[300px]">
+            {posts.map((p) => (
+              <PostCard key={p.id} p={p} />
             ))}
           </Marquee>
         </section>
