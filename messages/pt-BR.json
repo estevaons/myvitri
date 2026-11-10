@@ -311,6 +311,7 @@
     "logoFailed": "Não conseguimos abrir o site da loja. Confira o link.",
     "imageType": "Use uma imagem PNG, JPG, SVG ou WebP.",
     "uploadFailed": "Não deu para enviar a imagem. Tente de novo.",
+    "uploadLimit": "Você chegou ao limite de imagens enviadas. Espere alguns minutos e tente de novo; se continuar, escreva para contato@myvitri.com.",
     "offline": "Não foi possível falar com o servidor. Confira sua conexão e tente de novo.",
     "schema": {
       "invalid": "Confira os dados preenchidos.",
