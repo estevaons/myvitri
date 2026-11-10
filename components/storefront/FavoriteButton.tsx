@@ -1,7 +1,6 @@
 "use client";
 
 import { useFormatter, useTranslations } from "next-intl";
-import { useRouter } from "@/lib/i18n/navigation";
 import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { setFavoriteAction } from "@/app/actions";
@@ -105,7 +104,6 @@ export function FavoriteButton({
   favorited,
   guest,
   loading = false,
-  stay = false,
   count = null,
 }: {
   variant: keyof typeof SHAPE;
@@ -115,15 +113,12 @@ export function FavoriteButton({
   guest: boolean;
   /** ainda não se sabe quem está vendo: aparece igual, mas o toque não faz nada */
   loading?: boolean;
-  /** aba Favoritas: o card fica no lugar ao tirar o coração */
-  stay?: boolean;
   /** No perfil: quantas pessoas favoritaram, contando quem está vendo se `favorited`. null: não mostra. */
   count?: number | null;
 }) {
   const t = useTranslations("storefront.favorite");
   const format = useFormatter();
   const tErrors = useTranslations("errors");
-  const router = useRouter();
   const [on, setOn] = useState(favorited);
   const [pop, setPop] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,10 +146,8 @@ export function FavoriteButton({
         announce(handle, !next);
         setPop(false);
         setError(result.error);
-      } else if (variant === "card" && !stay) {
-        // a página do catálogo traz o estado do servidor: mantém certo para quem voltar a ela
-        router.refresh();
       }
+      // sem router.refresh(): o updateTag da action já faz o Next recarregar a página atual com o estado do servidor
     });
   };
 

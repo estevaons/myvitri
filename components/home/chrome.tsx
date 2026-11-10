@@ -4,7 +4,7 @@ import { LoginButton } from "@/components/auth/forms";
 import { BackLink } from "@/components/brand/BackLink";
 import { LocaleSwitcher } from "@/components/brand/LocaleSwitcher";
 import { Wordmark } from "@/components/brand/Logo";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, type Href } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 
 /** Peças comuns da home e da página de criar vitrine, no mesmo visual das vitrines. */
@@ -19,10 +19,21 @@ export const pillLight =
 export const kicker = "text-[12px] font-medium tracking-[0.22em] uppercase";
 
 /**
- * `back` põe o voltar para o início à esquerda, nas páginas de dentro. `action` substitui o botão da direita
- * (padrão: Entrar; `null` deixa sem botão).
+ * `back` põe o voltar para o início à esquerda, nas páginas de dentro. `home` é para onde o logo leva: nas páginas
+ * de quem entrou, o /inicio direto (a landing só redirecionaria para lá, com uma ida a mais ao Supabase). `action`
+ * substitui o botão da direita (padrão: Entrar; `null` deixa sem botão).
  */
-export function SiteHeader({ links, back, action = <LoginButton className={pillLight} /> }: { links: [href: string, label: string][]; back?: string; action?: ReactNode }) {
+export function SiteHeader({
+  links,
+  back,
+  home = "/",
+  action = <LoginButton className={pillLight} />,
+}: {
+  links: [anchor: string, label: string][];
+  back?: Href;
+  home?: Href;
+  action?: ReactNode;
+}) {
   const t = useTranslations("common");
   return (
     // as classes group-data só valem dentro do ScrollHeader; a linha some porque ele traz a dele, de ponta a ponta
@@ -31,16 +42,16 @@ export function SiteHeader({ links, back, action = <LoginButton className={pillL
     >
       <div className="flex min-w-0 items-center gap-3">
         {back && <BackLink href={back} label="home" divider />}
-        <Link href="/" aria-label={t("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
+        <Link href={home} aria-label={t("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
           <Wordmark label="" className="h-[19px] w-auto" />
         </Link>
       </div>
       <nav className="flex items-center gap-7">
-        {links.map(([href, label]) => (
-          // com muitos links eles só cabem do lg em diante: no tablet passariam por cima da marca
-          <Link key={href} href={href} className={`${kicker} whitespace-nowrap text-ink no-underline hover:text-gold ${links.length > 2 ? "max-lg:hidden" : "max-md:hidden"}`}>
+        {links.map(([anchor, label]) => (
+          // seções da própria página (`#vitrines`); com muitos links eles só cabem do lg em diante: no tablet passariam por cima da marca
+          <a key={anchor} href={`#${anchor}`} className={`${kicker} whitespace-nowrap text-ink no-underline hover:text-gold ${links.length > 2 ? "max-lg:hidden" : "max-md:hidden"}`}>
             {label}
-          </Link>
+          </a>
         ))}
         {action}
       </nav>
@@ -60,7 +71,8 @@ export function SectionHead({ kicker: label, title, text, children }: { kicker: 
   );
 }
 
-type FooterColumn = [title: string, links: [href: string, label: string][]];
+/** `null` no lugar do destino: é o "Entrar", que abre o login em vez de levar a uma página. */
+type FooterColumn = [title: string, links: [href: Href | null, label: string][]];
 
 /**
  * Rodapé do site. `signedIn`, nas páginas de quem entrou (/inicio, /metricas), deixa só a linha final: as colunas
@@ -72,19 +84,18 @@ export function SiteFooter({ signedIn = false }: { signedIn?: boolean }) {
     [
       t("forShoppers"),
       [
-        ["/#vitrines", t("footerVitrines")],
-        ["/#cupons", t("footerCoupons")],
-        ["/#categorias", t("footerCategories")],
-        ["/#marcas", t("footerBrands")],
+        [{ pathname: "/", hash: "vitrines" }, t("footerVitrines")],
+        [{ pathname: "/", hash: "cupons" }, t("footerCoupons")],
+        [{ pathname: "/", hash: "categorias" }, t("footerCategories")],
+        [{ pathname: "/", hash: "marcas" }, t("footerBrands")],
       ],
     ],
     [
       t("forCreators"),
       [
         ["/criar-vitrine", t("createMine")],
-        // não é link: abre o modal de login
-        ["#entrar", t("signIn")],
-        ["/#vitrines", t("seeVitrines")],
+        [null, t("signIn")],
+        [{ pathname: "/", hash: "vitrines" }, t("seeVitrines")],
       ],
     ],
   ];
@@ -100,12 +111,12 @@ export function SiteFooter({ signedIn = false }: { signedIn?: boolean }) {
             <nav key={title} aria-label={title} className="flex flex-col gap-3">
               <span className={kicker}>{title}</span>
               {links.map(([href, label]) =>
-                href === "#entrar" ? (
-                  <LoginButton key={href} className="self-start text-left text-[15px] text-mute hover:text-ink">
+                href === null ? (
+                  <LoginButton key={label} className="self-start text-left text-[15px] text-mute hover:text-ink">
                     {label}
                   </LoginButton>
                 ) : (
-                  <Link key={href} href={href} className="text-[15px] text-mute no-underline hover:text-ink">
+                  <Link key={label} href={href} className="text-[15px] text-mute no-underline hover:text-ink">
                     {label}
                   </Link>
                 ),

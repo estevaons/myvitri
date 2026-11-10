@@ -25,6 +25,8 @@
     "copied": "Copied!",
     "copyAndOpen": "Copy and go to store",
     "copyCode": "Copy code",
+    "copyManually": "Copy the code above",
+    "goToStore": "Go to store",
     "productsTitle": "Products",
     "search": "Search",
     "searchLabel": "Search products or brands",
@@ -120,7 +122,8 @@
       "pt-BR": "Português",
       "en": "English"
     },
-    "carousel": "carousel"
+    "carousel": "carousel",
+    "loading": "Loading…"
   },
   "seo": {
     "site": {
@@ -210,7 +213,7 @@
     "inviteKicker": "Do you create content?",
     "inviteTitle": "Your storefront",
     "inviteTitleEm": "here",
-    "inviteText": "Set yours up in 2 minutes: {host}/yourname",
+    "inviteText": "Set yours up in 2 minutes: {host}/@yourname",
     "inviteCta": "Create for free"
   },
   "categoryShop": {
@@ -267,7 +270,7 @@
       "costQ": "How much does it cost?",
       "costA": "It's free to start. Just pick your link and sign in with your Google account.",
       "linkQ": "What does my link look like?",
-      "linkA": "Your storefront lives at {host}/yourname. That's the address that goes in your Instagram or TikTok bio, or wherever you like.",
+      "linkA": "Your storefront lives at {host}/@yourname. That's the address that goes in your Instagram or TikTok bio, or wherever you like.",
       "manualQ": "Do I have to add each product by hand?",
       "manualA": "No. Paste the product's store link and we pull in the name and photo. Then just add your affiliate link, if you have one.",
       "trackQ": "Can the brand see the sale came from me?",
@@ -408,7 +411,7 @@
       "titleEm": "too",
       "text": "Gather the coupons and products you use and recommend in a single link. It's free and ready in 2 minutes.",
       "button": "Create my storefront",
-      "handle": "{host}/yourname"
+      "handle": "{host}/@yourname"
     },
     "forYou": {
       "rankedKicker": "Trending today",
@@ -429,12 +432,12 @@
   "catalog": {
     "tabs": {
       "label": "Home tabs",
-      "para-voce": "For you",
-      "favoritas": "Saved",
-      "vitrines": "Storefronts",
-      "produtos": "Products",
+      "for-you": "For you",
+      "saved": "Saved",
+      "storefronts": "Storefronts",
+      "products": "Products",
       "outfits": "Outfits",
-      "marcas": "Brands"
+      "brands": "Brands"
     },
     "removeFilter": "Remove the {label} filter: {value}",
     "sortBy": "Sort by",
@@ -472,9 +475,9 @@
       "title": "Brands",
       "text": "Each brand's best coupon across all storefronts. Open a brand to compare its coupons side by side.",
       "sorts": {
-        "desconto": "Biggest discount",
+        "discount": "Biggest discount",
         "creators": "In most storefronts",
-        "vencendo": "Expiring soonest",
+        "expiring": "Expiring soonest",
         "az": "A–Z"
       },
       "filteredTitle": "No brands with these filters",
@@ -498,10 +501,10 @@
       "title": "Storefronts",
       "text": "Every storefront with an active coupon or a product for sale. Filter by what you're looking for and step into the one that suits you.",
       "sorts": {
-        "alta": "Trending today",
-        "recentes": "Most recent",
-        "desconto": "Biggest discount",
-        "cupons": "Most coupons"
+        "trending": "Trending today",
+        "recent": "Most recent",
+        "discount": "Biggest discount",
+        "coupons": "Most coupons"
       },
       "filteredTitle": "No storefronts with these filters",
       "filteredText": "Remove a filter or try another combination to see more storefronts.",
@@ -626,7 +629,7 @@
     "gone": "no longer on your storefront",
     "editLabel": "Edit storefront",
     "edit": "Edit",
-    "editRest": " storefront",
+    "editRest": "storefront",
     "title": "Your metrics",
     "intro": "Who visited your storefront and what they clicked in the last {period} days. Only the published storefront counts: the editor preview is left out.",
     "loadFailed": "We couldn't load the metrics right now. Reload the page in a moment.",
@@ -686,7 +689,7 @@
       "title": "Create your storefront to see the <em>clicks</em>",
       "text": "Gather the coupons and products you recommend in a single link. Every visit and click shows up here.",
       "button": "Create my storefront",
-      "handle": "{host}/yourname"
+      "handle": "{host}/@yourname"
     },
     "chart": {
       "visits": "{count, plural, one {# visit} other {# visits}}",

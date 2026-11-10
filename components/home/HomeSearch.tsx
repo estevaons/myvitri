@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import type { SearchResults } from "@/lib/vitrine/data";
 import { couponOff } from "@/lib/vitrine/pricing";
@@ -120,7 +120,7 @@ export function HomeSearch() {
             <section aria-label={t("vitrines")} className="flex min-w-0 flex-col">
               <h2 className={`m-0 mb-1 ${groupTitle}`}>{t("vitrines")}</h2>
               {r.creators.map((c) => (
-                <Link key={c.handle} href={`/${c.handle}`} className={row}>
+                <Link key={c.handle} href={vitrineHref(c.handle)} className={row}>
                   <Avatar name={c.name} url={c.avatarUrl} className="box-border size-10 flex-none rounded-full border border-sand text-xs" />
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate text-[15px] font-medium">{c.name}</span>
@@ -134,7 +134,7 @@ export function HomeSearch() {
             <section aria-label={t("brands")} className="flex min-w-0 flex-col">
               <h2 className={`m-0 mb-1 ${groupTitle}`}>{t("brands")}</h2>
               {r.brands.map((b) => (
-                <Link key={b.brand} href={`/${b.handle}#cupons`} className={row}>
+                <Link key={b.brand} href={vitrineHref(b.handle, "cupons")} className={row}>
                   {b.logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária
                     <img src={b.logoUrl} alt="" loading="lazy" className="size-10 flex-none rounded-full border border-sand bg-white object-contain" />
@@ -157,7 +157,7 @@ export function HomeSearch() {
             <section aria-label={t("products")} className="flex min-w-0 flex-col">
               <h2 className={`m-0 mb-1 ${groupTitle}`}>{t("products")}</h2>
               {r.products.map((p) => (
-                <Link key={`${p.handle}:${p.id}`} href={`/${p.handle}#produtos`} className={row}>
+                <Link key={`${p.handle}:${p.id}`} href={vitrineHref(p.handle, "produtos")} className={row}>
                   <span aria-hidden="true" className="relative flex size-12 flex-none items-center justify-center overflow-hidden bg-cream">
                     <ProductArt product={p} iconClassName="w-[60%]" />
                   </span>

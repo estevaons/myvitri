@@ -2,13 +2,13 @@
 
 > 📚 **Documentação:** [arquitetura](docs/architecture.md) e [banco de dados](docs/database.md).
 
-O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **vitrine pública** com os **cupons de desconto** das marcas que divulgam, os **produtos** que indicam (foto e nome, com o clique levando ao link que a creator colou, de afiliado ou da loja) e **posts** (a foto da creator usando um conjunto, com a lista das peças). O cupom é só da marca e fica na seção Cupons. A vitrine fica num link curto (`myvitri.com/seunome`) para a bio do Instagram/TikTok. O seguidor copia o cupom da marca e abre o produto na loja — o MyVitri não vende nada.
+O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **vitrine pública** com os **cupons de desconto** das marcas que divulgam, os **produtos** que indicam (foto e nome, com o clique levando ao link que a creator colou, de afiliado ou da loja) e **outfits** (a foto da creator usando um conjunto, com a lista das peças; no código, `posts`). O cupom é só da marca e fica na seção Cupons. A vitrine fica num link curto (`myvitri.com/@seunome`) para a bio do Instagram/TikTok. O seguidor copia o cupom da marca e abre o produto na loja — o MyVitri não vende nada.
 
 | | |
 |---|---|
 | **Stack** | Next.js 16 (App Router, Cache Components) · React 19 · TypeScript · Tailwind CSS v4 · Zod 4 |
 | **Backend** | Supabase: Postgres com RLS, Auth (e-mail e senha, e Google), Storage |
-| **Hospedagem** | Vercel (inferido: Web Analytics + integração), funções em Portland (`pdx1`, `vercel.json`), junto ao Supabase |
+| **Hospedagem** | Vercel (inferido: Web Analytics, Speed Insights + integração), funções em Portland (`pdx1`, `vercel.json`), junto ao Supabase |
 | **Idioma do produto e do código** | Português do Brasil |
 
 > ⚠️ **Este projeto usa Next.js 16**, que mudou APIs e convenções (ex.: `proxy.ts` no lugar de `middleware.ts`, `updateTag`, `"use cache"`). Antes de escrever código, leia o guia correspondente em `node_modules/next/dist/docs/` — veja [`AGENTS.md`](AGENTS.md).
@@ -122,7 +122,7 @@ npm run dev
 
 Abra [http://localhost:3000](http://localhost:3000).
 
-O site abre em português; a versão em inglês fica em [http://localhost:3000/en](http://localhost:3000/en).
+O site abre em português; a versão em inglês fica em [http://localhost:3000/en](http://localhost:3000/en), com os nomes das páginas traduzidos (por exemplo `/en/home` no lugar de `/inicio`).
 
 ### 6. Primeiro acesso ("usuário admin")
 
@@ -160,14 +160,14 @@ graph LR
     U -->|imagens públicas| ST
 ```
 
-- **Páginas:** landing com hero de texto e foto (`LookHero`, imagem `public/hero/retrato.webp`), vitrines, cupons, categorias e marcas (`/`, estática; quem tem sessão é redirecionado para `/inicio`), home (`/inicio`, só para quem entrou: sem sessão o proxy leva para `/`; com saudação, busca de vitrines, marcas e produtos e seis abas cujo estado fica na URL, `?aba=`: **Para você**, com o bloco da própria vitrine e os carrosséis de vitrines do dia e últimos outfits, **Favoritas** (as vitrines marcadas com o coração, só de quem entrou) e os catálogos **Vitrines**, **Produtos**, **Outfits** e **Marcas**, com filtros, ordem e "Ver mais"; o **Entrar** do site, `LoginButton`, leva a `/entrar` e depois do login volta à mesma página), entrar (`/entrar`, e-mail e senha ou Google, com "Esqueci minha senha"), senha nova (`/nova-senha`, para quem chegou pelo link do e-mail), métricas da vitrine (`/metricas`, só logado), criação de conta/vitrine (`/criar-vitrine`, nome, link, e-mail e senha ou Google, com a foto da arara ao lado no desktop; a venda e o FAQ ficam no fim da landing), vitrine pública (`/{handle}`, com coração de favoritar e comentários de quem entrou), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
+- **Páginas:** landing com hero de texto e foto (`LookHero`, imagem `public/hero/retrato.webp`), vitrines, cupons, categorias e marcas (`/`, estática; quem tem sessão é redirecionado para `/inicio`), home (`/inicio`, só para quem entrou: sem sessão o proxy leva para `/`; com saudação, busca de vitrines, marcas e produtos e seis abas cujo estado fica na URL, `?tab=`: **Para você**, com o bloco da própria vitrine e os carrosséis de vitrines do dia e últimos outfits, **Favoritas** (as vitrines marcadas com o coração, só de quem entrou) e os catálogos **Vitrines**, **Produtos**, **Outfits** e **Marcas**, com filtros, ordem e "Ver mais"; o **Entrar** do site, `LoginButton`, leva a `/entrar` e depois do login volta à mesma página), entrar (`/entrar`, e-mail e senha ou Google, com "Esqueci minha senha"), senha nova (`/nova-senha`, para quem chegou pelo link do e-mail), métricas da vitrine (`/metricas`, só logado), criação de conta/vitrine (`/criar-vitrine`, nome, link, e-mail e senha ou Google, com a foto da arara ao lado no desktop; a venda e o FAQ ficam no fim da landing), vitrine pública (`/@{handle}`, com coração de favoritar e comentários de quem entrou), editor (`/editor`), páginas legais (`/privacidade`, `/termos`).
 - **Mutações:** todas em Server Actions (`app/actions.ts`); a autorização é feita pelo banco (RLS), o app nunca usa chave de serviço.
 - **Leitura pública** com `"use cache"` + tags (`vitrine:{handle}`, `home`) e `cacheLife("hours")` (`"minutes"` para o ranking e a busca da home logada, que passa por `GET /api/busca`); os catálogos das abas de `/inicio` (`lib/vitrine/catalog/`) usam a tag `home` e filtram em memória a partir da URL; a publicação invalida com `updateTag`. Comentários e o número de favoritos têm cache próprio (tags `comentarios:{handle}` e `favoritos:{handle}`); o que é por pessoa (coração, formulário, botão de excluir) vem de `GET /api/eu` no navegador.
 - **Favoritos e comentários:** tabelas `favorites` (lista privada de cada conta) e `comments` (leitura pública, com respostas em um nível, preenchida por um trigger do banco a partir da sessão); veja [docs/database.md](docs/database.md).
 - **Editor:** rascunho salvo automaticamente em `vitrine_drafts`; **Publicar** grava tudo de uma vez pela função `publish_vitrine()` do Postgres. Nome, link e foto de perfil (Configurações, no menu da conta da home; sem foto própria vale a da conta Google, gravada em `avatar_url`, e sem nenhuma das duas a vitrine mostra as iniciais) e a capa (bloco "Sua vitrine" da home) não passam pelo rascunho: `updateProfileAction` e `updateCoverAction` gravam direto em `vitrines`, na hora. Sem capa, a vitrine mostra a primeira letra do nome.
-- **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()` e mostrados na página `/metricas` (a antiga aba do editor foi removida; `/editor?aba=metricas` redireciona).
+- **Métricas:** eventos anônimos via `POST /api/t` na tabela `events`, agregados por `vitrine_stats()` e mostrados na página `/metricas`.
 
-- **Idiomas (i18n):** o site inteiro existe em português (sem prefixo, o padrão: `/inicio`) e em inglês (prefixo `/en`: `/en/inicio`), com `next-intl`. As páginas ficam em `app/[locale]/`, os textos em `messages/pt-BR.json` e `messages/en.json` (mesmas chaves) e o idioma vem da URL; o cookie `NEXT_LOCALE` só lembra a última escolha, e o idioma do navegador é ignorado. O fuso é sempre `America/Sao_Paulo` e os preços, BRL. Fora do escopo: o conteúdo das creators não é traduzido, os e-mails do Supabase Auth continuam só em português (configurados no painel do Supabase) e o `llms.txt` é só em português. Como adicionar texto ou idioma: [Internacionalização](docs/architecture.md#internacionalização-i18n).
+- **Idiomas (i18n):** o site inteiro existe em português (sem prefixo, o padrão: `/inicio`) e em inglês (prefixo `/en` e nomes de página traduzidos: `/en/home`, `/en/sign-in`; os nomes ficam em `pathnames` de `lib/i18n/routing.ts`), com `next-intl`. Os parâmetros de URL são em inglês nos dois idiomas (`?tab=`, `?period=`). As páginas ficam em `app/[locale]/`, os textos em `messages/pt-BR.json` e `messages/en.json` (mesmas chaves) e o idioma vem da URL; o cookie `NEXT_LOCALE` só lembra a última escolha, e o idioma do navegador é ignorado. O fuso é sempre `America/Sao_Paulo` e os preços, BRL. Fora do escopo: o conteúdo das creators não é traduzido, os e-mails do Supabase Auth continuam só em português (configurados no painel do Supabase) e o `llms.txt` é só em português. Como adicionar texto ou idioma: [Internacionalização](docs/architecture.md#internacionalização-i18n).
 
 Mais em [docs/architecture.md](docs/architecture.md).
 
@@ -176,11 +176,11 @@ Mais em [docs/architecture.md](docs/architecture.md).
 ```text
 app/[locale]/        páginas e imagens por idioma (layout raiz incluso); /en/... é o inglês
 app/                 fora do idioma: actions.ts, api/, auth/callback, llms.txt, robots.ts, sitemap.ts, global-not-found.tsx, global-error.tsx
-components/          auth/, editor/, storefront/, home/ (com catalog/ e tabs/), metrics/, brand/ (com LocaleSwitcher e ErrorScreen, a tela dos erros e 404), legal/ (termos e privacidade em pt e en)
-lib/                 brand.ts, fonts.ts, i18n/ (idiomas e prefixo em routing.ts, navegação com idioma em navigation.ts, idioma por requisição e fuso em request.ts, tipagem das mensagens), supabase/ (clientes e tipos), vitrine/ (domínio, com catalog/)
+components/          auth/, editor/, storefront/, home/ (com catalog/ e tabs/), metrics/, brand/ (com LocaleSwitcher, ErrorScreen, a tela dos erros e 404, e Skeleton, base das telas de espera), legal/ (termos e privacidade em pt e en)
+lib/                 brand.ts, fonts.ts, i18n/ (idiomas, prefixo e nome das páginas por idioma em routing.ts, navegação com idioma em navigation.ts, idioma por requisição e fuso em request.ts, tipagem das mensagens), supabase/ (clientes e tipos), vitrine/ (domínio, com catalog/)
 supabase/            migrations/ (SQL em ordem) e seed.sql
 messages/            pt-BR.json e en.json, catálogo de textos
-proxy.ts             proxy do Next 16 (idioma com next-intl, sessão, retorno do OAuth, / e /entrar → /inicio com sessão e /inicio → / sem sessão, /editor?aba=metricas → /metricas)
+proxy.ts             proxy do Next 16 (idioma com next-intl, sessão, retorno do OAuth, / e /entrar → /inicio com sessão e /inicio → / sem sessão)
 docs/                architecture.md e database.md
 ```
 

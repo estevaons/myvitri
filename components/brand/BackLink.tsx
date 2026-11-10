@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 import type { MouseEventHandler } from "react";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, type Href } from "@/lib/i18n/navigation";
 
 // A margem negativa desconta o padding: a área de toque tem 44px, mas a peça ocupa só o que aparece e
 // o ícone fica alinhado à margem da página.
@@ -19,7 +19,7 @@ export function BackLink({
   labelClass = "max-md:hidden",
   divider = false,
 }: {
-  href?: string;
+  href?: Href;
   onClick?: MouseEventHandler<HTMLElement>;
   /** back: "Voltar"; home: "Início", que leva para o início */
   label?: "back" | "home";

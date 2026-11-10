@@ -4,11 +4,11 @@ import { SOCIALS, socialUrl, type SocialNetwork } from "./socials";
 export const ICONS = ["Bikini", "Glasses", "Jar", "Bottle", "Shoe", "Hat", "Nuts", "Bag"] as const;
 export const SECTION_IDS = ["ticker", "products", "coupons", "kits", "cta"] as const;
 
-export const RESERVED_HANDLES = new Set([
-  "editor", "api", "admin", "login", "entrar", "sair", "cadastro", "app", "www",
-  "vitri", "myvitri", "ajuda", "termos", "privacidade", "_next", "favicon.ico",
-  "robots.txt", "sitemap.xml", "llms.txt",
-]);
+/**
+ * Links que nenhuma vitrine pode usar porque passariam por conta oficial do site. Não é para proteger páginas: as
+ * vitrines ficam em `/@fulana` (lib/vitrine/links.ts) e nunca esbarram numa página nova.
+ */
+export const RESERVED_HANDLES = new Set(["admin", "myvitri", "vitri", "suporte", "support", "ajuda", "help", "contato", "oficial"]);
 
 export const HANDLE_RE = /^[a-z0-9_.]{3,30}$/;
 

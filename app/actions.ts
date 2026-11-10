@@ -5,12 +5,11 @@ import { updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect as redirectTo } from "next/navigation";
 import type { ZodError } from "zod";
-import { redirect } from "@/lib/i18n/navigation";
-import { withoutLocale } from "@/lib/i18n/routing";
+import { hrefOf, redirect } from "@/lib/i18n/navigation";
+import { internalPath } from "@/lib/i18n/routing";
 import { DELETE_WORDS } from "@/lib/auth/account";
 import { PASSWORD_MIN } from "@/lib/auth/password";
 import { safePath, saveReturn } from "@/lib/auth/return-to";
-import { HOST } from "@/lib/brand";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
 import { commentsTag, favoritesTag, HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
 import { googlePhoto, saveClaim, starterContent } from "@/lib/vitrine/claim";
@@ -32,6 +31,7 @@ import {
   setFavorite,
   updateProfile,
 } from "@/lib/vitrine/store";
+import { vitrineAddress } from "@/lib/vitrine/links";
 import { emptyContent, pickProfile, vitrineContentSchema, vitrineProfileSchema, type VitrineContent, type VitrineProfile } from "@/lib/vitrine/types";
 
 export type FormState = { error?: string; notice?: string; handle?: string; name?: string; email?: string };
@@ -42,9 +42,9 @@ export type FormState = { error?: string; notice?: string; handle?: string; name
  */
 const errors = () => getTranslations("errors");
 
-/** Leva a uma página do site no idioma atual (`href` sem idioma). */
-async function go(href: string): Promise<never> {
-  redirect({ href, locale: await getLocale() });
+/** Leva a uma página do site no idioma atual (`path` interno, sem idioma, com ou sem parâmetros). */
+async function go(path: string): Promise<never> {
+  redirect({ href: hrefOf(path), locale: await getLocale() });
   throw new Error("unreachable");
 }
 
@@ -74,9 +74,9 @@ async function refererPath() {
   try {
     const ref = new URL(h.get("referer") ?? "");
     if (ref.host !== h.get("host")) return null;
-    ref.searchParams.delete("erro");
+    ref.searchParams.delete("error");
     const path = safePath(ref.pathname + ref.search);
-    return path && withoutLocale(path);
+    return path && internalPath(path);
   } catch {
     return null;
   }
@@ -137,7 +137,7 @@ export async function signInWithPasswordAction(_prev: FormState, form: FormData)
     return { email, error: await authErrorText(error.code) };
   }
   const next = safePath(form.get("next"));
-  return go(next ? withoutLocale(next) : "/inicio");
+  return go(next ? internalPath(next) : "/inicio");
 }
 
 /**
@@ -178,7 +178,7 @@ async function createAndOpen(handle: string, name: string, state: FormState): Pr
   try {
     await createVitrine(supabase, user.id, starterContent(user, handle, name, await intro()));
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ...state, error: t("handleTaken", { url: `${HOST}/${handle}` }) };
+    if (e instanceof HandleTakenError) return { ...state, error: t("handleTaken", { url: vitrineAddress(handle) }) };
     throw e;
   }
   updateTag(vitrineTag(handle));
@@ -219,7 +219,7 @@ export async function claimAction(_prev: FormState, form: FormData): Promise<For
 
   const parsed = vitrineContentSchema.safeParse(emptyContent(handle, name));
   if (!parsed.success) return { ...state, error: await issueText(parsed.error) };
-  if (await isHandleTaken(createPublicSupabase(), handle)) return { ...state, error: (await errors())("handleTaken", { url: `${HOST}/${handle}` }) };
+  if (await isHandleTaken(createPublicSupabase(), handle)) return { ...state, error: (await errors())("handleTaken", { url: vitrineAddress(handle) }) };
 
   if (mine.user) return createAndOpen(handle, name, state);
   if (form.get("via") === "email") return signUpWithEmail(state, form);
@@ -231,7 +231,7 @@ export async function claimAction(_prev: FormState, form: FormData): Promise<For
 export async function signInAction(_prev: FormState, form: FormData): Promise<FormState> {
   // o campo vem vazio se o clique foi antes de a página hidratar: aí vale a página que enviou o formulário
   const field = safePath(form.get("next"));
-  const next = field ? withoutLocale(field) : await refererPath();
+  const next = field ? internalPath(field) : await refererPath();
   if (next) await saveReturn(next);
   return startGoogle({});
 }
@@ -369,7 +369,7 @@ export async function publishVitrine(content: VitrineContent): Promise<PublishRe
     updateTag(HOME_TAG);
     return { ok: true, updatedAt };
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ok: false, error: t("handleTaken", { url: `${HOST}/${parsed.data.handle}` }) };
+    if (e instanceof HandleTakenError) return { ok: false, error: t("handleTaken", { url: vitrineAddress(parsed.data.handle) }) };
     console.error("publish_vitrine", e);
     return { ok: false, error: t("publishFailed") };
   }
@@ -389,7 +389,7 @@ async function saveProfile(patch: Partial<VitrineProfile>): Promise<SocialResult
   try {
     await updateProfile(supabase, user.id, parsed.data);
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ok: false, error: t("handleTaken", { url: `${HOST}/${parsed.data.handle}` }) };
+    if (e instanceof HandleTakenError) return { ok: false, error: t("handleTaken", { url: vitrineAddress(parsed.data.handle) }) };
     console.error("updateProfile", e);
     return { ok: false, error: t("saveFailed") };
   }

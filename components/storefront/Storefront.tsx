@@ -28,11 +28,37 @@ const pillDark =
 const pillLight =
   "flex min-h-12 items-center justify-center border border-ink bg-transparent px-7 text-[12px] font-medium tracking-[0.18em] text-ink uppercase no-underline hover:bg-ink hover:text-white";
 
-function copyText(text: string) {
+/**
+ * Copia na hora, ainda dentro do clique, e diz se deu certo. Usa o caminho antigo (textarea + execCommand) porque
+ * ele responde sem esperar: assim a loja pode abrir no mesmo clique, e o Safari não a trata como pop-up.
+ * É também o que costuma funcionar nos navegadores internos do Instagram e do TikTok.
+ */
+function copyNow(text: string): boolean {
+  const before = document.activeElement as HTMLElement | null;
+  const area = document.createElement("textarea");
   try {
-    navigator.clipboard?.writeText(text).catch(() => {});
+    area.value = text;
+    area.readOnly = true; // não abre o teclado no celular
+    area.style.cssText = "position:fixed;top:0;left:0;opacity:0;font-size:16px";
+    document.body.append(area);
+    area.select();
+    area.setSelectionRange(0, text.length); // iOS ignora o select() sozinho
+    return document.execCommand("copy");
   } catch {
-    // clipboard indisponível (http, iframe sem permissão): o código continua visível
+    return false;
+  } finally {
+    area.remove();
+    before?.focus({ preventScroll: true });
+  }
+}
+
+/** Segunda tentativa, pela API moderna. Só responde depois do clique, então quem chama não abre a loja. */
+async function copyLater(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -287,6 +313,24 @@ export function Storefront({
 
 
   const [copied, flash] = useFlash();
+  // cupons em que a cópia na hora falhou: true se a segunda tentativa copiou, false se o visitante copia à mão
+  const [fallback, setFallback] = useState<Record<string, boolean>>({});
+
+  const copyCoupon = (c: (typeof coupons)[number], code: Element | null) => {
+    send("copy", c.id);
+    if (copyNow(c.code)) {
+      flash(`c:${c.id}`);
+      if (!preview) openStore(withUtm(c.storeUrl, content));
+      return;
+    }
+    // não diz "Copiado" sem ter copiado: tenta de novo e, se falhar, deixa o código selecionado para copiar à mão;
+    // a loja vira um botão próprio, porque abrir depois de esperar seria bloqueado como pop-up
+    void copyLater(c.code).then((ok) => {
+      setFallback((prev) => ({ ...prev, [c.id]: ok }));
+      if (ok) flash(`c:${c.id}`);
+      else if (code) window.getSelection()?.selectAllChildren(code);
+    });
+  };
 
   const nav = [
     ["#cupons", t("nav.coupons"), coupons.length > 0],
@@ -344,7 +388,7 @@ export function Storefront({
       <section className={`mx-auto max-w-[1440px] ${pad}`}>
         {banner ? (
           // eslint-disable-next-line @next/next/no-img-element -- capa vem de URL arbitrária
-          <img src={banner} alt="" className="block aspect-[21/9] w-full bg-cream object-cover @max-2xl:aspect-[4/3]" />
+          <img src={banner} alt="" fetchPriority="high" className="block aspect-[21/9] w-full bg-cream object-cover @max-2xl:aspect-[4/3]" />
         ) : (
           <div className="relative aspect-[21/9] w-full @max-2xl:aspect-[4/3]">
             <CoverLetter name={content.name} />
@@ -434,21 +478,32 @@ export function Storefront({
                   )}
                 </div>
                 <div className="mt-auto flex flex-col gap-2">
-                  <span className="flex min-h-12 items-center justify-center border border-dashed border-gold/50 bg-white px-4 text-center font-mono text-[15px] font-bold tracking-[0.08em] break-all">
+                  <span className="flex min-h-12 items-center justify-center border border-dashed border-gold/50 bg-white px-4 text-center font-mono text-[15px] font-bold tracking-[0.08em] break-all select-all">
                     {c.code}
                   </span>
                   <button
-                    onClick={() => {
-                      copyText(c.code);
-                      flash(`c:${c.id}`);
-                      send("copy", c.id);
-                      if (!preview) openStore(withUtm(c.storeUrl, content));
-                    }}
+                    onClick={(e) => copyCoupon(c, e.currentTarget.previousElementSibling)}
                     aria-label={c.storeUrl ? t("copyAndOpenLabel", { code: c.code, brand: c.brand }) : t("copyLabel", { code: c.code })}
                     className="flex min-h-12 items-center justify-center border-0 bg-ink px-3 text-[11px] font-medium tracking-[0.14em] whitespace-nowrap text-white uppercase hover:bg-[#2b2925]"
                   >
-                    {copied === `c:${c.id}` ? t("copied") : c.storeUrl ? t("copyAndOpen") : t("copyCode")}
+                    {copied === `c:${c.id}`
+                      ? t("copied")
+                      : fallback[c.id] === false
+                        ? t("copyManually")
+                        : c.storeUrl && fallback[c.id] === undefined
+                          ? t("copyAndOpen")
+                          : t("copyCode")}
                   </button>
+                  {c.storeUrl && fallback[c.id] !== undefined && !preview && (
+                    <a
+                      href={withUtm(c.storeUrl, content)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-h-12 items-center justify-center border border-ink px-3 text-[11px] font-medium tracking-[0.14em] whitespace-nowrap text-ink uppercase no-underline hover:bg-ink hover:text-white"
+                    >
+                      {t("goToStore")}
+                    </a>
+                  )}
                 </div>
               </article>
             ))}
@@ -520,19 +575,21 @@ export function Storefront({
 
       {comments && <Comments handle={content.handle} firstName={firstName} comments={comments} viewer={viewer} className={pad} />}
 
-      <section className={`mx-auto max-w-[1440px] pt-20 @3xl:pt-28 ${pad}`}>
-        <div className="flex flex-col items-center gap-4 bg-sand px-6 py-16 text-center @max-md:py-12">
-          {/* quem chega aqui acabou de ver a vitrine de alguém: o convite parte dela */}
-          <span className="text-[12px] font-medium tracking-[0.22em] text-gold uppercase">{t("cta.kicker")}</span>
-          <h2 className="m-0 font-display text-[clamp(32px,4.4cqw,52px)] leading-[1.05] font-normal text-balance">
-            {t("cta.title")} <em>{t("cta.titleEm")}</em>
-          </h2>
-          <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">{t("cta.text")}</p>
-          <Link href="/criar-vitrine" className={`${pillDark} mt-2`}>
-            {t("cta.button")}
-          </Link>
-        </div>
-      </section>
+      {!preview && viewer?.user === null && (
+        <section className={`mx-auto max-w-[1440px] pt-20 @3xl:pt-28 ${pad}`}>
+          <div className="flex flex-col items-center gap-4 bg-sand px-6 py-16 text-center @max-md:py-12">
+            {/* quem chega aqui acabou de ver a vitrine de alguém: o convite parte dela */}
+            <span className="text-[12px] font-medium tracking-[0.22em] text-gold uppercase">{t("cta.kicker")}</span>
+            <h2 className="m-0 font-display text-[clamp(32px,4.4cqw,52px)] leading-[1.05] font-normal text-balance">
+              {t("cta.title")} <em>{t("cta.titleEm")}</em>
+            </h2>
+            <p className="m-0 max-w-[30rem] text-[17px] leading-relaxed text-ink/70">{t("cta.text")}</p>
+            <Link href="/criar-vitrine" className={`${pillDark} mt-2`}>
+              {t("cta.button")}
+            </Link>
+          </div>
+        </section>
+      )}
 
       <footer className={`mx-auto mt-14 flex max-w-[1440px] flex-wrap items-center justify-between gap-3 border-t border-sand py-8 text-[13px] text-mute ${pad}`}>
         <Link href="/" aria-label={BRAND} className="flex items-center text-inherit no-underline">

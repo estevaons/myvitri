@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import type { HomeProduct } from "@/lib/vitrine/data";
 
@@ -43,7 +43,7 @@ export function CategoryShop({ products }: { products: HomeProduct[] }) {
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-4 md:gap-x-4 md:gap-y-12">
         {shown.slice(0, limit).map((p) => (
-          <Link key={`${p.handle}:${p.id}`} href={`/${p.handle}#produtos`} className="flex min-w-0 flex-col text-center text-ink no-underline">
+          <Link key={`${p.handle}:${p.id}`} href={vitrineHref(p.handle, "produtos")} className="flex min-w-0 flex-col text-center text-ink no-underline">
             <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
               <ProductArt product={p} iconClassName="w-[52%]" />
             </div>

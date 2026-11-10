@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { LoginButton } from "@/components/auth/forms";
 import { CategoryShop } from "@/components/home/CategoryShop";
 import { CreatorMosaic } from "@/components/home/CreatorMosaic";
@@ -49,10 +49,10 @@ export default async function Home() {
         <SiteHeader
           links={[
             // na ordem em que as seções aparecem na página
-            ["#vitrines", t("nav.vitrines")],
-            ["#cupons", t("nav.coupons")],
-            ["#categorias", t("nav.categories")],
-            ["#marcas", t("nav.brands")],
+            ["vitrines", t("nav.vitrines")],
+            ["cupons", t("nav.coupons")],
+            ["categorias", t("nav.categories")],
+            ["marcas", t("nav.brands")],
           ]}
           action={
             // no celular os dois encolhem (espaçamento das letras menor) para caber ao lado da marca
@@ -115,7 +115,7 @@ export default async function Home() {
             {coupons.map((c) => (
               <Link
                 key={`${c.handle}:${c.id}`}
-                href={`/${c.handle}#cupons`}
+                href={vitrineHref(c.handle, "cupons")}
                 className="box-border flex w-[68%] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-5 text-ink no-underline hover:border-gold md:min-h-[260px] md:w-auto md:p-6"
               >
                 <span className="flex max-w-full min-w-0 items-center gap-2">
@@ -153,7 +153,7 @@ export default async function Home() {
           <SectionHead kicker={t("brands.kicker")} title={t("brands.title")} text={t("brands.text")} />
           <div className="grid grid-cols-2 gap-1 md:grid-cols-4">
             {brands.map((b) => (
-              <Link key={b.brand} href={`/${b.handle}#cupons`} className="group flex aspect-[4/3] flex-col justify-between bg-cream p-4 text-ink no-underline hover:bg-sand md:p-6">
+              <Link key={b.brand} href={vitrineHref(b.handle, "cupons")} className="group flex aspect-[4/3] flex-col justify-between bg-cream p-4 text-ink no-underline hover:bg-sand md:p-6">
                 <span className="text-[13px] text-mute">
                   {b.creators > 1 ? t("brands.inVitrines", { count: b.creators }) : b.creator}
                 </span>

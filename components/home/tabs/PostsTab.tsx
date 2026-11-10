@@ -4,10 +4,10 @@ import { hrefWith, limitOf, type TabParams } from "../catalog/params";
 import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore } from "../catalog/ui";
 import { PostCard } from "../PostCard";
 
-const FILTERS = ["cat", "creator"] as const;
+const FILTERS = ["category", "creator"] as const;
 
 /**
- * Aba "Outfits" do /inicio (`?aba=outfits`; no código, "posts"): todos os outfits publicados com alguma peça à venda, dos mais recentes para os mais antigos.
+ * Aba "Outfits" do /inicio (`?tab=outfits`; no código, "posts"): todos os outfits publicados com alguma peça à venda, dos mais recentes para os mais antigos.
  * Os dados vêm de um cache só; filtro e "Ver mais" são feitos aqui, a partir da URL.
  */
 export async function PostsTab({ params }: { params: TabParams }) {
@@ -15,7 +15,7 @@ export async function PostsTab({ params }: { params: TabParams }) {
   const shown = queryPosts(posts, params);
   const limit = limitOf(params);
   const filtered = FILTERS.some((f) => params[f]);
-  const clearHref = hrefWith(params, { cat: null, creator: null });
+  const clearHref = hrefWith(params, { category: null, creator: null });
 
   return (
     <CatalogFrame
@@ -23,7 +23,7 @@ export async function PostsTab({ params }: { params: TabParams }) {
       text={t("posts.text")}
       filters={
         <>
-          <FilterChips label={t("filters.category")} param="cat" options={categories} params={params} />
+          <FilterChips label={t("filters.category")} param="category" options={categories} params={params} />
           <FilterChips label={t("filters.vitrine")} param="creator" options={creators} params={params} />
         </>
       }

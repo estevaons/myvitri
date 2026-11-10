@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, type Href } from "@/lib/i18n/navigation";
 import { Avatar } from "@/components/home/CreatorCard";
 import type { BrandCreator, CatalogBrand } from "@/lib/vitrine/catalog/brands";
 import { couponOff } from "@/lib/vitrine/pricing";
@@ -36,7 +36,7 @@ export function useCreatorsLabel() {
 }
 
 /** Card do diretório: o melhor cupom somando todas as creators. Clicar abre (ou fecha) o comparativo. */
-export function BrandCard({ b, href, selected }: { b: CatalogBrand; href: string; selected: boolean }) {
+export function BrandCard({ b, href, selected }: { b: CatalogBrand; href: Href; selected: boolean }) {
   const t = useTranslations("catalog.brands");
   const creatorsLabel = useCreatorsLabel();
   const best = b.coupons[0];

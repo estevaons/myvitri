@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import type { HomePost } from "@/lib/vitrine/data";
 
 /**
@@ -9,7 +9,7 @@ import type { HomePost } from "@/lib/vitrine/data";
 export function PostCard({ p }: { p: HomePost }) {
   const t = useTranslations("home.post");
   return (
-    <Link href={`/${p.handle}#outfits`} className="group flex min-w-0 flex-col text-ink no-underline">
+    <Link href={vitrineHref(p.handle, "outfits")} className="group flex min-w-0 flex-col text-ink no-underline">
       <div className="relative aspect-[4/5] overflow-hidden bg-cream">
         {/* eslint-disable-next-line @next/next/no-img-element -- foto enviada pela creator para o bucket */}
         <img src={p.photoUrl} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transition-none" />

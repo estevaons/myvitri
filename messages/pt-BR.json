@@ -25,6 +25,8 @@
     "copied": "Copiado!",
     "copyAndOpen": "Copiar e ir para a loja",
     "copyCode": "Copiar código",
+    "copyManually": "Copie o código acima",
+    "goToStore": "Ir para a loja",
     "productsTitle": "Produtos",
     "search": "Buscar",
     "searchLabel": "Buscar produto ou marca",
@@ -147,7 +149,8 @@
       "pt-BR": "Português",
       "en": "English"
     },
-    "carousel": "carrossel"
+    "carousel": "carrossel",
+    "loading": "Carregando…"
   },
   "landing": {
     "nav": {
@@ -210,7 +213,7 @@
     "inviteKicker": "Você cria conteúdo?",
     "inviteTitle": "Sua vitrine",
     "inviteTitleEm": "aqui",
-    "inviteText": "Monte a sua em 2 minutos: {host}/seunome",
+    "inviteText": "Monte a sua em 2 minutos: {host}/@seunome",
     "inviteCta": "Criar grátis"
   },
   "categoryShop": {
@@ -267,7 +270,7 @@
       "costQ": "Quanto custa?",
       "costA": "É grátis para começar. Basta escolher o seu link e entrar com a conta do Google.",
       "linkQ": "Como fica o meu link?",
-      "linkA": "Sua vitrine fica em {host}/seunome. É esse endereço que vai na bio do Instagram, do TikTok ou onde você quiser.",
+      "linkA": "Sua vitrine fica em {host}/@seunome. É esse endereço que vai na bio do Instagram, do TikTok ou onde você quiser.",
       "manualQ": "Preciso cadastrar cada produto na mão?",
       "manualA": "Não. Cole o link do produto na loja e a gente puxa nome e foto. Depois é só colocar o seu link de afiliado, se tiver.",
       "trackQ": "A marca consegue ver que a venda veio de mim?",
@@ -408,7 +411,7 @@
       "titleEm": "também",
       "text": "Junte num link só os cupons e produtos que você usa e indica. É grátis e fica pronta em 2 minutos.",
       "button": "Criar minha vitrine",
-      "handle": "{host}/seunome"
+      "handle": "{host}/@seunome"
     },
     "forYou": {
       "rankedKicker": "Em alta hoje",
@@ -429,12 +432,12 @@
   "catalog": {
     "tabs": {
       "label": "Abas da home",
-      "para-voce": "Para você",
-      "favoritas": "Favoritas",
-      "vitrines": "Vitrines",
-      "produtos": "Produtos",
+      "for-you": "Para você",
+      "saved": "Favoritas",
+      "storefronts": "Vitrines",
+      "products": "Produtos",
       "outfits": "Outfits",
-      "marcas": "Marcas"
+      "brands": "Marcas"
     },
     "removeFilter": "Tirar o filtro {label}: {value}",
     "sortBy": "Ordenar por",
@@ -472,9 +475,9 @@
       "title": "Marcas",
       "text": "O melhor cupom de cada marca, somando todas as vitrines. Abra uma marca para comparar os cupons lado a lado.",
       "sorts": {
-        "desconto": "Maior desconto",
+        "discount": "Maior desconto",
         "creators": "Em mais vitrines",
-        "vencendo": "Vencendo antes",
+        "expiring": "Vencendo antes",
         "az": "A–Z"
       },
       "filteredTitle": "Nenhuma marca com esses filtros",
@@ -498,10 +501,10 @@
       "title": "Vitrines",
       "text": "Todas as vitrines com cupom ativo ou produto à venda. Filtre pelo que você procura e entre na que tem a sua cara.",
       "sorts": {
-        "alta": "Em alta hoje",
-        "recentes": "Mais recentes",
-        "desconto": "Maior desconto",
-        "cupons": "Mais cupons"
+        "trending": "Em alta hoje",
+        "recent": "Mais recentes",
+        "discount": "Maior desconto",
+        "coupons": "Mais cupons"
       },
       "filteredTitle": "Nenhuma vitrine com esses filtros",
       "filteredText": "Tire um filtro ou escolha outra combinação para ver mais vitrines.",
@@ -626,7 +629,7 @@
     "gone": "não está mais na vitrine",
     "editLabel": "Editar vitrine",
     "edit": "Editar",
-    "editRest": " vitrine",
+    "editRest": "vitrine",
     "title": "Suas métricas",
     "intro": "Quem visitou sua vitrine e o que clicou nos últimos {period} dias. Conta só a vitrine publicada: a prévia do editor fica de fora.",
     "loadFailed": "Não deu para carregar as métricas agora. Recarregue a página em alguns instantes.",
@@ -686,7 +689,7 @@
       "title": "Crie sua vitrine para ver os <em>cliques</em>",
       "text": "Junte num link só os cupons e produtos que você indica. Cada visita e cada clique aparecem aqui.",
       "button": "Criar minha vitrine",
-      "handle": "{host}/seunome"
+      "handle": "{host}/@seunome"
     },
     "chart": {
       "visits": "{count, plural, one {# visita} other {# visitas}}",

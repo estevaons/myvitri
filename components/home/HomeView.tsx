@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { HOST } from "@/lib/brand";
 import { summarizeVitrine, type HomeCreator, type HomePost } from "@/lib/vitrine/data";
 import type { VitrineContent } from "@/lib/vitrine/types";
@@ -43,7 +43,7 @@ function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
     <section aria-labelledby="sua-vitrine" className={`${section} ${pad}`}>
       <div className="grid items-center gap-10 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-16 lg:gap-24">
         <CoverPicker hasCover={Boolean(vitrine.look.bannerUrl)} name={vitrine.name}>
-          <Link href={`/${vitrine.handle}`} target="_blank" rel="noopener" aria-label={t("openLabel", { name: vitrine.name })} className="group block">
+          <Link href={vitrineHref(vitrine.handle)} target="_blank" rel="noopener" aria-label={t("openLabel", { name: vitrine.name })} className="group block">
             <CreatorCover c={card} caption={false} />
           </Link>
         </CoverPicker>
@@ -74,7 +74,7 @@ function YourVitrine({ vitrine }: { vitrine: VitrineContent }) {
             <Link href="/editor" className={pillDark}>
               {t("edit")}
             </Link>
-            <Link href={`/${vitrine.handle}`} target="_blank" rel="noopener" className={`${pillLight} group gap-2`}>
+            <Link href={vitrineHref(vitrine.handle)} target="_blank" rel="noopener" className={`${pillLight} group gap-2`}>
               {t("view")}
               <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                 <path d="M7 17L17 7M9 7h8v8" />
@@ -135,8 +135,7 @@ export function HomeView({
   return (
     // clip, e não hidden: hidden faz desta div a área de rolagem e as abas param de ficar presas no topo
     <div className="overflow-x-clip bg-white text-ink">
-      {/* sem links para a landing: com sessão, o proxy traz quem abre / de volta para cá */}
-      <SiteHeader links={[]} action={<AccountMenu account={account} />} />
+      <SiteHeader links={[]} home="/inicio" action={<AccountMenu account={account} />} />
 
       <section className={`mx-auto flex max-w-[1440px] flex-col gap-6 pt-8 md:gap-8 md:pt-12 ${pad}`}>
         <div className="flex flex-col gap-3">
@@ -155,12 +154,12 @@ export function HomeView({
         <TabNav current={tab} />
 
         <div className="transition-opacity duration-200 group-aria-busy:opacity-50 group-aria-busy:delay-100">
-          {tab === "para-voce" && forYou && <ForYouTab {...forYou} favorites={favorites} />}
-          {tab === "favoritas" && <FavoritasTab params={params} favorites={favorites} />}
-          {tab === "vitrines" && <VitrinesTab params={params} favorites={favorites} />}
-          {tab === "produtos" && <ProdutosTab params={params} />}
+          {tab === "for-you" && forYou && <ForYouTab {...forYou} favorites={favorites} />}
+          {tab === "saved" && <FavoritasTab params={params} favorites={favorites} />}
+          {tab === "storefronts" && <VitrinesTab params={params} favorites={favorites} />}
+          {tab === "products" && <ProdutosTab params={params} />}
           {tab === "outfits" && <PostsTab params={params} />}
-          {tab === "marcas" && <MarcasTab params={params} />}
+          {tab === "brands" && <MarcasTab params={params} />}
         </div>
 
         <SiteFooter signedIn />

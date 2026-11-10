@@ -107,8 +107,8 @@ export async function getPostCatalog(): Promise<PostCatalog> {
   };
 }
 
-export type PostQuery = { cat?: string; creator?: string };
+export type PostQuery = { category?: string; creator?: string };
 
 /** Filtra no servidor; a ordem é a do banco, do mais recente para o mais antigo. */
 export const queryPosts = (posts: CatalogPost[], q: PostQuery): CatalogPost[] =>
-  posts.filter((p) => (!q.cat || p.cats.includes(q.cat)) && (!q.creator || p.handle === q.creator));
+  posts.filter((p) => (!q.category || p.cats.includes(q.category)) && (!q.creator || p.handle === q.creator));
