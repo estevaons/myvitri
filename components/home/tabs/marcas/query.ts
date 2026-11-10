@@ -6,7 +6,8 @@ import type { TabParams } from "../../catalog/params";
 /** Filtros e ordem da aba Marcas, a partir da URL. Funções puras: o servidor monta a aba com elas. */
 
 /** Ordens na URL (`?sort=`), a primeira é a padrão. Os rótulos ficam em `catalog.brands.sorts`. */
-export const SORTS = ["discount", "creators", "expiring", "az"] as const;
+export const SORTS = ["recommended", "discount", "expiring", "az"] as const;
+type Sort = (typeof SORTS)[number];
 
 /** "Vencendo esta semana": algum cupom da marca vence em até 7 dias. */
 const SOON_DAYS = 7;
@@ -44,12 +45,30 @@ export function passes(b: CatalogBrand, p: TabParams, today: string, skip?: Filt
 }
 
 const byName = (a: CatalogBrand, b: CatalogBrand) => a.brand.localeCompare(b.brand, "pt-BR", { sensitivity: "base" });
-const byBest = (a: CatalogBrand, b: CatalogBrand) => rank(b.coupons[0]) - rank(a.coupons[0]);
+// no "Maior desconto", marca só com produtos vai depois de todas as com cupom
+const bestOf = (b: CatalogBrand) => (b.coupons[0] ? rank(b.coupons[0]) : -1);
+const byBest = (a: CatalogBrand, b: CatalogBrand) => bestOf(b) - bestOf(a);
 const byCreators = (a: CatalogBrand, b: CatalogBrand) => b.creators.length - a.creators.length;
+const byProducts = (a: CatalogBrand, b: CatalogBrand) => b.products - a.products;
 // sem validade vai para o fim
 const byExpiry = (a: CatalogBrand, b: CatalogBrand) => (soonest(a)?.expiresAt ?? "9999").localeCompare(soonest(b)?.expiresAt ?? "9999");
 
-/** Empates caem no maior desconto e depois no nome, para a ordem não pular entre recarregamentos. */
+/**
+ * Ordens que mudam alguma coisa na lista: "Maior desconto" só com 2 marcas ou mais com cupom, "Vencendo antes" só com 2 ou mais
+ * com cupom que vence. A ordem escolhida na URL fica no menu mesmo que deixe de valer.
+ */
+export function sortsFor(all: CatalogBrand[], active: string | undefined): Sort[] {
+  const atLeast2 = (pass: (b: CatalogBrand) => boolean) => all.filter(pass).length >= 2;
+  const shown: Record<Sort, boolean> = {
+    recommended: true,
+    discount: atLeast2((b) => b.coupons.length > 0),
+    expiring: atLeast2((b) => soonest(b) !== null),
+    az: true,
+  };
+  return SORTS.filter((s) => shown[s] || s === active);
+}
+
+/** Empates caem nos outros critérios e por fim no nome, para a ordem não pular entre recarregamentos. */
 export function sortBrands(list: CatalogBrand[], sort: string | undefined) {
   const chain = (...fns: ((a: CatalogBrand, b: CatalogBrand) => number)[]) => (a: CatalogBrand, b: CatalogBrand) => {
     for (const f of fns) {
@@ -59,13 +78,14 @@ export function sortBrands(list: CatalogBrand[], sort: string | undefined) {
     return 0;
   };
   const cmp =
-    sort === "creators"
-      ? chain(byCreators, byBest, byName)
+    sort === "discount"
+      ? chain(byBest, byCreators, byProducts, byName)
       : sort === "expiring"
-        ? chain(byExpiry, byBest, byName)
+        ? chain(byExpiry, byBest, byCreators, byProducts, byName)
         : sort === "az"
           ? byName
-          : chain(byBest, byCreators, byName);
+          : // "Mais indicadas" (padrão; também a antiga `?sort=creators`): em mais vitrines, com mais produtos, melhor cupom
+            chain(byCreators, byProducts, byBest, byName);
   return [...list].sort(cmp);
 }
 

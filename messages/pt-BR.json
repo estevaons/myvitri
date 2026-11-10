@@ -473,21 +473,22 @@
     },
     "brands": {
       "title": "Marcas",
-      "text": "O melhor cupom de cada marca, somando todas as vitrines. Abra uma marca para comparar os cupons lado a lado.",
+      "text": "Todas as marcas das vitrines, com o melhor cupom de cada uma somando todas as creators. Abra uma marca para comparar os cupons e ver os produtos.",
       "sorts": {
+        "recommended": "Mais indicadas",
         "discount": "Maior desconto",
-        "creators": "Em mais vitrines",
         "expiring": "Vencendo antes",
         "az": "A–Z"
       },
       "filteredTitle": "Nenhuma marca com esses filtros",
-      "filteredText": "Tire um filtro para ver mais marcas com cupom ativo.",
-      "emptyTitle": "Nenhum cupom ativo agora",
-      "emptyText": "Quando houver cupons nas vitrines, as marcas aparecem aqui.",
+      "filteredText": "Tire um filtro para ver mais marcas.",
+      "emptyTitle": "Nenhuma marca por aqui",
+      "emptyText": "Quando as vitrines tiverem cupons ou produtos, as marcas aparecem aqui.",
       "detailLabel": "Cupons de {brand}",
       "best": "Melhor",
       "getCoupon": "Pegar cupom",
-      "upTo": "Até {off}"
+      "upTo": "Até {off}",
+      "seeProducts": "{count, plural, one {Ver o produto de {brand}} other {Ver os # produtos de {brand}}}"
     },
     "products": {
       "title": "Produtos",
