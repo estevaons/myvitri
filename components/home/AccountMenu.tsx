@@ -215,7 +215,7 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
         <label className={fieldLabel}>
           {t("link")}
           <span className={fieldBox}>
-            <span className="pl-3 text-mute">{HOST}/</span>
+            <span className="pl-3 text-mute">{HOST}/@</span>
             <input
               value={handle}
               onChange={(e) => edit(setHandle)(e.target.value.toLowerCase().replace(/^@/, "").replace(/[^a-z0-9_.]/g, ""))}

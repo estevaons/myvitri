@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { SignInScreen } from "@/components/auth/forms";
-import { withoutLocale } from "@/lib/i18n/routing";
+import { internalPath } from "@/lib/i18n/routing";
 import { safePath } from "@/lib/auth/return-to";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -11,10 +11,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 async function Screen({ searchParams }: Pick<PageProps<"/[locale]/entrar">, "searchParams">) {
-  const { next, erro } = await searchParams;
+  const { next, error } = await searchParams;
   const back = safePath(next);
   // o caminho de volta fica sem idioma: o Link e o redirect do next-intl põem o prefixo certo
-  return <SignInScreen next={back ? withoutLocale(back) : "/inicio"} loginError={erro === "login"} />;
+  return <SignInScreen next={back ? internalPath(back) : "/inicio"} loginError={error === "login"} />;
 }
 
 /** Tela de entrar: quem já tem sessão nem chega aqui, o proxy leva para /inicio. */

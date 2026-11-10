@@ -1,10 +1,11 @@
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref, type Href } from "@/lib/i18n/navigation";
 import { kicker, pad, pillDark, pillLight, SiteFooter, SiteHeader } from "@/components/home/chrome";
 import { CopyLinkButton } from "@/components/home/CopyLinkButton";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import { HOST } from "@/lib/brand";
+import { vitrineAddress } from "@/lib/vitrine/links";
 import { couponOff, couponStatus, daysLeft, ddmm, expiryValues } from "@/lib/vitrine/pricing";
 import type { Coupon, Kit, Product, VitrineContent } from "@/lib/vitrine/types";
 import { DailyChart } from "./DailyChart";
@@ -29,7 +30,7 @@ export type MetricsData = {
   /** posição no ranking de cliques de hoje (1 = primeira); null = fora do ranking; undefined = não deu para ler */
   position?: number | null;
   /** caminho dos links do período (a prévia temporária usa o dela) */
-  path?: string;
+  path?: "/metricas";
 };
 
 function Head({ label, title, text }: { label: string; title: string; text?: string }) {
@@ -159,7 +160,10 @@ function Ranking({ label, title, unit, rows, empty }: { label: string; title: st
   );
 }
 
-type Alert = { key: string; title: string; text: string; href: string; cta: string; urgent: boolean };
+type Alert = { key: string; title: string; text: string; href: Href; cta: string; urgent: boolean };
+
+/** Uma aba do editor (`/editor?tab=coupons`). */
+const editorTab = (tab: "coupons" | "products" | "share"): Href => ({ pathname: "/editor", query: { tab } });
 
 /**
  * O que precisa de atenção na vitrine publicada. Cupons: o mesmo critério do `couponAlerts` do editor
@@ -170,29 +174,29 @@ function alertsOf(v: VitrineContent, today: string, t: MetricsT, expiry: (c: Cou
     const name = t("alerts.couponName", { code: c.code, brand: c.brand });
     const status = couponStatus(c, today);
     if (status === "agendado")
-      return [{ key: c.id, title: name, text: t("alerts.scheduled", { date: ddmm(c.startsAt!, locale) }), href: "/editor?aba=cupons", cta: t("alerts.seeCoupon"), urgent: false }];
+      return [{ key: c.id, title: name, text: t("alerts.scheduled", { date: ddmm(c.startsAt!, locale) }), href: editorTab("coupons"), cta: t("alerts.seeCoupon"), urgent: false }];
     if (status === "vencido")
-      return [{ key: c.id, title: name, text: t("alerts.expired", { date: ddmm(c.expiresAt!, locale) }), href: "/editor?aba=cupons", cta: t("alerts.fix"), urgent: true }];
+      return [{ key: c.id, title: name, text: t("alerts.expired", { date: ddmm(c.expiresAt!, locale) }), href: editorTab("coupons"), cta: t("alerts.fix"), urgent: true }];
     const days = daysLeft(c, today);
     if (days !== null && days <= 7)
-      return [{ key: c.id, title: name, text: t("alerts.expiring", { label: expiry(c) }), href: "/editor?aba=cupons", cta: t("alerts.fix"), urgent: true }];
+      return [{ key: c.id, title: name, text: t("alerts.expiring", { label: expiry(c) }), href: editorTab("coupons"), cta: t("alerts.fix"), urgent: true }];
     return [];
   });
   const soldOut = v.products
     .filter((p) => p.soldOut)
-    .map((p): Alert => ({ key: p.id, title: p.name, text: t("alerts.soldOut"), href: "/editor?aba=produtos", cta: t("alerts.fix"), urgent: true }));
+    .map((p): Alert => ({ key: p.id, title: p.name, text: t("alerts.soldOut"), href: editorTab("products"), cta: t("alerts.fix"), urgent: true }));
   // os urgentes primeiro; os agendados são só um lembrete
   return [...coupons, ...soldOut].sort((a, b) => Number(b.urgent) - Number(a.urgent));
 }
 
-function PeriodTabs({ period, path }: { period: Period; path: string }) {
+function PeriodTabs({ period, path }: { period: Period; path: "/metricas" }) {
   const t = useTranslations("metrics");
   return (
     <nav aria-label={t("period")} className="flex gap-7 border-b border-sand md:gap-10">
       {PERIODS.map((p) => (
         <Link
           key={p}
-          href={`${path}?periodo=${p}`}
+          href={{ pathname: path, query: { period: p } }}
           scroll={false}
           aria-current={p === period ? "page" : undefined}
           className={`${kicker} -mb-px flex min-h-12 items-center border-b whitespace-nowrap no-underline ${p === period ? "border-ink text-ink" : "border-transparent text-mute hover:text-ink"}`}
@@ -220,7 +224,7 @@ function Position({ position, handle }: { position: number | null; handle: strin
       </p>
       <div className="flex flex-wrap gap-2">
         <CopyLinkButton handle={handle} />
-        <Link href="/editor?aba=divulgar" className={pillLight}>
+        <Link href={editorTab("share")} className={pillLight}>
           {t("share")}
         </Link>
       </div>
@@ -337,11 +341,12 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
     <div className="overflow-x-clip bg-white text-ink">
       <SiteHeader
         back="/inicio"
+        home="/inicio"
         links={[]}
         action={
           <Link href="/editor" aria-label={t("editLabel")} className={`${pillDark} max-md:px-5`}>
             {t("edit")}
-            <span className="max-md:hidden">{t("editRest")}</span>
+            <span className="max-md:hidden">&nbsp;{t("editRest")}</span>
           </Link>
         }
       />
@@ -350,7 +355,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <span className={`${kicker} text-gold`}>
-              {HOST}/{vitrine.handle}
+              {vitrineAddress(vitrine.handle)}
             </span>
             <h1 className="m-0 font-display text-[clamp(48px,6.8vw,100px)] leading-[1] font-normal tracking-[-0.01em]">{t("title")}</h1>
             <p className="m-0 max-w-[34rem] text-[17px] leading-relaxed text-mute">{t("intro", { period })}</p>
@@ -396,7 +401,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
                 <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-ink/70">{t("empty.text")}</p>
                 <div className="mt-2 flex flex-wrap justify-center gap-2">
                   <CopyLinkButton handle={vitrine.handle} />
-                  <Link href={`/${vitrine.handle}`} target="_blank" rel="noopener" className={pillLight}>
+                  <Link href={vitrineHref(vitrine.handle)} target="_blank" rel="noopener" className={pillLight}>
                     {t("empty.view")}
                   </Link>
                 </div>
@@ -475,7 +480,7 @@ export function NoVitrine() {
   const t = useTranslations("metrics");
   return (
     <div className="overflow-x-clip bg-white text-ink">
-      <SiteHeader back="/inicio" links={[]} action={null} />
+      <SiteHeader back="/inicio" home="/inicio" links={[]} action={null} />
       <section className={`mx-auto max-w-[1440px] pt-16 md:pt-24 ${pad}`}>
         <div className="flex flex-col items-center gap-5 bg-sand px-6 py-20 text-center max-md:py-14">
           <span className={`${kicker} text-gold`}>{t("title")}</span>

@@ -6,9 +6,10 @@ import { publishVitrine, saveDraftAction } from "@/app/actions";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { AccountMenu, type Account } from "@/components/home/AccountMenu";
-import { Link } from "@/lib/i18n/navigation";
-import { BRAND, HOST } from "@/lib/brand";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
+import { BRAND } from "@/lib/brand";
 import { Storefront } from "@/components/storefront/Storefront";
+import { vitrineAddress } from "@/lib/vitrine/links";
 import { pickProfile, type VitrineContent } from "@/lib/vitrine/types";
 import { couponAlerts, CouponsPanel } from "./CouponsPanel";
 import { KitsPanel } from "./KitsPanel";
@@ -16,13 +17,13 @@ import { ProfilePanel, type Update } from "./panels";
 import { ProductsPanel } from "./ProductsPanel";
 import { SharePanel } from "./SharePanel";
 
-/** [id, nome na URL (?aba=…)]; o rótulo vem de `editor.tabs.<id>` */
+/** [id, nome na URL (?tab=…)]; o rótulo vem de `editor.tabs.<id>` */
 const TABS = [
-  ["profile", "perfil"],
-  ["coupons", "cupons"],
-  ["products", "produtos"],
+  ["profile", "profile"],
+  ["coupons", "coupons"],
+  ["products", "products"],
   ["kits", "kits"],
-  ["share", "divulgar"],
+  ["share", "share"],
 ] as const;
 type TabId = (typeof TABS)[number][0];
 
@@ -89,7 +90,7 @@ export function Editor({
   draft: VitrineContent | null;
   today: string;
   account: Account;
-  /** valor de ?aba= na URL, para voltar à mesma aba ao recarregar */
+  /** valor de ?tab= na URL, para voltar à mesma aba ao recarregar */
   initialTab?: string;
 }) {
   const t = useTranslations("editor");
@@ -103,7 +104,7 @@ export function Editor({
   const openTab = (id: TabId, slug: string) => {
     setTab(id);
     const url = new URL(window.location.href);
-    url.searchParams.set("aba", slug);
+    url.searchParams.set("tab", slug);
     window.history.replaceState(null, "", url);
   };
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
@@ -171,7 +172,7 @@ export function Editor({
       <header className="border-b border-[#E0DCD3] bg-white">
         <div className="flex flex-wrap items-center gap-3.5 px-5 py-3">
           <BackLink href="/inicio" onClick={confirmLeave} label="home" divider />
-          <Link href="/" onClick={confirmLeave} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
+          <Link href="/inicio" onClick={confirmLeave} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
             <Wordmark label="" className="h-[17px] w-auto" />
           </Link>
           <div className="flex-1" />
@@ -219,7 +220,7 @@ export function Editor({
               </button>
             ) : (
               <Link
-                href={`/${published.handle}`}
+                href={vitrineHref(published.handle)}
                 target="_blank"
                 rel="noopener"
                 className="group flex min-h-11 flex-none items-center gap-1.5 rounded-full border border-[#D8D3C9] bg-white px-5 text-sm font-semibold text-ink no-underline transition-colors hover:border-ink"
@@ -297,7 +298,7 @@ export function Editor({
                   <rect x="5" y="11" width="14" height="10" rx="2" />
                   <path d="M8 11V7a4 4 0 0 1 8 0v4" />
                 </svg>
-                {HOST}/{draft.handle}
+                {vitrineAddress(draft.handle)}
               </span>
             </div>
             {/* A prévia é interativa, mas links não podem tirar a pessoa do editor. */}

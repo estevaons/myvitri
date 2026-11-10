@@ -4,7 +4,7 @@ import { hrefWith, limitOf, type TabParams } from "../catalog/params";
 import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore, ToggleChip } from "../catalog/ui";
 import { ProductCard } from "./produtos/ProductCard";
 
-const FILTERS = ["cat", "marca", "video"] as const;
+const FILTERS = ["category", "brand", "video"] as const;
 
 /** Aba "Produtos" do /inicio: o catálogo completo das vitrines, com filtros na URL. */
 export async function ProdutosTab({ params }: { params: TabParams }) {
@@ -20,8 +20,8 @@ export async function ProdutosTab({ params }: { params: TabParams }) {
       text={t("products.text")}
       filters={
         <>
-          <FilterChips label={t("filters.category")} param="cat" options={filters.categories} params={params} />
-          <FilterChips label={t("filters.brand")} param="marca" options={filters.brands} params={params} />
+          <FilterChips label={t("filters.category")} param="category" options={filters.categories} params={params} />
+          <FilterChips label={t("filters.brand")} param="brand" options={filters.brands} params={params} />
           {filters.video && <ToggleChip label={t("filters.withVideo")} param="video" params={params} />}
         </>
       }

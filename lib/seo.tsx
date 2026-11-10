@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
-import { routing, type Locale } from "@/lib/i18n/routing";
+import { localizePath, routing, type Locale } from "@/lib/i18n/routing";
 import { BRAND, CONTACT_EMAIL, SITE_URL } from "@/lib/brand";
+import { vitrinePath } from "@/lib/vitrine/links";
 import { isActive } from "@/lib/vitrine/pricing";
 import type { VitrineContent } from "@/lib/vitrine/types";
 
@@ -10,11 +11,8 @@ import type { VitrineContent } from "@/lib/vitrine/types";
  * O que vai aqui precisa bater com o que a página mostra: dado estruturado que a página não tem é tratado como spam.
  */
 
-/** Caminho de uma página no idioma: o português fica sem prefixo, os outros ganham `/en` etc. */
-export function localizedPath(path: string, locale: Locale) {
-  if (locale === routing.defaultLocale) return path;
-  return path === "/" ? `/${locale}` : `/${locale}${path}`;
-}
+/** Caminho de uma página no idioma: o português fica sem prefixo; em inglês, `/en` e o nome traduzido ("/termos" → "/en/terms"). */
+export const localizedPath = (path: string, locale: Locale) => localizePath(path, locale);
 
 /** Endereço de cada idioma da página, para o `hreflang` e o sitemap. `x-default` é o português. */
 export function languageAlternates(path: string, absolute = false) {
@@ -123,11 +121,11 @@ export async function listNames(names: string[], max = 4) {
 /** Perfil da creator e os produtos da vitrine, sem preço: a vitrine não mostra, e o preço vale o da loja. */
 export async function vitrineJsonLd(content: VitrineContent) {
   const [locale, t] = await Promise.all([getLocale(), getTranslations("seo.vitrine")]);
-  const url = `${SITE_URL}${localizedPath(`/${content.handle}`, locale as Locale)}`;
+  const url = `${SITE_URL}${localizedPath(vitrinePath(content.handle), locale as Locale)}`;
   const products = content.products;
   const person = {
     "@type": "Person",
-    "@id": `${SITE_URL}/${content.handle}#person`,
+    "@id": `${SITE_URL}${vitrinePath(content.handle)}#person`,
     name: content.name,
     alternateName: `@${content.handle}`,
     url,

@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref, type Href } from "@/lib/i18n/navigation";
 import type { CSSProperties } from "react";
 import { Avatar } from "@/components/home/CreatorCard";
 import type { CatalogBrand } from "@/lib/vitrine/catalog/brands";
@@ -19,7 +19,7 @@ export function BrandDetail({
   style,
 }: {
   b: CatalogBrand;
-  closeHref: string;
+  closeHref: Href;
   categories: string[];
   className?: string;
   style?: CSSProperties;
@@ -50,7 +50,7 @@ export function BrandDetail({
         {b.coupons.map((c, i) => (
           <li key={c.id} className="flex w-[78%] flex-none snap-start md:w-auto">
             <Link
-              href={`/${c.handle}#cupons`}
+              href={vitrineHref(c.handle, "cupons")}
               className="box-border flex w-full flex-col gap-4 border border-sand bg-cream p-5 text-ink no-underline hover:border-gold md:min-h-[240px]"
             >
               <span className="flex min-w-0 items-center justify-between gap-3">

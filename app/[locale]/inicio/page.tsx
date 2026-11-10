@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { flatParams, tabOf } from "@/components/home/catalog/params";
+import { HomeSkeleton } from "@/components/home/HomeSkeleton";
 import { HomeView, type ForYou } from "@/components/home/HomeView";
 import { redirect } from "@/lib/i18n/navigation";
 import { accountOf } from "@/lib/vitrine/account";
@@ -45,7 +46,7 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, 
   await connection();
   const params = flatParams(await searchParams);
   const tab = tabOf(params);
-  const forYouTab = tab === "para-voce";
+  const forYouTab = tab === "for-you";
   // os carrosséis (em cache, sem sessão) só são lidos na aba "Para você" e já começam antes da sessão
   const rows = forYouTab ? Promise.all([loadCreators(), getRecentKits().catch(orEmpty<HomeKit>("getRecentKits"))]) : null;
 
@@ -59,7 +60,7 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, 
     forYouTab ? findMineContent(supabase, user.id) : null,
     forYouTab ? null : findMineSummary(supabase, user.id),
     rows,
-    forYouTab || tab === "vitrines" || tab === "favoritas" ? listFavoriteHandles(supabase, user.id).catch(orEmpty<string>("listFavoriteHandles")) : [],
+    forYouTab || tab === "storefronts" || tab === "saved" ? listFavoriteHandles(supabase, user.id).catch(orEmpty<string>("listFavoriteHandles")) : [],
   ]);
   const vitrine = content ?? summary;
   const meta = user.user_metadata as { name?: string };
@@ -71,7 +72,7 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, 
 
 export default function Page({ searchParams }: PageProps<"/[locale]/inicio">) {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-white" />}>
+    <Suspense fallback={<HomeSkeleton />}>
       <HomeLoader searchParams={searchParams} />
     </Suspense>
   );
