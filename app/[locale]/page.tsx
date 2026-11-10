@@ -32,7 +32,7 @@ const EMPTY: HomeFeed = { creators: [], coupons: [], products: [], brands: [] };
 const section = `mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`;
 
 export default async function Home() {
-  const [t, faq] = await Promise.all([getTranslations("landing"), faqItems()]);
+  const [t, tCount, faq] = await Promise.all([getTranslations("landing"), getTranslations("counts"), faqItems()]);
   const feed = await getHomeFeed().catch((e) => {
     // sem banco a home ainda abre, só sem as seções com dados
     console.error("getHomeFeed", e);
@@ -153,7 +153,7 @@ export default async function Home() {
           <SectionHead kicker={t("brands.kicker")} title={t("brands.title")} text={t("brands.text")} />
           <div className="grid grid-cols-2 gap-1 md:grid-cols-4">
             {brands.map((b) => (
-              <Link key={b.brand} href={vitrineHref(b.handle, "cupons")} className="group flex aspect-[4/3] flex-col justify-between bg-cream p-4 text-ink no-underline hover:bg-sand md:p-6">
+              <Link key={b.brand} href={vitrineHref(b.handle, b.best ? "cupons" : "produtos")} className="group flex aspect-[4/3] flex-col justify-between bg-cream p-4 text-ink no-underline hover:bg-sand md:p-6">
                 <span className="text-[13px] text-mute">
                   {b.creators > 1 ? t("brands.inVitrines", { count: b.creators }) : b.creator}
                 </span>
@@ -164,7 +164,9 @@ export default async function Home() {
                   )}
                   <span className="font-display text-[clamp(26px,2.6vw,38px)] leading-[1] font-normal">{b.brand}</span>
                 </span>
-                <span className={`${kicker} text-[11px] text-gold`}>{t("brands.upTo", { off: couponOff(b.best) })}</span>
+                <span className={`${kicker} text-[11px] ${b.best ? "text-gold" : "text-mute"}`}>
+                  {b.best ? t("brands.upTo", { off: couponOff(b.best) }) : tCount("products", { count: b.products })}
+                </span>
               </Link>
             ))}
           </div>

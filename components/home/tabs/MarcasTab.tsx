@@ -5,14 +5,14 @@ import { hrefWith, limitOf, type TabParams } from "../catalog/params";
 import { CatalogEmpty, CatalogFrame, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
 import { BrandCard } from "./marcas/BrandCard";
 import { BrandDetail } from "./marcas/BrandDetail";
-import { expiringSoon, LETTER_MIN, letterOf, optionsBy, OTHER_LETTER, passes, SORTS, sortBrands } from "./marcas/query";
+import { expiringSoon, LETTER_MIN, letterOf, optionsBy, OTHER_LETTER, passes, sortBrands, sortsFor } from "./marcas/query";
 
 // colunas da grade em cada largura: celular, md e lg (o comparativo entra embaixo da linha da marca aberta)
 const COLS = [2, 3, 4] as const;
 const grid = "grid grid-cols-2 gap-1 md:grid-cols-3 lg:grid-cols-4";
 
 /**
- * Aba "Marcas" do /inicio: o diretório das marcas com cupom ativo, com o melhor cupom de cada uma somando
+ * Aba "Marcas" do /inicio: o diretório das marcas (com cupom ativo ou produto à venda), com o melhor cupom de cada uma somando
  * todas as vitrines — o que nenhuma vitrine sozinha mostra. `?brand=` abre o comparativo dos cupons dela.
  */
 export async function MarcasTab({ params }: { params: TabParams }) {
@@ -69,6 +69,7 @@ export async function MarcasTab({ params }: { params: TabParams }) {
     />
   );
 
+  const sorts = sortsFor(all, params.sort);
   const filtering = Boolean(params.category || params.expiring || params.letter);
   const clearHref = hrefWith(params, { category: null, expiring: null, letter: null, brand: null });
   return (
@@ -76,7 +77,7 @@ export async function MarcasTab({ params }: { params: TabParams }) {
       title={t("brands.title")}
       text={t("brands.text")}
       filters={filters || undefined}
-      sort={all.length > 1 ? <SortMenu options={SORTS.map((s) => [s, t(`brands.sorts.${s}`)])} params={params} /> : undefined}
+      sort={all.length > 1 && sorts.length > 1 ? <SortMenu options={sorts.map((s) => [s, t(`brands.sorts.${s}`)])} params={params} /> : undefined}
       count={tCount("brands", { count: filtered.length })}
       clearHref={filtering ? clearHref : undefined}
     >

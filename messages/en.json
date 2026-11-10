@@ -473,21 +473,22 @@
     },
     "brands": {
       "title": "Brands",
-      "text": "Each brand's best coupon across all storefronts. Open a brand to compare its coupons side by side.",
+      "text": "Every brand in the storefronts, with its best coupon across all creators. Open a brand to compare its coupons and see its products.",
       "sorts": {
+        "recommended": "Most recommended",
         "discount": "Biggest discount",
-        "creators": "In most storefronts",
         "expiring": "Expiring soonest",
         "az": "A–Z"
       },
       "filteredTitle": "No brands with these filters",
-      "filteredText": "Remove a filter to see more brands with active coupons.",
-      "emptyTitle": "No active coupons right now",
-      "emptyText": "When storefronts have coupons, the brands show up here.",
+      "filteredText": "Remove a filter to see more brands.",
+      "emptyTitle": "No brands yet",
+      "emptyText": "When storefronts have coupons or products, the brands show up here.",
       "detailLabel": "{brand} coupons",
       "best": "Best",
       "getCoupon": "Get coupon",
-      "upTo": "Up to {off}"
+      "upTo": "Up to {off}",
+      "seeProducts": "{count, plural, one {See the {brand} product} other {See the # {brand} products}}"
     },
     "products": {
       "title": "Products",
