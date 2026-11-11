@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { LoginButton } from "@/components/auth/forms";
 import { CategoryShop } from "@/components/home/CategoryShop";
 import { CreatorMosaic } from "@/components/home/CreatorMosaic";
@@ -32,7 +32,7 @@ const EMPTY: HomeFeed = { creators: [], coupons: [], products: [], brands: [] };
 const section = `mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-8 pt-24 md:pt-32 ${pad}`;
 
 export default async function Home() {
-  const [t, faq] = await Promise.all([getTranslations("landing"), faqItems()]);
+  const [t, tCount, faq] = await Promise.all([getTranslations("landing"), getTranslations("counts"), faqItems()]);
   const feed = await getHomeFeed().catch((e) => {
     // sem banco a home ainda abre, só sem as seções com dados
     console.error("getHomeFeed", e);
@@ -49,15 +49,16 @@ export default async function Home() {
         <SiteHeader
           links={[
             // na ordem em que as seções aparecem na página
-            ["#vitrines", t("nav.vitrines")],
-            ["#cupons", t("nav.coupons")],
-            ["#categorias", t("nav.categories")],
-            ["#marcas", t("nav.brands")],
+            ["vitrines", t("nav.vitrines")],
+            ["cupons", t("nav.coupons")],
+            ["categorias", t("nav.categories")],
+            ["marcas", t("nav.brands")],
           ]}
           action={
-            // no celular os dois encolhem (espaçamento das letras menor) para caber ao lado da marca
-            <div className="flex items-center gap-3 md:gap-2">
-              <LoginButton className={`${kicker} whitespace-nowrap text-ink hover:text-gold max-md:text-[11px] max-md:tracking-[0.12em] md:px-2`} />
+            // no celular os dois encolhem (espaçamento das letras menor) para caber ao lado da marca; o Entrar ganha a altura
+            // do botão vizinho como área de toque, e o padding lateral dele faz o respiro entre os dois
+            <div className="flex items-center gap-1 md:gap-2">
+              <LoginButton className={`${kicker} flex min-h-10 items-center whitespace-nowrap px-2 text-ink hover:text-gold max-md:text-[11px] max-md:tracking-[0.12em]`} />
               <Link
                 href="/criar-vitrine"
                 className={`${pillDark} whitespace-nowrap transition-[min-height] duration-200 ease-out group-data-[compact]/header:min-h-10 motion-reduce:transition-none max-md:min-h-10 max-md:px-3.5 max-md:text-[11px] max-md:tracking-[0.12em]`}
@@ -115,7 +116,7 @@ export default async function Home() {
             {coupons.map((c) => (
               <Link
                 key={`${c.handle}:${c.id}`}
-                href={`/${c.handle}#cupons`}
+                href={vitrineHref(c.handle, "cupons")}
                 className="box-border flex w-[68%] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-5 text-ink no-underline hover:border-gold md:min-h-[260px] md:w-auto md:p-6"
               >
                 <span className="flex max-w-full min-w-0 items-center gap-2">
@@ -129,8 +130,9 @@ export default async function Home() {
                   <span className="font-display text-[46px] leading-[0.95] font-normal lining-nums md:text-[58px]">{couponOff(c)}</span>
                   {c.condition && <span className="text-[15px] leading-snug text-mute">{c.condition}</span>}
                 </div>
-                <span className="mt-auto flex items-center justify-between gap-3 border-t border-sand pt-4 text-[13px]">
-                  <span className="truncate">
+                {/* no celular o card é estreito: o nome de quem divulga vai numa linha e o "pegar cupom" embaixo, em vez de virar "com ..." */}
+                <span className="mt-auto flex items-center justify-between gap-3 border-t border-sand pt-4 text-[13px] max-md:flex-col max-md:items-start max-md:gap-2">
+                  <span className="max-w-full truncate">
                     {t.rich("coupons.with", { creator: c.creator, b: (s) => <span className="font-medium">{s}</span> })}
                   </span>
                   <span className={`flex-none ${kicker} text-[11px] text-gold`}>{t("coupons.get")}</span>
@@ -153,7 +155,7 @@ export default async function Home() {
           <SectionHead kicker={t("brands.kicker")} title={t("brands.title")} text={t("brands.text")} />
           <div className="grid grid-cols-2 gap-1 md:grid-cols-4">
             {brands.map((b) => (
-              <Link key={b.brand} href={`/${b.handle}#cupons`} className="group flex aspect-[4/3] flex-col justify-between bg-cream p-4 text-ink no-underline hover:bg-sand md:p-6">
+              <Link key={b.brand} href={vitrineHref(b.handle, b.best ? "cupons" : "produtos")} className="group flex aspect-[4/3] flex-col justify-between bg-cream p-4 text-ink no-underline hover:bg-sand md:p-6">
                 <span className="text-[13px] text-mute">
                   {b.creators > 1 ? t("brands.inVitrines", { count: b.creators }) : b.creator}
                 </span>
@@ -164,7 +166,9 @@ export default async function Home() {
                   )}
                   <span className="font-display text-[clamp(26px,2.6vw,38px)] leading-[1] font-normal">{b.brand}</span>
                 </span>
-                <span className={`${kicker} text-[11px] text-gold`}>{t("brands.upTo", { off: couponOff(b.best) })}</span>
+                <span className={`${kicker} text-[11px] ${b.best ? "text-gold" : "text-mute"}`}>
+                  {b.best ? t("brands.upTo", { off: couponOff(b.best) }) : tCount("products", { count: b.products })}
+                </span>
               </Link>
             ))}
           </div>

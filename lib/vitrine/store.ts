@@ -2,7 +2,8 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getUser } from "@/lib/supabase/server";
-import { COUPON_EXTRA, emptyContent, pickProfile, PRODUCT_EXTRA, TRACKING, type Coupon, type IconId, type Kit, type Product, type VitrineContent, type VitrineProfile } from "./types";
+import { pickSocials } from "./socials";
+import { COUPON_EXTRA, emptyContent, pickProfile, PRODUCT_EXTRA, TRACKING, type Coupon, type IconId, type Post, type Product, type VitrineContent, type VitrineProfile } from "./types";
 
 /**
  * Persistência das vitrines no Supabase. Toda leitura/escrita passa por aqui;
@@ -59,21 +60,23 @@ export const toProduct = (p: Fields<ProductRow>): Product => ({
   priceCheckedAt: p.price_checked_at,
 });
 
-export const toKit = (k: Tables["kits"]["Row"]): Kit => ({
-  id: k.id,
-  name: k.name,
-  description: k.description,
-  signature: k.signature,
-  productIds: k.product_ids,
+export const toPost = (p: Tables["posts"]["Row"]): Post => ({
+  id: p.id,
+  photoUrl: p.photo_url,
+  caption: p.caption,
+  productIds: p.product_ids,
 });
 
+/** Tabela que ainda não existe no banco (migração não aplicada): PostgREST responde PGRST205, o Postgres 42P01. */
+export const isMissingTable = (e: { code?: string } | null) => e?.code === "PGRST205" || e?.code === "42P01";
+
 async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
-  const [coupons, products, kits] = await Promise.all([
+  const [coupons, products, posts] = await Promise.all([
     db.from("coupons").select("*").eq("vitrine_id", v.id).order("position"),
     db.from("products").select("*").eq("vitrine_id", v.id).order("position"),
-    db.from("kits").select("*").eq("vitrine_id", v.id).order("position"),
+    db.from("posts").select("*").eq("vitrine_id", v.id).order("position"),
   ]);
-  const error = coupons.error ?? products.error ?? kits.error;
+  const error = coupons.error ?? products.error ?? (isMissingTable(posts.error) ? null : posts.error);
   if (error) throw error;
 
   const base = emptyContent(v.handle, v.name);
@@ -86,9 +89,12 @@ async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
     look: pickLook(v.look as Partial<VitrineContent["look"]>, base.look),
     show: { ...base.show, ...(v.show as object) },
     tracking: { ...TRACKING, ...(v.tracking as object) },
+    // sem a migração das redes a coluna não vem: fica tudo vazio
+    socials: pickSocials(v.socials),
     coupons: (coupons.data ?? []).map(toCoupon),
     products: (products.data ?? []).map(toProduct),
-    kits: (kits.data ?? []).map(toKit),
+    // sem a migração dos posts a vitrine continua abrindo, só sem a seção
+    posts: (posts.data ?? []).map(toPost),
   };
 }
 
@@ -154,26 +160,27 @@ export async function topCreatorsToday(db: Db, limit: number) {
 }
 
 export type By = { handle: string; creator: string };
-export type FeedKit = By & { kit: Kit; products: Product[] };
+export type FeedPost = By & { post: Post; products: Product[] };
 
-/** Kits publicados mais recentes, com os produtos deles. */
-export async function listRecentKits(db: Db, limit: number): Promise<FeedKit[]> {
-  const { data: kits, error } = await db
-    .from("kits")
+/** Posts publicados mais recentes, com os produtos deles. Sem a migração dos posts, lista vazia. */
+export async function listRecentPosts(db: Db, limit: number): Promise<FeedPost[]> {
+  const { data: posts, error } = await db
+    .from("posts")
     .select("*, vitrines(handle, name)")
     .order("published_at", { ascending: false })
     .limit(limit);
+  if (isMissingTable(error)) return [];
   if (error) throw error;
-  if (!kits.length) return [];
+  if (!posts.length) return [];
 
-  const { data: products, error: productsError } = await db.from("products").select("*").in("id", [...new Set(kits.flatMap((k) => k.product_ids))]);
+  const { data: products, error: productsError } = await db.from("products").select("*").in("id", [...new Set(posts.flatMap((p) => p.product_ids))]);
   if (productsError) throw productsError;
 
-  return kits.map(({ vitrines: v, ...k }) => ({
+  return posts.map(({ vitrines: v, ...p }) => ({
     handle: v.handle,
     creator: v.name,
-    kit: toKit(k),
-    products: products.filter((p) => p.vitrine_id === k.vitrine_id).map(toProduct),
+    post: toPost(p),
+    products: products.filter((x) => x.vitrine_id === p.vitrine_id).map(toProduct),
   }));
 }
 
@@ -217,7 +224,7 @@ export async function findMine() {
   return { supabase, user, vitrine: await findMineContent(supabase, user.id) };
 }
 
-/** A vitrine de quem entrou, completa (cupons, produtos e kits). */
+/** A vitrine de quem entrou, completa (cupons, produtos e posts). */
 export async function findMineContent(db: Db, ownerId: string): Promise<VitrineContent | null> {
   const { data, error } = await db.from("vitrines").select("*").eq("owner_id", ownerId).maybeSingle();
   if (error) throw error;
@@ -227,7 +234,7 @@ export async function findMineContent(db: Db, ownerId: string): Promise<VitrineC
 /** Só o nome, o endereço e a foto da vitrine de quem entrou: o que o cabeçalho e o menu da conta usam. */
 export type MineSummary = Pick<VitrineContent, "handle" | "name" | "avatarUrl">;
 
-/** Uma consulta só, sem cupons, produtos e kits: para as telas que não mostram o conteúdo da vitrine. */
+/** Uma consulta só, sem cupons, produtos e posts: para as telas que não mostram o conteúdo da vitrine. */
 export async function findMineSummary(db: Db, ownerId: string): Promise<MineSummary | null> {
   const { data, error } = await db.from("vitrines").select("handle, name, avatar_url").eq("owner_id", ownerId).maybeSingle();
   if (error) throw error;
@@ -243,21 +250,20 @@ export async function findDraft(db: Db, ownerId: string, published: VitrineConte
   const { data, error } = await db.from("vitrine_drafts").select("content").eq("owner_id", ownerId).maybeSingle();
   if (error) throw error;
   const d = data?.content as Partial<VitrineContent> | undefined;
-  if (!d || typeof d !== "object" || ![d.coupons, d.products, d.kits].every(Array.isArray)) return null;
-  // kits salvos antes de "nome curto" e "título" virarem um campo só; cor e estilo antigos saem
-  const kits = d.kits!.map((k) => {
-    const old = k as Partial<Kit> & { tab?: string; title?: string };
-    return { ...without(k, "tab", "title", "style"), name: old.name ?? (old.title || old.tab || "") };
-  });
+  if (!d || typeof d !== "object" || ![d.coupons, d.products].every(Array.isArray)) return null;
   return {
     ...published,
-    ...d,
+    // rascunhos de antes dos posts ainda trazem os kits, que saíram do app
+    ...without(d, "kits"),
     ...pickProfile(published),
     coupons: d.coupons!.map((c) => ({ ...COUPON_EXTRA, ...without(c, "color") })),
     products: d.products!.map((p) => ({ ...PRODUCT_EXTRA, ...p })),
-    kits,
+    // rascunho salvo antes de existirem os posts
+    posts: Array.isArray(d.posts) ? d.posts : published.posts,
     show: { ...published.show, ...d.show },
     tracking: { ...published.tracking, ...d.tracking },
+    // rascunho salvo antes de existirem as redes
+    socials: d.socials ? pickSocials(d.socials) : published.socials,
   };
 }
 
@@ -355,7 +361,7 @@ export async function listComments(db: Db, handle: string, limit: number) {
   const [top, all] = await Promise.all([
     db
       .from("comments")
-      .select("id, parent_id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)")
+      .select("id, parent_id, reply_to_id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)")
       .eq("vitrines.handle", handle)
       .is("parent_id", null)
       .order("created_at", { ascending: false })
@@ -368,7 +374,7 @@ export async function listComments(db: Db, handle: string, limit: number) {
   if (!top.data.length) return { total: all.count ?? 0, rows: top.data, replies: [] };
   const { data: replies, error } = await db
     .from("comments")
-    .select("id, parent_id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)")
+    .select("id, parent_id, reply_to_id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)")
     .in(
       "parent_id",
       top.data.map((c) => c.id),

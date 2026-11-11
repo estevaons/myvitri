@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, type Href } from "@/lib/i18n/navigation";
 import { kicker, pad, pillLight } from "../chrome";
 import { FilterMenu } from "./FilterMenu";
 import { hrefWith, PAGE, TABS, type TabId, type TabParams } from "./params";
@@ -10,8 +10,8 @@ import { hrefWith, PAGE, TABS, type TabId, type TabParams } from "./params";
  * menus): o servidor monta a aba de novo com os filtros. `scroll={false}` mantém a pessoa onde estava.
  */
 
-/** As abas, presas no topo ao rolar. Trocar de aba limpa os filtros da aba anterior. */
-export function TabNav({ current }: { current: TabId }) {
+/** As abas, presas no topo ao rolar. Trocar de aba limpa os filtros da aba anterior. Sem `current` (tela de espera), nenhuma fica marcada. */
+export function TabNav({ current }: { current?: TabId }) {
   const t = useTranslations("catalog.tabs");
   return (
     <nav aria-label={t("label")} className="sticky top-0 z-20 border-b border-sand bg-white/95 backdrop-blur-sm">
@@ -19,7 +19,7 @@ export function TabNav({ current }: { current: TabId }) {
         {TABS.map((id) => (
           <Link
             key={id}
-            href={hrefWith({}, { aba: id })}
+            href={hrefWith({}, { tab: id })}
             scroll={false}
             aria-current={id === current ? "page" : undefined}
             className={`${kicker} -mb-px flex min-h-13 flex-none items-center border-b whitespace-nowrap no-underline ${id === current ? "border-ink text-ink" : "border-transparent text-mute hover:text-ink"}`}
@@ -39,7 +39,7 @@ const chipOff = `${chip} border-sand bg-white text-ink hover:border-ink`;
 const option = "flex min-h-11 items-center justify-between gap-6 px-5 text-[14px] whitespace-nowrap text-ink no-underline hover:bg-cream md:px-4";
 
 /** Uma linha da lista de um `FilterMenu`; a escolhida vem em destaque e com o sinal de marcado. */
-function MenuOption({ href, on, children }: { href: string; on: boolean; children: ReactNode }) {
+function MenuOption({ href, on, children }: { href: Href; on: boolean; children: ReactNode }) {
   return (
     <Link href={href} scroll={false} aria-current={on ? "true" : undefined} className={`${option} ${on ? "font-medium" : ""}`}>
       {children}
@@ -104,7 +104,7 @@ export function ToggleChip({ label, param, params }: { label: string; param: str
 }
 
 /** Ordenação num menu, com a atual à vista; a primeira opção é a padrão (não vai para a URL). */
-export function SortMenu({ options, params, param = "ordem" }: { options: [value: string, label: string][]; params: TabParams; param?: string }) {
+export function SortMenu({ options, params, param = "sort" }: { options: [value: string, label: string][]; params: TabParams; param?: string }) {
   const t = useTranslations("catalog");
   const active = params[param] ?? options[0]?.[0];
   const activeText = options.find(([value]) => value === active)?.[1] ?? options[0]?.[1];
@@ -147,7 +147,7 @@ export function CatalogFrame({
   filters?: ReactNode;
   sort?: ReactNode;
   count: string;
-  clearHref?: string;
+  clearHref?: Href;
   children: ReactNode;
 }) {
   const t = useTranslations("catalog");
@@ -189,7 +189,7 @@ export function LoadMore({ params, shown, total }: { params: TabParams; shown: n
   if (shown >= total) return null;
   return (
     <div className="flex justify-center pt-4">
-      <Link href={hrefWith(params, { limite: String(shown + PAGE) })} scroll={false} className={pillLight}>
+      <Link href={hrefWith(params, { limit: String(shown + PAGE) })} scroll={false} className={pillLight}>
         {t("more")}
       </Link>
     </div>
@@ -197,7 +197,7 @@ export function LoadMore({ params, shown, total }: { params: TabParams; shown: n
 }
 
 /** Nada com esses filtros: convite para limpar, não um pedido de desculpas. */
-export function CatalogEmpty({ title, text, clearHref, action }: { title: string; text: string; clearHref?: string; action?: ReactNode }) {
+export function CatalogEmpty({ title, text, clearHref, action }: { title: string; text: string; clearHref?: Href; action?: ReactNode }) {
   const t = useTranslations("catalog");
   return (
     <div className="flex flex-col items-center gap-4 bg-cream px-6 py-16 text-center">

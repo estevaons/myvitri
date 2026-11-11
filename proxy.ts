@@ -2,28 +2,20 @@ import { createServerClient } from "@supabase/ssr";
 import createMiddleware from "next-intl/middleware";
 import { NextRequest, NextResponse } from "next/server";
 import { ATTRIBUTION_COOKIE, ATTRIBUTION_OPTIONS, captureAttribution } from "@/lib/analytics/attribution";
-import { routing } from "@/lib/i18n/routing";
+import { localizePath, parsePath, routing } from "@/lib/i18n/routing";
 
 const handleI18n = createMiddleware(routing);
 
-/** Rotas que dependem de login: só nelas a sessão do Supabase é renovada. */
+/** Rotas que dependem de login (caminhos internos): só nelas a sessão do Supabase é renovada. */
 const SESSION_PATHS = ["/", "/criar-vitrine", "/entrar", "/nova-senha", "/boas-vindas", "/inicio", "/metricas", "/editor"];
-
-/** "/en/inicio" → idioma "en" e caminho "/inicio". Sem prefixo, o idioma é o padrão (português). */
-function splitLocale(pathname: string) {
-  const [, first, ...rest] = pathname.split("/");
-  const locale = routing.locales.find((l) => l === first);
-  return locale ? { prefix: `/${locale}`, path: `/${rest.join("/")}` } : { prefix: "", path: pathname };
-}
 
 /**
  * Idioma, sessão e portas de entrada.
- * - Idioma (next-intl): `/en/...` é inglês e o resto, português. Quem abre um link sem prefixo vai para o idioma
- *   da última escolha (cookie NEXT_LOCALE). O idioma do navegador não conta: o público é brasileiro, e um
- *   navegador em inglês não deve tirar ninguém do português sem ter escolhido.
+ * - Idioma (next-intl): `/en/...` é inglês, com o caminho traduzido (`/en/home` é a página /inicio), e o resto,
+ *   português. Quem abre um link sem prefixo vai para o idioma da última escolha (cookie NEXT_LOCALE). O idioma do
+ *   navegador não conta: o público é brasileiro, e um navegador em inglês não deve tirar ninguém do português.
  * - Sessão: renova os cookies do Supabase antes das rotas que dependem de login.
- * - Encaminha `/?code=…` para o callback, caso o Supabase volte do Google para a Site URL em vez de /auth/callback,
- *   e manda a antiga aba /editor?aba=metricas para /metricas.
+ * - Encaminha `/?code=…` para o callback, caso o Supabase volte do Google para a Site URL em vez de /auth/callback.
  * - Portas de entrada: quem já entrou vai da landing e de /entrar para /inicio; quem não entrou vai de /inicio
  *   para a landing (assim a landing não lê cookies e continua estática).
  */
@@ -33,17 +25,15 @@ export async function proxy(incoming: NextRequest) {
   const request = new NextRequest(incoming, { headers });
 
   const { pathname, searchParams } = request.nextUrl;
-  const { prefix, path } = splitLocale(pathname);
-  const localized = (to: string) => new URL(to === "/" ? prefix || "/" : `${prefix}${to}`, request.url);
+  const { locale, prefixed, internal: path } = parsePath(pathname);
+  // sem prefixo, o destino sai em português e o next-intl leva ao idioma do cookie, se for outro
+  const target = prefixed ? locale : routing.defaultLocale;
+  const localized = (to: string) => new URL(localizePath(to, target), request.url);
 
   if (path === "/" && searchParams.has("code")) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/callback";
     return NextResponse.redirect(url);
-  }
-  // a antiga aba Métricas do editor virou a página /metricas (links e favoritos antigos)
-  if (path === "/editor" && searchParams.get("aba") === "metricas") {
-    return NextResponse.redirect(localized("/metricas"));
   }
 
   // primeiro toque de atribuição (utm, ?ref=, origem): só na landing e em /criar-vitrine, e só uma vez por navegador
@@ -77,9 +67,8 @@ export async function proxy(incoming: NextRequest) {
       // A landing e o /entrar mandam para o /inicio, então conferem a sessão no Supabase: getClaims só valida o JWT
       // e aceitaria uma sessão já encerrada até ele expirar, com "/" e "/inicio" se redirecionando sem fim.
       const { data } = await supabase.auth.getUser();
-      const target = data.user ? "/inicio" : null;
-      if (target) {
-        const redirect = NextResponse.redirect(localized(target));
+      if (data.user) {
+        const redirect = NextResponse.redirect(localized("/inicio"));
         // leva junto os cookies da sessão que acabaram de ser renovados
         renewed.forEach(({ name, value, options }) => redirect.cookies.set(name, value, options));
         return redirect;

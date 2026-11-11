@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { getPathname } from "@/lib/i18n/navigation";
+import { vitrinePath } from "@/lib/vitrine/links";
 import type { VitrineContent } from "@/lib/vitrine/types";
 import type { Update } from "./panels";
 import { Field, H, Hint, Switch, TextInput } from "./ui";
@@ -158,11 +159,11 @@ export function SharePanel({
   const t = useTranslations("editor.share");
   const locale = useLocale();
   // as imagens saem no idioma em que a pessoa está editando (`/en/fulana/story` em inglês)
-  const imagePath = getPathname({ href: `/${publishedHandle}`, locale });
+  const imagePath = getPathname({ href: { pathname: "/[handle]", params: { handle: `@${publishedHandle}` } }, locale });
   const v = versionKey(publishedJson);
   const dirty = JSON.stringify(draft) !== publishedJson;
   const origin = useOrigin();
-  const url = origin ? `${origin}/${publishedHandle}` : "";
+  const url = origin ? `${origin}${vitrinePath(publishedHandle)}` : "";
   const shortUrl = url.replace(/^https?:\/\//, "");
   const [copied, setCopied] = useState(false);
 

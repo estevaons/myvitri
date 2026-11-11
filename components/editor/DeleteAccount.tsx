@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { deleteAccountAction } from "@/app/actions";
 import type { Locale } from "@/lib/i18n/routing";
 import { DELETE_WORDS } from "@/lib/auth/account";
-import { HOST } from "@/lib/brand";
+import { vitrineAddress } from "@/lib/vitrine/links";
 import { Hint, inputCls, labelCls } from "./ui";
 
 /**
@@ -49,7 +49,7 @@ export function DeleteAccount({ handle }: { handle?: string }) {
           className="flex flex-col gap-3 rounded-[12px] border border-[#F4D5CB] bg-[#FFF6F2] p-4"
         >
           <Hint>
-            {handle ? t("withVitrine", { url: `${HOST}/${handle}` }) : t("withoutVitrine")}
+            {handle ? t("withVitrine", { url: vitrineAddress(handle) }) : t("withoutVitrine")}
           </Hint>
           <label className={`flex flex-col gap-1.5 ${labelCls}`}>
             {t("confirm", { word })}

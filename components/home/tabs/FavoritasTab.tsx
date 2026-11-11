@@ -30,7 +30,7 @@ export async function FavoritasTab({ params, favorites }: { params: TabParams; f
           title={favorites.length ? t("staleTitle") : t("emptyTitle")}
           text={favorites.length ? t("staleText") : t("emptyText")}
           action={
-            <Link href={hrefWith({}, { aba: "vitrines" })} scroll={false} className={pillLight}>
+            <Link href={hrefWith({}, { tab: "storefronts" })} scroll={false} className={pillLight}>
               {t("explore")}
             </Link>
           }

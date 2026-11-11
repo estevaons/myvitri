@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { redirect } from "@/lib/i18n/navigation";
+import { MetricsSkeleton } from "@/components/metrics/MetricsSkeleton";
 import { MetricsView, NoVitrine } from "@/components/metrics/MetricsView";
 import { parsePeriod, todaySP, type Stats } from "@/components/metrics/stats";
 import { findMine, topCreatorsToday, type Db } from "@/lib/vitrine/store";
@@ -40,14 +41,14 @@ async function MetricsLoader({ searchParams }: Pick<PageProps<"/[locale]/metrica
   if (!user) return redirect({ href: { pathname: "/entrar", query: { next: "/metricas" } }, locale: await getLocale() });
   if (!vitrine) return <NoVitrine />;
 
-  const period = parsePeriod(params.periodo);
+  const period = parsePeriod(params.period);
   const [stats, position] = await Promise.all([loadStats(supabase, period), loadPosition(supabase, vitrine.handle)]);
   return <MetricsView vitrine={vitrine} stats={stats} period={period} today={todaySP()} position={position} />;
 }
 
 export default function Page({ searchParams }: PageProps<"/[locale]/metricas">) {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-white" />}>
+    <Suspense fallback={<MetricsSkeleton />}>
       <MetricsLoader searchParams={searchParams} />
     </Suspense>
   );

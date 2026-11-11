@@ -20,7 +20,7 @@ export function TermsPt({ updated }: { updated: string }) {
       <Section title="1. O que é o MyVitri">
         <p>
           O {BRAND} permite que qualquer pessoa monte uma vitrine pública, com um link próprio, reunindo os cupons de desconto, os produtos e
-          os kits que indicam. Quem visita a vitrine pode copiar cupons e seguir para a loja da marca. Hoje o serviço é gratuito; se
+          os outfits que indicam. Quem visita a vitrine pode copiar cupons e seguir para a loja da marca. Hoje o serviço é gratuito; se
           algum recurso passar a ser pago, avisaremos antes.
         </p>
       </Section>
@@ -40,7 +40,8 @@ export function TermsPt({ updated }: { updated: string }) {
         <ul>
           <li>
             Você é responsável pelos cupons, preços, produtos, textos, imagens e links que publica, e garante que tem o direito de
-            divulgá-los.
+            divulgá-los. Nas fotos de outfits, publique só imagens suas ou que você tenha autorização para usar, inclusive das pessoas que
+            aparecem nelas.
           </li>
           <li>
             Quando a indicação for publicidade (paga, com permuta ou com comissão), siga as regras de identificação de publicidade do
@@ -55,8 +56,11 @@ export function TermsPt({ updated }: { updated: string }) {
 
       <Section title="4. Comentários">
         <ul>
-          <li>Comentários são públicos e aparecem com o seu nome e, se você entrar com o Google, a sua foto de perfil. Você é responsável pelo que escreve.</li>
-          <li>Você pode apagar seus comentários quando quiser. Quem é dono da vitrine também pode apagar qualquer comentário dela.</li>
+          <li>Comentários e respostas são públicos e aparecem com o seu nome e, se você entrar com o Google, a sua foto de perfil. Você é responsável pelo que escreve.</li>
+          <li>
+            Você pode apagar seus comentários quando quiser. Quem é dono da vitrine também pode apagar qualquer comentário dela. Apagar um
+            comentário apaga também as respostas dele.
+          </li>
         </ul>
       </Section>
 

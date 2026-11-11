@@ -1,12 +1,13 @@
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref, type Href } from "@/lib/i18n/navigation";
 import { kicker, pad, pillDark, pillLight, SiteFooter, SiteHeader } from "@/components/home/chrome";
 import { CopyLinkButton } from "@/components/home/CopyLinkButton";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import { HOST } from "@/lib/brand";
+import { vitrineAddress } from "@/lib/vitrine/links";
 import { couponOff, couponStatus, daysLeft, ddmm, expiryValues } from "@/lib/vitrine/pricing";
-import type { Coupon, Kit, Product, VitrineContent } from "@/lib/vitrine/types";
+import { postItems, type Coupon, type Post, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import { DailyChart } from "./DailyChart";
 import { PERIODS, type EventKind, type Period, type Stats } from "./stats";
 
@@ -29,7 +30,7 @@ export type MetricsData = {
   /** posição no ranking de cliques de hoje (1 = primeira); null = fora do ranking; undefined = não deu para ler */
   position?: number | null;
   /** caminho dos links do período (a prévia temporária usa o dela) */
-  path?: string;
+  path?: "/metricas";
 };
 
 function Head({ label, title, text }: { label: string; title: string; text?: string }) {
@@ -109,16 +110,12 @@ function Thumb({ children }: { children?: ReactNode }) {
   );
 }
 
-function KitThumb({ items }: { items: Product[] }) {
-  if (items.length <= 1) return <Thumb>{items[0] && <ProductArt product={items[0]} iconClassName="w-[56%]" strokeWidth={3.6} />}</Thumb>;
+function PostThumb({ url }: { url: string }) {
   return (
-    <div aria-hidden="true" className="grid size-16 flex-none grid-cols-2 grid-rows-2 gap-px overflow-hidden bg-white">
-      {items.slice(0, 4).map((p) => (
-        <div key={p.id} className="relative flex items-center justify-center overflow-hidden bg-cream">
-          <ProductArt product={p} iconClassName="w-[60%]" strokeWidth={4} />
-        </div>
-      ))}
-    </div>
+    <Thumb>
+      {/* eslint-disable-next-line @next/next/no-img-element -- foto enviada pela creator para o bucket */}
+      <img src={url} alt="" loading="lazy" className="size-full object-cover" />
+    </Thumb>
   );
 }
 
@@ -159,7 +156,10 @@ function Ranking({ label, title, unit, rows, empty }: { label: string; title: st
   );
 }
 
-type Alert = { key: string; title: string; text: string; href: string; cta: string; urgent: boolean };
+type Alert = { key: string; title: string; text: string; href: Href; cta: string; urgent: boolean };
+
+/** Uma aba do editor (`/editor?tab=coupons`). */
+const editorTab = (tab: "coupons" | "products" | "share"): Href => ({ pathname: "/editor", query: { tab } });
 
 /**
  * O que precisa de atenção na vitrine publicada. Cupons: o mesmo critério do `couponAlerts` do editor
@@ -170,29 +170,29 @@ function alertsOf(v: VitrineContent, today: string, t: MetricsT, expiry: (c: Cou
     const name = t("alerts.couponName", { code: c.code, brand: c.brand });
     const status = couponStatus(c, today);
     if (status === "agendado")
-      return [{ key: c.id, title: name, text: t("alerts.scheduled", { date: ddmm(c.startsAt!, locale) }), href: "/editor?aba=cupons", cta: t("alerts.seeCoupon"), urgent: false }];
+      return [{ key: c.id, title: name, text: t("alerts.scheduled", { date: ddmm(c.startsAt!, locale) }), href: editorTab("coupons"), cta: t("alerts.seeCoupon"), urgent: false }];
     if (status === "vencido")
-      return [{ key: c.id, title: name, text: t("alerts.expired", { date: ddmm(c.expiresAt!, locale) }), href: "/editor?aba=cupons", cta: t("alerts.fix"), urgent: true }];
+      return [{ key: c.id, title: name, text: t("alerts.expired", { date: ddmm(c.expiresAt!, locale) }), href: editorTab("coupons"), cta: t("alerts.fix"), urgent: true }];
     const days = daysLeft(c, today);
     if (days !== null && days <= 7)
-      return [{ key: c.id, title: name, text: t("alerts.expiring", { label: expiry(c) }), href: "/editor?aba=cupons", cta: t("alerts.fix"), urgent: true }];
+      return [{ key: c.id, title: name, text: t("alerts.expiring", { label: expiry(c) }), href: editorTab("coupons"), cta: t("alerts.fix"), urgent: true }];
     return [];
   });
   const soldOut = v.products
     .filter((p) => p.soldOut)
-    .map((p): Alert => ({ key: p.id, title: p.name, text: t("alerts.soldOut"), href: "/editor?aba=produtos", cta: t("alerts.fix"), urgent: true }));
+    .map((p): Alert => ({ key: p.id, title: p.name, text: t("alerts.soldOut"), href: editorTab("products"), cta: t("alerts.fix"), urgent: true }));
   // os urgentes primeiro; os agendados são só um lembrete
   return [...coupons, ...soldOut].sort((a, b) => Number(b.urgent) - Number(a.urgent));
 }
 
-function PeriodTabs({ period, path }: { period: Period; path: string }) {
+function PeriodTabs({ period, path }: { period: Period; path: "/metricas" }) {
   const t = useTranslations("metrics");
   return (
     <nav aria-label={t("period")} className="flex gap-7 border-b border-sand md:gap-10">
       {PERIODS.map((p) => (
         <Link
           key={p}
-          href={`${path}?periodo=${p}`}
+          href={{ pathname: path, query: { period: p } }}
           scroll={false}
           aria-current={p === period ? "page" : undefined}
           className={`${kicker} -mb-px flex min-h-12 items-center border-b whitespace-nowrap no-underline ${p === period ? "border-ink text-ink" : "border-transparent text-mute hover:text-ink"}`}
@@ -220,7 +220,7 @@ function Position({ position, handle }: { position: number | null; handle: strin
       </p>
       <div className="flex flex-wrap gap-2">
         <CopyLinkButton handle={handle} />
-        <Link href="/editor?aba=divulgar" className={pillLight}>
+        <Link href={editorTab("share")} className={pillLight}>
           {t("share")}
         </Link>
       </div>
@@ -271,7 +271,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
 
   const products = new Map<string, Product>(vitrine.products.map((p) => [p.id, p]));
   const coupons = new Map<string, Coupon>(vitrine.coupons.map((c) => [c.id, c]));
-  const kits = new Map<string, Kit>(vitrine.kits.map((k) => [k.id, k]));
+  const posts = new Map<string, Post>(vitrine.posts.map((p) => [p.id, p]));
   const items = stats?.items ?? [];
   const top = (kind: string) =>
     items
@@ -282,7 +282,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
   const views = total("view");
   const toStore = total("buy") + total("copy");
   const copied = total("copy");
-  const clicks = toStore + total("kit") + total("video");
+  const clicks = toStore + total("post") + total("video");
   const alerts = alertsOf(vitrine, today, t, (c) => tCoupon("expiry", expiryValues(c, today, locale)), locale);
 
   const productRows: RankRow[] = top("buy").map(({ id, n }) => {
@@ -320,15 +320,15 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
       ),
     };
   });
-  const kitRows: RankRow[] = top("kit").map(({ id, n }) => {
-    const k = kits.get(id);
-    const kitItems = k ? k.productIds.map((pid) => products.get(pid)).filter((p): p is Product => !!p) : [];
+  const postRows: RankRow[] = top("post").map(({ id, n }) => {
+    const p = posts.get(id);
+    const items = p ? postItems(p, vitrine.products) : [];
     return {
       id,
       n,
-      thumb: k ? <KitThumb items={kitItems} /> : <Thumb />,
-      title: k?.name ?? t("removed"),
-      sub: k ? t("items", { count: kitItems.length }) : t("gone"),
+      thumb: p ? <PostThumb url={p.photoUrl} /> : <Thumb />,
+      title: p ? t("postN", { n: vitrine.posts.indexOf(p) + 1 }) : t("removed"),
+      sub: p ? t("items", { count: items.length }) : t("gone"),
     };
   });
 
@@ -337,11 +337,12 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
     <div className="overflow-x-clip bg-white text-ink">
       <SiteHeader
         back="/inicio"
+        home="/inicio"
         links={[]}
         action={
           <Link href="/editor" aria-label={t("editLabel")} className={`${pillDark} max-md:px-5`}>
             {t("edit")}
-            <span className="max-md:hidden">{t("editRest")}</span>
+            <span className="max-md:hidden">&nbsp;{t("editRest")}</span>
           </Link>
         }
       />
@@ -350,7 +351,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <span className={`${kicker} text-gold`}>
-              {HOST}/{vitrine.handle}
+              {vitrineAddress(vitrine.handle)}
             </span>
             <h1 className="m-0 font-display text-[clamp(48px,6.8vw,100px)] leading-[1] font-normal tracking-[-0.01em]">{t("title")}</h1>
             <p className="m-0 max-w-[34rem] text-[17px] leading-relaxed text-mute">{t("intro", { period })}</p>
@@ -378,10 +379,10 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
               />
               <Kpi label={t("kpi.copied")} value={copied} delta={<Delta cur={copied} prev={prevOf("copy")} period={period} />} />
               <Kpi
-                label={t("kpi.kitsReviews")}
-                value={total("kit") + total("video")}
-                hint={t("kpi.kitsReviewsHint")}
-                delta={<Delta cur={total("kit") + total("video")} prev={prevOf("kit", "video")} period={period} />}
+                label={t("kpi.postsReviews")}
+                value={total("post") + total("video")}
+                hint={t("kpi.postsReviewsHint")}
+                delta={<Delta cur={total("post") + total("video")} prev={prevOf("post", "video")} period={period} />}
               />
             </dl>
           </section>
@@ -396,7 +397,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
                 <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-ink/70">{t("empty.text")}</p>
                 <div className="mt-2 flex flex-wrap justify-center gap-2">
                   <CopyLinkButton handle={vitrine.handle} />
-                  <Link href={`/${vitrine.handle}`} target="_blank" rel="noopener" className={pillLight}>
+                  <Link href={vitrineHref(vitrine.handle)} target="_blank" rel="noopener" className={pillLight}>
                     {t("empty.view")}
                   </Link>
                 </div>
@@ -433,7 +434,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
                     rows={[
                       { label: t("clicks.products"), value: total("buy"), note: pct(total("buy"), clicks) },
                       { label: t("clicks.coupons"), value: total("copy"), note: pct(total("copy"), clicks) },
-                      { label: t("clicks.kits"), value: total("kit"), note: pct(total("kit"), clicks) },
+                      { label: t("clicks.posts"), value: total("post"), note: pct(total("post"), clicks) },
                       { label: t("clicks.videos"), value: total("video"), note: pct(total("video"), clicks) },
                     ]}
                   />
@@ -444,11 +445,11 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
                 <Ranking label={t("top.products")} title={t("top.productsTitle")} unit={(n) => t("unitClicks", { count: n })} rows={productRows} empty={t("top.productsEmpty")} />
                 <Ranking label={t("top.coupons")} title={t("top.couponsTitle")} unit={(n) => t("unitCopies", { count: n })} rows={couponRows} empty={t("top.couponsEmpty")} />
                 <Ranking
-                  label={t("top.kits")}
-                  title={t("top.kitsTitle")}
-                  unit={(n) => t("unitUses", { count: n })}
-                  rows={kitRows}
-                  empty={vitrine.kits.length ? t("top.kitsEmpty") : t("top.noKits")}
+                  label={t("top.posts")}
+                  title={t("top.postsTitle")}
+                  unit={(n) => t("unitClicks", { count: n })}
+                  rows={postRows}
+                  empty={vitrine.posts.length ? t("top.postsEmpty") : t("top.noPosts")}
                 />
               </section>
             </>
@@ -475,7 +476,7 @@ export function NoVitrine() {
   const t = useTranslations("metrics");
   return (
     <div className="overflow-x-clip bg-white text-ink">
-      <SiteHeader back="/inicio" links={[]} action={null} />
+      <SiteHeader back="/inicio" home="/inicio" links={[]} action={null} />
       <section className={`mx-auto max-w-[1440px] pt-16 md:pt-24 ${pad}`}>
         <div className="flex flex-col items-center gap-5 bg-sand px-6 py-20 text-center max-md:py-14">
           <span className={`${kicker} text-gold`}>{t("title")}</span>

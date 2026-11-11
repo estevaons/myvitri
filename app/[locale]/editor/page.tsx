@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { redirect } from "@/lib/i18n/navigation";
 import { CreateVitrinePanel } from "@/components/auth/forms";
 import { Editor } from "@/components/editor/Editor";
+import { EditorSkeleton } from "@/components/editor/EditorSkeleton";
 import { IdentifyUser } from "@/components/analytics/IdentifyUser";
 import { needsOnboarding, recordingConsent } from "@/lib/onboarding/store";
 import { accountOf } from "@/lib/vitrine/account";
@@ -20,7 +21,7 @@ async function EditorLoader({ searchParams }: Pick<PageProps<"/[locale]/editor">
   // de hoje e a validação do login no Supabase não podem ser pré-renderizadas.
   await connection();
   const { supabase, user, vitrine } = await findMine();
-  const { aba } = await searchParams;
+  const { tab } = await searchParams;
   const locale = await getLocale();
   if (!user) return redirect({ href: { pathname: "/entrar", query: { next: "/editor" } }, locale });
   // quem acabou de criar a conta responde o onboarding antes de editar (volta para cá depois)
@@ -39,14 +40,14 @@ async function EditorLoader({ searchParams }: Pick<PageProps<"/[locale]/editor">
   return (
     <>
       <IdentifyUser id={user.id} recording={recording} />
-      <Editor published={vitrine} draft={draft} today={new Date().toISOString().slice(0, 10)} account={accountOf(user, vitrine)} initialTab={typeof aba === "string" ? aba : undefined} />
+      <Editor published={vitrine} draft={draft} today={new Date().toISOString().slice(0, 10)} account={accountOf(user, vitrine)} initialTab={typeof tab === "string" ? tab : undefined} />
     </>
   );
 }
 
 export default function Page({ searchParams }: PageProps<"/[locale]/editor">) {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-paper" />}>
+    <Suspense fallback={<EditorSkeleton />}>
       <EditorLoader searchParams={searchParams} />
     </Suspense>
   );

@@ -1,5 +1,5 @@
 import { useLocale, useTranslations } from "next-intl";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { CreatorCover } from "@/components/home/CreatorCard";
 import { FavoriteButton } from "@/components/storefront/FavoriteButton";
 import type { CatalogVitrine } from "@/lib/vitrine/catalog/vitrines";
@@ -22,12 +22,12 @@ export function VitrineCard({ v, today, favorited, stay = false }: { v: CatalogV
   const stats = [
     card.products > 0 && t("products", { count: card.products }),
     card.coupons > 0 && t("coupons", { count: card.coupons }),
-    v.kits > 0 && t("kits", { count: v.kits }),
+    v.posts > 0 && t("posts", { count: v.posts }),
   ].filter((s) => s !== false);
   return (
     // `stay` (aba Favoritas): sem o coração, o card fica esmaecido no lugar, para dar para voltar atrás
     <div className={`relative flex min-w-0 flex-col ${stay ? "[&:has(button[aria-pressed=false])>a]:opacity-50" : ""}`}>
-      <Link href={`/${card.handle}`} className="group flex min-w-0 flex-1 flex-col text-ink no-underline transition-opacity">
+      <Link href={vitrineHref(card.handle)} className="group flex min-w-0 flex-1 flex-col text-ink no-underline transition-opacity">
         <CreatorCover c={card} />
 
         <div className="flex min-w-0 flex-1 flex-col gap-1 pt-3 text-[13px] leading-snug md:text-[14px]">
@@ -53,7 +53,7 @@ export function VitrineCard({ v, today, favorited, stay = false }: { v: CatalogV
           )}
         </div>
       </Link>
-      <FavoriteButton variant="card" handle={card.handle} name={card.creator} favorited={favorited} guest={false} stay={stay} />
+      <FavoriteButton variant="card" handle={card.handle} name={card.creator} favorited={favorited} guest={false} />
     </div>
   );
 }

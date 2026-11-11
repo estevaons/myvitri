@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { AuthSkeleton } from "@/components/auth/AuthSkeleton";
 import { NewPasswordScreen } from "@/components/auth/forms";
 import { redirect } from "@/lib/i18n/navigation";
 import { getUser } from "@/lib/supabase/server";
@@ -21,7 +22,7 @@ async function Screen() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-white" />}>
+    <Suspense fallback={<AuthSkeleton screen="newPassword" />}>
       <Screen />
     </Suspense>
   );

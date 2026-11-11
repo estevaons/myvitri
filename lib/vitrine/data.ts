@@ -11,13 +11,13 @@ import {
   listFeed,
   listFeedByHandles,
   listHandles,
-  listRecentKits,
+  listRecentPosts,
   searchCatalog,
   topCreatorsToday,
   type FeedVitrine,
 } from "./store";
 import type { CommentList, VitrineComment } from "./social";
-import { kitItems, type Coupon, type Product, type VitrineContent } from "./types";
+import { postItems, type Coupon, type Product, type VitrineContent } from "./types";
 
 export const vitrineTag = (handle: string) => `vitrine:${handle}`;
 /** Invalidado junto com a vitrine ao publicar: a home mostra o que acabou de entrar. */
@@ -67,6 +67,7 @@ export async function getComments(handle: string, locale: Locale): Promise<Comme
   const toComment = (c: (typeof rows)[number]): VitrineComment => ({
     id: c.id,
     parentId: c.parent_id,
+    replyToId: c.reply_to_id,
     authorId: c.author_id,
     authorName: c.author_name,
     authorAvatarUrl: c.author_avatar_url,
@@ -99,7 +100,8 @@ export type HomeCreator = By & {
 };
 export type HomeCoupon = Coupon & By;
 export type HomeProduct = Product & By;
-export type HomeBrand = By & { brand: string; logoUrl: string; best: Coupon; creators: number };
+/** `best`: o melhor cupom ativo da marca, ou null quando ela só aparece nos produtos à venda. */
+export type HomeBrand = By & { brand: string; logoUrl: string; best: Coupon | null; creators: number; products: number };
 export type HomeFeed = { creators: HomeCreator[]; coupons: HomeCoupon[]; products: HomeProduct[]; brands: HomeBrand[] };
 
 /** Percentual sempre na frente de valor fixo; dentro de cada tipo, o maior. */
@@ -134,17 +136,30 @@ const toHomeCreator = ({ v, by, coupons, products }: ReturnType<typeof live>): H
   products: products.length,
 });
 
-/** Uma marca por nome; o selo mostra o melhor cupom dela e leva à vitrine de quem o oferece. Mantém a ordem de chegada. */
-export function groupBrands(coupons: HomeCoupon[]): HomeBrand[] {
+/**
+ * Uma marca por nome; o selo mostra o melhor cupom dela e leva à vitrine de quem o oferece. As marcas com cupom vêm
+ * primeiro, na ordem de chegada; depois as que só aparecem nos produtos (o produto ligado a um cupom conta na marca dele).
+ */
+export function groupBrands(coupons: HomeCoupon[], products: HomeProduct[] = []): HomeBrand[] {
   const brands = new Map<string, HomeBrand>();
   const brandCreators = new Map<string, Set<string>>();
+  const couponBrand = new Map<string, string>();
+  const seen = (key: string, handle: string) => brandCreators.set(key, (brandCreators.get(key) ?? new Set()).add(handle));
   for (const c of coupons) {
     const key = c.brand.trim().toLowerCase();
-    const seen = brandCreators.get(key) ?? new Set();
-    brandCreators.set(key, seen.add(c.handle));
+    couponBrand.set(c.id, key);
+    seen(key, c.handle);
     const b = brands.get(key);
-    if (!b || rank(c) > rank(b.best)) brands.set(key, { brand: c.brand, logoUrl: c.logoUrl || b?.logoUrl || "", best: c, handle: c.handle, creator: c.creator, creators: 0 });
+    if (!b || rank(c) > rank(b.best!)) brands.set(key, { brand: c.brand, logoUrl: c.logoUrl || b?.logoUrl || "", best: c, handle: c.handle, creator: c.creator, creators: 0, products: b?.products ?? 0 });
     else if (!b.logoUrl) b.logoUrl = c.logoUrl;
+  }
+  for (const p of products) {
+    const key = (p.couponId && couponBrand.get(p.couponId)) || p.brand.trim().toLowerCase();
+    if (!key) continue;
+    seen(key, p.handle);
+    const b = brands.get(key);
+    if (b) b.products++;
+    else brands.set(key, { brand: p.brand.trim(), logoUrl: "", best: null, handle: p.handle, creator: p.creator, creators: 0, products: 1 });
   }
   return [...brands].map(([key, b]) => ({ ...b, creators: brandCreators.get(key)!.size }));
 }
@@ -165,7 +180,7 @@ export async function getHomeFeed(): Promise<HomeFeed> {
     creators: live.slice(0, 8).map(toHomeCreator),
     coupons: coupons.slice(0, 8),
     products: products.slice(0, 48),
-    brands: groupBrands(coupons).slice(0, 8),
+    brands: groupBrands(coupons, products).slice(0, 8),
   };
 }
 
@@ -184,24 +199,24 @@ export async function getTopCreators(): Promise<HomeCreator[]> {
   return liveFeed(await listFeedByHandles(db, handles), todayISO()).map(toHomeCreator);
 }
 
-export type HomeKit = By & { id: string; name: string; description: string; items: Product[] };
+export type HomePost = By & { id: string; photoUrl: string; caption: string; items: Product[] };
 
-/** Últimos kits publicados. Kits sem nenhum produto à venda ficam de fora. */
-export async function getRecentKits(): Promise<HomeKit[]> {
+/** Últimos posts publicados. Posts sem nenhuma peça à venda ficam de fora. */
+export async function getRecentPosts(): Promise<HomePost[]> {
   "use cache";
   cacheTag(HOME_TAG);
   cacheLife("hours");
 
-  return (await listRecentKits(createPublicSupabase(), 12))
-    .map(({ kit, handle, creator, products }): HomeKit => ({
+  return (await listRecentPosts(createPublicSupabase(), 12))
+    .map(({ post, handle, creator, products }): HomePost => ({
       handle,
       creator,
-      id: kit.id,
-      name: kit.name,
-      description: kit.description,
-      items: kitItems(kit, products.filter((p) => !p.soldOut)),
+      id: post.id,
+      photoUrl: post.photoUrl,
+      caption: post.caption,
+      items: postItems(post, products.filter((p) => !p.soldOut)),
     }))
-    .filter((k) => k.items.length > 0);
+    .filter((p) => p.items.length > 0);
 }
 
 export type SearchCreator = { handle: string; name: string; avatarUrl: string };

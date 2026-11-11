@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { Link } from "@/lib/i18n/navigation";
+import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import type { CatalogProduct } from "@/lib/vitrine/catalog/products";
 
@@ -7,7 +7,7 @@ import type { CatalogProduct } from "@/lib/vitrine/catalog/products";
 export function ProductCard({ p }: { p: CatalogProduct }) {
   const t = useTranslations("catalog.products");
   return (
-    <Link href={`/${p.handle}#produtos`} className="group flex min-w-0 flex-col text-center text-ink no-underline">
+    <Link href={vitrineHref(p.handle, "produtos")} className="group flex min-w-0 flex-col text-center text-ink no-underline">
       {/* selos só visuais: o texto ao lado repete para leitores de tela */}
       <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
         <ProductArt product={p} iconClassName="w-[52%]" />

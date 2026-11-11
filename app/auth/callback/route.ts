@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   const code = params.get("code");
   const home = new URL("/inicio", request.url);
   const editor = new URL("/editor", request.url);
-  const failed = new URL("/entrar?erro=login", request.url);
+  const failed = new URL("/entrar?error=login", request.url);
   if (!code) {
     // o usuário cancelou no Google ou o provedor recusou
     return NextResponse.redirect(params.has("error") ? failed : home);

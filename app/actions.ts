@@ -5,12 +5,11 @@ import { updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect as redirectTo } from "next/navigation";
 import type { ZodError } from "zod";
-import { redirect } from "@/lib/i18n/navigation";
-import { withoutLocale } from "@/lib/i18n/routing";
+import { hrefOf, redirect } from "@/lib/i18n/navigation";
+import { internalPath } from "@/lib/i18n/routing";
 import { DELETE_WORDS } from "@/lib/auth/account";
 import { PASSWORD_MIN } from "@/lib/auth/password";
 import { safePath, saveReturn } from "@/lib/auth/return-to";
-import { HOST } from "@/lib/brand";
 import { track } from "@/lib/analytics/server";
 import { onboardingSchema } from "@/lib/onboarding/options";
 import { saveOnboardingProfile, takeAttribution } from "@/lib/onboarding/store";
@@ -35,6 +34,7 @@ import {
   setFavorite,
   updateProfile,
 } from "@/lib/vitrine/store";
+import { vitrineAddress } from "@/lib/vitrine/links";
 import { emptyContent, pickProfile, vitrineContentSchema, vitrineProfileSchema, type VitrineContent, type VitrineProfile } from "@/lib/vitrine/types";
 
 /** `sent`: o link foi enviado por e-mail (confirmar a conta ou senha nova); a tela mostra o modal de "confira seu e-mail". */
@@ -46,9 +46,9 @@ export type FormState = { error?: string; sent?: "confirm" | "reset"; handle?: s
  */
 const errors = () => getTranslations("errors");
 
-/** Leva a uma página do site no idioma atual (`href` sem idioma). */
-async function go(href: string): Promise<never> {
-  redirect({ href, locale: await getLocale() });
+/** Leva a uma página do site no idioma atual (`path` interno, sem idioma, com ou sem parâmetros). */
+async function go(path: string): Promise<never> {
+  redirect({ href: hrefOf(path), locale: await getLocale() });
   throw new Error("unreachable");
 }
 
@@ -78,9 +78,9 @@ async function refererPath() {
   try {
     const ref = new URL(h.get("referer") ?? "");
     if (ref.host !== h.get("host")) return null;
-    ref.searchParams.delete("erro");
+    ref.searchParams.delete("error");
     const path = safePath(ref.pathname + ref.search);
-    return path && withoutLocale(path);
+    return path && internalPath(path);
   } catch {
     return null;
   }
@@ -141,7 +141,7 @@ export async function signInWithPasswordAction(_prev: FormState, form: FormData)
     return { email, error: await authErrorText(error.code) };
   }
   const next = safePath(form.get("next"));
-  return go(next ? withoutLocale(next) : "/inicio");
+  return go(next ? internalPath(next) : "/inicio");
 }
 
 /**
@@ -183,7 +183,7 @@ async function createAndOpen(handle: string, name: string, state: FormState): Pr
     await createVitrine(supabase, user.id, starterContent(user, handle, name, await intro()));
     await track(user.id, "vitrine_created", { via: "form" });
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ...state, error: t("handleTaken", { url: `${HOST}/${handle}` }) };
+    if (e instanceof HandleTakenError) return { ...state, error: t("handleTaken", { url: vitrineAddress(handle) }) };
     throw e;
   }
   updateTag(vitrineTag(handle));
@@ -224,7 +224,7 @@ export async function claimAction(_prev: FormState, form: FormData): Promise<For
 
   const parsed = vitrineContentSchema.safeParse(emptyContent(handle, name));
   if (!parsed.success) return { ...state, error: await issueText(parsed.error) };
-  if (await isHandleTaken(createPublicSupabase(), handle)) return { ...state, error: (await errors())("handleTaken", { url: `${HOST}/${handle}` }) };
+  if (await isHandleTaken(createPublicSupabase(), handle)) return { ...state, error: (await errors())("handleTaken", { url: vitrineAddress(handle) }) };
 
   if (mine.user) return createAndOpen(handle, name, state);
   if (form.get("via") === "email") return signUpWithEmail(state, form);
@@ -236,7 +236,7 @@ export async function claimAction(_prev: FormState, form: FormData): Promise<For
 export async function signInAction(_prev: FormState, form: FormData): Promise<FormState> {
   // o campo vem vazio se o clique foi antes de a página hidratar: aí vale a página que enviou o formulário
   const field = safePath(form.get("next"));
-  const next = field ? withoutLocale(field) : await refererPath();
+  const next = field ? internalPath(field) : await refererPath();
   if (next) await saveReturn(next);
   return startGoogle({});
 }
@@ -308,14 +308,17 @@ export async function saveOnboardingAction(_prev: OnboardingState, form: FormDat
 export async function skipOnboardingAction(form: FormData) {
   const { supabase, user } = await getUser();
   if (!user) return go("/entrar");
+  const safe = safePath(form.get("next"));
+  const next = safe ? internalPath(safe) : "/inicio";
   try {
     await saveOnboardingProfile(supabase, user.id, null, await takeAttribution());
   } catch (e) {
     console.error("skipProfile", e);
-    return go("/boas-vindas");
+    // volta para as perguntas sem perder a página de destino
+    return go(`/boas-vindas?next=${encodeURIComponent(next)}`);
   }
   await track(user.id, "onboarding_skipped");
-  return go(safePath(form.get("next")) ?? "/inicio");
+  return go(next);
 }
 
 export async function signOutAction() {
@@ -417,7 +420,7 @@ export async function deleteCommentAction(id: string): Promise<SocialResult> {
 }
 
 /** Listas do conteúdo cujo erro de validação diz o item ("Cupom 2: …"). */
-const ITEM_LISTS = new Set(["coupons", "products", "kits"]);
+const ITEM_LISTS = new Set(["coupons", "products", "posts"]);
 
 export type PublishResult = { ok: true; updatedAt: string } | { ok: false; error: string };
 
@@ -438,13 +441,13 @@ export async function publishVitrine(content: VitrineContent): Promise<PublishRe
   try {
     const { prevHandle, updatedAt } = await publish(supabase, user.id, parsed.data);
     await deleteDraft(supabase, user.id).catch((e) => console.error("deleteDraft", e));
-    await track(user.id, "vitrine_published", { coupons: parsed.data.coupons.length, products: parsed.data.products.length, kits: parsed.data.kits.length });
+    await track(user.id, "vitrine_published", { coupons: parsed.data.coupons.length, products: parsed.data.products.length, posts: parsed.data.posts.length });
     updateTag(vitrineTag(prevHandle));
     if (prevHandle !== parsed.data.handle) updateTag(vitrineTag(parsed.data.handle));
     updateTag(HOME_TAG);
     return { ok: true, updatedAt };
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ok: false, error: t("handleTaken", { url: `${HOST}/${parsed.data.handle}` }) };
+    if (e instanceof HandleTakenError) return { ok: false, error: t("handleTaken", { url: vitrineAddress(parsed.data.handle) }) };
     console.error("publish_vitrine", e);
     return { ok: false, error: t("publishFailed") };
   }
@@ -464,14 +467,33 @@ async function saveProfile(patch: Partial<VitrineProfile>): Promise<SocialResult
   try {
     await updateProfile(supabase, user.id, parsed.data);
   } catch (e) {
-    if (e instanceof HandleTakenError) return { ok: false, error: t("handleTaken", { url: `${HOST}/${parsed.data.handle}` }) };
+    if (e instanceof HandleTakenError) return { ok: false, error: t("handleTaken", { url: vitrineAddress(parsed.data.handle) }) };
     console.error("updateProfile", e);
     return { ok: false, error: t("saveFailed") };
   }
   updateTag(vitrineTag(vitrine.handle));
   if (vitrine.handle !== parsed.data.handle) updateTag(vitrineTag(parsed.data.handle));
   updateTag(HOME_TAG);
+
+  // Foto de perfil e capa trocadas não ficam guardadas: liberam espaço da cota de upload da pessoa.
+  const stale = [
+    vitrine.avatarUrl !== parsed.data.avatarUrl && ownPhotoPath(vitrine.avatarUrl, user.id),
+    vitrine.look.bannerUrl !== parsed.data.look.bannerUrl && ownPhotoPath(vitrine.look.bannerUrl, user.id),
+  ].filter((path): path is string => !!path);
+  if (stale.length) {
+    const { error } = await supabase.storage.from("vitrine-photos").remove(stale);
+    if (error) console.error("removeStalePhotos", error);
+  }
   return { ok: true };
+}
+
+/** Caminho no bucket vitrine-photos de uma URL pública do projeto, só quando o arquivo está na pasta da pessoa. */
+function ownPhotoPath(url: string, userId: string) {
+  const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/vitrine-photos/`;
+  if (!url.startsWith(prefix)) return null;
+  const path = decodeURIComponent(url.slice(prefix.length).split("?")[0]);
+  const [folder, file, ...rest] = path.split("/");
+  return folder === userId && file && !rest.length ? path : null;
 }
 
 /** Configurações: nome, link e foto de perfil. */
@@ -529,6 +551,7 @@ const UPLOADS = {
   cover: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
   avatar: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
   product: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
+  post: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
 } satisfies Record<string, { bucket: string; types: Record<string, string>; maxBytes: number }>;
 export type ImageKind = keyof typeof UPLOADS;
 
@@ -547,7 +570,9 @@ export async function uploadImageAction(kind: ImageKind, form: FormData): Promis
   const { error } = await bucket.upload(path, file, { contentType: file.type, cacheControl: "31536000" });
   if (error) {
     console.error("uploadImage", kind, error);
-    return { ok: false, error: t("uploadFailed") };
+    // O caminho é sempre a pasta da pessoa: recusa da policy aqui é a cota ou o ritmo de upload (storage_upload_allowed).
+    const refused = "statusCode" in error && error.statusCode === "403";
+    return { ok: false, error: t(refused ? "uploadLimit" : "uploadFailed") };
   }
   return { ok: true, url: bucket.getPublicUrl(path).data.publicUrl };
 }

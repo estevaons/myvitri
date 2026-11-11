@@ -1,7 +1,10 @@
 import { uploadImageAction, type ImageKind } from "@/app/actions";
 
-/** Maior lado depois de reduzir: a capa ocupa a largura da vitrine; logo e perfil aparecem pequenos; o produto fica no meio. */
-const MAX_SIDE: Record<ImageKind, number> = { logo: 512, cover: 1600, avatar: 512, product: 1000 };
+/**
+ * Maior lado depois de reduzir: a capa ocupa a largura da vitrine; logo e perfil aparecem pequenos; o produto fica no meio;
+ * a foto do post é vertical e abre grande, mas precisa caber nos 2 MiB do bucket.
+ */
+const MAX_SIDE: Record<ImageKind, number> = { logo: 512, cover: 1600, avatar: 512, product: 1000, post: 1440 };
 
 const encode = (canvas: HTMLCanvasElement, type: string, quality: number) =>
   new Promise<Blob | null>((done) => canvas.toBlob(done, type, quality));

@@ -14,8 +14,13 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   // 90 só para as fotos do hero da landing (LookHero); o resto usa o padrão 75
   images: { qualities: [75, 90] },
-  // a página de venda se chamava /para-creators; mantém links antigos funcionando
-  redirects: async () => [{ source: "/para-creators", destination: "/criar-vitrine", permanent: true }],
+  redirects: async () => [
+    // a página de venda se chamava /para-creators; mantém links antigos funcionando
+    { source: "/para-creators", destination: "/criar-vitrine", permanent: true },
+    // /favicon.ico (pedido automático dos navegadores) não tem arquivo nem passa pelo proxy: sem isto ele cairia
+    // em app/[locale] com "favicon.ico" como idioma. O ícone do site é o /icon.svg.
+    { source: "/favicon.ico", destination: "/icon.svg", permanent: true },
+  ],
   partialPrefetching: true,
   turbopack: {
     rules: {

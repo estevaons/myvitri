@@ -13,20 +13,6 @@
   --color-gold: #7a5f30;
 }
 
-/* Kits da vitrine: a barra no chip ativo mede o tempo até o próximo kit entrar. */
-@theme {
-  --animate-kit-progress: kit-progress 7s linear;
-
-  @keyframes kit-progress {
-    from {
-      transform: scaleX(0);
-    }
-    to {
-      transform: scaleX(1);
-    }
-  }
-}
-
 /* Retorno de favoritar e comentar. Quem usa as classes aplica com motion-safe:, para respeitar quem reduz movimento. */
 @theme {
   --animate-heart-pop: heart-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
@@ -69,6 +55,41 @@
       transform: scaleX(0.92);
     }
   }
+}
+
+/* Barra de progresso do outfit atual na vitrine: enche no tempo de cada outfit (`OUTFIT_MS`, em Storefront.tsx). */
+@theme {
+  --animate-outfit-progress: outfit-progress 6s linear forwards;
+
+  @keyframes outfit-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
+
+/* Reflexo dos blocos das telas de espera (components/brand/Skeleton.tsx): uma faixa clara atravessa o bloco
+   da esquerda para a direita. O degradê tem 4 vezes a largura do bloco e desliza por baixo dele. */
+@theme {
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: 0 0;
+    }
+  }
+}
+
+@utility skeleton {
+  background-color: var(--color-sand);
+  background-image: linear-gradient(90deg, var(--color-sand) 25%, #faf8f4 37%, var(--color-sand) 63%);
+  background-size: 400% 100%;
 }
 
 /* Carrossel que rola de lado sem mostrar a barra (os botões e o arraste fazem o papel dela). */

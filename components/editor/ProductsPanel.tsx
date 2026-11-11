@@ -80,7 +80,7 @@ export function ProductsPanel({ draft, update }: { draft: VitrineContent; update
     update((d) => ({
       ...d,
       products: d.products.filter((p) => p.id !== id),
-      kits: d.kits.map((k) => ({ ...k, productIds: k.productIds.filter((pid) => pid !== id) })),
+      posts: d.posts.map((p) => ({ ...p, productIds: p.productIds.filter((pid) => pid !== id) })),
     }));
     setOpenId(null);
   };

@@ -11,7 +11,8 @@ import { kicker, pad, pillDark } from "./chrome";
  * Veio de /criar-vitrine, que agora é só o formulário de criar a conta.
  */
 
-const KIT = ["/create_account/oculos.webp", "/hero/bolsa.webp", "/hero/brincos.webp", "/create_account/perfume.webp"];
+/** As peças que a mulher da foto do topo (`/hero/retrato.webp`, recortada em `/hero/retrato-outfit.webp`) está usando: `/hero/<id>.webp` e `pitch.outfitsPieces.<id>`. */
+const OUTFIT = ["blazer", "calca", "bolsa"] as const;
 /** O resto do que a vitrine faz, sem desenho: os três de cima já mostram como ela é. */
 const MORE = ["metrics", "stories", "utm", "dates", "video", "soldOut"] as const;
 const STEPS = ["link", "items", "bio"] as const;
@@ -78,13 +79,23 @@ export function CreatorPitch() {
               </span>
             </div>
           </Feature>
-          <Feature title={t("kitsTitle")} text={t("kitsText")}>
-            <div className="grid w-[56%] grid-cols-2 gap-1">
-              {KIT.map((src) => (
-                <div key={src} className="relative aspect-square overflow-hidden bg-white">
-                  <Image src={src} alt="" fill sizes="(min-width: 768px) 160px, 28vw" className="object-cover" />
-                </div>
-              ))}
+          <Feature title={t("outfitsTitle")} text={t("outfitsText")}>
+            {/* um outfit em miniatura: a foto do topo da página, recortada na mulher, e as peças que ela usa ao lado */}
+            <div className="flex w-[78%] items-center gap-3 bg-white p-2.5">
+              <div className="relative aspect-[4/5] w-[46%] flex-none overflow-hidden bg-sand">
+                {/* recorte da /hero/retrato.webp já em 4:5: ampliar a foto inteira com CSS deixava a versão pequena do next/image embaçada */}
+                <Image src="/hero/retrato-outfit.webp" alt="" fill sizes="(min-width: 768px) 180px, 36vw" className="object-cover" />
+              </div>
+              <ul className="m-0 flex min-w-0 flex-1 list-none flex-col p-0">
+                {OUTFIT.map((id) => (
+                  <li key={id} className="flex items-center gap-2 border-b border-sand py-1.5 last:border-0">
+                    <span className="relative block size-9 flex-none overflow-hidden bg-cream">
+                      <Image src={`/hero/${id}.webp`} alt="" fill sizes="40px" className="object-cover" />
+                    </span>
+                    <span className="min-w-0 truncate text-[12px] leading-snug font-medium">{t(`outfitsPieces.${id}`)}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </Feature>
         </div>

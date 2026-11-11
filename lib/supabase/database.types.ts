@@ -22,6 +22,7 @@ export type Database = {
           created_at: string
           id: string
           parent_id: string | null
+          reply_to_id: string | null
           vitrine_id: string
         }
         Insert: {
@@ -32,6 +33,7 @@ export type Database = {
           created_at?: string
           id?: string
           parent_id?: string | null
+          reply_to_id?: string | null
           vitrine_id: string
         }
         Update: {
@@ -42,12 +44,20 @@ export type Database = {
           created_at?: string
           id?: string
           parent_id?: string | null
+          reply_to_id?: string | null
           vitrine_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "comments_parent_id_fkey"
             columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_reply_to_id_fkey"
+            columns: ["reply_to_id"]
             isOneToOne: false
             referencedRelation: "comments"
             referencedColumns: ["id"]
@@ -296,6 +306,44 @@ export type Database = {
           },
         ]
       }
+      posts: {
+        Row: {
+          caption: string
+          id: string
+          product_ids: string[]
+          photo_url: string
+          position: number
+          published_at: string
+          vitrine_id: string
+        }
+        Insert: {
+          caption?: string
+          id: string
+          product_ids?: string[]
+          photo_url: string
+          position: number
+          published_at?: string
+          vitrine_id: string
+        }
+        Update: {
+          caption?: string
+          id?: string
+          product_ids?: string[]
+          photo_url?: string
+          position?: number
+          published_at?: string
+          vitrine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_vitrine_id_fkey"
+            columns: ["vitrine_id"]
+            isOneToOne: false
+            referencedRelation: "vitrines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           brand: string
@@ -394,6 +442,7 @@ export type Database = {
           name: string
           owner_id: string | null
           show: Json
+          socials: Json
           sub: string
           updated_at: string
           tracking: Json
@@ -408,6 +457,7 @@ export type Database = {
           name: string
           owner_id?: string | null
           show?: Json
+          socials?: Json
           sub?: string
           updated_at?: string
           tracking?: Json
@@ -422,6 +472,7 @@ export type Database = {
           name?: string
           owner_id?: string | null
           show?: Json
+          socials?: Json
           sub?: string
           updated_at?: string
           tracking?: Json

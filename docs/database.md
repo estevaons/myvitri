@@ -6,14 +6,14 @@
 
 Pense no banco como um **arquivo de pastas de uma loja de departamento**:
 
-- Cada **creator** (influenciadora, criadora de conteúdo) tem **uma pasta**: a **vitrine**. Na capa da pasta está o nome dela, o endereço (`myvitri.com/marinacosta`), a foto e as frases de destaque.
-- Dentro da pasta há três gavetas: **cupons** (os códigos de desconto de cada marca), **produtos** (o que ela indica: foto, nome e link) e **kits** (combinações de produtos, tipo "kit praia").
+- Cada **creator** (influenciadora, criadora de conteúdo) tem **uma pasta**: a **vitrine**. Na capa da pasta está o nome dela, o endereço (`myvitri.com/marinacosta`), a foto, as frases de destaque e os links das redes sociais (Instagram, TikTok, YouTube, X).
+- Dentro da pasta há três gavetas: **cupons** (os códigos de desconto de cada marca), **produtos** (o que ela indica: foto, nome e link) e **posts** (na interface chamados de **Outfits**: uma foto dela usando um conjunto e a lista das peças, que são produtos da vitrine). A antiga gaveta de **kits** não é mais usada pelo app: a tabela segue no banco, parada.
 - Quem entra com e-mail e senha ou com o Google (mesmo sem ter vitrine) pode **favoritar** vitrines, numa lista privada (`favorites`), e **comentar** nelas (`comments`, com respostas em um nível): o comentário é público, e apaga quem escreveu ou a dona da vitrine.
 - Ao lado da pasta oficial existe um **rascunho**: enquanto a creator edita, tudo vai para o rascunho. Só quando ela clica em **Publicar** o conteúdo do rascunho substitui o que está na pasta oficial.
 - Existe ainda um **caderno de visitas** (`events`): toda vez que alguém abre a vitrine ou clica no produto ou em "copiar cupom", uma linha anônima é anotada ali. É daí que saem os gráficos de métricas.
 - Cada conta tem ainda uma **ficha de boas-vindas** (`profiles`): as poucas perguntas que a pessoa responde logo depois de criar a conta (se divulga ou só procura cupons, em quais redes, o tamanho do público, como conheceu o MyVitri) e de onde ela veio (um "primeiro toque" de atribuição, sem IP). Quem pulou também ganha uma ficha, só marcada como pulada, para não ser perguntada de novo.
 - Fora do app, num **escritório separado** (o schema `analytics`), ficam duas planilhas prontas que cruzam contas, fichas, vitrines e visitas para mostrar o funil de ativação. O app nunca lê esse escritório e a chave pública não abre a porta dele.
-- As **fotos** enviadas (capa, perfil, logos de marca) não ficam no banco: ficam em "baldes" de arquivos (Supabase Storage), cada usuário na sua própria pasta.
+- As **fotos** enviadas (capa, perfil, fotos de post, logos de marca) não ficam no banco: ficam em "baldes" de arquivos (Supabase Storage), cada usuário na sua própria pasta.
 
 Quem cuida da segurança é o próprio banco: regras chamadas **RLS** (Row Level Security) dizem "qualquer pessoa pode **ler** uma vitrine, mas só a dona pode **alterar**". O app nunca usa uma chave de administrador; ele sempre fala com o banco "como" a pessoa logada (ou como visitante anônimo).
 
@@ -22,7 +22,7 @@ Quem cuida da segurança é o próprio banco: regras chamadas **RLS** (Row Level
 - **SGBD:** PostgreSQL gerenciado pelo [Supabase](https://supabase.com) (PostgREST 14.18, segundo `database.types.ts:12`).
 - **Schemas usados:** `public` (tabelas do app), `analytics` (views de análise, fora da API), `auth` (usuários, gerenciado pelo Supabase Auth), `storage` (buckets e objetos) e `extensions` (`unaccent` e `pg_trgm`, usadas na busca).
 - **Acesso:** sempre via `@supabase/supabase-js` com a **chave publicável** (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Não existe `service_role` no código. Toda autorização é RLS + funções `security invoker`, com duas exceções `security definer` (`delete_my_account` e `top_creators_today`, que só devolve a ordem do ranking). Há ainda um trigger, `comments_stamp`, em `comments` (função `stamp_comment()`, `security invoker`).
-- **IDs dos itens** (`coupons.id`, `products.id`, `kits.id`) **não têm default**: são UUIDs gerados no navegador (`crypto.randomUUID()` em `components/editor/ui.tsx:14`) e enviados na publicação. Isso mantém o ID estável entre publicações, o que permite que as métricas (`events.item_id`) continuem apontando para o item certo.
+- **IDs dos itens** (`coupons.id`, `products.id`, `posts.id`) **não têm default**: são UUIDs gerados no navegador (`crypto.randomUUID()` em `components/editor/ui.tsx:14`) e enviados na publicação. Isso mantém o ID estável entre publicações, o que permite que as métricas (`events.item_id`) continuem apontando para o item certo.
 - **Dinheiro em centavos** (`int`): `coupons.value` quando `kind = 'fixed'` e a coluna legado `products.price`.
 
 ## Diagrama ER
@@ -34,15 +34,18 @@ erDiagram
     VITRINES ||--o{ COUPONS : "vitrine_id (cascade)"
     VITRINES ||--o{ PRODUCTS : "vitrine_id (cascade)"
     VITRINES ||--o{ KITS : "vitrine_id (cascade)"
+    VITRINES ||--o{ POSTS : "vitrine_id (cascade)"
     VITRINES ||--o{ EVENTS : "vitrine_id (cascade)"
     COUPONS |o--o{ PRODUCTS : "coupon_id (set null)"
     KITS }o..o{ PRODUCTS : "product_ids uuid[] sem FK"
+    POSTS }o..o{ PRODUCTS : "product_ids uuid[] sem FK"
     EVENTS }o..o| PRODUCTS : "item_id sem FK"
     AUTH_USERS ||--o{ FAVORITES : "user_id (cascade)"
     VITRINES ||--o{ FAVORITES : "vitrine_id (cascade)"
     AUTH_USERS ||--o{ COMMENTS : "author_id (cascade)"
     VITRINES ||--o{ COMMENTS : "vitrine_id (cascade)"
     COMMENTS ||--o{ COMMENTS : "parent_id (cascade)"
+    COMMENTS |o--o{ COMMENTS : "reply_to_id (set null)"
     AUTH_USERS ||--o| PROFILES : "user_id (cascade)"
 
     AUTH_USERS {
@@ -60,6 +63,7 @@ erDiagram
         jsonb look "so bannerUrl e usado"
         jsonb show "legado"
         jsonb tracking "utm, campaign"
+        jsonb socials "instagram, tiktok, youtube, x"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -107,6 +111,15 @@ erDiagram
         jsonb style "legado"
         timestamptz published_at "1a publicacao do kit"
     }
+    POSTS {
+        uuid id PK
+        uuid vitrine_id FK
+        int position
+        text photo_url
+        text caption
+        uuid_array product_ids "ate 8, na ordem da lista"
+        timestamptz published_at "1a publicacao do post"
+    }
     VITRINE_DRAFTS {
         uuid owner_id PK,FK
         jsonb content
@@ -121,6 +134,7 @@ erDiagram
         uuid id PK
         uuid vitrine_id FK
         uuid parent_id FK "resposta: comentario original, opcional"
+        uuid reply_to_id FK "resposta respondida, opcional"
         uuid author_id FK "preenchido pelo trigger"
         text author_name "copia do perfil, 1 a 80"
         text author_avatar_url "copia do perfil"
@@ -170,19 +184,23 @@ erDiagram
 | 4 | `20261102000500_kit_name.sql` | Kit passa a ter um nome só: renomeia `tab` → `name`, copia `title` para `name` quando existia, apaga `title`, migra rascunhos antigos e recria `publish_vitrine()`. |
 | 5 | `20261102000600_kit_style.sql` | Adiciona `kits.style jsonb` e recria `publish_vitrine()`. |
 | 6 | `20261102000700_creator_tools.sql` | Cupom ganha `logo_url`, `how_to`, `starts_at`; produto ganha `affiliate_url`, `video_url`, `sold_out`, `price_checked_at`; vitrine ganha `tracking`; cria `events` + policies e `vitrine_stats()`; recria `publish_vitrine()`. |
-| 7 | `20261102000800_coupon_color.sql` | Adiciona `coupons.color jsonb` e recria `publish_vitrine()` (versão **atual**). |
+| 7 | `20261102000800_coupon_color.sql` | Adiciona `coupons.color jsonb` e recria `publish_vitrine()`. |
 | 8 | `20261102000900_delete_account.sql` | Cria `delete_my_account()` (`security definer`). |
 | 9 | `20261103000000_brand_logos.sql` | Cria o bucket `brand-logos` e as policies de `storage.objects`. |
 | 10 | `20261103000100_vitrine_photos.sql` | Cria o bucket `vitrine-photos` e as policies. |
-| 11 | `20261104000000_landing_home.sql` | Extensões `unaccent` e `pg_trgm` (schema `extensions`); função `fold()`; índices trigram de busca; `kits.published_at`; `events.visitor` e `events_day_idx`; recria `publish_vitrine()` (preserva `published_at`, versão **atual**); cria `top_creators_today()` e `search_catalog()`. Está no repositório, mas precisa ser aplicada no Supabase: a busca (`/api/busca`) e os carrosséis de `/inicio` (vitrines do dia e últimos kits) dependem de `search_catalog()`, `top_creators_today()` e `kits.published_at`. Sem a migração, a busca responde 500 e os carrosséis não aparecem. |
+| 11 | `20261104000000_landing_home.sql` | Extensões `unaccent` e `pg_trgm` (schema `extensions`); função `fold()`; índices trigram de busca; `kits.published_at`; `events.visitor` e `events_day_idx`; recria `publish_vitrine()` (preserva `published_at`); cria `top_creators_today()` e `search_catalog()`. Está no repositório, mas precisa ser aplicada no Supabase: a busca (`/api/busca`) e os carrosséis de `/inicio` (vitrines do dia e, na época, últimos kits) dependem de `search_catalog()`, `top_creators_today()` e `kits.published_at`. Sem a migração, a busca responde 500 e os carrosséis não aparecem. |
 | 12 | `20261105000000_metrics_previous.sql` | `create or replace` de `vitrine_stats(days)`: mantém `totals`, `days` e `items` e acrescenta `previous` (totais por `kind` dos `days` dias imediatamente anteriores à janela atual, mais `buy_coupon`). Alimenta a variação contra o período anterior de `/metricas`. Está no repositório e precisa ser aplicada no Supabase; sem ela a RPC continua devolvendo o formato antigo e a página funciona sem as variações. |
 | 13 | `20261105010000_favorites.sql` | Cria `favorites` (PK `(user_id, vitrine_id)`), o índice `favorites_vitrine_idx` e RLS só do dono. |
 | 14 | `20261105010100_comments.sql` | Cria `comments`, os índices `comments_vitrine_idx` e `comments_author_idx`, a função `stamp_comment()`, o trigger `comments_stamp` (`before insert`) e as policies. |
 | 15 | `20261109000000_comment_replies.sql` | Adiciona `comments.parent_id` (FK para `comments(id)` **on delete cascade**), o índice parcial `comments_parent_idx` e recria `stamp_comment()` para tratar respostas (sobe para o original, copia a vitrine, erro `VT404`). RLS inalterada. |
 | 16 | `20261109000100_favorite_count.sql` | Cria `favorite_count(target_handle text)` (`security definer`), que devolve quantas pessoas favoritaram a vitrine, e libera a execução só para `anon` e `authenticated`. `favorites` segue privada. |
-| 17 | `20261109000000_profiles_onboarding.sql` | Cria `profiles` (respostas do onboarding e origem do cadastro) com RLS do dono (select, insert e update), preenche uma linha com `onboarding_version = 0` para cada conta já existente e cria o schema `analytics` (fora da API) com as views `analytics.account_activation` e `analytics.funnel_steps`. **Já aplicada no Supabase remoto** (projeto `buhpwscgfutkrufhcyej`) em 2026-11-09: o preenchimento marcou as 4 contas existentes na época com versão 0. |
-| 18 | `20261110000000_onboarding_outro.sql` | Onboarding versão 2. Zera `heard_from = 'rede-social'` (a rede exata não foi informada), troca os `CHECK` `profiles_heard_from_check` (agora com as redes `instagram`, `tiktok`, `youtube`, `kwai`, `pinterest`, `whatsapp`, `telegram`, `blog`, no lugar de `rede-social`) e `profiles_audience_band_check` (ganha `outro`), adiciona `profiles.other_answers` (`jsonb`, texto livre das opções "Outro") e recria `analytics.account_activation` com `other_answers` no fim. **Ainda não foi aplicada no Supabase remoto** (pendente de aplicação): sem ela, gravar `audience_band = 'outro'`, as novas opções de `heard_from` ou `other_answers` falha, e o onboarding não é salvo. |
-| 19 | `20261110010000_session_recording_consent.sql` | Consentimento de gravação de sessão: adiciona `profiles.recording_opt_in` (`boolean`, default `false`) e `profiles.recording_opt_in_at` (`timestamptz`) e recria `analytics.account_activation` com `recording_opt_in` no fim. **Ainda não foi aplicada no Supabase remoto** (pendente de aplicação): sem ela, gravar o onboarding e ler o consentimento falham. |
+| 17 | `20261109000200_profiles_onboarding.sql` | Cria `profiles` (respostas do onboarding e origem do cadastro) com RLS do dono (select, insert e update), preenche uma linha com `onboarding_version = 0` para cada conta já existente e cria o schema `analytics` (fora da API) com as views `analytics.account_activation` e `analytics.funnel_steps`. Aplicada no Supabase remoto (projeto `buhpwscgfutkrufhcyej`) em 09/11/2026: o preenchimento marcou as 4 contas existentes na época com versão 0. |
+| 18 | `20261110000000_posts.sql` | Cria `posts` (índices `posts_vitrine_idx` e `posts_published_idx`, RLS: leitura pública e escrita do dono via `owns_vitrine()`); recria `events_kind_check` para aceitar também `'post'` (`'kit'` segue aceito pelos eventos antigos); recria `publish_vitrine()`: insere `posts` preservando `published_at` pelo `id` e **para de apagar e reinserir `kits`**, que ficam no banco, intactos e sem uso no app. Aplicada no Supabase do projeto `vitri` em 10/11/2026. Num banco sem ela, a função antiga apaga os kits ao publicar (o `content` não traz `kits`) e não grava posts; o app tolera a tabela ausente (`isMissingTable`, erros `PGRST205`/`42P01`, em `lib/vitrine/store.ts:70`): a vitrine, o catálogo, o carrossel e a contagem abrem normalmente, só sem posts. |
+| 19 | `20261110020000_vitrine_socials.sql` | Adiciona `vitrines.socials jsonb not null default '{}'` (`CHECK` objeto e até 2000 bytes) e recria `publish_vitrine()` (versão **atual**) gravando também `socials = coalesce(content->'socials', '{}')`; o resto da função é igual à de `20261110000000_posts.sql`. Aplicada no Supabase do projeto `vitri` em 10/11/2026. Num banco sem ela, o editor guarda as redes no rascunho (`vitrine_drafts.content`), mas publicar não as grava e a vitrine pública não mostra os ícones. |
+| 20 | `20261110030000_comment_reply_to.sql` | Adiciona `comments.reply_to_id` (FK para `comments(id)` **on delete set null**), o índice parcial `comments_reply_to_idx` e recria `stamp_comment()` (versão **atual**): zera o `reply_to_id` vindo do cliente e, se o `parent_id` enviado é uma resposta, grava esse id em `reply_to_id` antes de subir `parent_id` para o original. RLS inalterada. Aplicada no Supabase do projeto `vitri` em 10/11/2026. |
+| 21 | `20261110030100_onboarding_outro.sql` | Onboarding versão 2. Zera `heard_from = 'rede-social'` (a rede exata não foi informada), troca os `CHECK` `profiles_heard_from_check` (agora com as redes `instagram`, `tiktok`, `youtube`, `kwai`, `pinterest`, `whatsapp`, `telegram`, `blog`, no lugar de `rede-social`) e `profiles_audience_band_check` (ganha `outro`), adiciona `profiles.other_answers` (`jsonb`, texto livre das opções "Outro") e recria `analytics.account_activation` com `other_answers` no fim. Aplicada no Supabase remoto em 10/11/2026. Num banco sem ela, gravar `audience_band = 'outro'`, as novas opções de `heard_from` ou `other_answers` falha, e o onboarding não é salvo. |
+| 22 | `20261110030200_session_recording_consent.sql` | Consentimento de gravação de sessão: adiciona `profiles.recording_opt_in` (`boolean`, default `false`) e `profiles.recording_opt_in_at` (`timestamptz`) e recria `analytics.account_activation` com `recording_opt_in` no fim. Aplicada no Supabase remoto em 10/11/2026. Num banco sem ela, gravar o onboarding falha e a leitura do consentimento vira "não consentiu". |
+| 23 | `20261110040000_storage_quota.sql` | Cria `storage_upload_allowed()` e recria as policies de insert "dono envia logos" e "dono envia fotos" em `storage.objects` com a cota por pessoa (500 arquivos, 100 MiB, 40 envios em 10 minutos). Aplicada no Supabase do projeto `vitri` em 10/11/2026; num banco sem ela não há cota. |
 | — | `supabase/seed.sql` | Vitrine de demonstração `/marinacosta`. Insere em `kits` pelas colunas antigas `tab`/`title`. |
 
 ## Tabelas
@@ -203,6 +221,7 @@ Uma linha por creator. É a "capa" pública da vitrine. Criada em `2026110200000
 | `look` | `jsonb` | não | `{"theme":"vibrante","accent":"#FF5A36","font":"moderna","radius":"arredondado","layout":"grade"}` | Hoje o app **só lê/grava `bannerUrl`** (foto de capa, opcional: vazia, a vitrine mostra a primeira letra do nome). As outras chaves são de um visual antigo e são descartadas por `pickLook` (`lib/vitrine/store.ts:25`). |
 | `show` | `jsonb` | não | `{"ticker":true,"products":true,"coupons":true,"kits":true,"cta":true}` | **Legado.** É gravada na publicação, mas nenhum componente lê (`lib/vitrine/types.ts:91`). |
 | `tracking` | `jsonb` | não | `'{}'` | `CHECK pg_column_size(tracking) <= 2000`. Formato `{ utm: boolean, campaign: string }`; o app completa com `TRACKING = { utm: true, campaign: "" }` (`lib/vitrine/types.ts:107`). |
+| `socials` | `jsonb` | não | `'{}'` | `CHECK jsonb_typeof(socials) = 'object' and pg_column_size(socials) <= 2000` (`20261110020000_vitrine_socials.sql`). Guarda o que a creator digitou em `{ instagram, tiktok, youtube, x }` (`@usuario`, `usuario` ou link); o app transforma em link do perfil com `socialUrl` (`lib/vitrine/socials.ts`) e `loadContent` lê com `pickSocials` (`lib/vitrine/store.ts:93`). Gravada por `publish_vitrine()` |
 | `created_at` | `timestamptz` | não | `now()` | |
 | `updated_at` | `timestamptz` | não | `now()` | Atualizado por `publish_vitrine()` e por `updateProfile` (nome, link, foto e capa). A home ordena por ele (`lib/vitrine/store.ts:112`). |
 
@@ -257,7 +276,7 @@ Produtos indicados. `20261102000000_vitrines.sql:32-46` + colunas de `000700`.
 
 ### `public.kits`
 
-Combos de até 4 produtos. `20261102000000_vitrines.sql:48-58`, renomeado em `000500`, `style` em `000600`.
+**Sem uso no app** desde `20261110000000_posts.sql` (os posts, ou outfits na interface, os substituíram): a tabela e as linhas existentes continuam, mas nada lê nem grava, e `publish_vitrine()` não mexe mais nelas. Combos de até 4 produtos. `20261102000000_vitrines.sql:48-58`, renomeado em `000500`, `style` em `000600`.
 
 | Coluna | Tipo | Nulo? | Default | Restrições / observações |
 |---|---|---|---|---|
@@ -269,9 +288,25 @@ Combos de até 4 produtos. `20261102000000_vitrines.sql:48-58`, renomeado em `00
 | `signature` | `text` | não | `''` | Zod: até 80 ("assinatura" da creator) |
 | `product_ids` | `uuid[]` | não | `'{}'` | IDs de `products`. **Sem FK** (array). Zod: no máximo 4. |
 | `style` | `jsonb` | não | `'{}'` | `CHECK pg_column_size(style) <= 2000`. **Legado:** sempre `{}` hoje. |
-| `published_at` | `timestamptz` | não | `now()` | Primeira publicação do kit (`20261104000000_landing_home.sql`). Kits já existentes foram preenchidos com `vitrines.updated_at`. `publish_vitrine()` reinsere os kits, mas preserva o valor pelo `id`; kit novo recebe `now()`. |
+| `published_at` | `timestamptz` | não | `now()` | Primeira publicação do kit (`20261104000000_landing_home.sql`). Kits já existentes foram preenchidos com `vitrines.updated_at`. Até a migração dos posts, `publish_vitrine()` reinseria os kits preservando o valor pelo `id`. |
 
 **Índices:** `kits_vitrine_idx (vitrine_id, position)`, `kits_published_idx (published_at desc)`.
+
+### `public.posts`
+
+Foto da creator usando um conjunto ("Outfit" na interface) e a lista ordenada das peças (produtos da vitrine). Substitui os kits. `20261110000000_posts.sql`.
+
+| Coluna | Tipo | Nulo? | Default | Restrições / observações |
+|---|---|---|---|---|
+| `id` | `uuid` | não | — | PK, **sem default** (gerado no navegador) |
+| `vitrine_id` | `uuid` | não | — | FK → `vitrines(id)` **on delete cascade** |
+| `position` | `int` | não | — | Ordem |
+| `photo_url` | `text` | não | — | `CHECK char_length between 1 and 2000`. Foto enviada ao bucket `vitrine-photos` |
+| `caption` | `text` | não | `''` | `CHECK char_length <= 300`. Sem uso na interface: novos outfits gravam `""` (continua no schema Zod e no rascunho) |
+| `product_ids` | `uuid[]` | não | `'{}'` | `CHECK cardinality <= 8`. IDs de `products`, na ordem da lista. **Sem FK** (array). Zod: de 1 a 8, sem repetição |
+| `published_at` | `timestamptz` | não | `now()` | Primeira publicação do post. `publish_vitrine()` reinsere os posts, mas preserva o valor pelo `id`; post novo recebe `now()`. |
+
+**Índices:** `posts_vitrine_idx (vitrine_id, position)`, `posts_published_idx (published_at desc)`.
 
 ### `public.vitrine_drafts`
 
@@ -291,8 +326,8 @@ Eventos anônimos da vitrine pública (métricas). `20261102000700_creator_tools
 |---|---|---|---|---|
 | `id` | `bigint` | não | `generated always as identity` | PK |
 | `vitrine_id` | `uuid` | não | — | FK → `vitrines(id)` **on delete cascade** |
-| `kind` | `text` | não | — | `CHECK kind in ('view','buy','copy','kit','video')` |
-| `item_id` | `uuid` | sim | — | ID do cupom/produto/kit clicado. **Sem FK** (o item pode ter sido apagado). |
+| `kind` | `text` | não | — | `CHECK kind in ('view','buy','copy','kit','video','post')` (`'post'` desde `20261110000000_posts.sql`; `'kit'` só para eventos antigos) |
+| `item_id` | `uuid` | sim | — | ID do cupom/produto/post clicado. **Sem FK** (o item pode ter sido apagado). |
 | `created_at` | `timestamptz` | não | `now()` | A policy de insert exige `now() ± 1 minuto`. |
 | `visitor` | `text` | sim | — | `CHECK visitor is null or visitor ~ '^[0-9a-f]{16}$'`: hash diário anônimo do visitante (sem IP guardado), pensado para deduplicar cliques em `top_creators_today()`. Eventos sem `visitor` contam um a um. O código de `/api/t` ainda não preenche o campo. |
 
@@ -305,7 +340,8 @@ Significado de `kind`:
 | `view` | Abrir a vitrine (1x por aba, via `sessionStorage`) | `null` |
 | `buy` | Botão/foto de compra de um produto | id do produto |
 | `copy` | Botão "Copiar" de um cupom | id do cupom |
-| `kit` | Botão de compra de um item do kit (dispara também o `buy` do produto) | id do kit |
+| `post` | Clique numa peça de um post (dispara também o `buy` do produto) | id do post |
+| `kit` | **Legado.** Era o botão de compra de um item do kit; o app não grava mais | id do kit |
 | `video` | Link "Ver meu review" | id do produto |
 
 
@@ -335,28 +371,29 @@ Comentários na vitrine pública. `20261105010100_comments.sql`. Sem edição: p
 | `body` | `text` | não | — | `CHECK char_length(btrim(body)) between 1 and 500`. O trigger faz o `trim` |
 | `created_at` | `timestamptz` | não | `now()` | Sobrescrito pelo trigger |
 | `parent_id` | `uuid` | sim | `null` | FK → `comments(id)` **on delete cascade** (`20261109000000_comment_replies.sql`). `null`: comentário original. Preenchido: resposta. É um nível só: o trigger troca o `parent_id` pelo do original quando se responde a uma resposta |
+| `reply_to_id` | `uuid` | sim | `null` | FK `comments_reply_to_id_fkey` → `comments(id)` **on delete set null** (`20261110030000_comment_reply_to.sql`). Só preenchido quando a pessoa respondeu a uma resposta: guarda qual (o app monta a árvore de respostas com ele e mostra "@Nome" quando a resposta foi achatada pelo limite de níveis). Sempre zerado e recalculado pelo trigger. Se a resposta respondida é apagada, vira `null` |
 
-**Índices:** `comments_vitrine_idx (vitrine_id, created_at desc)` (lista da vitrine), `comments_author_idx (author_id, created_at desc)` (limite por minuto e `listCommentedHandles`), `comments_parent_idx (parent_id, created_at) where parent_id is not null` (parcial, respostas de cada comentário).
+**Índices:** `comments_vitrine_idx (vitrine_id, created_at desc)` (lista da vitrine), `comments_author_idx (author_id, created_at desc)` (limite por minuto e `listCommentedHandles`), `comments_parent_idx (parent_id, created_at) where parent_id is not null` (parcial, respostas de cada comentário), `comments_reply_to_idx (reply_to_id) where reply_to_id is not null` (parcial).
 
-**Trigger `comments_stamp`** (`before insert`, `for each row`, função `stamp_comment()`; veja [Funções (RPC)](#funções-rpc)): como a chave publicável é pública e dá para chamar a API sem passar pelo app, nada que identifica o comentário vem do cliente. O trigger preenche autor, nome, foto e `created_at` a partir da sessão, faz o `trim` do corpo e limita a 5 comentários por minuto por pessoa. Numa resposta, também resolve o original (se `parent_id` já é uma resposta, usa o `parent_id` dela), copia a `vitrine_id` dele (a resposta nunca fica em outra vitrine) e levanta `VT404` se o comentário não existe.
+**Trigger `comments_stamp`** (`before insert`, `for each row`, função `stamp_comment()`; veja [Funções (RPC)](#funções-rpc)): como a chave publicável é pública e dá para chamar a API sem passar pelo app, nada que identifica o comentário vem do cliente. O trigger preenche autor, nome, foto e `created_at` a partir da sessão, faz o `trim` do corpo e limita a 5 comentários por minuto por pessoa. Numa resposta, também resolve o original (se `parent_id` já é uma resposta, usa o `parent_id` dela), copia a `vitrine_id` dele (a resposta nunca fica em outra vitrine) e levanta `VT404` se o comentário não existe. Se o `parent_id` enviado já era uma resposta, grava esse id em `reply_to_id` (o `reply_to_id` vindo do cliente é sempre descartado).
 
 ### `public.profiles`
 
-Ficha de onboarding de cada conta, uma linha por usuário. `20261109000000_profiles_onboarding.sql`. Quem não tem linha ainda não passou pelo onboarding: `/inicio` e `/editor` mandam essa pessoa para `/boas-vindas` (`needsOnboarding`, `lib/onboarding/store.ts`). Quem pulou também tem linha (só `skipped_at` preenchido). Não confundir com `events`: `events` continua sendo só a métrica anônima das vitrines das creators; `profiles` é dado da conta e alimenta a análise de ativação.
+Ficha de onboarding de cada conta, uma linha por usuário. `20261109000200_profiles_onboarding.sql`. Quem não tem linha ainda não passou pelo onboarding: `/inicio` e `/editor` mandam essa pessoa para `/boas-vindas` (`needsOnboarding`, `lib/onboarding/store.ts`). Quem pulou também tem linha (só `skipped_at` preenchido). Não confundir com `events`: `events` continua sendo só a métrica anônima das vitrines das creators; `profiles` é dado da conta e alimenta a análise de ativação.
 
 | Coluna | Tipo | Nulo? | Default | Restrições / observações |
 |---|---|---|---|---|
 | `user_id` | `uuid` | não | `auth.uid()` | PK, FK → `auth.users(id)` **on delete cascade** |
 | `persona` | `text` | sim | — | `CHECK persona in ('creator','shopper')`. Nulo se a pessoa pulou |
 | `networks` | `text[]` | não | `'{}'` | `CHECK cardinality(networks) <= 9`. Redes que usa (valores em `NETWORKS`, `lib/onboarding/options.ts`) |
-| `audience_band` | `text` | sim | — | `CHECK` em `menos-1k`, `1k-10k`, `10k-50k`, `50k-200k`, `200k-1m`, `acima-1m`, `outro` (o `outro` vem de `20261110000000_onboarding_outro.sql`) |
+| `audience_band` | `text` | sim | — | `CHECK` em `menos-1k`, `1k-10k`, `10k-50k`, `50k-200k`, `200k-1m`, `acima-1m`, `outro` (o `outro` vem de `20261110030100_onboarding_outro.sql`) |
 | `niches` | `text[]` | não | `'{}'` | `CHECK cardinality(niches) <= 3` |
 | `interests` | `text[]` | não | `'{}'` | `CHECK cardinality(interests) <= 12` (resposta de quem escolheu `shopper`) |
-| `heard_from` | `text` | sim | — | `CHECK` em `outra-creator`, `indicacao`, `google`, `anuncio`, `instagram`, `tiktok`, `youtube`, `kwai`, `pinterest`, `whatsapp`, `telegram`, `blog`, `outro` (`20261110000000_onboarding_outro.sql`; `rede-social` saiu e as linhas antigas viraram `null`) |
-| `other_answers` | `jsonb` | não | `'{}'` | `CHECK jsonb_typeof = 'object' and pg_column_size <= 1000` (`20261110000000_onboarding_outro.sql`). Texto livre das opções "Outro" ("Outra", em redes): chave = nome da pergunta (`networks`, `audience`, `niches`, `heardFrom`, `interests`), valor com até 60 caracteres. Só entra a chave cuja opção está marcada (`otherAnswers`, `lib/onboarding/store.ts`); quem pulou grava `{}` |
+| `heard_from` | `text` | sim | — | `CHECK` em `outra-creator`, `indicacao`, `google`, `anuncio`, `instagram`, `tiktok`, `youtube`, `kwai`, `pinterest`, `whatsapp`, `telegram`, `blog`, `outro` (`20261110030100_onboarding_outro.sql`; `rede-social` saiu e as linhas antigas viraram `null`) |
+| `other_answers` | `jsonb` | não | `'{}'` | `CHECK jsonb_typeof = 'object' and pg_column_size <= 1000` (`20261110030100_onboarding_outro.sql`). Texto livre das opções "Outro" ("Outra", em redes): chave = nome da pergunta (`networks`, `audience`, `niches`, `heardFrom`, `interests`), valor com até 60 caracteres. Só entra a chave cuja opção está marcada (`otherAnswers`, `lib/onboarding/store.ts`); quem pulou grava `{}` |
 | `marketing_opt_in` | `boolean` | não | `false` | Aceite de receber propostas de marcas |
 | `opt_in_at` | `timestamptz` | sim | — | Quando aceitou (`saveOnboardingProfile` só preenche se `marketing_opt_in`) |
-| `recording_opt_in` | `boolean` | não | `false` | Aceite de ter a navegação gravada (PostHog Session Replay) no programa de testes; checkbox opcional da última tela do onboarding (`20261110010000_session_recording_consent.sql`). Lido por `recordingConsent` (`lib/onboarding/store.ts`) para ligar a gravação no navegador. Só contas criadas depois dessa mudança veem o checkbox; as anteriores ficam `false` |
+| `recording_opt_in` | `boolean` | não | `false` | Aceite de ter a navegação gravada (PostHog Session Replay) no programa de testes; checkbox opcional da última tela do onboarding (`20261110030200_session_recording_consent.sql`). Lido por `recordingConsent` (`lib/onboarding/store.ts`) para ligar a gravação no navegador. Só contas criadas depois dessa mudança veem o checkbox; as anteriores ficam `false` |
 | `recording_opt_in_at` | `timestamptz` | sim | — | Quando aceitou (`saveOnboardingProfile` só preenche se `recording_opt_in`) |
 | `signup_source` | `jsonb` | não | `'{}'` | `CHECK jsonb_typeof = 'object' and pg_column_size <= 2000`. Primeiro toque de atribuição, vindo do cookie `vitri_ref`: `source`, `medium`, `campaign` (utm), `ref` (handle de vitrine), `referrer_host` (só o domínio), `landing` e `first_seen_at`. Sem IP nem URL completa |
 | `onboarding_version` | `int` | não | `1` | `CHECK >= 0`. `0` = conta anterior ao onboarding (não é perguntada, fora do funil); `1` = primeira versão das perguntas; `2` = versão atual (`ONBOARDING_VERSION`, `lib/onboarding/options.ts`): redes em "Como conheceu" e campo "Outro". O default do banco continua `1`, mas o app sempre grava a versão atual |
@@ -375,7 +412,7 @@ Criado na mesma migração. É para consulta manual (SQL Editor ou um papel admi
 
 | View | O que devolve |
 |---|---|
-| `analytics.account_activation` | Uma linha por conta (`auth.users`, com `left join` em `profiles`, `vitrines`, cupons, produtos e `events`): `user_id`, `signed_up_at`, `onboarding_version`, `persona`, `onboarded_at`, `skipped_at`, `audience_band`, `niches`, `networks`, `heard_from`, `marketing_opt_in`, a atribuição achatada (`utm_source`, `utm_medium`, `utm_campaign`, `ref`, `referrer_host`), `has_vitrine`, `items` (cupons mais produtos), `first_view_at` e `first_click_at` (primeiro evento `view` e primeiro de outro tipo na vitrine da conta) e, no fim, `other_answers` (texto livre das opções "Outro"; a coluna existe a partir da migração `20261110000000`) e `recording_opt_in` (a partir da migração `20261110010000`) |
+| `analytics.account_activation` | Uma linha por conta (`auth.users`, com `left join` em `profiles`, `vitrines`, cupons, produtos e `events`): `user_id`, `signed_up_at`, `onboarding_version`, `persona`, `onboarded_at`, `skipped_at`, `audience_band`, `niches`, `networks`, `heard_from`, `marketing_opt_in`, a atribuição achatada (`utm_source`, `utm_medium`, `utm_campaign`, `ref`, `referrer_host`), `has_vitrine`, `items` (cupons mais produtos), `first_view_at` e `first_click_at` (primeiro evento `view` e primeiro de outro tipo na vitrine da conta) e, no fim, `other_answers` (texto livre das opções "Outro"; a coluna existe a partir da migração `20261110000000`) e `recording_opt_in` (a partir da migração `20261110030200`) |
 | `analytics.funnel_steps` | Funil das contas com `onboarding_version` diferente de 0, em `ord`, `step`, `total`: 1 Conta criada, 2 Respondeu o onboarding, 3 Pulou o onboarding, 4 Criou a vitrine, 5 Adicionou cupom ou produto, 6 Recebeu a 1ª visita, 7 Teve o 1º clique |
 
 O PostHog (eventos de navegador e de servidor) é a outra camada de análise e não grava nada no banco; veja [Analytics](architecture.md#analytics-duas-camadas).
@@ -385,22 +422,25 @@ O PostHog (eventos de navegador e de servidor) é a outra camada de análise e n
 | Bucket | Público? | Limite | MIME aceitos | Quem usa | Migração |
 |---|---|---|---|---|---|
 | `brand-logos` | sim | 1 MiB (`1048576`) | `image/webp`, `image/png` | Logo de marca no cupom | `20261103000000_brand_logos.sql` |
-| `vitrine-photos` | sim | 2 MiB (`2097152`) | `image/webp`, `image/jpeg` | Foto de capa, de perfil e do produto | `20261103000100_vitrine_photos.sql` |
+| `vitrine-photos` | sim | 2 MiB (`2097152`) | `image/webp`, `image/jpeg` | Foto de capa, de perfil, do produto e do post | `20261103000100_vitrine_photos.sql` |
 
-Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:408`). As policies de `storage.objects` (insert, select, delete) só deixam o usuário mexer na pasta cujo primeiro segmento é o próprio `uid` (`storage.foldername(name)[1] = auth.uid()::text`). Leitura pública é pela URL do bucket público, sem policy.
+Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:490`). As policies de `storage.objects` (insert, select, delete) só deixam o usuário mexer na pasta cujo primeiro segmento é o próprio `uid` (`storage.foldername(name)[1] = auth.uid()::text`). Leitura pública é pela URL do bucket público, sem policy.
+
+**Cota por pessoa** (`20261110040000_storage_quota.sql`): as policies de insert ("dono envia logos" e "dono envia fotos") exigem também `storage_upload_allowed()`, que soma os dois buckets na pasta da pessoa e só devolve `true` com menos de 500 arquivos, menos de 100 MiB (soma de `metadata.size`) e menos de 40 envios nos últimos 10 minutos. A checagem roda antes do arquivo entrar, então o envio que passa do limite de tamanho é o último aceito. Vale também para quem chama a API do Storage direto, sem passar pelo app. Antes dessa migração não havia limite. Quando a policy recusa, o Storage responde `403` e `uploadImageAction` mostra `errors.uploadLimit`.
 
 ## Funções (RPC)
 
 | Função | Linguagem / segurança | Quem pode executar | O que faz | Chamada em |
 |---|---|---|---|---|
 | `owns_vitrine(v uuid) → boolean` | SQL, `stable`, `security invoker`, `search_path = ''` | revogada de `public` e `anon` | `true` se a vitrine `v` pertence a `auth.uid()`. Usada nas policies. | Só nas policies |
-| `publish_vitrine(content jsonb) → timestamptz` | plpgsql, `security invoker` | `authenticated` | Atualiza a vitrine do usuário, **apaga** todos os cupons/produtos/kits dela e **reinsere** a partir do JSON, numa transação. Retorna `updated_at`. Versão atual: `20261104000000_landing_home.sql` (preserva `kits.published_at` por `id`). | `lib/vitrine/store.ts:284` |
+| `publish_vitrine(content jsonb) → timestamptz` | plpgsql, `security invoker` | `authenticated` | Atualiza a vitrine do usuário, **apaga** todos os posts/produtos/cupons dela e **reinsere** a partir do JSON, numa transação (não toca em `kits`). Retorna `updated_at`. Versão atual: `20261110020000_vitrine_socials.sql` (grava também `socials`; vem de `20261110000000_posts.sql` a preservação de `posts.published_at` por `id`; `content` sem `posts` não insere nenhum). | `lib/vitrine/store.ts:308` |
 | `vitrine_stats(days int default 30) → jsonb` | SQL, `stable`, `security invoker` | `authenticated` | Agrega `events` da vitrine de quem chama nos últimos `days` (limitado a 1–90), por dia no fuso `America/Sao_Paulo` e por item. Também devolve `previous`: os totais da janela anterior de mesma duração. Versão atual: `20261105000000_metrics_previous.sql` (lê as duas janelas de uma vez, `now() - 2 * days`). | `loadStats` em `app/metricas/page.tsx:13` |
-| `stamp_comment() → trigger` | plpgsql, `security invoker`, `search_path = ''` | `execute` revogado de `public`, `anon` e `authenticated` (só o trigger a chama) | Função do trigger `comments_stamp`. Lê `auth.jwt() -> 'user_metadata'`: `author_id = auth.uid()`; `author_name` = `name`, senão `full_name`, senão `Visitante` (até 80 caracteres); `author_avatar_url` = `avatar_url` se começar com `https://`, senão vazio; `body` com `btrim`; `created_at = now()`. Se a pessoa já tem 5 ou mais comentários no último minuto, levanta `VT429` ("muitos comentários em pouco tempo"), que `addComment` transforma em `CommentRateLimitError`. Em resposta (`parent_id` não nulo), sobe para o comentário original (`coalesce(parent_id, id)`) e copia a `vitrine_id` dele; se o comentário respondido não existe, levanta `VT404`, que `addComment` transforma em `CommentGoneError` (a FK `23503` também). | Trigger em `comments` (insert por `addComment`, `lib/vitrine/store.ts`) |
+| `stamp_comment() → trigger` | plpgsql, `security invoker`, `search_path = ''` | `execute` revogado de `public`, `anon` e `authenticated` (só o trigger a chama) | Função do trigger `comments_stamp`. Lê `auth.jwt() -> 'user_metadata'`: `author_id = auth.uid()`; `author_name` = `name`, senão `full_name`, senão `Visitante` (até 80 caracteres); `author_avatar_url` = `avatar_url` se começar com `https://`, senão vazio; `body` com `btrim`; `created_at = now()`. Se a pessoa já tem 5 ou mais comentários no último minuto, levanta `VT429` ("muitos comentários em pouco tempo"), que `addComment` transforma em `CommentRateLimitError`. Em resposta (`parent_id` não nulo), sobe para o comentário original (`coalesce(parent_id, id)`) e copia a `vitrine_id` dele e, quando o `parent_id` enviado era uma resposta, guarda esse id em `reply_to_id` (o valor vindo do cliente é zerado antes); se o comentário respondido não existe, levanta `VT404`, que `addComment` transforma em `CommentGoneError` (a FK `23503` também). | Trigger em `comments` (insert por `addComment`, `lib/vitrine/store.ts`) |
 | `favorite_count(target_handle text) → integer` | SQL, `stable`, **`security definer`**, `search_path = ''` | `execute` revogado de `public`; liberado para `anon` e `authenticated` | Conta as linhas de `favorites` da vitrine com esse `handle` (join com `vitrines`). Como `favorites` é privada por RLS, a função só devolve o número, nunca quem favoritou. | `favoriteCount` em `lib/vitrine/store.ts`, via `getFavoriteCount` |
-| `delete_my_account() → void` | plpgsql, **`security definer`** | `authenticated` | Apaga `auth.users` do próprio usuário; o resto sai em cascata. | `app/actions.ts:234` |
+| `storage_upload_allowed() → boolean` | SQL, `stable`, `security invoker`, `search_path = ''` | `authenticated` (revogada de `public` e `anon`) | `true` se a pessoa está dentro da cota de upload: menos de 500 arquivos, menos de 100 MiB e menos de 40 envios nos últimos 10 minutos, somando `brand-logos` e `vitrine-photos` na pasta `auth.uid()`. É invoker de propósito: conta o que a pessoa enxerga pelas policies de select "dono lista logos"/"dono lista fotos" (que não chamam a função, então não há recursão). | Policies de insert de `storage.objects` |
+| `delete_my_account() → void` | plpgsql, **`security definer`** | `authenticated` | Apaga `auth.users` do próprio usuário; o resto sai em cascata. | `app/actions.ts:258` |
 | `fold(t text) → text` | SQL, `immutable`, `parallel safe`, `search_path = ''` | padrão | Minúsculas e sem acento (`unaccent` com dicionário explícito, para poder entrar em índice). Base dos índices trigram e da busca. | Índices e `search_catalog()` |
-| `top_creators_today(lim int default 12) → table(handle text)` | SQL, `stable`, **`security definer`** | `anon`, `authenticated` | Handles das vitrines (com ao menos um cupom ou produto) ordenados pelos cliques do dia no fuso `America/Sao_Paulo` (`buy`, `copy`, `kit`, `video`), deduplicando visitante + tipo + item; desempate por `vitrines.updated_at`. Devolve só a ordem, nunca contagens (a RLS de `events` segue só para o dono). `lim` limitado a 1–50. | `topCreatorsToday` (`lib/vitrine/store.ts:150`), via `getTopCreators()` em `/inicio`, `getTrendingHandles()` (ordem "Em alta hoje" da aba Vitrines) e `loadPosition` em `/metricas` (lim 50) |
+| `top_creators_today(lim int default 12) → table(handle text)` | SQL, `stable`, **`security definer`** | `anon`, `authenticated` | Handles das vitrines (com ao menos um cupom ou produto) ordenados pelos cliques do dia no fuso `America/Sao_Paulo` (`buy`, `copy`, `kit`, `video`; a migração dos posts não alterou a função, então `post` não entra), deduplicando visitante + tipo + item; desempate por `vitrines.updated_at`. Devolve só a ordem, nunca contagens (a RLS de `events` segue só para o dono). `lim` limitado a 1–50. | `topCreatorsToday` (`lib/vitrine/store.ts:150`), via `getTopCreators()` em `/inicio`, `getTrendingHandles()` (ordem "Em alta hoje" da aba Vitrines) e `loadPosition` em `/metricas` (lim 50) |
 | `search_catalog(q text, lim int default 5) → jsonb` | SQL, `stable`, `security invoker` | `anon`, `authenticated` | Busca sem acento (mínimo 2 caracteres) em creators (nome/handle), cupons (marca) e produtos (nome). Retorna `{ creators, coupons, products }`; ordena por igual, começa com, contém e depois por semelhança. Lê só o que a RLS já torna público. `lim` limitado a 1–20 (cupons e produtos: até 6x). Cada produto vem com o cupom ligado a ele (`coupon`, que o app ignora) e cada cupom/produto com `handle` e `creator` de quem indica. | `searchCatalog` (`lib/vitrine/store.ts:192`), via `searchHome()` e `GET /api/busca` |
 
 ### `publish_vitrine` passo a passo
@@ -411,18 +451,18 @@ sequenceDiagram
     participant SA as Server Action publishVitrine
     participant DB as Postgres (RLS ativo)
     SA->>DB: rpc publish_vitrine(content)
-    DB->>DB: UPDATE vitrines SET handle, name, ..., updated_at=now() WHERE owner_id = auth.uid()
+    DB->>DB: UPDATE vitrines SET handle, name, ..., socials, updated_at=now() WHERE owner_id = auth.uid()
     alt nenhuma linha
         DB-->>SA: erro P0002 "vitrine não encontrada"
     end
-    DB->>DB: DELETE kits / products / coupons da vitrine
+    DB->>DB: DELETE posts / products / coupons da vitrine
     DB->>DB: INSERT coupons (position = ordinality)
     DB->>DB: INSERT products (coupon_id referencia cupom recém-inserido)
-    DB->>DB: INSERT kits (product_ids = array do JSON)
+    DB->>DB: INSERT posts (product_ids = array do JSON, published_at preservado pelo id)
     DB-->>SA: updated_at
 ```
 
-A ordem dos `DELETE` (kits → products → coupons) e dos `INSERT` (coupons → products → kits) respeita a FK `products.coupon_id`. Como a função é `security invoker`, cada `DELETE`/`INSERT` passa pelas policies do dono. Um `handle` repetido estoura `23505` (unique violation), que o app traduz em "link já está em uso" (`lib/vitrine/store.ts:288`).
+A ordem dos `DELETE` (posts → products → coupons) e dos `INSERT` (coupons → products → posts) respeita a FK `products.coupon_id`. Como a função é `security invoker`, cada `DELETE`/`INSERT` passa pelas policies do dono. Um `handle` repetido estoura `23505` (unique violation), que o app traduz em "link já está em uso" (`lib/vitrine/store.ts:288`).
 
 Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/types.ts:70-96`):
 
@@ -436,9 +476,10 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
   "look": { "bannerUrl": "" },
   "show": { "ticker": true, "products": true, "coupons": true, "kits": true, "cta": true },
   "tracking": { "utm": true, "campaign": "" },
+  "socials": { "instagram": "", "tiktok": "", "youtube": "", "x": "" },
   "coupons": [{ "id": "uuid", "brand": "", "code": "", "kind": "percent", "value": 10, "condition": "", "expiresAt": null, "storeUrl": "", "logoUrl": "", "howTo": "", "startsAt": null }],
   "products": [{ "id": "uuid", "name": "", "brand": "", "category": "", "price": 0, "couponId": null, "url": "", "imageUrl": "", "icon": "Bag", "affiliateUrl": "", "videoUrl": "", "soldOut": false, "priceCheckedAt": null }],
-  "kits": [{ "id": "uuid", "name": "", "description": "", "signature": "", "productIds": [] }]
+  "posts": [{ "id": "uuid", "photoUrl": "", "caption": "", "productIds": [] }]
 }
 ```
 
@@ -463,8 +504,8 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
 | `vitrines` | insert | `authenticated` | `owner_id = auth.uid()` |
 | `vitrines` | update | `authenticated` | `owner_id = auth.uid()` (using e with check) |
 | `vitrines` | delete | — | **Sem policy**: ninguém apaga direto; só pela cascata de `delete_my_account()` |
-| `coupons` / `products` / `kits` | select | `anon`, `authenticated` | `true` |
-| `coupons` / `products` / `kits` | insert / update / delete | `authenticated` | `owns_vitrine(vitrine_id)` |
+| `coupons` / `products` / `kits` / `posts` | select | `anon`, `authenticated` | `true` |
+| `coupons` / `products` / `kits` / `posts` | insert / update / delete | `authenticated` | `owns_vitrine(vitrine_id)` |
 | `vitrine_drafts` | select / insert / update / delete | `authenticated` | `owner_id = auth.uid()` |
 | `favorites` | select / insert / delete | `authenticated` | `user_id = auth.uid()` (insert: `with check`). Sem update |
 | `comments` | select | `anon`, `authenticated` | `true` (pública) |
@@ -474,7 +515,7 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
 | `analytics.*` | — | nenhum | Sem grants para `anon` e `authenticated`; o schema não é exposto pela API |
 | `events` | insert | `anon`, `authenticated` | `created_at` entre `now() - 1 min` e `now() + 1 min` **e** a vitrine existe |
 | `events` | select | `authenticated` | `owns_vitrine(vitrine_id)` (o ranking público passa por `top_creators_today()`, `security definer`, que só expõe a ordem) |
-| `storage.objects` (`brand-logos`, `vitrine-photos`) | insert / select / delete | `authenticated` | primeira pasta do caminho = `auth.uid()` |
+| `storage.objects` (`brand-logos`, `vitrine-photos`) | insert / select / delete | `authenticated` | primeira pasta do caminho = `auth.uid()`; o insert exige também `storage_upload_allowed()` (cota e ritmo) |
 
 ## Regras de exclusão (o que apaga o quê)
 
@@ -485,6 +526,7 @@ graph TD
     V -->|cascade| C[coupons]
     V -->|cascade| P[products]
     V -->|cascade| K[kits]
+    V -->|cascade| PO[posts]
     V -->|cascade| E[events]
     U -->|cascade| F[favorites]
     V -->|cascade| F
@@ -497,8 +539,8 @@ graph TD
 
 - `favorites` e `comments` caem por **duas** cascatas: ao apagar a conta de quem favoritou/comentou, e ao apagar a vitrine favoritada/comentada. Por isso `deleteAccountAction` lê antes (`listCommentedHandles`) as vitrines em que a pessoa comentou e invalida o cache `comentarios:{handle}` de cada uma depois da exclusão.
 - Apagar um **cupom** no editor também limpa o `couponId` dos produtos no próprio rascunho (`components/editor/CouponsPanel.tsx:44-51`); no banco, o `on delete set null` faria o mesmo.
-- Apagar um **produto** no editor remove o ID dos kits no rascunho (`components/editor/ProductsPanel.tsx:79-80`). No banco não há FK no array, então um kit pode guardar IDs órfãos se alguém gravar direto; a vitrine ignora IDs que não encontra (`kitItems`, `lib/vitrine/types.ts:110-112`).
-- **Arquivos do Storage não somem com a conta**: `deleteAccountAction` lista e apaga até 1000 arquivos de cada bucket antes de chamar a RPC (`app/actions.ts:227-232`).
+- Apagar um **produto** no editor remove o ID dos posts no rascunho (`components/editor/ProductsPanel.tsx:83`). No banco não há FK no array, então um post pode guardar IDs órfãos se alguém gravar direto; a vitrine ignora IDs que não encontra (`postItems`, `lib/vitrine/types.ts`).
+- **Arquivos do Storage não somem com a conta**: `deleteAccountAction` lista e apaga até 1000 arquivos de cada bucket antes de chamar a RPC (`app/actions.ts:273`). Já a troca de foto de perfil ou de capa apaga a foto antiga de `vitrine-photos` na hora (`saveProfile`, `app/actions.ts:379`); fotos de produto e de outfit ficam órfãs até a exclusão da conta.
 
 ## Mapeamento banco ↔ app
 
@@ -508,12 +550,12 @@ O app trabalha em `camelCase` (`VitrineContent`), o banco em `snake_case`. A con
 |---|---|---|
 | linha → `Coupon` | `toCoupon` | `lib/vitrine/store.ts:32` |
 | linha → `Product` | `toProduct` | `lib/vitrine/store.ts:46` |
-| linhas → `VitrineContent` | `loadContent` | `lib/vitrine/store.ts:70` |
-| `VitrineContent` → banco | RPC `publish_vitrine` (o próprio SQL converte) | `lib/vitrine/store.ts:284` |
-| nome, link, foto e capa → banco | `updateProfile`: `UPDATE` direto em `vitrines` (`handle`, `name`, `avatar_url`, `look`, `updated_at`), sem a RPC e sem o rascunho; vem de `updateProfileAction` e `updateCoverAction`, validados por `vitrineProfileSchema` (`lib/vitrine/types.ts`) | `lib/vitrine/store.ts:277` |
-| rascunho → `VitrineContent` | `findDraft` (completa campos novos, remove legados e sempre usa nome, link, foto e capa da linha publicada em `vitrines`, nunca os do rascunho, via `pickProfile`) | `lib/vitrine/store.ts:227` |
-| linha → `Kit` | `toKit` | `lib/vitrine/store.ts:62` |
+| linhas → `VitrineContent` | `loadContent` (`socials` com `pickSocials`; sem a coluna, tudo vazio) | `lib/vitrine/store.ts:73` |
+| `VitrineContent` → banco | RPC `publish_vitrine` (o próprio SQL converte) | `lib/vitrine/store.ts:308` |
+| nome, link, foto e capa → banco | `updateProfile`: `UPDATE` direto em `vitrines` (`handle`, `name`, `avatar_url`, `look`, `updated_at`), sem a RPC e sem o rascunho; vem de `updateProfileAction` e `updateCoverAction`, validados por `vitrineProfileSchema` (`lib/vitrine/types.ts`) | `lib/vitrine/store.ts:293` |
+| rascunho → `VitrineContent` | `findDraft` (completa campos novos como `posts`, descarta os `kits` de rascunhos antigos e remove legados e sempre usa nome, link, foto e capa da linha publicada em `vitrines`, nunca os do rascunho, via `pickProfile`) | `lib/vitrine/store.ts:246` |
+| linha → `Post` | `toPost` | `lib/vitrine/store.ts:62` |
 | respostas do onboarding → `profiles` | `saveOnboardingProfile`: `upsert` por `user_id` (`answers` nulo = pulou). Leitura de "já passou?" em `needsOnboarding` | `lib/onboarding/store.ts` |
 
-`toCoupon`, `toProduct` e `toKit` são exportados e também usados pelos catálogos das abas de `/inicio` (`lib/vitrine/catalog/*`), que leem `vitrines`, `coupons`, `products` e `kits` com o cliente público (sem cookies), pela mesma RLS de leitura aberta.
+`toCoupon`, `toProduct` e `toPost` são exportados e também usados pelos catálogos das abas de `/inicio` (`lib/vitrine/catalog/*`), que leem `vitrines`, `coupons`, `products` e `posts` com o cliente público (sem cookies), pela mesma RLS de leitura aberta.
 

@@ -3,6 +3,7 @@ import { routing } from "@/lib/i18n/routing";
 import { SITE_URL } from "@/lib/brand";
 import { languageAlternates, localizedPath } from "@/lib/seo";
 import { getPublicHandles } from "@/lib/vitrine/data";
+import { vitrinePath } from "@/lib/vitrine/links";
 
 type Entry = MetadataRoute.Sitemap[number];
 
@@ -21,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...localized("/", { changeFrequency: "daily", priority: 1 }),
     ...localized("/criar-vitrine", { changeFrequency: "monthly", priority: 0.8 }),
-    ...vitrines.flatMap((v) => localized(`/${v.handle}`, { lastModified: v.updatedAt, changeFrequency: "daily", priority: 0.7 })),
+    ...vitrines.flatMap((v) => localized(vitrinePath(v.handle), { lastModified: v.updatedAt, changeFrequency: "daily", priority: 0.7 })),
     ...localized("/privacidade", { changeFrequency: "yearly", priority: 0.2 }),
     ...localized("/termos", { changeFrequency: "yearly", priority: 0.2 }),
   ];

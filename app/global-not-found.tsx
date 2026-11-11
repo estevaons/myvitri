@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * 404 de URLs que não passam pelo idioma (arquivos e APIs inexistentes). Sem idioma na URL, o texto vai nas duas
+ * 404 de URLs que não passam pelo idioma (arquivos inexistentes; /api tem o seu, em JSON). Sem idioma na URL, o texto vai nas duas
  * línguas. As páginas têm o 404 de app/[locale]/not-found.tsx, no idioma de quem está navegando.
  */
 export default function GlobalNotFound() {
