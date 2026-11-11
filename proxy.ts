@@ -1,12 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import createMiddleware from "next-intl/middleware";
 import { NextRequest, NextResponse } from "next/server";
+import { ATTRIBUTION_COOKIE, ATTRIBUTION_OPTIONS, captureAttribution } from "@/lib/analytics/attribution";
 import { localizePath, parsePath, routing } from "@/lib/i18n/routing";
 
 const handleI18n = createMiddleware(routing);
 
 /** Rotas que dependem de login (caminhos internos): só nelas a sessão do Supabase é renovada. */
-const SESSION_PATHS = ["/", "/criar-vitrine", "/entrar", "/nova-senha", "/inicio", "/metricas", "/editor"];
+const SESSION_PATHS = ["/", "/criar-vitrine", "/entrar", "/nova-senha", "/boas-vindas", "/inicio", "/metricas", "/editor"];
 
 /**
  * Idioma, sessão e portas de entrada.
@@ -34,6 +35,9 @@ export async function proxy(incoming: NextRequest) {
     url.pathname = "/auth/callback";
     return NextResponse.redirect(url);
   }
+
+  // primeiro toque de atribuição (utm, ?ref=, origem): só na landing e em /criar-vitrine, e só uma vez por navegador
+  const attribution = path === "/" || path === "/criar-vitrine" ? captureAttribution(request) : null;
 
   const renewed: { name: string; value: string; options?: object }[] = [];
   if (SESSION_PATHS.some((p) => path === p || (p === "/editor" && path.startsWith("/editor/")))) {
@@ -74,6 +78,7 @@ export async function proxy(incoming: NextRequest) {
 
   const response = handleI18n(request);
   renewed.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+  if (attribution) response.cookies.set(ATTRIBUTION_COOKIE, attribution, ATTRIBUTION_OPTIONS);
   return response;
 }
 

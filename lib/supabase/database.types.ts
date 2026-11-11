@@ -165,6 +165,77 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          audience_band: string | null
+          created_at: string
+          heard_from: string | null
+          interests: string[]
+          marketing_opt_in: boolean
+          networks: string[]
+          niches: string[]
+          onboarded_at: string | null
+          onboarding_version: number
+          opt_in_at: string | null
+          other_answers: Json
+          recording_opt_in: boolean
+          recording_opt_in_at: string | null
+          persona: string | null
+          signup_source: Json
+          skipped_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audience_band?: string | null
+          created_at?: string
+          heard_from?: string | null
+          interests?: string[]
+          marketing_opt_in?: boolean
+          networks?: string[]
+          niches?: string[]
+          onboarded_at?: string | null
+          onboarding_version?: number
+          opt_in_at?: string | null
+          other_answers?: Json
+          recording_opt_in?: boolean
+          recording_opt_in_at?: string | null
+          persona?: string | null
+          signup_source?: Json
+          skipped_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          audience_band?: string | null
+          created_at?: string
+          heard_from?: string | null
+          interests?: string[]
+          marketing_opt_in?: boolean
+          networks?: string[]
+          niches?: string[]
+          onboarded_at?: string | null
+          onboarding_version?: number
+          opt_in_at?: string | null
+          other_answers?: Json
+          recording_opt_in?: boolean
+          recording_opt_in_at?: string | null
+          persona?: string | null
+          signup_source?: Json
+          skipped_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string

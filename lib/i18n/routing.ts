@@ -19,6 +19,7 @@ export const routing = defineRouting({
     "/criar-vitrine": { "pt-BR": "/criar-vitrine", en: "/create-storefront" },
     "/entrar": { "pt-BR": "/entrar", en: "/sign-in" },
     "/nova-senha": { "pt-BR": "/nova-senha", en: "/new-password" },
+    "/boas-vindas": { "pt-BR": "/boas-vindas", en: "/welcome" },
     "/editor": "/editor",
     "/metricas": { "pt-BR": "/metricas", en: "/metrics" },
     "/termos": { "pt-BR": "/termos", en: "/terms" },

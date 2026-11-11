@@ -54,8 +54,22 @@ export function PrivacyEn({ updated }: { updated: string }) {
         </p>
         <p>
           <strong>Storefront visitors.</strong> We count visits and clicks (for example, “coupon copied” or “click to go to the store”) to show
-          metrics to the storefront owner. Each record stores only the event type, the item clicked and the date and time. We do not store
-          name, email, IP address or any personal identifier with these events.
+          metrics to the storefront owner. Each record stores only the event type, the item clicked and the date and time. In these records we
+          do not store name, email or IP address. In addition, the site sends PostHog (see item 6) a record of each page opened, with an
+          anonymous identifier kept in your browser. This identifier has no name or email, but PostHog receives the IP address and technical
+          browser data together with these records.
+        </p>
+        <p>
+          <strong>Site usage (PostHog).</strong> To understand where people click and how pages are used, PostHog also records: clicks on
+          buttons and links, with the visible text of the clicked element (for example, &ldquo;Copy coupon&rdquo;); clicks, cursor movements
+          and how far the page was scrolled, used for heatmaps; and performance measurements of page loading. We do not record the screen or
+          session videos without your consent (see &ldquo;Session recordings&rdquo; below).
+        </p>
+        <p>
+          <strong>Session recordings (only with consent).</strong> To understand where people get stuck, people who take part in the testing program may
+          have their navigation recorded by PostHog. Recording only starts if you expressly tick the option to accept recording. Typing fields
+          are masked, and what you type does not appear in the recording. On-screen text, such as storefront and coupon names, may appear. Those
+          who did not consent are not recorded, and you can withdraw consent at any time (see item 9).
         </p>
         <p>
           <strong>Site usage statistics.</strong> We use Vercel Web Analytics and Vercel Speed Insights to learn which pages are most visited
@@ -67,6 +81,18 @@ export function PrivacyEn({ updated }: { updated: string }) {
           <strong>People who save storefronts or comment.</strong> The same sign-in data. The list of saved storefronts is private. Comments
           and replies are public: the text appears on the storefront with the date, your name and, if you sign in with Google, your profile photo, to anyone
           who opens the page. You can delete your comments at any time, and the storefront owner can also delete the ones on it. Deleting a comment also deletes its replies.
+        </p>
+        <p>
+          <strong>Onboarding answers.</strong> After you create your account, we ask a few questions to understand who uses {BRAND}: whether
+          you are a content creator or a shopper; which networks you publish on (or what kind of products you look for); your audience size,
+          niches and how you found us; and whether you want to receive news by email. You can skip this step. The answers are kept in your
+          profile and are deleted together with your account. We do not ask for tax IDs, phone numbers or sensitive data. If you write text in
+          an &ldquo;Other&rdquo; option, we keep the text as you wrote it, so do not include personal data in it.
+        </p>
+        <p>
+          <strong>Origin of your first visit.</strong> To understand how people reach {BRAND}, we keep, in a cookie for 30 days, where your first
+          visit came from: campaign parameters (UTM), the storefront that linked you, the origin site&apos;s domain and the landing page. If you
+          create an account, this data moves to your profile. We do not store the IP address or the full origin URL in this cookie.
         </p>
         <p>
           <strong>Technical logs.</strong> Our hosting providers may log, for a short time, data such as IP address, browser and pages
@@ -82,9 +108,12 @@ export function PrivacyEn({ updated }: { updated: string }) {
           <li>To keep your saved storefronts and publish your comments with your name and photo (performance of contract).</li>
           <li>To contact you about your account, important changes to the service or requests you make (legitimate interest).</li>
           <li>To understand, in aggregate, how the site is used and whether it loads well, so we can improve it (legitimate interest).</li>
+          <li>To understand how people reach {BRAND} and use the site, in order to improve the product (legitimate interest).</li>
+          <li>To understand where people get stuck, through session recordings, only from those who consented (consent).</li>
+          <li>To send news by email only to those who agreed to receive it (consent, which can be withdrawn at any time).</li>
           <li>To keep the site secure, prevent abuse and comply with legal obligations.</li>
         </ul>
-        <p>We do not sell your data, we do not use it for advertising and we do not profile storefront visitors.</p>
+        <p>We do not sell your data and we do not use it for advertising. Storefront visitors are not identified by name or email.</p>
       </Section>
 
       <Section title="4. Data received from Google">
@@ -111,8 +140,13 @@ export function PrivacyEn({ updated }: { updated: string }) {
             Entries in the browser session so the same visit is not counted twice, to keep a comment draft and to remember the storefront you
             wanted to save while you sign in; they disappear when the tab is closed.
           </li>
+          <li>An origin cookie (<code>vitri_ref</code>), which stores where your first visit came from and expires in 30 days (see item 2).</li>
+          <li>An anonymous identifier stored by PostHog in the browser&apos;s local storage (not a cookie), to recognize the browser between visits.</li>
         </ul>
-        <p>We do not use advertising or tracking cookies. The site usage statistics (section 2) do not use cookies either.</p>
+        <p>
+          We do not use advertising cookies. Vercel&apos;s statistics (section 2) do not use cookies, and PostHog keeps its identifier in the
+          browser&apos;s local storage, not in a cookie.
+        </p>
       </Section>
 
       <Section title="6. Who we share data with">
@@ -131,6 +165,10 @@ export function PrivacyEn({ updated }: { updated: string }) {
             <strong>Brave Search, Google and the store&apos;s site</strong>: when you import a product by link, we open the store&apos;s page
             and may query Brave Search (with the product address or name) and Google&apos;s icon service (with the store&apos;s domain) to
             complete the photo and logo. None of your personal data is sent.
+          </li>
+          <li>
+            <strong>PostHog</strong>: measurement of site usage (pages opened, clicks, heatmaps, performance, session recordings of those who consented, the events in section 2 and identification of signed-in users). By
+            default, data is stored on servers in the United States.
           </li>
         </ul>
         <p>
@@ -156,7 +194,8 @@ export function PrivacyEn({ updated }: { updated: string }) {
           (in your photo&apos;s menu, “Delete my account”): we immediately delete the account, the storefront, coupons, products, outfits, uploaded
           photos, draft, metrics, saved storefronts and the comments you wrote, and the link becomes available. If you prefer, request deletion at {mail} and we
           will do it within 15 days. Database backups and providers&apos; technical logs are deleted automatically within short periods. We only
-          keep anything after that if the law requires it.
+          keep anything after that if the law requires it. Onboarding data is deleted together with your account. Events already sent to PostHog
+          are not automatically deleted with the account: they follow the retention period configured for the project, including session recordings.
         </p>
       </Section>
 
@@ -168,7 +207,8 @@ export function PrivacyEn({ updated }: { updated: string }) {
           <li>delete your account and data yourself, in Settings (in your photo&apos;s menu, “Delete my account”);</li>
           <li>request data portability;</li>
           <li>find out who we share your data with;</li>
-          <li>withdraw consent, when consent is the legal basis for processing.</li>
+          <li>review or delete your onboarding answers and the first-visit origin data;</li>
+          <li>withdraw consent, when consent is the legal basis for processing, including for session recordings.</li>
         </ul>
         <p>
           For other requests, write to {mail} from your account email. We reply within 15 days. You can also remove {BRAND}&apos;s access to your

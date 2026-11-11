@@ -6,6 +6,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { routing } from "@/lib/i18n/routing";
 import { BRAND, SITE_URL } from "@/lib/brand";
 import { fontVariables } from "@/lib/fonts";
+import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import "../globals.css";
 
 /** Um layout raiz por idioma, gerados no build (com Cache Components, cada root param precisa de um valor). */
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
         <Analytics />
         {/* tempo real de carregamento e resposta (LCP, INP, CLS) medido nos aparelhos dos visitantes */}
         <SpeedInsights />
+        <PostHogProvider />
       </body>
     </html>
   );
