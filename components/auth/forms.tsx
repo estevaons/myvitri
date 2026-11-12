@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useEffect, useRef, useState, useTransition, type ComponentProps, type ReactNode, type Ref } from "react";
+import { Fragment, useActionState, useEffect, useRef, useState, useTransition, type ComponentProps, type ReactNode, type Ref } from "react";
 import { useFormStatus } from "react-dom";
 import {
   claimAction,
@@ -269,13 +269,18 @@ function ResendConfirmation({ email }: { email: string }) {
 /**
  * Deu certo e agora é com o e-mail da pessoa: modal com o endereço em destaque. Um <dialog> nativo (Esc ou
  * clique no fundo fecham, o foco fica dentro). Abre a cada envio, mesmo que o e-mail seja o mesmo (`state` muda).
+ * A limpeza do Effect fecha o modal quando a página sai de cena: com `cacheComponents` ela fica escondida (React
+ * <Activity>) em vez de desmontar, e um modal aberto ali deixaria o resto do documento inerte. Quem impede o modal de
+ * reabrir ao voltar para a tela é o `key={bfcacheId}` das telas (`SignInScreen`, `SignupForm`).
  */
 function EmailSentDialog({ state }: { state: FormState }) {
   const t = useTranslations("auth.emailSent");
   const ref = useRef<HTMLDialogElement>(null);
   const kind = state.sent;
   useEffect(() => {
-    if (kind) ref.current?.showModal();
+    const dialog = ref.current;
+    if (kind) dialog?.showModal();
+    return () => dialog?.close();
   }, [state, kind]);
   if (!kind) return null;
   return (
@@ -420,6 +425,24 @@ function AuthTitle({ title, text }: { title: string; text: string }) {
  * `onKeyDown` manda o Enter para o botão de e-mail, como antes.
  */
 export function SignupForm() {
+  return (
+    <Fresh>
+      <SignupFormBody />
+    </Fresh>
+  );
+}
+
+/**
+ * Com `cacheComponents` a tela não desmonta ao sair (React <Activity>) e voltaria com o resultado do último envio
+ * (modal de "confira seu e-mail", erro). O `key={bfcacheId}` recomeça a tela a cada visita nova (clique num link,
+ * `router.push`) e mantém o estado só no voltar/avançar do navegador.
+ */
+function Fresh({ children }: { children: ReactNode }) {
+  const { bfcacheId } = useRouter();
+  return <Fragment key={bfcacheId}>{children}</Fragment>;
+}
+
+function SignupFormBody() {
   const t = useTranslations("auth");
   const [state, action] = useActionState<FormState, FormData>(claimAction, {});
   const claim = useClaim();
@@ -532,8 +555,16 @@ function ForgotPassword() {
   );
 }
 
-/** /entrar: e-mail e senha ou Google. `next` é a página para onde voltar depois. */
-export function SignInScreen({ next, loginError }: { next: string; loginError: boolean }) {
+/** /entrar: e-mail e senha ou Google. `next` é a página para onde voltar depois. Recomeça a cada visita nova (`Fresh`). */
+export function SignInScreen(props: { next: string; loginError: boolean }) {
+  return (
+    <Fresh>
+      <SignInScreenBody {...props} />
+    </Fresh>
+  );
+}
+
+function SignInScreenBody({ next, loginError }: { next: string; loginError: boolean }) {
   const t = useTranslations("auth");
   const [forgot, setForgot] = useState(false);
   return (
