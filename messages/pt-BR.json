@@ -130,9 +130,16 @@
     "emailSent": {
       "title": "Confira seu e-mail",
       "confirm": "Enviamos um link de confirmação para:",
+      "unconfirmed": "Falta confirmar seu e-mail. Enviamos um novo link de confirmação para:",
       "reset": "Se houver uma conta com este endereço, enviamos um link para criar uma senha nova:",
       "resetHint": "Abra o link neste navegador. Não chegou? Confira o spam.",
       "ok": "Entendi"
+    },
+    "resend": {
+      "button": "Reenviar e-mail",
+      "wait": "Reenviar e-mail em {seconds}s",
+      "sending": "Reenviando…",
+      "sent": "Enviamos de novo. Confira a caixa de entrada e o spam."
     },
     "sendLink": "Enviar link",
     "sending": "Enviando…",

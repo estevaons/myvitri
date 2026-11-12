@@ -91,7 +91,7 @@ O login com e-mail e senha e o recebimento de links por e-mail (confirmar conta 
 1. No Supabase: **Authentication → Providers → Email**: provedor ativado, **Confirm email** ligado e senha mínima de **8 caracteres** (o mesmo valor de `PASSWORD_MIN` em `lib/auth/password.ts`).
 2. No Supabase: **Authentication → URL Configuration**: *Site URL* `http://localhost:3000` e *Redirect URLs* com `http://localhost:3000/auth/callback`. Os links por e-mail só funcionam se o endereço de `/auth/callback` do ambiente estiver nessa lista.
 3. O envio de e-mails do SMTP padrão do Supabase é limitado e serve só para testes. Para uso real, configure um SMTP próprio em **Authentication → Emails**. Os modelos de e-mail (confirmar conta e senha nova) são editados no mesmo lugar e hoje existem só em português; o app não os traduz.
-4. Os links por e-mail usam PKCE: abra-os no mesmo navegador em que a conta foi criada ou a senha foi pedida. Se a confirmação for aberta em outro navegador, o e-mail fica confirmado mas a troca por sessão falha, e a pessoa entra com a senha em `/entrar`.
+4. Os links por e-mail usam PKCE: abra-os no mesmo navegador em que a conta foi criada ou a senha foi pedida. Se a confirmação for aberta em outro navegador, o e-mail fica confirmado mas a troca por sessão falha, e a pessoa entra com a senha em `/entrar`. O modal que avisa do envio tem **Reenviar e-mail**, que espera 60 s (`RESEND_AFTER_SECONDS` em `lib/auth/email.ts`, o intervalo mínimo padrão do Supabase Auth entre e-mails para o mesmo endereço). Quem tenta entrar em `/entrar` com a conta ainda não confirmada recebe o link de novo e vê o mesmo modal.
 
 **Google**
 

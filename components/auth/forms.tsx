@@ -1,9 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useEffect, useRef, useState, type ComponentProps, type ReactNode, type Ref } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition, type ComponentProps, type ReactNode, type Ref } from "react";
 import { useFormStatus } from "react-dom";
-import { claimAction, createVitrineAction, requestPasswordResetAction, signInAction, signInWithPasswordAction, updatePasswordAction, type FormState } from "@/app/actions";
+import {
+  claimAction,
+  createVitrineAction,
+  requestPasswordResetAction,
+  resendConfirmationAction,
+  signInAction,
+  signInWithPasswordAction,
+  updatePasswordAction,
+  type FormState,
+} from "@/app/actions";
+import { RESEND_AFTER_SECONDS } from "@/lib/auth/email";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { AuthPhoto } from "@/components/auth/AuthPhoto";
@@ -208,6 +218,55 @@ function ErrorText({ children }: { children?: string }) {
 }
 
 /**
+ * "Reenviar e-mail" do link de confirmação. O botão só libera `RESEND_AFTER_SECONDS` depois de montar (o modal o
+ * monta a cada envio, com `key` no `sentAt`) e mostra a contagem; cada reenvio a reinicia. A contagem usa um prazo
+ * fixo em vez de descontar 1 por tique, para não atrasar se a aba ficar em segundo plano.
+ */
+function ResendConfirmation({ email }: { email: string }) {
+  const t = useTranslations("auth.resend");
+  const [left, setLeft] = useState(RESEND_AFTER_SECONDS);
+  const [result, setResult] = useState<{ sent?: boolean; error?: string }>({});
+  const [pending, startTransition] = useTransition();
+  const deadline = useRef(0);
+
+  useEffect(() => {
+    deadline.current = Date.now() + RESEND_AFTER_SECONDS * 1000;
+  }, []);
+
+  useEffect(() => {
+    if (left <= 0) return;
+    const id = setInterval(() => setLeft(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000))), 500);
+    return () => clearInterval(id);
+  }, [left]);
+
+  const resend = () =>
+    startTransition(async () => {
+      const res = await resendConfirmationAction(email);
+      setResult(res.error ? { error: res.error } : { sent: true });
+      if (!res.error) {
+        deadline.current = Date.now() + RESEND_AFTER_SECONDS * 1000;
+        setLeft(RESEND_AFTER_SECONDS);
+      }
+    });
+
+  return (
+    <div className="flex w-full flex-col items-center gap-2">
+      <button
+        type="button"
+        onClick={resend}
+        disabled={pending || left > 0}
+        className={`${secondary} w-full disabled:cursor-default disabled:text-mute disabled:hover:border-sand`}
+      >
+        {pending ? t("sending") : left > 0 ? t("wait", { seconds: left }) : t("button")}
+      </button>
+      <p aria-live="polite" className={`m-0 text-center text-[13px] leading-snug ${result.error ? "font-semibold text-[#A3361B]" : "text-mute"}`}>
+        {result.error ?? (result.sent ? t("sent") : null)}
+      </p>
+    </div>
+  );
+}
+
+/**
  * Deu certo e agora é com o e-mail da pessoa: modal com o endereço em destaque. Um <dialog> nativo (Esc ou
  * clique no fundo fecham, o foco fica dentro). Abre a cada envio, mesmo que o e-mail seja o mesmo (`state` muda).
  */
@@ -237,16 +296,16 @@ function EmailSentDialog({ state }: { state: FormState }) {
           <h2 id="titulo-email-enviado" className="m-0 font-display text-[28px] leading-none font-normal whitespace-nowrap sm:text-[34px]">
             {t("title")}
           </h2>
-          <p className="m-0 text-[16px] leading-relaxed text-mute">{t(kind)}</p>
+          <p className="m-0 text-[16px] leading-relaxed text-mute">{t(state.unconfirmed ? "unconfirmed" : kind)}</p>
           {/* o endereço numa linha própria: quebra só se não couber, e nunca no meio da frase */}
           <p className="m-0 max-w-full bg-cream px-3 py-2 text-[15px] font-medium text-ink [overflow-wrap:anywhere]">{state.email}</p>
         </div>
-        {kind === "reset" && <p className="m-0 text-[14px] leading-snug text-mute">{t("resetHint")}</p>}
-        <form method="dialog" className="w-full">
-          <button type="submit" autoFocus className={`${submit} w-full`}>
-            {t("ok")}
-          </button>
-        </form>
+        <p className="m-0 text-[14px] leading-snug text-mute">{t("resetHint")}</p>
+        {kind === "confirm" && state.email && <ResendConfirmation key={state.sentAt} email={state.email} />}
+        {/* botão comum, não <form method="dialog">: o modal fica dentro do formulário da tela, e form não pode conter form */}
+        <button type="button" autoFocus onClick={() => ref.current?.close()} className={`${submit} w-full`}>
+          {t("ok")}
+        </button>
       </div>
     </dialog>
   );
@@ -439,6 +498,7 @@ function PasswordSignIn({ next, onForgot }: { next: string; onForgot: () => void
       </button>
       <SubmitButton label={t("signIn")} busy={t("signingIn")} />
       <ErrorText>{state.error}</ErrorText>
+      <EmailSentDialog state={state} />
     </form>
   );
 }

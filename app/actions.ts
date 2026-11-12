@@ -37,8 +37,12 @@ import {
 import { vitrineAddress } from "@/lib/vitrine/links";
 import { emptyContent, pickProfile, vitrineContentSchema, vitrineProfileSchema, type VitrineContent, type VitrineProfile } from "@/lib/vitrine/types";
 
-/** `sent`: o link foi enviado por e-mail (confirmar a conta ou senha nova); a tela mostra o modal de "confira seu e-mail". */
-export type FormState = { error?: string; sent?: "confirm" | "reset"; handle?: string; name?: string; email?: string };
+/**
+ * `sent`: o link foi enviado por e-mail (confirmar a conta ou senha nova); a tela mostra o modal de "confira seu e-mail".
+ * `sentAt`: quando (ms), para cada envio reiniciar a contagem do "Reenviar e-mail". `unconfirmed`: o envio veio de um login
+ * com e-mail ainda não confirmado (o link foi mandado de novo); o modal troca o texto.
+ */
+export type FormState = { error?: string; sent?: "confirm" | "reset"; sentAt?: number; unconfirmed?: boolean; handle?: string; name?: string; email?: string };
 
 /**
  * As mensagens saem no idioma da página que chamou a ação: Server Actions não têm o segmento [locale],
@@ -137,7 +141,13 @@ export async function signInWithPasswordAction(_prev: FormState, form: FormData)
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     if (error.code === "invalid_credentials") return { email, error: t("invalidCredentials") };
-    if (error.code === "email_not_confirmed") return { email, error: t("emailNotConfirmed") };
+    if (error.code === "email_not_confirmed") {
+      // a senha está certa, falta confirmar: manda o link de novo e a tela abre o mesmo modal do cadastro, com a contagem
+      // do "Reenviar e-mail". Bater no limite quer dizer que um link saiu há menos de um minuto: o modal vale do mesmo jeito.
+      const code = await sendConfirmation(email);
+      if (code && !RATE_LIMITS.includes(code)) return { email, error: t("emailNotConfirmed") };
+      return { email, sent: "confirm", sentAt: Date.now(), unconfirmed: true };
+    }
     return { email, error: await authErrorText(error.code) };
   }
   const next = safePath(form.get("next"));
@@ -213,7 +223,30 @@ async function signUpWithEmail(state: FormState & { handle: string; name: string
   if (error) return { ...state, email, error: await authErrorText(error.code) };
   if (data.session) return createAndOpen(state.handle, state.name, state);
   await saveClaim({ handle: state.handle, name: state.name });
-  return { ...state, email, sent: "confirm" };
+  return { ...state, email, sent: "confirm", sentAt: Date.now() };
+}
+
+/**
+ * "Reenviar e-mail" do link de confirmação (modal depois de criar a conta e login de conta não confirmada).
+ * Como no "esqueci minha senha", a resposta não diz se o e-mail tem conta: só aparecem erros que valem para qualquer
+ * endereço (limite de envios, envio bloqueado); o resto conta como enviado.
+ */
+export async function resendConfirmationAction(email: string): Promise<{ error?: string }> {
+  const address = String(email ?? "").trim().toLowerCase();
+  if (!address) return { error: (await errors())("enterEmail") };
+  const code = await sendConfirmation(address);
+  return code ? { error: await authErrorText(code) } : {};
+}
+
+/** Erros de envio de e-mail que valem para qualquer endereço: mostrá-los não revela se a conta existe. */
+const SEND_ERRORS = ["email_address_not_authorized", "over_email_send_rate_limit", "over_request_rate_limit", "email_provider_disabled"];
+const RATE_LIMITS = ["over_email_send_rate_limit", "over_request_rate_limit"];
+
+/** Manda de novo o link de confirmação. Devolve o código de erro só se for um de `SEND_ERRORS`; o resto conta como enviado. */
+async function sendConfirmation(email: string): Promise<string | null> {
+  const { supabase } = await getUser();
+  const { error } = await supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: await callbackUrl() } });
+  return error && SEND_ERRORS.includes(error.code ?? "") ? error.code! : null;
 }
 
 /** Criar vitrine: escolhe o link e cria a conta, com e-mail e senha ou com o Google. Logado, cria direto. */

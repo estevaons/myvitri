@@ -103,9 +103,16 @@
     "emailSent": {
       "title": "Check your email",
       "confirm": "We sent a confirmation link to:",
+      "unconfirmed": "You still need to confirm your email. We sent a new confirmation link to:",
       "reset": "If there's an account for this address, we sent a link to create a new password:",
       "resetHint": "Open it in this browser. Not there? Check your spam.",
       "ok": "Got it"
+    },
+    "resend": {
+      "button": "Resend email",
+      "wait": "Resend email in {seconds}s",
+      "sending": "Resending…",
+      "sent": "Sent again. Check your inbox and spam."
     },
     "sendLink": "Send link",
     "sending": "Sending…",
