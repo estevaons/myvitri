@@ -167,6 +167,7 @@ export async function updatePasswordAction(_prev: FormState, form: FormData): Pr
   const t = await errors();
   const password = String(form.get("password") ?? "");
   if (password.length < PASSWORD_MIN) return { error: t("passwordMin", { min: PASSWORD_MIN }) };
+  if (password !== String(form.get("passwordConfirm") ?? "")) return { error: t("passwordMismatch") };
 
   const { supabase, user } = await getUser();
   if (!user) return { error: t("linkExpired") };
@@ -201,6 +202,7 @@ async function signUpWithEmail(state: FormState & { handle: string; name: string
   const password = String(form.get("password") ?? "");
   if (!email) return { ...state, email, error: t("enterEmail") };
   if (password.length < PASSWORD_MIN) return { ...state, email, error: t("signupPasswordMin", { min: PASSWORD_MIN }) };
+  if (password !== String(form.get("passwordConfirm") ?? "")) return { ...state, email, error: t("passwordMismatch") };
 
   const { supabase } = await getUser();
   const { data, error } = await supabase.auth.signUp({

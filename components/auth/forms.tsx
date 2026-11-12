@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type ComponentProps, type ReactNode, type Ref } from "react";
 import { useFormStatus } from "react-dom";
 import { claimAction, createVitrineAction, requestPasswordResetAction, signInAction, signInWithPasswordAction, updatePasswordAction, type FormState } from "@/app/actions";
 import { BackLink } from "@/components/brand/BackLink";
@@ -65,29 +65,113 @@ function EmailField({ value }: { value?: string }) {
   );
 }
 
+function EyeIcon({ open }: { open: boolean }) {
+  return (
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {!open && <path d="M4 4l16 16" />}
+    </svg>
+  );
+}
+
+/**
+ * Campo de senha com o "olhinho": o botão alterna entre esconder e mostrar o que foi digitado.
+ * É `type="button"` para não enviar o formulário, e o contorno de foco vale para o conjunto, como no campo do link.
+ */
+function PasswordInput({ inputRef, describedBy, ...props }: ComponentProps<"input"> & { inputRef?: Ref<HTMLInputElement>; describedBy?: string }) {
+  const t = useTranslations("auth");
+  const [visible, setVisible] = useState(false);
+  return (
+    <span className={`${field} gap-2 pr-1 focus-within:border-ink`}>
+      <input
+        {...props}
+        ref={inputRef}
+        type={visible ? "text" : "password"}
+        aria-describedby={describedBy}
+        autoCapitalize="none"
+        spellCheck={false}
+        className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink outline-none placeholder:text-mute"
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? t("hidePassword") : t("showPassword")}
+        aria-pressed={visible}
+        className="flex size-10 flex-none cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-mute hover:text-ink"
+      >
+        <EyeIcon open={!visible} />
+      </button>
+    </span>
+  );
+}
+
 function PasswordField({ title, isNew = false }: { title?: string; isNew?: boolean }) {
   const t = useTranslations("auth");
   return (
     <label className={label}>
       {title ?? t("password")}
-      <input
+      <PasswordInput
         name="password"
-        type="password"
         autoComplete={isNew ? "new-password" : "current-password"}
         minLength={isNew ? PASSWORD_MIN : undefined}
         placeholder={isNew ? t("passwordMin", { min: PASSWORD_MIN }) : undefined}
-        className={field}
       />
     </label>
   );
 }
 
-function OrDivider() {
+/**
+ * Repetir a senha nova. Enquanto a pessoa digita, avisa se não bate com o campo `password` do mesmo formulário
+ * (só depois de começar a digitar aqui). Não usa validação nativa para não travar o botão do Google, que envia
+ * o mesmo formulário; quem confere de verdade é a ação (`passwordConfirm`).
+ */
+function ConfirmPasswordField() {
+  const t = useTranslations("auth");
+  const ref = useRef<HTMLInputElement>(null);
+  const [mismatch, setMismatch] = useState(false);
+  useEffect(() => {
+    const input = ref.current;
+    const form = input?.form;
+    if (!input || !form) return;
+    const check = () => {
+      const password = form.elements.namedItem("password");
+      setMismatch(input.value !== "" && password instanceof HTMLInputElement && password.value !== input.value);
+    };
+    const clear = () => setMismatch(false);
+    form.addEventListener("input", check);
+    form.addEventListener("reset", clear);
+    return () => {
+      form.removeEventListener("input", check);
+      form.removeEventListener("reset", clear);
+    };
+  }, []);
+  return (
+    <label className={label}>
+      {t("confirmPassword")}
+      <PasswordInput
+        inputRef={ref}
+        name="passwordConfirm"
+        autoComplete="new-password"
+        placeholder={t("confirmPlaceholder")}
+        aria-invalid={mismatch || undefined}
+        describedBy={mismatch ? "senha-diferente" : undefined}
+      />
+      {mismatch && (
+        <span id="senha-diferente" className="text-[13px] font-normal text-[#A3361B]">
+          {t("passwordMismatch")}
+        </span>
+      )}
+    </label>
+  );
+}
+
+function OrDivider({ text }: { text?: string }) {
   const t = useTranslations("auth");
   return (
     <div className="flex items-center gap-3 text-[13px] text-mute">
       <span aria-hidden="true" className="h-px flex-1 bg-sand" />
-      {t("or")}
+      {text ?? t("or")}
       <span aria-hidden="true" className="h-px flex-1 bg-sand" />
     </div>
   );
@@ -270,9 +354,11 @@ function AuthTitle({ title, text }: { title: string; text: string }) {
 }
 
 /**
- * Criar conta: nome + link e, depois, e-mail e senha ou Google.
+ * Criar conta em dois blocos: primeiro nome + link (o que todo mundo preenche) e, separado por um título,
+ * como entrar: o Google em cima (não pede mais nada) e, abaixo de "ou com e-mail e senha", os campos de e-mail.
  * Os dois botões enviam o mesmo formulário: e-mail e senha não têm `required` para o do Google poder seguir
- * sem eles (a ação confere). O de e-mail vem primeiro porque é o que o Enter aciona.
+ * sem eles (a ação confere). Como o Google vem antes, o Enter num campo enviaria por ele; por isso o
+ * `onKeyDown` manda o Enter para o botão de e-mail, como antes.
  */
 export function SignupForm() {
   const t = useTranslations("auth");
@@ -280,18 +366,35 @@ export function SignupForm() {
   const claim = useClaim();
   return (
     <AuthShell>
-      <form action={action} className="flex flex-col gap-3">
+      <form
+        action={action}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" || e.nativeEvent.isComposing || !(e.target instanceof HTMLInputElement)) return;
+          e.preventDefault();
+          e.currentTarget.requestSubmit(e.currentTarget.querySelector<HTMLButtonElement>('button[name="via"][value="email"]'));
+        }}
+        className="flex flex-col gap-3"
+      >
         <AuthTitle title={t("signup.title")} text={t("signup.text")} />
         <div className={box}>
           <ClaimFields claim={claim} />
+        </div>
+        <section aria-labelledby="titulo-acesso" className={`${box} mt-5 border-t border-sand pt-7`}>
+          <div className="flex flex-col gap-1">
+            <h2 id="titulo-acesso" className="m-0 text-[15px] font-medium text-ink">
+              {t("signup.accessTitle")}
+            </h2>
+            <p className="m-0 text-[13px] text-mute">{t("signup.accessText")}</p>
+          </div>
+          <GoogleButton label={t("signup.google")} />
+          <OrDivider text={t("signup.orEmail")} />
           <EmailField value={state.email} />
           <PasswordField isNew />
+          <ConfirmPasswordField />
           <SubmitButton label={t("signup.submit")} busy={t("creating")} via="email" />
           <ErrorText>{state.error}</ErrorText>
           <EmailSentDialog state={state} />
-          <OrDivider />
-          <GoogleButton label={t("signup.google")} />
-        </div>
+        </section>
         <Consent />
       </form>
       <p className="m-0 text-center text-[15px] text-mute">
@@ -404,6 +507,7 @@ export function NewPasswordScreen() {
       <AuthTitle title={t("newPassword.title")} text={t("newPassword.text")} />
       <form action={action} className={box}>
         <PasswordField title={t("newPassword.field")} isNew />
+        <ConfirmPasswordField />
         <SubmitButton label={t("newPassword.submit")} busy={t("saving")} />
         <ErrorText>{state.error}</ErrorText>
       </form>
