@@ -1,9 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useActionState, useEffect, useRef, useState, useTransition, type ComponentProps, type ReactNode, type Ref } from "react";
 import { useFormStatus } from "react-dom";
-import { claimAction, createVitrineAction, requestPasswordResetAction, signInAction, signInWithPasswordAction, updatePasswordAction, type FormState } from "@/app/actions";
+import {
+  claimAction,
+  createVitrineAction,
+  requestPasswordResetAction,
+  resendConfirmationAction,
+  signInAction,
+  signInWithPasswordAction,
+  updatePasswordAction,
+  type FormState,
+} from "@/app/actions";
+import { RESEND_AFTER_SECONDS } from "@/lib/auth/email";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { AuthPhoto } from "@/components/auth/AuthPhoto";
@@ -65,29 +75,113 @@ function EmailField({ value }: { value?: string }) {
   );
 }
 
+function EyeIcon({ open }: { open: boolean }) {
+  return (
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {!open && <path d="M4 4l16 16" />}
+    </svg>
+  );
+}
+
+/**
+ * Campo de senha com o "olhinho": o botão alterna entre esconder e mostrar o que foi digitado.
+ * É `type="button"` para não enviar o formulário, e o contorno de foco vale para o conjunto, como no campo do link.
+ */
+function PasswordInput({ inputRef, describedBy, ...props }: ComponentProps<"input"> & { inputRef?: Ref<HTMLInputElement>; describedBy?: string }) {
+  const t = useTranslations("auth");
+  const [visible, setVisible] = useState(false);
+  return (
+    <span className={`${field} gap-2 pr-1 focus-within:border-ink`}>
+      <input
+        {...props}
+        ref={inputRef}
+        type={visible ? "text" : "password"}
+        aria-describedby={describedBy}
+        autoCapitalize="none"
+        spellCheck={false}
+        className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink outline-none placeholder:text-mute"
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? t("hidePassword") : t("showPassword")}
+        aria-pressed={visible}
+        className="flex size-10 flex-none cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-mute hover:text-ink"
+      >
+        <EyeIcon open={!visible} />
+      </button>
+    </span>
+  );
+}
+
 function PasswordField({ title, isNew = false }: { title?: string; isNew?: boolean }) {
   const t = useTranslations("auth");
   return (
     <label className={label}>
       {title ?? t("password")}
-      <input
+      <PasswordInput
         name="password"
-        type="password"
         autoComplete={isNew ? "new-password" : "current-password"}
         minLength={isNew ? PASSWORD_MIN : undefined}
         placeholder={isNew ? t("passwordMin", { min: PASSWORD_MIN }) : undefined}
-        className={field}
       />
     </label>
   );
 }
 
-function OrDivider() {
+/**
+ * Repetir a senha nova. Enquanto a pessoa digita, avisa se não bate com o campo `password` do mesmo formulário
+ * (só depois de começar a digitar aqui). Não usa validação nativa para não travar o botão do Google, que envia
+ * o mesmo formulário; quem confere de verdade é a ação (`passwordConfirm`).
+ */
+function ConfirmPasswordField() {
+  const t = useTranslations("auth");
+  const ref = useRef<HTMLInputElement>(null);
+  const [mismatch, setMismatch] = useState(false);
+  useEffect(() => {
+    const input = ref.current;
+    const form = input?.form;
+    if (!input || !form) return;
+    const check = () => {
+      const password = form.elements.namedItem("password");
+      setMismatch(input.value !== "" && password instanceof HTMLInputElement && password.value !== input.value);
+    };
+    const clear = () => setMismatch(false);
+    form.addEventListener("input", check);
+    form.addEventListener("reset", clear);
+    return () => {
+      form.removeEventListener("input", check);
+      form.removeEventListener("reset", clear);
+    };
+  }, []);
+  return (
+    <label className={label}>
+      {t("confirmPassword")}
+      <PasswordInput
+        inputRef={ref}
+        name="passwordConfirm"
+        autoComplete="new-password"
+        placeholder={t("confirmPlaceholder")}
+        aria-invalid={mismatch || undefined}
+        describedBy={mismatch ? "senha-diferente" : undefined}
+      />
+      {mismatch && (
+        <span id="senha-diferente" className="text-[13px] font-normal text-[#A3361B]">
+          {t("passwordMismatch")}
+        </span>
+      )}
+    </label>
+  );
+}
+
+function OrDivider({ text }: { text?: string }) {
   const t = useTranslations("auth");
   return (
     <div className="flex items-center gap-3 text-[13px] text-mute">
       <span aria-hidden="true" className="h-px flex-1 bg-sand" />
-      {t("or")}
+      {text ?? t("or")}
       <span aria-hidden="true" className="h-px flex-1 bg-sand" />
     </div>
   );
@@ -124,15 +218,69 @@ function ErrorText({ children }: { children?: string }) {
 }
 
 /**
+ * "Reenviar e-mail" do link de confirmação. O botão só libera `RESEND_AFTER_SECONDS` depois de montar (o modal o
+ * monta a cada envio, com `key` no `sentAt`) e mostra a contagem; cada reenvio a reinicia. A contagem usa um prazo
+ * fixo em vez de descontar 1 por tique, para não atrasar se a aba ficar em segundo plano.
+ */
+function ResendConfirmation({ email }: { email: string }) {
+  const t = useTranslations("auth.resend");
+  const [left, setLeft] = useState(RESEND_AFTER_SECONDS);
+  const [result, setResult] = useState<{ sent?: boolean; error?: string }>({});
+  const [pending, startTransition] = useTransition();
+  const deadline = useRef(0);
+
+  useEffect(() => {
+    deadline.current = Date.now() + RESEND_AFTER_SECONDS * 1000;
+  }, []);
+
+  useEffect(() => {
+    if (left <= 0) return;
+    const id = setInterval(() => setLeft(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000))), 500);
+    return () => clearInterval(id);
+  }, [left]);
+
+  const resend = () =>
+    startTransition(async () => {
+      const res = await resendConfirmationAction(email);
+      setResult(res.error ? { error: res.error } : { sent: true });
+      if (!res.error) {
+        deadline.current = Date.now() + RESEND_AFTER_SECONDS * 1000;
+        setLeft(RESEND_AFTER_SECONDS);
+      }
+    });
+
+  return (
+    <div className="flex w-full flex-col items-center gap-2">
+      <button
+        type="button"
+        onClick={resend}
+        disabled={pending || left > 0}
+        className={`${secondary} w-full disabled:cursor-default disabled:text-mute disabled:hover:border-sand`}
+      >
+        {pending ? t("sending") : left > 0 ? t("wait", { seconds: left }) : t("button")}
+      </button>
+      <p aria-live="polite" className={`m-0 text-center text-[13px] leading-snug ${result.error ? "font-semibold text-[#A3361B]" : "text-mute"}`}>
+        {result.error ?? (result.sent ? t("sent") : null)}
+      </p>
+    </div>
+  );
+}
+
+/**
  * Deu certo e agora é com o e-mail da pessoa: modal com o endereço em destaque. Um <dialog> nativo (Esc ou
  * clique no fundo fecham, o foco fica dentro). Abre a cada envio, mesmo que o e-mail seja o mesmo (`state` muda).
+ * A limpeza do Effect fecha o modal quando a página sai de cena: com `cacheComponents` ela fica escondida (React
+ * <Activity>) em vez de desmontar, e um modal aberto ali deixaria o resto do documento inerte. Quem impede o modal de
+ * reabrir ao voltar para a tela é o `key={bfcacheId}` das telas (`SignInScreen`, `SignupForm`).
  */
 function EmailSentDialog({ state }: { state: FormState }) {
   const t = useTranslations("auth.emailSent");
   const ref = useRef<HTMLDialogElement>(null);
   const kind = state.sent;
   useEffect(() => {
-    if (kind) ref.current?.showModal();
+    const dialog = ref.current;
+    if (kind) dialog?.showModal();
+    return () => dialog?.close();
   }, [state, kind]);
   if (!kind) return null;
   return (
@@ -153,16 +301,16 @@ function EmailSentDialog({ state }: { state: FormState }) {
           <h2 id="titulo-email-enviado" className="m-0 font-display text-[28px] leading-none font-normal whitespace-nowrap sm:text-[34px]">
             {t("title")}
           </h2>
-          <p className="m-0 text-[16px] leading-relaxed text-mute">{t(kind)}</p>
+          <p className="m-0 text-[16px] leading-relaxed text-mute">{t(state.unconfirmed ? "unconfirmed" : kind)}</p>
           {/* o endereço numa linha própria: quebra só se não couber, e nunca no meio da frase */}
           <p className="m-0 max-w-full bg-cream px-3 py-2 text-[15px] font-medium text-ink [overflow-wrap:anywhere]">{state.email}</p>
         </div>
-        {kind === "reset" && <p className="m-0 text-[14px] leading-snug text-mute">{t("resetHint")}</p>}
-        <form method="dialog" className="w-full">
-          <button type="submit" autoFocus className={`${submit} w-full`}>
-            {t("ok")}
-          </button>
-        </form>
+        <p className="m-0 text-[14px] leading-snug text-mute">{t("resetHint")}</p>
+        {kind === "confirm" && state.email && <ResendConfirmation key={state.sentAt} email={state.email} />}
+        {/* botão comum, não <form method="dialog">: o modal fica dentro do formulário da tela, e form não pode conter form */}
+        <button type="button" autoFocus onClick={() => ref.current?.close()} className={`${submit} w-full`}>
+          {t("ok")}
+        </button>
       </div>
     </dialog>
   );
@@ -270,28 +418,65 @@ function AuthTitle({ title, text }: { title: string; text: string }) {
 }
 
 /**
- * Criar conta: nome + link e, depois, e-mail e senha ou Google.
+ * Criar conta em dois blocos: primeiro nome + link (o que todo mundo preenche) e, separado por um título,
+ * como entrar: o Google em cima (não pede mais nada) e, abaixo de "ou com e-mail e senha", os campos de e-mail.
  * Os dois botões enviam o mesmo formulário: e-mail e senha não têm `required` para o do Google poder seguir
- * sem eles (a ação confere). O de e-mail vem primeiro porque é o que o Enter aciona.
+ * sem eles (a ação confere). Como o Google vem antes, o Enter num campo enviaria por ele; por isso o
+ * `onKeyDown` manda o Enter para o botão de e-mail, como antes.
  */
 export function SignupForm() {
+  return (
+    <Fresh>
+      <SignupFormBody />
+    </Fresh>
+  );
+}
+
+/**
+ * Com `cacheComponents` a tela não desmonta ao sair (React <Activity>) e voltaria com o resultado do último envio
+ * (modal de "confira seu e-mail", erro). O `key={bfcacheId}` recomeça a tela a cada visita nova (clique num link,
+ * `router.push`) e mantém o estado só no voltar/avançar do navegador.
+ */
+function Fresh({ children }: { children: ReactNode }) {
+  const { bfcacheId } = useRouter();
+  return <Fragment key={bfcacheId}>{children}</Fragment>;
+}
+
+function SignupFormBody() {
   const t = useTranslations("auth");
   const [state, action] = useActionState<FormState, FormData>(claimAction, {});
   const claim = useClaim();
   return (
     <AuthShell>
-      <form action={action} className="flex flex-col gap-3">
+      <form
+        action={action}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" || e.nativeEvent.isComposing || !(e.target instanceof HTMLInputElement)) return;
+          e.preventDefault();
+          e.currentTarget.requestSubmit(e.currentTarget.querySelector<HTMLButtonElement>('button[name="via"][value="email"]'));
+        }}
+        className="flex flex-col gap-3"
+      >
         <AuthTitle title={t("signup.title")} text={t("signup.text")} />
         <div className={box}>
           <ClaimFields claim={claim} />
+        </div>
+        <section aria-labelledby="titulo-acesso" className={`${box} mt-5 border-t border-sand pt-7`}>
+          <div className="flex flex-col gap-1">
+            <h2 id="titulo-acesso" className="m-0 text-[15px] font-medium text-ink">
+              {t("signup.accessTitle")}
+            </h2>
+            <p className="m-0 text-[13px] text-mute">{t("signup.accessText")}</p>
+          </div>
+          <GoogleButton label={t("signup.google")} />
+          <OrDivider text={t("signup.orEmail")} />
           <EmailField value={state.email} />
           <PasswordField isNew />
+          <ConfirmPasswordField />
           <SubmitButton label={t("signup.submit")} busy={t("creating")} via="email" />
           <ErrorText>{state.error}</ErrorText>
           <EmailSentDialog state={state} />
-          <OrDivider />
-          <GoogleButton label={t("signup.google")} />
-        </div>
+        </section>
         <Consent />
       </form>
       <p className="m-0 text-center text-[15px] text-mute">
@@ -336,6 +521,7 @@ function PasswordSignIn({ next, onForgot }: { next: string; onForgot: () => void
       </button>
       <SubmitButton label={t("signIn")} busy={t("signingIn")} />
       <ErrorText>{state.error}</ErrorText>
+      <EmailSentDialog state={state} />
     </form>
   );
 }
@@ -369,8 +555,16 @@ function ForgotPassword() {
   );
 }
 
-/** /entrar: e-mail e senha ou Google. `next` é a página para onde voltar depois. */
-export function SignInScreen({ next, loginError }: { next: string; loginError: boolean }) {
+/** /entrar: e-mail e senha ou Google. `next` é a página para onde voltar depois. Recomeça a cada visita nova (`Fresh`). */
+export function SignInScreen(props: { next: string; loginError: boolean }) {
+  return (
+    <Fresh>
+      <SignInScreenBody {...props} />
+    </Fresh>
+  );
+}
+
+function SignInScreenBody({ next, loginError }: { next: string; loginError: boolean }) {
   const t = useTranslations("auth");
   const [forgot, setForgot] = useState(false);
   return (
@@ -404,6 +598,7 @@ export function NewPasswordScreen() {
       <AuthTitle title={t("newPassword.title")} text={t("newPassword.text")} />
       <form action={action} className={box}>
         <PasswordField title={t("newPassword.field")} isNew />
+        <ConfirmPasswordField />
         <SubmitButton label={t("newPassword.submit")} busy={t("saving")} />
         <ErrorText>{state.error}</ErrorText>
       </form>

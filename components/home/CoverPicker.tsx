@@ -13,7 +13,7 @@ import { CoverLetter } from "./CreatorCard";
 const action = "flex min-h-9 cursor-pointer items-center border-0 bg-transparent p-0 text-[13px] text-mute underline-offset-4 hover:text-ink hover:underline has-focus-visible:text-ink has-focus-visible:underline";
 
 /**
- * A capa da vitrine, na home: opcional e salva na hora, sem passar pela publicação do editor. Sem capa, um convite para enviar;
+ * A capa da vitrine, no painel Perfil do editor: opcional e salva na hora, sem passar pela publicação. Sem capa, um convite para enviar;
  * com capa, `children` é a foto, e trocar e remover ficam abaixo dela, para não cobri-la.
  */
 export function CoverPicker({ hasCover, name, children }: { hasCover: boolean; name: string; children: ReactNode }) {

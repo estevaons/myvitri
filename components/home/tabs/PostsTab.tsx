@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getFormatter, getTranslations } from "next-intl/server";
 import { getPostCatalog, queryPosts } from "@/lib/vitrine/catalog/posts";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
 import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore } from "../catalog/ui";
@@ -11,7 +11,9 @@ const FILTERS = ["category", "creator"] as const;
  * Os dados vêm de um cache só; filtro e "Ver mais" são feitos aqui, a partir da URL.
  */
 export async function PostsTab({ params }: { params: TabParams }) {
-  const [{ posts, categories, creators }, t, tCount] = await Promise.all([getPostCatalog(), getTranslations("catalog"), getTranslations("counts")]);
+  const [{ posts, categories, creators }, t, tCount, format] = await Promise.all([getPostCatalog(), getTranslations("catalog"), getTranslations("counts"), getFormatter()]);
+  // a home é montada por requisição (connection() na página), então "agora" é a hora desta visita
+  const now = new Date();
   const shown = queryPosts(posts, params);
   const limit = limitOf(params);
   const filtered = FILTERS.some((f) => params[f]);
@@ -20,7 +22,6 @@ export async function PostsTab({ params }: { params: TabParams }) {
   return (
     <CatalogFrame
       title={t("posts.title")}
-      text={t("posts.text")}
       filters={
         <>
           <FilterChips label={t("filters.category")} param="category" options={categories} params={params} />
@@ -35,7 +36,7 @@ export async function PostsTab({ params }: { params: TabParams }) {
           <ul className={`m-0 list-none p-0 ${catalogGrid}`}>
             {shown.slice(0, limit).map((p) => (
               <li key={p.id} className="min-w-0">
-                <PostCard p={p} />
+                <PostCard p={p} when={format.relativeTime(new Date(p.publishedAt), now)} />
               </li>
             ))}
           </ul>

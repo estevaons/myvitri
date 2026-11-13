@@ -5,12 +5,13 @@ import { Suspense } from "react";
 import { flatParams, tabOf } from "@/components/home/catalog/params";
 import { IdentifyUser } from "@/components/analytics/IdentifyUser";
 import { HomeSkeleton } from "@/components/home/HomeSkeleton";
-import { HomeView, type ForYou } from "@/components/home/HomeView";
+import { HomeView } from "@/components/home/HomeView";
+import { WEEK, type WeekStats } from "@/components/home/ProfileHeader";
+import type { Stats } from "@/components/metrics/stats";
 import { redirect } from "@/lib/i18n/navigation";
 import { needsOnboarding, recordingConsent } from "@/lib/onboarding/store";
 import { accountOf } from "@/lib/vitrine/account";
-import { getHomeFeed, getRecentPosts, getTopCreators, type HomeCreator, type HomePost } from "@/lib/vitrine/data";
-import { findMineContent, findMineSummary, listFavoriteHandles } from "@/lib/vitrine/store";
+import { findMineSummary, listFavoriteHandles, type Db } from "@/lib/vitrine/store";
 import { getUser } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,25 +19,18 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title"), robots: { index: false } };
 }
 
-const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? "";
-
-/** Sem banco (ou sem a migração do ranking e dos posts) a home ainda abre, só sem os carrosséis. */
-const orEmpty =
-  <T,>(label: string) =>
-  (e: unknown): T[] => {
-    console.error(label, e);
-    return [];
-  };
-
 /**
- * Vitrines do dia pelo ranking de cliques; enquanto ninguém clicou em nada hoje, as vitrines
- * publicadas mais recentes, com outro título.
+ * Os números do topo, pela mesma RPC da página de métricas (`vitrine_stats`, que acha a vitrine pela sessão).
+ * Se ela falhar, o topo mostra só o link para as métricas, sem os números.
  */
-async function loadCreators(): Promise<{ ranked: boolean; creators: HomeCreator[] }> {
-  const top = await getTopCreators().catch(orEmpty<HomeCreator>("getTopCreators"));
-  if (top.length) return { ranked: true, creators: top };
-  const feed = await getHomeFeed().catch(() => null);
-  return { ranked: false, creators: feed?.creators ?? [] };
+async function loadWeek(db: Db): Promise<WeekStats | null> {
+  const { data, error } = await db.rpc("vitrine_stats", { days: WEEK });
+  if (error || !data) {
+    if (error) console.error("vitrine_stats", error);
+    return null;
+  }
+  const { totals } = data as unknown as Stats;
+  return { views: totals.view ?? 0, clicks: totals.buy ?? 0, copied: totals.copy ?? 0 };
 }
 
 /**
@@ -48,34 +42,30 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, 
   await connection();
   const params = flatParams(await searchParams);
   const tab = tabOf(params);
-  const forYouTab = tab === "for-you";
-  // os carrosséis (em cache, sem sessão) só são lidos na aba "Para você" e já começam antes da sessão
-  const rows = forYouTab ? Promise.all([loadCreators(), getRecentPosts().catch(orEmpty<HomePost>("getRecentPosts"))]) : null;
 
   const { supabase, user } = await getUser();
   // o proxy já manda quem não entrou para a landing; isto cobre a sessão que cai entre ele e esta leitura
   if (!user) return redirect({ href: "/", locale: await getLocale() });
   // quem acabou de criar a conta responde o onboarding antes (volta para cá depois)
   if (await needsOnboarding(supabase, user.id)) return redirect({ href: { pathname: "/boas-vindas", query: { next: "/inicio" } }, locale: await getLocale() });
-  const recording = await recordingConsent(supabase, user.id);
 
-  // a vitrine completa só na aba "Para você"; nas outras basta o nome, o endereço e a foto do cabeçalho.
-  // Só as abas com o coração precisam saber as favoritas.
-  const [content, summary, forYouRows, favorites] = await Promise.all([
-    forYouTab ? findMineContent(supabase, user.id) : null,
-    forYouTab ? null : findMineSummary(supabase, user.id),
-    rows,
-    forYouTab || tab === "storefronts" || tab === "saved" ? listFavoriteHandles(supabase, user.id).catch(orEmpty<string>("listFavoriteHandles")) : [],
+  // só as abas com o coração precisam saber as favoritas; os números só aparecem para quem tem vitrine
+  const [recording, vitrine, favorites, week] = await Promise.all([
+    recordingConsent(supabase, user.id),
+    findMineSummary(supabase, user.id),
+    tab === "saved" || tab === "storefronts"
+      ? listFavoriteHandles(supabase, user.id).catch((e: unknown) => {
+          console.error("listFavoriteHandles", e);
+          return [];
+        })
+      : [],
+    loadWeek(supabase),
   ]);
-  const vitrine = content ?? summary;
-  const meta = user.user_metadata as { name?: string };
-  const name = firstName(vitrine?.name || meta.name || "") || user.email?.split("@")[0] || "";
 
-  const forYou: ForYou | null = forYouRows && { vitrine: content, ranked: forYouRows[0].ranked, creators: forYouRows[0].creators, posts: forYouRows[1] };
   return (
     <>
       <IdentifyUser id={user.id} recording={recording} />
-      <HomeView name={name} account={accountOf(user, vitrine)} tab={tab} params={params} forYou={forYou} favorites={favorites} />
+      <HomeView account={accountOf(user, vitrine)} stats={vitrine ? week : null} tab={tab} params={params} favorites={favorites} />
     </>
   );
 }

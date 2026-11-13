@@ -11,13 +11,12 @@ import {
   listFeed,
   listFeedByHandles,
   listHandles,
-  listRecentPosts,
   searchCatalog,
   topCreatorsToday,
   type FeedVitrine,
 } from "./store";
 import type { CommentList, VitrineComment } from "./social";
-import { postItems, type Coupon, type Product, type VitrineContent } from "./types";
+import type { Coupon, Product, VitrineContent } from "./types";
 
 export const vitrineTag = (handle: string) => `vitrine:${handle}`;
 /** Invalidado junto com a vitrine ao publicar: a home mostra o que acabou de entrar. */
@@ -184,9 +183,6 @@ export async function getHomeFeed(): Promise<HomeFeed> {
   };
 }
 
-/** A vitrine de quem entrou no formato dos cards da home, mesmo sem nada ativo ainda. Sem cache: vem da leitura com a sessão. */
-export const summarizeVitrine = (v: FeedVitrine): HomeCreator => toHomeCreator(live(v, todayISO()));
-
 /** Creators com mais cliques hoje, no formato dos cards da home. Vazio enquanto ninguém clicou em nada no dia. */
 export async function getTopCreators(): Promise<HomeCreator[]> {
   "use cache";
@@ -199,25 +195,23 @@ export async function getTopCreators(): Promise<HomeCreator[]> {
   return liveFeed(await listFeedByHandles(db, handles), todayISO()).map(toHomeCreator);
 }
 
-export type HomePost = By & { id: string; photoUrl: string; caption: string; items: Product[] };
-
-/** Últimos posts publicados. Posts sem nenhuma peça à venda ficam de fora. */
-export async function getRecentPosts(): Promise<HomePost[]> {
-  "use cache";
-  cacheTag(HOME_TAG);
-  cacheLife("hours");
-
-  return (await listRecentPosts(createPublicSupabase(), 12))
-    .map(({ post, handle, creator, products }): HomePost => ({
-      handle,
-      creator,
-      id: post.id,
-      photoUrl: post.photoUrl,
-      caption: post.caption,
-      items: postItems(post, products.filter((p) => !p.soldOut)),
-    }))
-    .filter((p) => p.items.length > 0);
+/**
+ * As "Vitrines do dia" da home logada (destaque da aba Vitrines e sugestões da Favoritas vazia): o ranking de
+ * cliques de hoje (`ranked`); enquanto ninguém clicou em nada no dia, as vitrines publicadas mais recentes. Sem
+ * banco (ou sem a migração do ranking), volta vazio e a aba abre sem o destaque.
+ */
+export async function getDailyCreators(): Promise<{ ranked: boolean; creators: HomeCreator[] }> {
+  const top = await getTopCreators().catch((e) => {
+    console.error("getTopCreators", e);
+    return [];
+  });
+  if (top.length) return { ranked: true, creators: top };
+  const feed = await getHomeFeed().catch(() => null);
+  return { ranked: false, creators: feed?.creators ?? [] };
 }
+
+/** Outfit no formato do card da home (aba Outfits): a foto, as peças à venda e quem postou. */
+export type HomePost = By & { id: string; photoUrl: string; caption: string; items: Product[] };
 
 export type SearchCreator = { handle: string; name: string; avatarUrl: string };
 export type SearchResults = { creators: SearchCreator[]; brands: HomeBrand[]; products: HomeProduct[] };

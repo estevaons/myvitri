@@ -51,7 +51,7 @@ const item =
   "flex min-h-11 w-full cursor-pointer items-center border-0 bg-transparent px-4 text-left text-[14px] text-ink no-underline hover:bg-cream focus-visible:bg-cream focus-visible:outline-none";
 
 /**
- * Canto direito do cabeçalho da home e do editor: a foto (ou as iniciais) abre um menu com Configurações e Sair. Fecha com Esc, com um
+ * Canto direito do cabeçalho da home e do editor: um ícone de pessoa abre um menu (com a foto, o nome e o e-mail no topo) com Configurações e Sair. Fecha com Esc, com um
  * clique fora ou quando o foco sai dele. `onLeave` roda ao clicar no que tira a pessoa da página e pode cancelar com `preventDefault`:
  * o editor avisa se ainda há alterações sendo salvas.
  */
@@ -89,10 +89,14 @@ export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: 
         aria-controls="menu-da-conta"
         aria-label={t("label", { email: account.email })}
         onClick={() => setOpen((v) => !v)}
-        // o contorno fica 2px afastado da foto, como um anel, no hover e com o menu aberto
-        className={`flex size-11 cursor-pointer items-center justify-center rounded-full border bg-transparent p-[2px] transition-colors hover:border-ink ${open ? "border-ink" : "border-transparent"}`}
+        // um ícone de pessoa, e não a foto: a foto já aparece grande no topo da home e, aqui, dentro do menu aberto
+        className={`flex size-11 cursor-pointer items-center justify-center rounded-full border bg-transparent text-ink transition-colors hover:border-ink ${open ? "border-ink" : "border-sand"}`}
       >
-        <Avatar url={account.avatarUrl} label={label} className="size-full text-[15px]" />
+        {/* "user-round" do Lucide (lucide.dev, licença ISC) */}
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="5" />
+          <path d="M20 21a8 8 0 0 0-16 0" />
+        </svg>
       </button>
 
       {open && (

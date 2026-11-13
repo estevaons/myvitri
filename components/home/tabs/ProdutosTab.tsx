@@ -17,7 +17,6 @@ export async function ProdutosTab({ params }: { params: TabParams }) {
   return (
     <CatalogFrame
       title={t("products.title")}
-      text={t("products.text")}
       filters={
         <>
           <FilterChips label={t("filters.category")} param="category" options={filters.categories} params={params} />

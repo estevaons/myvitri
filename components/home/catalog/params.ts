@@ -6,8 +6,11 @@ import type { Href } from "@/lib/i18n/navigation";
  * Os parâmetros são em inglês nos dois idiomas; os nomes antigos em português são redirecionados pelo proxy.
  */
 
-/** Ids das abas na URL — a primeira é a padrão. Os rótulos ficam nas mensagens (`catalog.tabs`). */
-export const TABS = ["for-you", "saved", "storefronts", "products", "outfits", "brands"] as const;
+/**
+ * Ids das abas na URL — a primeira é a padrão. Os rótulos ficam nas mensagens (`catalog.tabs`).
+ * A antiga "for-you" (Para você) saiu: um link antigo com `?tab=for-you` cai na padrão.
+ */
+export const TABS = ["saved", "storefronts", "products", "outfits", "brands"] as const;
 export type TabId = (typeof TABS)[number];
 
 /** Parâmetros da URL achatados: um valor por chave, só os não vazios. */
@@ -25,7 +28,7 @@ export function flatParams(sp: Record<string, string | string[] | undefined>): T
   return out;
 }
 
-export const tabOf = (p: TabParams): TabId => TABS.find((id) => id === p.tab) ?? "for-you";
+export const tabOf = (p: TabParams): TabId => TABS.find((id) => id === p.tab) ?? TABS[0];
 
 /** Quantos itens mostrar (`?limit=`), de PAGE em PAGE, até 10 páginas. */
 export const limitOf = (p: TabParams) => Math.min(Math.max(PAGE, Math.round(Number(p.limit) / PAGE) * PAGE || PAGE), PAGE * 10);
@@ -43,6 +46,6 @@ export function hrefWith(p: TabParams, changes: Record<string, string | null>): 
     if (v === null || v === "") delete next[k];
     else next[k] = v;
   }
-  if (next.tab === "for-you") delete next.tab;
+  if (next.tab === TABS[0]) delete next.tab;
   return { pathname: "/inicio", query: next };
 }

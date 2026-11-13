@@ -37,9 +37,10 @@ export function CoverLetter({ name }: { name: string }) {
 
 /**
  * Capa quadrada da vitrine: a foto de capa ou a primeira letra do nome, com o nome por cima.
- * `caption={false}` tira o nome, para quando ele já aparece ao lado.
+ * `caption={false}` tira o nome, para quando ele já aparece ao lado. `framed` desenha uma borda fina por cima: sobre
+ * um fundo areia (a faixa Vitrines do dia) a capa sem foto, também areia, se confundiria com ele.
  */
-export function CreatorCover({ c, caption = true }: { c: HomeCreator; caption?: boolean }) {
+export function CreatorCover({ c, caption = true, framed = false }: { c: HomeCreator; caption?: boolean; framed?: boolean }) {
   return (
     <div className="relative aspect-square overflow-hidden bg-sand">
       {c.bannerUrl ? (
@@ -56,12 +57,14 @@ export function CreatorCover({ c, caption = true }: { c: HomeCreator; caption?: 
           <span className="font-display text-[22px] leading-[1.05] font-medium break-words md:text-[clamp(26px,2.4vw,36px)]">{c.creator}</span>
         </div>
       )}
+      {/* a borda é uma camada própria, a última: o contorno do pai ficava por baixo da letra (`CoverLetter`, absoluta) */}
+      {framed && <span aria-hidden="true" className="pointer-events-none absolute inset-0 border border-[#c9bba6]" />}
     </div>
   );
 }
 
-/** Card de vitrine da home logada. O coração fica fora do link: botão dentro de link não é HTML válido. */
-export function CreatorCard({ c, favorited }: { c: HomeCreator; favorited: boolean }) {
+/** Card de vitrine da home logada. O coração fica fora do link: botão dentro de link não é HTML válido. `framed`: ver `CreatorCover`. */
+export function CreatorCard({ c, favorited, framed = false }: { c: HomeCreator; favorited: boolean; framed?: boolean }) {
   const t = useTranslations("counts");
   const stats = [c.products > 0 && t("products", { count: c.products }), c.coupons > 0 && t("coupons", { count: c.coupons })]
     .filter(Boolean)
@@ -69,7 +72,7 @@ export function CreatorCard({ c, favorited }: { c: HomeCreator; favorited: boole
   return (
     <div className="relative min-w-0">
       <Link href={vitrineHref(c.handle)} className="group flex min-w-0 flex-col text-ink no-underline">
-        <CreatorCover c={c} />
+        <CreatorCover c={c} framed={framed} />
         {/* no celular o card é estreito: os números descem para a linha de baixo em vez de cortar */}
         <span className="flex min-w-0 flex-col pt-3 text-[14px] text-mute group-hover:text-ink md:flex-row md:text-[15px]">
           <span className="truncate">@{c.handle}</span>
