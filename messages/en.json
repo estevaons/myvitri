@@ -171,6 +171,9 @@
     "carousel": "carousel",
     "loading": "Loading…"
   },
+  "confirm": {
+    "cancel": "Cancel"
+  },
   "seo": {
     "site": {
       "title": "{brand} | Coupons and finds from people you follow",
@@ -287,7 +290,11 @@
     "productsRef": "ref=you",
     "outfitsTitle": "Outfits that sell the look",
     "outfitsText": "Post a photo of you wearing the look and list each piece below it, each with its own link.",
-    "outfitsPieces": { "blazer": "Wool blazer", "calca": "Tailored trousers", "bolsa": "Leather bag" },
+    "outfitsPieces": {
+      "blazer": "Wool blazer",
+      "calca": "Tailored trousers",
+      "bolsa": "Leather bag"
+    },
     "moreTitle": "And also",
     "more": {
       "metricsTitle": "See what works",
@@ -390,7 +397,6 @@
     "signInToComment": "Sign in to comment",
     "owner": "Storefront owner",
     "sending": "Sending…",
-    "confirmDelete": "Yes, delete",
     "cancel": "Cancel",
     "deleteLabel": "Delete {name}'s comment",
     "delete": "Delete",
@@ -408,7 +414,9 @@
     "signInToReply": "Sign in to reply",
     "replied": "Reply posted.",
     "hideReplies": "Hide replies",
-    "showReplies": "{count, plural, one {View # reply} other {View # replies}}"
+    "showReplies": "{count, plural, one {View # reply} other {View # replies}}",
+    "deleteTitle": "Delete this comment?",
+    "deleteText": "This can’t be undone."
   },
   "share": {
     "headline": "{name}'s storefront",
@@ -557,20 +565,23 @@
     "copiedLink": "Link copied",
     "copyLink": "Copy link"
   },
-  "cover": {
-    "kicker": "First impressions",
-    "title": "Add a photo that feels like you",
-    "text": "It's the first thing people see. Without a cover, only the first letter of your name shows.",
-    "sending": "Uploading…",
-    "send": "Upload cover",
-    "drag": "or drag the photo here",
-    "confirmLabel": "Confirm cover removal",
-    "confirm": "Remove the cover?",
-    "yes": "Yes, remove",
+  "crop": {
+    "title": "Adjust photo",
+    "area": "Photo framing",
+    "roledescription": "crop",
+    "loading": "Opening the photo…",
+    "zoom": "Zoom",
+    "desktop": "On desktop",
     "cancel": "Cancel",
-    "saving": "Saving…",
-    "change": "Change cover",
-    "remove": "Remove"
+    "confirm": "Use photo",
+    "hint": {
+      "avatar": "Keep the face in the center of the circle.",
+      "cover": "Phones show the whole frame; desktop shows only the marked band.",
+      "product": "Zoom out to show the whole item or zoom in to highlight a detail.",
+      "post": "This is the outfit card format on the storefront (4:5)."
+    },
+    "hintMouse": "Drag to frame it and use the scroll wheel or the slider to zoom.",
+    "hintTouch": "Drag to frame it and pinch or use the slider to zoom."
   },
   "account": {
     "label": "Your account ({email})",
@@ -718,7 +729,11 @@
     "postN": "Outfit {n}"
   },
   "editor": {
-    "leaveConfirm": "We're still saving your changes. Leave anyway?",
+    "leave": {
+      "title": "Leave the editor?",
+      "text": "We are still saving your changes. If you leave now, the latest change may be lost.",
+      "confirm": "Leave anyway"
+    },
     "draftFailed": "Error saving the draft",
     "unpublished": "Unpublished changes",
     "publishing": "Publishing…",
@@ -727,7 +742,6 @@
     "publishError": "Couldn't publish: {error}",
     "close": "Close",
     "profile": {
-      "coverHint": "The photo at the top of your storefront and on its card on the home page. Saved right away, no need to publish.",
       "headline": "Headline",
       "sub": "Supporting text"
     },
@@ -756,7 +770,9 @@
       "stepsPlaceholder": "E.g. Valid in the app only\nCan't be combined with other offers",
       "remove": "Delete coupon",
       "groupCoupon": "Coupon",
-      "groupStore": "Store"
+      "groupStore": "Store",
+      "removeTitle": "Delete this coupon?",
+      "removeText": "It is also removed from the products linked to it."
     },
     "logo": {
       "status": {
@@ -787,27 +803,28 @@
       "tap": "Tap to choose an image",
       "click": "Click or drag an image here",
       "none": "Without a photo, the storefront shows an illustration",
-      "broken": "That image didn't load. Upload another photo."
+      "broken": "That image didn't load. Upload another photo.",
+      "remove": "Remove",
+      "removeTitle": "Remove the product photo?",
+      "removeText": "The storefront will show an illustration instead.",
+      "removeConfirm": "Remove",
+      "sourceUpload": "Uploaded by you",
+      "sourceStore": "Photo from the store",
+      "dragHint": "Or drag another photo here."
     },
     "products": {
       "fullLink": "Paste the product link, like store.com/product.",
-      "photo": "Photo",
-      "product": "Product",
       "name": "Name",
       "brand": "Brand",
       "category": "Category",
       "categoryPlaceholder": "E.g. Beach",
-      "onVitrine": "On your storefront",
       "soldOutStore": "Sold out at the store",
       "soldOutHint": "The store was out of stock when we fetched the product. It stays on your storefront, without a link and at the end of the list.",
-      "links": "Links",
       "link": "Product link",
       "linkHint": "Paste your affiliate link or the store link. It's where people go when they click.",
       "video": "Video review (optional)",
       "videoHint": "Link to your Reels, TikTok or YouTube video about the product.",
       "addVideo": "+ Video review",
-      "favorite": "Favorite",
-      "favoriteHint": "Also shows in Favorites, above the products on your storefront.",
       "remove": "Delete product",
       "linkPlaceholder": "https://store.com/product",
       "linkLabel": "Product link",
@@ -816,7 +833,9 @@
       "addHint": "It can be your affiliate link or the store's. We pull in the name and photo, and clicks go to the link you pasted.",
       "manual": "Fill in manually",
       "or": "or",
-      "importFailed": "We couldn't fetch this link's details ({error}). Fill them in below."
+      "importFailed": "We couldn't fetch this link's details ({error}). Fill them in below.",
+      "removeTitle": "Delete this product?",
+      "removeText": "It is also removed from the outfits it appears in."
     },
     "posts": {
       "tag": "Add {name} to the outfit",
@@ -843,7 +862,8 @@
       "importFailed": "We couldn't fetch this link's details.",
       "addAnyway": "Add with just the link",
       "full": "This look already has {max} pieces, the maximum.",
-      "fromProducts": "Choose from my products ({count})"
+      "fromProducts": "Choose from my products ({count})",
+      "removeTitle": "Delete this outfit?"
     },
     "delete": {
       "open": "Delete my account",
@@ -858,6 +878,7 @@
     "edit": {
       "cover": "Change cover",
       "addCover": "Add cover",
+      "removeCover": "Remove cover",
       "avatar": "Change profile photo",
       "addSub": "Tap to write a short intro",
       "socials": "Edit social media",
@@ -874,20 +895,23 @@
       "addProduct": "Add product",
       "emptyProducts": "Paste the link of a product you recommend and we fetch its name and photo.",
       "ghostOff": "10% OFF",
-      "ghostCode": "YOURCODE"
+      "ghostCode": "YOURCODE",
+      "removeCoverTitle": "Remove the cover?",
+      "removeCoverText": "It disappears from your public storefront right away.",
+      "removeCoverConfirm": "Remove",
+      "reorderHint": "Drag the cards to change the order.",
+      "reorderHintTouch": "Touch and hold a card to drag it."
     },
     "sheet": {
-      "position": "Position {pos} of {total}",
       "moveBefore": "Move earlier",
       "moveAfter": "Move later",
-      "confirmRemove": "Tap again to delete",
       "done": "Done",
       "newCoupon": "New coupon",
       "coupon": "Edit coupon",
       "newProduct": "New product",
       "product": "Edit product",
-      "cover": "Cover",
-      "socials": "Social media"
+      "socials": "Social media",
+      "remove": "Delete"
     }
   },
   "legal": {

@@ -1,14 +1,28 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useConfirm } from "@/components/brand/ConfirmDialog";
+import { useEffect, useRef, type ReactNode } from "react";
 
 /**
  * A janela de edição de um item da vitrine: um <dialog> nativo (Esc fecha e o foco fica dentro). No celular sobe de
  * baixo e ocupa quase a tela toda, com o rodapé (Concluir, Excluir) fixo perto do polegar; do `sm` em diante fica no
  * centro. Abre quando monta e avisa `onClose` quando a pessoa fecha (X, Esc, fundo escuro ou o botão do rodapé).
  */
-export function Sheet({ title, onClose, footer, children }: { title: string; onClose: () => void; footer?: ReactNode; children: ReactNode }) {
+export function Sheet({
+  title,
+  onClose,
+  footer,
+  wide = false,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  footer?: ReactNode;
+  /** do `sm` em diante, a janela larga (o produto, em duas colunas, cabe sem rolar) */
+  wide?: boolean;
+  children: ReactNode;
+}) {
   const t = useTranslations("editor");
   const ref = useRef<HTMLDialogElement>(null);
   // o onClose muda a cada render; o efeito só deve abrir uma vez
@@ -44,7 +58,7 @@ export function Sheet({ title, onClose, footer, children }: { title: string; onC
       tabIndex={-1}
       // clique no fundo escurecido (fora da caixa) fecha
       onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
-      className="box-border flex max-h-[92dvh] outline-none w-full max-w-none flex-col overflow-hidden rounded-t-[20px] border-0 bg-white p-0 text-ink backdrop:bg-ink/45 max-sm:mt-auto max-sm:mb-0 motion-safe:animate-sheet-up sm:m-auto sm:max-h-[min(88dvh,820px)] sm:w-[calc(100%-32px)] sm:max-w-[520px] sm:rounded-[20px] [&:not([open])]:hidden"
+      className={`box-border flex max-h-[92dvh] outline-none w-full max-w-none flex-col overflow-hidden rounded-t-[20px] border-0 bg-white p-0 text-ink backdrop:bg-ink/45 max-sm:mt-auto max-sm:mb-0 motion-safe:animate-sheet-up sm:m-auto sm:max-h-[min(88dvh,820px)] sm:w-[calc(100%-32px)] ${wide ? "sm:max-w-[760px]" : "sm:max-w-[520px]"} sm:rounded-[20px] [&:not([open])]:hidden`}
     >
       <header className="flex flex-none items-center justify-between gap-3 border-b border-[#EEEBE5] py-2 pr-2 pl-5">
         <h2 className="m-0 truncate text-[17px] font-semibold">{title}</h2>
@@ -65,73 +79,48 @@ export function Sheet({ title, onClose, footer, children }: { title: string; onC
   );
 }
 
-/** Rodapé padrão: posição na lista com as setas, excluir (pede um segundo toque) e Concluir. */
+/** Rodapé padrão, numa linha só: excluir (confirma numa janela) e Concluir. A ordem muda arrastando o card na vitrine. */
 export function SheetFooter({
   onDone,
   onRemove,
   removeLabel,
-  move,
+  removeAsk,
 }: {
   onDone: () => void;
   onRemove?: () => void;
   removeLabel?: string;
-  /** posição atual (1…total) e quem troca de lugar; sem isso, não mostra as setas */
-  move?: { pos: number; total: number; onMove: (to: number) => void };
+  /** a pergunta da janela de confirmação de excluir ("Excluir este produto?") e o que mais acontece */
+  removeAsk?: { title: string; text?: string };
 }) {
   const t = useTranslations("editor.sheet");
-  const [armed, setArmed] = useArmed();
-  const arrow =
-    "flex size-10 flex-none cursor-pointer items-center justify-center rounded-full border border-[#E6E2DA] bg-white p-0 text-ink transition-colors hover:border-[#B9B2A6] disabled:cursor-default disabled:opacity-35";
+  const [confirmDialog, ask] = useConfirm();
+  const remove = async () => {
+    if (!onRemove) return;
+    if (await ask({ title: removeAsk?.title ?? `${removeLabel}?`, text: removeAsk?.text, confirm: t("remove"), danger: true })) onRemove();
+  };
   return (
-    <div className="flex flex-col gap-3">
-      {move && move.total > 1 && (
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[13px] text-[#5E5A52] tabular-nums">{t("position", { pos: move.pos, total: move.total })}</span>
-          <div className="flex gap-2">
-            <button type="button" aria-label={t("moveBefore")} title={t("moveBefore")} disabled={move.pos <= 1} onClick={() => move.onMove(move.pos - 2)} className={arrow}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 5l-7 7 7 7" />
-              </svg>
-            </button>
-            <button type="button" aria-label={t("moveAfter")} title={t("moveAfter")} disabled={move.pos >= move.total} onClick={() => move.onMove(move.pos)} className={arrow}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-      <div className="flex items-center justify-between gap-2">
-        {onRemove ? (
-          <button
-            type="button"
-            onClick={() => (armed ? onRemove() : setArmed())}
-            className={`-ml-2 min-h-11 cursor-pointer rounded-[10px] border-0 px-2 text-sm font-medium text-[#A3361B] ${armed ? "bg-[#FFF1EC] font-semibold" : "bg-transparent hover:bg-[#FFF1EC]"}`}
-          >
-            {armed ? t("confirmRemove") : removeLabel}
-          </button>
-        ) : (
-          <span />
-        )}
-        <button type="button" onClick={onDone} className="min-h-11 cursor-pointer rounded-full border-0 bg-ink px-7 text-sm font-semibold text-white hover:opacity-85">
-          {t("done")}
+    <div className="flex items-center gap-2">
+      {confirmDialog}
+      {onRemove && (
+        // no celular só a lixeira (o nome vai para o leitor de tela), para tudo caber numa linha
+        <button
+          type="button"
+          onClick={remove}
+          aria-label={removeLabel}
+          title={removeLabel}
+          className="-ml-2 flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1.5 rounded-full border-0 bg-transparent px-2.5 text-sm font-medium text-[#A3361B] hover:bg-[#FFF1EC]"
+        >
+          <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          </svg>
+          <span aria-hidden="true" className="max-sm:hidden">
+            {removeLabel}
+          </span>
         </button>
-      </div>
+      )}
+      <button type="button" onClick={onDone} className="ml-auto min-h-11 cursor-pointer rounded-full border-0 bg-ink px-7 text-sm font-semibold text-white hover:opacity-85">
+        {t("done")}
+      </button>
     </div>
   );
-}
-
-/** "Excluir" pede um segundo toque: o primeiro arma por alguns segundos. */
-function useArmed(ms = 4000) {
-  // `armed` conta os toques (0 = desarmado), para cada toque recomeçar a contagem. A volta é agendada por um Effect,
-  // não no clique: com `cacheComponents` a página sai de cena escondida (React <Activity>), a limpeza cancela o timer
-  // e o botão ficaria armado; ao voltar, o Effect roda de novo e agenda a volta.
-  const [armed, setArmed] = useState(0);
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(0), ms);
-    return () => clearTimeout(id);
-  }, [armed, ms]);
-  const arm = () => setArmed((n) => n + 1);
-  return [armed > 0, arm] as const;
 }

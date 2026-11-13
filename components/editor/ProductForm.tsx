@@ -6,7 +6,7 @@ import { importProductAction } from "@/app/actions";
 import { withHttps } from "@/lib/vitrine/links";
 import { PRODUCT_EXTRA, type Product } from "@/lib/vitrine/types";
 import { ImageField } from "./ImageField";
-import { Field, Group, Hint, Pill, TextInput, UrlInput, inputCls, newId } from "./ui";
+import { Field, Hint, Pill, TextInput, UrlInput, inputCls, newId } from "./ui";
 
 export const newProduct = (patch: Partial<Product> = {}): Product => ({
   id: newId(),
@@ -118,75 +118,57 @@ export function ProductForm({
           {t("importFailed", { error: notice })}
         </p>
       )}
-      <Group title={t("photo")}>
-        <ImageField value={p.imageUrl} onChange={(imageUrl) => onChange({ imageUrl })} />
-      </Group>
-
-      <Group title={t("product")}>
-        <Field label={t("name")}>
-          <TextInput value={p.name} onChange={(name) => onChange({ name })} maxLength={80} data-autofocus={!p.name || undefined} />
-        </Field>
-        <div className="grid grid-cols-2 gap-2.5">
-          <Field label={t("brand")}>
-            <TextInput value={p.brand} onChange={(brand) => onChange({ brand })} maxLength={60} />
-          </Field>
-          <Field label={t("category")}>
-            <TextInput value={p.category} onChange={(category) => onChange({ category })} maxLength={30} list="vitri-categories" placeholder={t("categoryPlaceholder")} />
-          </Field>
+      {/* Sem títulos de seção (cada campo tem o seu rótulo), para a janela caber sem rolar. Do `sm` em diante, duas colunas:
+          a foto à esquerda, os campos à direita. O favorito não fica aqui: é o coração no card do produto, na vitrine. */}
+      <div className="grid gap-4 sm:grid-cols-[232px_minmax(0,1fr)] sm:items-start sm:gap-6">
+        <div className="flex flex-col gap-3">
+          <ImageField value={p.imageUrl} onChange={(imageUrl) => onChange({ imageUrl })} />
         </div>
-        <datalist id="vitri-categories">
-          {categories.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-      </Group>
 
-      {/* favorito da creator: aparece também na seção Favoritos, no topo dos produtos da vitrine */}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={p.favorite}
-        onClick={() => onChange({ favorite: !p.favorite })}
-        className="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-[12px] border border-[#E0DCD3] bg-white px-3.5 py-3 text-left text-ink hover:border-ink"
-      >
-        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill={p.favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-        </svg>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-sm font-semibold">{t("favorite")}</span>
-          <span className="text-[13px] leading-snug text-[#5E5A52]">{t("favoriteHint")}</span>
-        </span>
-        <span aria-hidden="true" className={`relative h-6 w-10 flex-none rounded-full transition-colors ${p.favorite ? "bg-ink" : "bg-[#D6D2C9]"}`}>
-          <span className={`absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-[left] ${p.favorite ? "left-[18px]" : "left-0.5"}`} />
-        </span>
-      </button>
-
-      {p.soldOut && (
-        <Group title={t("onVitrine")}>
-          <Pill tone="bad">{t("soldOutStore")}</Pill>
-          <Hint>{t("soldOutHint")}</Hint>
-        </Group>
-      )}
-
-      <Group title={t("links")}>
-        <Field label={t("link")} hint={t("linkHint")}>
-          {/* produtos antigos podem ter os dois links: vale o de afiliado, e editar deixa só o que foi colado */}
-          <UrlInput value={p.affiliateUrl || p.url} onChange={(url) => onChange({ url, affiliateUrl: "" })} />
-        </Field>
-        {video || p.videoUrl ? (
-          <Field label={t("video")} hint={t("videoHint")}>
-            <UrlInput value={p.videoUrl} onChange={(videoUrl) => onChange({ videoUrl })} autoFocus={video && !p.videoUrl} />
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <Field label={t("name")}>
+            <TextInput value={p.name} onChange={(name) => onChange({ name })} maxLength={80} data-autofocus={!p.name || undefined} />
           </Field>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setVideo(true)}
-            className="min-h-11 self-start border-0 bg-transparent p-0 text-[13px] font-medium text-[#5E5A52] underline-offset-4 hover:text-ink hover:underline"
-          >
-            {t("addVideo")}
-          </button>
-        )}
-      </Group>
+          <div className="grid grid-cols-2 gap-2.5">
+            <Field label={t("brand")}>
+              <TextInput value={p.brand} onChange={(brand) => onChange({ brand })} maxLength={60} />
+            </Field>
+            <Field label={t("category")}>
+              <TextInput value={p.category} onChange={(category) => onChange({ category })} maxLength={30} list="vitri-categories" placeholder={t("categoryPlaceholder")} />
+            </Field>
+          </div>
+          <datalist id="vitri-categories">
+            {categories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+
+          {p.soldOut && (
+            <div className="flex flex-col items-start gap-1">
+              <Pill tone="bad">{t("soldOutStore")}</Pill>
+              <Hint>{t("soldOutHint")}</Hint>
+            </div>
+          )}
+
+          <Field label={t("link")} hint={t("linkHint")}>
+            {/* produtos antigos podem ter os dois links: vale o de afiliado, e editar deixa só o que foi colado */}
+            <UrlInput value={p.affiliateUrl || p.url} onChange={(url) => onChange({ url, affiliateUrl: "" })} />
+          </Field>
+          {video || p.videoUrl ? (
+            <Field label={t("video")} hint={t("videoHint")}>
+              <UrlInput value={p.videoUrl} onChange={(videoUrl) => onChange({ videoUrl })} autoFocus={video && !p.videoUrl} />
+            </Field>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setVideo(true)}
+              className="-my-1 min-h-10 self-start border-0 bg-transparent p-0 text-[13px] font-medium text-[#5E5A52] underline-offset-4 hover:text-ink hover:underline"
+            >
+              {t("addVideo")}
+            </button>
+          )}
+        </div>
+      </div>
     </>
   );
 }

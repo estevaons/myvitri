@@ -198,6 +198,9 @@
     "carousel": "carrossel",
     "loading": "Carregando…"
   },
+  "confirm": {
+    "cancel": "Cancelar"
+  },
   "landing": {
     "nav": {
       "vitrines": "Vitrines",
@@ -287,7 +290,11 @@
     "productsRef": "ref=voce",
     "outfitsTitle": "Outfits que vendem o look",
     "outfitsText": "Poste uma foto sua usando o look e liste embaixo cada peça, cada uma com o seu link.",
-    "outfitsPieces": { "blazer": "Blazer de lã", "calca": "Calça de alfaiataria", "bolsa": "Bolsa de couro" },
+    "outfitsPieces": {
+      "blazer": "Blazer de lã",
+      "calca": "Calça de alfaiataria",
+      "bolsa": "Bolsa de couro"
+    },
     "moreTitle": "E ainda",
     "more": {
       "metricsTitle": "Veja o que funciona",
@@ -390,7 +397,6 @@
     "signInToComment": "Entrar para comentar",
     "owner": "Da vitrine",
     "sending": "Enviando…",
-    "confirmDelete": "Excluir mesmo",
     "cancel": "Cancelar",
     "deleteLabel": "Excluir o comentário de {name}",
     "delete": "Excluir",
@@ -408,7 +414,9 @@
     "signInToReply": "Entrar para responder",
     "replied": "Resposta publicada.",
     "hideReplies": "Ocultar respostas",
-    "showReplies": "{count, plural, one {Ver # resposta} other {Ver # respostas}}"
+    "showReplies": "{count, plural, one {Ver # resposta} other {Ver # respostas}}",
+    "deleteTitle": "Excluir este comentário?",
+    "deleteText": "Não dá para desfazer."
   },
   "share": {
     "headline": "A vitrine de {name}",
@@ -557,20 +565,23 @@
     "copiedLink": "Link copiado",
     "copyLink": "Copiar link"
   },
-  "cover": {
-    "kicker": "A primeira impressão",
-    "title": "Coloque uma foto com a sua cara",
-    "text": "É o que as pessoas veem primeiro. Sem capa, aparece só a primeira letra do seu nome.",
-    "sending": "Enviando…",
-    "send": "Enviar capa",
-    "drag": "ou arraste a foto para cá",
-    "confirmLabel": "Confirmar remoção da capa",
-    "confirm": "Remover a capa?",
-    "yes": "Sim, remover",
+  "crop": {
+    "title": "Ajustar foto",
+    "area": "Enquadramento da foto",
+    "roledescription": "recorte",
+    "loading": "Abrindo a foto…",
+    "zoom": "Zoom",
+    "desktop": "No computador",
     "cancel": "Cancelar",
-    "saving": "Salvando…",
-    "change": "Trocar capa",
-    "remove": "Remover"
+    "confirm": "Usar foto",
+    "hint": {
+      "avatar": "Deixe o rosto no centro do círculo.",
+      "cover": "No celular aparece o quadro todo; no computador, só a faixa marcada.",
+      "product": "Afaste para mostrar a peça inteira ou aproxime para destacar um detalhe.",
+      "post": "É o formato do card do outfit na vitrine (4:5)."
+    },
+    "hintMouse": "Arraste para enquadrar e use a rodinha ou o controle para aproximar.",
+    "hintTouch": "Arraste para enquadrar e use dois dedos ou o controle para aproximar."
   },
   "account": {
     "label": "Sua conta ({email})",
@@ -718,7 +729,11 @@
     "postN": "Outfit {n}"
   },
   "editor": {
-    "leaveConfirm": "Ainda estamos salvando suas alterações. Sair mesmo assim?",
+    "leave": {
+      "title": "Sair do editor?",
+      "text": "Ainda estamos salvando suas alterações. Se sair agora, a última mudança pode se perder.",
+      "confirm": "Sair mesmo assim"
+    },
     "draftFailed": "Erro ao salvar o rascunho",
     "unpublished": "Alterações não publicadas",
     "publishing": "Publicando…",
@@ -727,7 +742,6 @@
     "publishError": "Não deu para publicar: {error}",
     "close": "Fechar",
     "profile": {
-      "coverHint": "A foto do topo da sua vitrine e do card dela na home. Salva na hora, sem precisar publicar.",
       "headline": "Frase de destaque",
       "sub": "Texto de apoio"
     },
@@ -756,7 +770,9 @@
       "stepsPlaceholder": "Ex.: Válido só no app\nNão acumula com outras promoções",
       "remove": "Excluir cupom",
       "groupCoupon": "Cupom",
-      "groupStore": "Loja"
+      "groupStore": "Loja",
+      "removeTitle": "Excluir este cupom?",
+      "removeText": "Ele também sai dos produtos ligados a ele."
     },
     "logo": {
       "status": {
@@ -787,27 +803,28 @@
       "tap": "Toque para escolher uma imagem",
       "click": "Clique ou arraste uma imagem para cá",
       "none": "Sem foto, a vitrine mostra uma ilustração",
-      "broken": "Essa imagem não abriu. Envie outra foto."
+      "broken": "Essa imagem não abriu. Envie outra foto.",
+      "remove": "Remover",
+      "removeTitle": "Remover a foto do produto?",
+      "removeText": "A vitrine passa a mostrar uma ilustração no lugar.",
+      "removeConfirm": "Remover",
+      "sourceUpload": "Enviada por você",
+      "sourceStore": "Foto da loja",
+      "dragHint": "Ou arraste outra foto para cá."
     },
     "products": {
       "fullLink": "Cole o link do produto, como loja.com/produto.",
-      "photo": "Foto",
-      "product": "Produto",
       "name": "Nome",
       "brand": "Marca",
       "category": "Categoria",
       "categoryPlaceholder": "Ex.: Praia",
-      "onVitrine": "Na vitrine",
       "soldOutStore": "Esgotado na loja",
       "soldOutHint": "A loja estava sem estoque quando buscamos o produto. Ele continua na vitrine, sem link e no fim da lista.",
-      "links": "Links",
       "link": "Link do produto",
       "linkHint": "Cole seu link de afiliado ou o link da loja. É para onde a pessoa vai ao clicar.",
       "video": "Review em vídeo (opcional)",
       "videoHint": "Link do seu Reels, TikTok ou YouTube sobre o produto.",
       "addVideo": "+ Review em vídeo",
-      "favorite": "Favorito",
-      "favoriteHint": "Aparece também em Favoritos, no topo dos produtos da sua vitrine.",
       "remove": "Excluir produto",
       "linkPlaceholder": "https://loja.com/produto",
       "linkLabel": "Link do produto",
@@ -816,7 +833,9 @@
       "addHint": "Pode ser seu link de afiliado ou o da loja. A gente puxa nome e foto, e o clique leva ao link que você colou.",
       "manual": "Preencher manualmente",
       "or": "ou",
-      "importFailed": "Não conseguimos puxar os dados desse link ({error}). Preencha abaixo."
+      "importFailed": "Não conseguimos puxar os dados desse link ({error}). Preencha abaixo.",
+      "removeTitle": "Excluir este produto?",
+      "removeText": "Ele também sai dos outfits em que aparece."
     },
     "posts": {
       "tag": "Pôr {name} no outfit",
@@ -843,7 +862,8 @@
       "importFailed": "Não conseguimos puxar os dados desse link.",
       "addAnyway": "Adicionar só com o link",
       "full": "Esse look já tem {max} peças, o máximo.",
-      "fromProducts": "Escolher dos meus produtos ({count})"
+      "fromProducts": "Escolher dos meus produtos ({count})",
+      "removeTitle": "Excluir este outfit?"
     },
     "delete": {
       "open": "Excluir minha conta",
@@ -858,6 +878,7 @@
     "edit": {
       "cover": "Trocar capa",
       "addCover": "Adicionar capa",
+      "removeCover": "Remover capa",
       "avatar": "Trocar foto de perfil",
       "addSub": "Toque para escrever um texto de apoio",
       "socials": "Editar redes sociais",
@@ -874,20 +895,23 @@
       "addProduct": "Adicionar produto",
       "emptyProducts": "Cole o link de um produto que você indica e a gente puxa nome e foto.",
       "ghostOff": "10% OFF",
-      "ghostCode": "SEUCUPOM"
+      "ghostCode": "SEUCUPOM",
+      "removeCoverTitle": "Remover a capa?",
+      "removeCoverText": "Ela sai na hora da vitrine pública.",
+      "removeCoverConfirm": "Remover",
+      "reorderHint": "Arraste os cards para mudar a ordem.",
+      "reorderHintTouch": "Toque e segure um card para arrastá-lo."
     },
     "sheet": {
-      "position": "Posição {pos} de {total}",
       "moveBefore": "Mover para antes",
       "moveAfter": "Mover para depois",
-      "confirmRemove": "Toque de novo para excluir",
       "done": "Concluir",
       "newCoupon": "Novo cupom",
       "coupon": "Editar cupom",
       "newProduct": "Novo produto",
       "product": "Editar produto",
-      "cover": "Capa",
-      "socials": "Redes sociais"
+      "socials": "Redes sociais",
+      "remove": "Excluir"
     }
   },
   "legal": {

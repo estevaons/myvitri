@@ -4,6 +4,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useEffectEvent, useOptimistic, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 import { addCommentAction, deleteCommentAction } from "@/app/actions";
 import { LoginButton } from "@/components/auth/forms";
+import { useConfirm } from "@/components/brand/ConfirmDialog";
 import { COMMENT_MAX, reachServer, type CommentList, type CommentThread, type Viewer, type VitrineComment } from "@/lib/vitrine/social";
 
 /** Quantos comentários aparecem de início e a cada "Ver mais". */
@@ -259,7 +260,7 @@ type RowProps = {
 
 function CommentRow({ comment, small = false, replyingTo, mine, canDelete, onDelete, onReply }: RowProps) {
   const t = useTranslations("comments");
-  const [confirming, setConfirming] = useState(false);
+  const [confirmDialog, ask] = useConfirm();
   const sending = isSending(comment);
   const tag = mine ? t("you") : comment.byOwner ? t("owner") : null;
   return (
@@ -272,20 +273,17 @@ function CommentRow({ comment, small = false, replyingTo, mine, canDelete, onDel
           {sending ? <span className="text-[13px] text-mute">{t("sending")}</span> : <When comment={comment} />}
           {canDelete && !sending && (
             <span className="ml-auto flex gap-3 pl-3">
-              {confirming ? (
-                <>
-                  <button type="button" onClick={onDelete} className={`${quiet} font-medium text-ink`}>
-                    {t("confirmDelete")}
-                  </button>
-                  <button type="button" onClick={() => setConfirming(false)} className={quiet}>
-                    {t("cancel")}
-                  </button>
-                </>
-              ) : (
-                <button type="button" onClick={() => setConfirming(true)} aria-label={t("deleteLabel", { name: comment.authorName })} className={quiet}>
-                  {t("delete")}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={async () => {
+                  if (await ask({ title: t("deleteTitle"), text: t("deleteText"), confirm: t("delete"), danger: true })) onDelete();
+                }}
+                aria-label={t("deleteLabel", { name: comment.authorName })}
+                className={quiet}
+              >
+                {t("delete")}
+              </button>
+              {confirmDialog}
             </span>
           )}
         </div>

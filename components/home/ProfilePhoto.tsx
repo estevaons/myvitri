@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { updateAvatarAction } from "@/app/actions";
 import { FilePick } from "@/components/editor/ImageField";
+import { useImageCrop } from "@/components/editor/ImageCrop";
 import { uploadImage } from "@/components/editor/upload";
 import { useRouter } from "@/lib/i18n/navigation";
 
@@ -33,10 +34,13 @@ export function ProfilePhoto({ name, url, editable }: { name: string; url: strin
   const router = useRouter();
   const [busy, start] = useTransition();
   const [error, setError] = useState("");
+  const [cropper, crop] = useImageCrop();
 
   if (!editable) return <Photo name={name} url={url} />;
 
-  const send = (file: File) => {
+  const send = async (picked: File) => {
+    const file = await crop(picked, "avatar");
+    if (!file) return;
     setError("");
     start(async () => {
       const up = await uploadImage("avatar", file, tErrors("imageUnreadable"));
@@ -48,6 +52,7 @@ export function ProfilePhoto({ name, url, editable }: { name: string; url: strin
 
   return (
     <div className="flex flex-col items-center gap-2">
+      {cropper}
       <FilePick
         onFile={send}
         disabled={busy}

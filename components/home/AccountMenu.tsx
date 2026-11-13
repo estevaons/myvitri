@@ -6,6 +6,7 @@ import { Link, useRouter } from "@/lib/i18n/navigation";
 import { requestPasswordResetAction, signOutAction, updateProfileAction, type FormState } from "@/app/actions";
 import { DeleteAccount } from "@/components/editor/DeleteAccount";
 import { FilePick } from "@/components/editor/ImageField";
+import { useImageCrop } from "@/components/editor/ImageCrop";
 import { uploadImage } from "@/components/editor/upload";
 import { HOST } from "@/lib/brand";
 import { kicker, pillDark, pillLight } from "./chrome";
@@ -51,11 +52,17 @@ const item =
   "flex min-h-11 w-full cursor-pointer items-center border-0 bg-transparent px-4 text-left text-[14px] text-ink no-underline hover:bg-cream focus-visible:bg-cream focus-visible:outline-none";
 
 /**
- * Canto direito do cabeçalho da home e do editor: um ícone de pessoa abre um menu (com a foto, o nome e o e-mail no topo) com Configurações e Sair. Fecha com Esc, com um
- * clique fora ou quando o foco sai dele. `onLeave` roda ao clicar no que tira a pessoa da página e pode cancelar com `preventDefault`:
- * o editor avisa se ainda há alterações sendo salvas.
+ * Chamado ao clicar no que tira a pessoa da página. Para seguir normalmente, não faz nada; para perguntar antes, chama
+ * `e.preventDefault()` e, se a pessoa confirmar, `go()` faz a saída (o clique original já foi cancelado).
  */
-export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: (e: MouseEvent) => void }) {
+export type LeaveGuard = (e: MouseEvent, go: () => void) => void;
+
+/**
+ * Canto direito do cabeçalho da home e do editor: um ícone de pessoa abre um menu (com a foto, o nome e o e-mail no topo) com Configurações e Sair. Fecha com Esc, com um
+ * clique fora ou quando o foco sai dele. `onLeave` roda ao clicar no que tira a pessoa da página (veja `LeaveGuard`): o editor
+ * pergunta numa janela se ainda há alterações sendo salvas.
+ */
+export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: LeaveGuard }) {
   const t = useTranslations("account");
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -123,7 +130,8 @@ export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: 
               {t("settings")}
             </button>
             <form action={signOutAction}>
-              <button type="submit" onClick={onLeave} className={item}>
+              {/* confirmada a saída, o menu já fechou (a janela levou o foco): sai chamando a ação direto */}
+              <button type="submit" onClick={(e) => onLeave?.(e, () => void signOutAction())} className={item}>
                 {t("signOut")}
               </button>
             </form>
@@ -163,6 +171,7 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
   const [saving, startSaving] = useTransition();
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [cropper, crop] = useImageCrop();
 
   const changedLink = handle !== vitrine.handle;
   const changed = name !== vitrine.name || changedLink || avatarUrl !== vitrine.avatarUrl;
@@ -173,7 +182,9 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
     setError("");
   };
 
-  const pick = async (file: File) => {
+  const pick = async (picked: File) => {
+    const file = await crop(picked, "avatar");
+    if (!file) return;
     setError("");
     setSaved(false);
     setUploading(true);
@@ -197,6 +208,7 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
   return (
     <Block title={t("profile")}>
       <form onSubmit={save} className="flex flex-col gap-4">
+        {cropper}
         <div className="flex items-center gap-4">
           <Avatar key={avatarUrl} url={avatarUrl} label={name} className={`size-16 flex-none text-[20px] ${uploading ? "animate-pulse" : ""}`} />
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -284,8 +296,9 @@ const providerKey = (providers: string[]) =>
   providers.includes("google") && providers.includes("email") ? "both" : providers.includes("google") ? "google" : "email";
 
 /** Configurações da conta: um <dialog> nativo (Esc fecha e o foco fica dentro). */
-function SettingsDialog({ ref, account, onLeave }: { ref: React.RefObject<HTMLDialogElement | null>; account: Account; onLeave?: (e: MouseEvent) => void }) {
+function SettingsDialog({ ref, account, onLeave }: { ref: React.RefObject<HTMLDialogElement | null>; account: Account; onLeave?: LeaveGuard }) {
   const t = useTranslations("account");
+  const router = useRouter();
   return (
     <dialog
       ref={ref}
@@ -335,10 +348,10 @@ function SettingsDialog({ ref, account, onLeave }: { ref: React.RefObject<HTMLDi
         </Block>
 
         <p className="m-0 flex gap-4 border-t border-sand pt-5 text-[13px] text-mute">
-          <Link href="/termos" onClick={onLeave} className="text-inherit underline underline-offset-2">
+          <Link href="/termos" onClick={(e) => onLeave?.(e, () => router.push("/termos"))} className="text-inherit underline underline-offset-2">
             {t("terms")}
           </Link>
-          <Link href="/privacidade" onClick={onLeave} className="text-inherit underline underline-offset-2">
+          <Link href="/privacidade" onClick={(e) => onLeave?.(e, () => router.push("/privacidade"))} className="text-inherit underline underline-offset-2">
             {t("privacy")}
           </Link>
         </p>

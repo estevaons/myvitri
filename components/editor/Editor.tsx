@@ -1,18 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
-import { publishVitrine, saveDraftAction, updateAvatarAction } from "@/app/actions";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { publishVitrine, saveDraftAction, updateAvatarAction, updateCoverAction } from "@/app/actions";
 import { BackLink } from "@/components/brand/BackLink";
+import { useConfirm } from "@/components/brand/ConfirmDialog";
 import { Wordmark } from "@/components/brand/Logo";
-import { AccountMenu, type Account } from "@/components/home/AccountMenu";
-import { CoverPicker } from "@/components/home/CoverPicker";
+import { AccountMenu, type Account, type LeaveGuard } from "@/components/home/AccountMenu";
 import { Link, useRouter, vitrineHref } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 import { Storefront, type StorefrontEdit } from "@/components/storefront/Storefront";
 import { vitrineAddress } from "@/lib/vitrine/links";
 import { pickProfile, type Coupon, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import { CouponForm, isBlankCoupon, newCoupon } from "./CouponForm";
+import { useImageCrop } from "./ImageCrop";
 import { IMAGE_ACCEPT, uploadImage } from "./upload";
 import { isBlankPost, OutfitsEditor } from "./OutfitsEditor";
 import { isBlankProduct, newProduct, ProductForm, ProductImport } from "./ProductForm";
@@ -25,13 +26,12 @@ type Open =
   | { kind: "coupon"; id: string; isNew: boolean }
   | { kind: "product"; id: string; isNew: boolean; notice?: string }
   | { kind: "productNew" }
-  | { kind: "socials" }
-  | { kind: "cover" };
+  | { kind: "socials" };
 
 /** `?tab=` (links das métricas e de versões antigas do editor) → a seção da vitrine para onde o editor rola ao abrir. */
 const SECTION_OF: Record<string, string> = { coupons: "cupons", products: "produtos", outfits: "outfits" };
 
-/** Listas da vitrine que a janela de edição reordena. */
+/** Itens novos que ficaram em branco saem do rascunho. */
 const dropBlanks = (c: VitrineContent): VitrineContent => ({
   ...c,
   coupons: c.coupons.filter((x) => !isBlankCoupon(x)),
@@ -75,6 +75,10 @@ export function Editor({
   const [saving, startSaving] = useTransition();
   const [sendingPhoto, startPhoto] = useTransition();
   const avatarInput = useRef<HTMLInputElement>(null);
+  const [sendingCover, startCover] = useTransition();
+  const coverInput = useRef<HTMLInputElement>(null);
+  const [cropper, crop] = useImageCrop();
+  const [confirmDialog, ask] = useConfirm();
 
   // O estado acima só lê as props ao montar, e o Next mantém a tela viva ao navegar: nome, link, foto e capa, que mudam nas
   // Configurações, na home e aqui mesmo (salvos na hora, com router.refresh), entram sem tocar no que a pessoa está editando.
@@ -132,7 +136,9 @@ export function Editor({
   };
 
   // A foto de perfil não passa pelo rascunho: salva na hora, como na home (o perfil novo chega pelo router.refresh).
-  const sendAvatar = (file: File) => {
+  const sendAvatar = async (picked: File) => {
+    const file = await crop(picked, "avatar");
+    if (!file) return;
     setPhotoError("");
     startPhoto(async () => {
       const up = await uploadImage("avatar", file, tErrors("imageUnreadable"));
@@ -142,11 +148,37 @@ export function Editor({
     });
   };
 
+  // A capa também salva na hora: tocar nela abre direto o seletor de arquivo (e o recorte); o X ao lado do lápis remove.
+  const saveCover = (url: () => Promise<{ ok: true; url: string } | { ok: false; error: string }>) => {
+    setPhotoError("");
+    startCover(async () => {
+      const up = await url();
+      const res = up.ok ? await updateCoverAction(up.url) : up;
+      if (!res.ok) return setPhotoError(res.error);
+      router.refresh();
+    });
+  };
+  const sendCover = async (picked: File) => {
+    const file = await crop(picked, "cover");
+    if (file) saveCover(() => uploadImage("cover", file, tErrors("imageUnreadable")));
+  };
+  // a capa sai na hora da vitrine pública: pede confirmação
+  const removeCover = async () => {
+    const ok = await ask({ title: t("edit.removeCoverTitle"), text: t("edit.removeCoverText"), confirm: t("edit.removeCoverConfirm"), danger: true });
+    if (ok) saveCover(async () => ({ ok: true, url: "" }));
+  };
+
   /* Itens: criar, mudar, mover, excluir. */
   const add = <K extends ListKey>(key: K, item: VitrineContent[K][number]) => update((d) => ({ ...d, [key]: [...d[key], item] }));
   const patch = <K extends ListKey>(key: K, id: string, p: Partial<VitrineContent[K][number]>) =>
     update((d) => ({ ...d, [key]: (d[key] as { id: string }[]).map((x) => (x.id === id ? { ...x, ...p } : x)) }));
-  const move = (key: ListKey, from: number, to: number) => update((d) => ({ ...d, [key]: reorder(d[key] as { id: string }[], from, to) }));
+  // `from` vai para o lugar de `to` (arrastando o card na vitrine); pelos ids, porque a vitrine pode estar filtrada
+  const move = (key: ListKey, from: string, to: string) =>
+    update((d) => {
+      const list = d[key] as { id: string }[];
+      const [i, j] = [list.findIndex((x) => x.id === from), list.findIndex((x) => x.id === to)];
+      return i < 0 || j < 0 || i === j ? d : { ...d, [key]: reorder(list, i, j) };
+    });
   const remove = (key: ListKey, id: string) => {
     update((d) => ({
       ...d,
@@ -170,7 +202,9 @@ export function Editor({
   };
 
   const edit: StorefrontEdit = {
-    cover: () => setOpen({ kind: "cover" }),
+    cover: () => coverInput.current?.click(),
+    removeCover,
+    coverBusy: sendingCover,
     avatar: () => avatarInput.current?.click(),
     avatarBusy: sendingPhoto,
     text: (patch) => update((d) => ({ ...d, ...patch })),
@@ -183,12 +217,16 @@ export function Editor({
     },
     product: (id) => setOpen(id ? { kind: "product", id, isNew: false } : { kind: "productNew" }),
     favorite: (id, on) => patch("products", id, { favorite: on }),
+    reorder: move,
     outfits: <OutfitsEditor posts={draft.posts} products={draft.products} update={update} />,
   };
 
-  // a navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso
-  const confirmLeave = (e: MouseEvent) => {
-    if (unsaved && !confirm(t("leaveConfirm"))) e.preventDefault();
+  // A navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso. Com algo por salvar, o
+  // clique para e a janela pergunta; `go` faz a saída se a pessoa confirmar.
+  const confirmLeave: LeaveGuard = (e, go) => {
+    if (!unsaved) return;
+    e.preventDefault();
+    void ask({ title: t("leave.title"), text: t("leave.text"), confirm: t("leave.confirm") }).then((ok) => ok && go());
   };
 
   return (
@@ -196,8 +234,8 @@ export function Editor({
       <header ref={header} className="sticky top-0 z-30 border-b border-[#E0DCD3] bg-white">
         {/* a barra vai de ponta a ponta, mas o conteúdo segue a mesma largura do /inicio e da vitrine (1440px, px-5 / md:px-12) */}
         <div className="mx-auto box-border flex w-full max-w-[1440px] items-center gap-3.5 px-5 py-3 md:px-12 max-sm:gap-2.5 max-sm:px-3">
-          <BackLink href="/inicio" onClick={confirmLeave} label="home" labelClass="max-sm:hidden" divider />
-          <Link href="/inicio" onClick={confirmLeave} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline max-sm:hidden">
+          <BackLink href="/inicio" onClick={(e) => confirmLeave(e, () => router.push("/inicio"))} label="home" labelClass="max-sm:hidden" divider />
+          <Link href="/inicio" onClick={(e) => confirmLeave(e, () => router.push("/inicio"))} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline max-sm:hidden">
             <Wordmark label="" className="h-[17px] w-auto" />
           </Link>
           <div className="flex-1" />
@@ -217,7 +255,7 @@ export function Editor({
           {!dirty && (
             <Link
               href={vitrineHref(published.handle)}
-              onClick={confirmLeave}
+              onClick={(e) => confirmLeave(e, () => router.push({ pathname: "/[handle]", params: { handle: `@${published.handle}` } }))}
               className="flex min-h-11 flex-none items-center gap-2 rounded-full border border-ink px-5 text-sm font-bold text-ink no-underline transition-colors hover:bg-ink hover:text-white max-sm:min-h-10 max-sm:px-4"
             >
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -292,12 +330,28 @@ export function Editor({
         }}
       />
 
-      {open && <EditSheet open={open} draft={draft} update={update} close={close} setOpen={setOpen} patch={patch} move={move} remove={remove} />}
+      <input
+        ref={coverInput}
+        type="file"
+        accept={IMAGE_ACCEPT}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="sr-only"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) sendCover(file);
+        }}
+      />
+
+      {cropper}
+      {confirmDialog}
+      {open && <EditSheet open={open} draft={draft} update={update} close={close} setOpen={setOpen} patch={patch} remove={remove} />}
     </div>
   );
 }
 
-/** A janela de edição do que está aberto: o formulário certo, com o rodapé de mover, excluir e concluir. */
+/** A janela de edição do que está aberto: o formulário certo, com o rodapé de excluir e concluir. */
 function EditSheet({
   open,
   draft,
@@ -305,7 +359,6 @@ function EditSheet({
   close,
   setOpen,
   patch,
-  move,
   remove,
 }: {
   open: Open;
@@ -314,25 +367,11 @@ function EditSheet({
   close: () => void;
   setOpen: (o: Open) => void;
   patch: <K extends ListKey>(key: K, id: string, p: Partial<VitrineContent[K][number]>) => void;
-  move: (key: ListKey, from: number, to: number) => void;
   remove: (key: ListKey, id: string) => void;
 }) {
   const t = useTranslations("editor");
   const tSheet = useTranslations("editor.sheet");
   const done = <SheetFooter onDone={close} />;
-
-  if (open.kind === "cover") {
-    const cover = draft.look.bannerUrl;
-    return (
-      <Sheet title={tSheet("cover")} onClose={close} footer={done}>
-        <p className="m-0 text-[13px] leading-snug text-[#5E5A52]">{t("profile.coverHint")}</p>
-        <CoverPicker hasCover={Boolean(cover)} name={draft.name}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- capa enviada pela creator para o bucket */}
-          <img src={cover} alt="" className="block aspect-[4/3] w-full bg-sand object-cover" />
-        </CoverPicker>
-      </Sheet>
-    );
-  }
 
   if (open.kind === "socials")
     return (
@@ -363,7 +402,7 @@ function EditSheet({
       onDone={close}
       onRemove={() => remove(key, open.id)}
       removeLabel={t(`${key}.remove`)}
-      move={{ pos: index + 1, total: list.length, onMove: (to) => move(key, index, to) }}
+      removeAsk={{ title: t(`${key}.removeTitle`), text: t(`${key}.removeText`) }}
     />
   );
 
@@ -375,7 +414,7 @@ function EditSheet({
     );
 
   return (
-      <Sheet title={open.isNew ? tSheet("newProduct") : tSheet("product")} onClose={close} footer={footer}>
+      <Sheet title={open.isNew ? tSheet("newProduct") : tSheet("product")} onClose={close} footer={footer} wide>
         <ProductForm
           product={draft.products[index]}
           categories={[...new Set(draft.products.map((p) => p.category).filter(Boolean))]}
