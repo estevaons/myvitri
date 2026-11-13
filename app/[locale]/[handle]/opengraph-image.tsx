@@ -18,5 +18,5 @@ export default async function Image({ params }: { params: Promise<{ locale: Loca
   if (!vitrine) return new Response(null, { status: 404 });
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
-  return shareImage(vitrine.content, vitrine.today, `${origin}${localizedPath(vitrinePath(vitrine.content.handle), locale)}`, "og", locale);
+  return shareImage(vitrine.content, `${origin}${localizedPath(vitrinePath(vitrine.content.handle), locale)}`, "og", locale);
 }

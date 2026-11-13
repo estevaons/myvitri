@@ -1,9 +1,8 @@
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { CreatorCover } from "@/components/home/CreatorCard";
 import { FavoriteButton } from "@/components/storefront/FavoriteButton";
 import type { CatalogVitrine } from "@/lib/vitrine/catalog/vitrines";
-import { expiryValues } from "@/lib/vitrine/pricing";
 
 const BRANDS_SHOWN = 3;
 
@@ -12,11 +11,8 @@ const BRANDS_SHOWN = 3;
  * as marcas, e quanto há para ver (o que está zerado não aparece). O coração fica fora do link, por cima
  * da capa: botão dentro de link não é HTML válido.
  */
-/** `today`: AAAA-MM-DD do catálogo, para o "Cupom vence em 3 dias". */
-export function VitrineCard({ v, today, favorited, stay = false }: { v: CatalogVitrine; today: string; favorited: boolean; stay?: boolean }) {
+export function VitrineCard({ v, favorited, stay = false }: { v: CatalogVitrine; favorited: boolean; stay?: boolean }) {
   const t = useTranslations("counts");
-  const tCoupon = useTranslations("coupon");
-  const locale = useLocale();
   const { card } = v;
   const extra = v.brands.length - BRANDS_SHOWN;
   const stats = [
@@ -46,11 +42,6 @@ export function VitrineCard({ v, today, favorited, stay = false }: { v: CatalogV
               </span>
             ))}
           </span>
-          {v.expiring && (
-            <span className="pt-1 text-[11px] font-medium tracking-[0.16em] text-gold uppercase">
-              {tCoupon("expiringBadge", expiryValues({ expiresAt: v.expiring }, today, locale))}
-            </span>
-          )}
         </div>
       </Link>
       <FavoriteButton variant="card" handle={card.handle} name={card.creator} favorited={favorited} guest={false} />

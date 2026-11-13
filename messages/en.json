@@ -48,8 +48,9 @@
       "text": "Gather your coupons and favorite products in a single link for your bio. It's free and ready in 2 minutes.",
       "button": "Create my storefront"
     },
-    "footer": "Coupons may change at the brand's store. Links identify this storefront.",
-    "review": "Watch my review"
+    "footer": "Coupons may change at the brand's store.",
+    "review": "Watch my review",
+    "seeOutfits": "See outfits"
   },
   "auth": {
     "errors": {
@@ -268,12 +269,6 @@
     "more": {
       "metricsTitle": "See what works",
       "metricsText": "Visits, clicks, most-clicked products and most-copied coupons, day by day.",
-      "storiesTitle": "Ready for stories",
-      "storiesText": "Download an image with your coupons, post it and add the link sticker to your storefront.",
-      "utmTitle": "Links with UTM",
-      "utmText": "Store links carry UTM tags, so the brand sees the visit came from your storefront.",
-      "datesTitle": "Coupons with dates",
-      "datesText": "Schedule when a coupon starts and when it expires. Once expired, it leaves your storefront on its own.",
       "videoTitle": "Video reviews",
       "videoText": "Attach your Reels, TikTok or YouTube video showing the product.",
       "soldOutTitle": "Sold out? Don't delete it",
@@ -295,12 +290,10 @@
       "linkA": "Your storefront lives at {host}/@yourname. That's the address that goes in your Instagram or TikTok bio, or wherever you like.",
       "manualQ": "Do I have to add each product by hand?",
       "manualA": "No. Paste the product's store link and we pull in the name and photo. Then just add your affiliate link, if you have one.",
-      "trackQ": "Can the brand see the sale came from me?",
-      "trackA": "Store links can carry UTM tags, so the brand sees the visit came from your storefront.",
       "affiliateQ": "Can I use my affiliate link?",
       "affiliateA": "Yes. Each product has a field for your affiliate link, and a click on the product goes straight to it, exactly as you pasted it. Coupons live in the same storefront: your audience gets the discount and you get the commission.",
       "shareQ": "How do I promote my storefront?",
-      "shareA": "The link already shows a preview with your coupons on WhatsApp and social media, and you can download an image with your coupons ready for stories."
+      "shareA": "Put the link in your Instagram and TikTok bio and in your stories. It already shows a preview with your coupons on WhatsApp and social media."
     },
     "ctaTitle": "Your link in bio, ready today",
     "ctaText": "Free to start. Just pick your link and create your account.",
@@ -467,9 +460,7 @@
       "brand": "Brand",
       "vitrine": "Storefront",
       "letter": "Letter",
-      "expiringWeek": "Expiring this week",
-      "withVideo": "With video review",
-      "expiringCoupon": "Coupon expiring"
+      "withVideo": "With video review"
     },
     "favorites": {
       "title": "Saved",
@@ -491,7 +482,6 @@
       "sorts": {
         "recommended": "Most recommended",
         "discount": "Biggest discount",
-        "expiring": "Expiring soonest",
         "az": "A–Z"
       },
       "filteredTitle": "No brands with these filters",
@@ -594,10 +584,6 @@
     "terms": "Terms of Use",
     "privacy": "Privacy Policy"
   },
-  "coupon": {
-    "expiry": "{kind, select, none {No expiry date} today {Expires today} tomorrow {Expires tomorrow} days {Expires in {days} days} other {Valid until {date}}}",
-    "expiringBadge": "{kind, select, none {Coupon without expiry} today {Coupon expires today} tomorrow {Coupon expires tomorrow} days {Coupon expires in {days} days} other {Coupon valid until {date}}}"
-  },
   "metrics": {
     "vsPrevious": "vs. previous {period} days",
     "same": "= same as the previous {period} days",
@@ -608,17 +594,12 @@
     "unitCopies": "{count, plural, one {copy} other {copies}}",
     "items": "{count, plural, one {# item} other {# items}}",
     "alerts": {
-      "couponName": "Coupon {code} · {brand}",
-      "scheduled": "Scheduled: goes live on your storefront on {date}.",
-      "expired": "Expired on {date} and left your storefront.",
-      "expiring": "{label}. Check with the brand whether it's still valid.",
       "soldOut": "Sold out: shown without the store link.",
-      "seeCoupon": "See coupon",
       "fix": "Fix",
       "label": "Alerts",
       "title": "What needs attention",
       "allGood": "All up to date",
-      "none": "No coupons expiring, no products sold out."
+      "none": "No sold-out products."
     },
     "period": "Period",
     "days": "{n} days",
@@ -631,8 +612,7 @@
       "youNth": "Yours is the {position, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} most clicked storefront today",
       "inHome": "{lead}, and it's among those shown in “Storefronts of the day” on the home page.",
       "almost": "{lead}. A few more clicks and it'll make “Storefronts of the day” on the home page.",
-      "notYet": "Your storefront isn't among today's most clicked yet. Share the link in your stories and bio: the most clicked storefronts of the day appear in “Storefronts of the day” on the home page.",
-      "share": "Promote"
+      "notYet": "Your storefront isn't among today's most clicked yet. Share the link in your stories and bio: the most clicked storefronts of the day appear in “Storefronts of the day” on the home page."
     },
     "removed": "Removed item",
     "gone": "no longer on your storefront",
@@ -713,57 +693,28 @@
     "postN": "Outfit {n}"
   },
   "editor": {
-    "tabs": {
-      "label": "Options",
-      "profile": "Profile",
-      "coupons": "Coupons",
-      "products": "Products",
-      "posts": "Outfits",
-      "share": "Promote"
-    },
-    "couponsExpiring": "{count, plural, one {# coupon expiring} other {# coupons expiring}}",
     "leaveConfirm": "We're still saving your changes. Leave anyway?",
-    "previewSize": "Preview size",
-    "desktop": "Desktop",
-    "mobile": "Mobile",
     "draftFailed": "Error saving the draft",
     "unpublished": "Unpublished changes",
-    "published": "Published",
     "publishing": "Publishing…",
     "publish": "Publish",
-    "view": "View storefront",
     "publishError": "Couldn't publish: {error}",
     "close": "Close",
     "profile": {
-      "cover": "Cover",
       "coverHint": "The photo at the top of your storefront and on its card on the home page. Saved right away, no need to publish.",
-      "section": "Text",
       "headline": "Headline",
-      "headlineHint": "Shown in large letters, right below the cover.",
       "sub": "Supporting text"
     },
     "socials": {
-      "title": "Social media",
       "hint": "Shown subtly below your name. Use your @ or the profile link.",
       "placeholder": "@yourusername",
       "invalid": "This doesn't look like a {network} profile. Use your @ or the profile link."
     },
     "ui": {
       "percentLabel": "Discount percentage",
-      "moneyPlaceholder": "0.00",
-      "move": "Move {title}, position {pos} of {total}. Use the up and down arrows.",
-      "drag": "Drag to reorder",
-      "done": "Done"
+      "moneyPlaceholder": "0.00"
     },
     "coupons": {
-      "startsOn": "Starts {date}",
-      "expired": "Expired",
-      "until": "until {date}",
-      "title": "Your coupons",
-      "hint": "Add each one once. When a coupon expires, it leaves your storefront on its own.",
-      "alert": "<b>{count, plural, one {# coupon expiring.} other {# coupons expiring.}}</b> Renew the date or change the code.",
-      "empty": "No coupons yet. Start with the coupon you promote the most.",
-      "new": "New coupon",
       "brand": "Brand",
       "brandPlaceholder": "E.g. Maré",
       "code": "Code",
@@ -778,24 +729,8 @@
       "stepsHint": "One step per line. Shown on the coupon as a list.",
       "stepsPlaceholder": "E.g. Valid in the app only\nCan't be combined with other offers",
       "remove": "Delete coupon",
-      "add": "+ Add coupon"
-    },
-    "dates": {
-      "prevMonth": "Previous month",
-      "nextMonth": "Next month",
-      "dayLabel": "{date}{isToday, select, yes {, today} other {}}",
-      "past": "already passed",
-      "today": "today",
-      "tomorrow": "tomorrow",
-      "inDays": "in {n} days",
-      "shortcuts": "Shortcuts",
-      "until": "Valid until",
-      "expired": "already expired",
-      "expires": "expires {when}",
-      "noExpiry": "No expiry date",
-      "days": "{n} days",
-      "scheduled": "Only goes live on your storefront on {date}.",
-      "startNow": "Start now"
+      "groupCoupon": "Coupon",
+      "groupStore": "Store"
     },
     "logo": {
       "status": {
@@ -830,11 +765,6 @@
     },
     "products": {
       "fullLink": "Paste the full product link, starting with https://",
-      "order": "Product order",
-      "orderHint": "The first one appears at the top of your storefront.",
-      "empty": "Paste the link of a product you recommend and we'll pull in the name and photo.",
-      "new": "New product",
-      "soldOut": "Sold out",
       "photo": "Photo",
       "product": "Product",
       "name": "Name",
@@ -850,64 +780,42 @@
       "video": "Video review (optional)",
       "videoHint": "Link to your Reels, TikTok or YouTube video about the product.",
       "addVideo": "+ Video review",
-      "remove": "Remove",
-      "addByLink": "+ Add by link",
+      "remove": "Delete product",
       "linkPlaceholder": "https://store.com/product",
       "linkLabel": "Product link",
       "searching": "Searching…",
-      "search": "Search",
+      "search": "Find product",
       "addHint": "It can be your affiliate link or the store's. We pull in the name and photo, and clicks go to the link you pasted.",
-      "manual": "Add manually"
+      "manual": "Fill in manually",
+      "or": "or",
+      "importFailed": "We couldn't fetch this link's details ({error}). Fill them in below."
     },
     "posts": {
-      "title": "Your outfits",
-      "hint": "Post a photo of you wearing an outfit and list each piece below, up to {max}. On your storefront, each piece goes to its own link.",
-      "needProducts": "Add products first to list the pieces of an outfit.",
-      "empty": "No outfits yet. How about today's workout look?",
-      "postN": "Outfit {n}",
-      "items": "{count, plural, =0 {No pieces} one {# piece} other {# pieces}}",
-      "noPhoto": "No photo",
-      "photo": "Photo",
+      "tag": "Add {name} to the outfit",
+      "list": "Your outfits",
+      "outfitN": "Outfit {n}",
+      "newOutfit": "New outfit",
+      "missingPhoto": "Add a photo so this outfit shows on your vitrine.",
+      "missingPieces": "Tag at least one piece so this outfit shows on your vitrine.",
       "photoHint": "A photo of you wearing the pieces. Portrait works best: your storefront shows it at 4:5.",
-      "pickFirst": "Choose below the pieces that show up in the photo.",
       "untag": "Remove {name} from the outfit",
-      "addProducts": "Choose pieces ({n}/{max})",
       "unnamed": "Unnamed product",
-      "remove": "Delete",
-      "add": "+ New outfit"
-    },
-    "share": {
-      "where": {
-        "profile": "On your profile, tap <b>Edit profile</b>",
-        "igLinks": "Tap <b>Links</b>, then <b>Add external link</b>",
-        "paste": "Paste your storefront link and save",
-        "ttSite": "Tap <b>Website</b>",
-        "storyPost": "Post the stories image below (or any story)",
-        "storySticker": "Tap <b>Stickers</b> and choose <b>Link</b>",
-        "storyText": "Paste the link and write something like “my coupons”"
-      },
-      "network": "Social network",
-      "howTo": "How to add it on {name}",
-      "previewAlt": "Preview: {title}",
-      "publishFirst": "Publish your storefront to generate the image.",
-      "download": "Download",
-      "yourLink": "Your link",
-      "copiedHint": "Copied! Now just paste it in your bio.",
-      "tapToCopy": "Tap to copy",
-      "copied": "Link copied",
-      "unpublished": "You have unpublished changes. Publish them to show up in the link and images.",
-      "live": "Live with the latest version",
-      "whereTitle": "Where to paste",
-      "images": "Ready-made images",
-      "storyTitle": "Stories",
-      "storyText": "Post it and add the link sticker on top.",
-      "ogTitle": "Link preview",
-      "ogText": "Shows up on its own when people send your link on WhatsApp.",
-      "utmTitle": "Track my sales (UTM)",
-      "utmHint": "Brands see in their analytics that the visit came from you.",
-      "utmSwitch": "Add UTM to store links",
-      "campaign": "Campaign name",
-      "campaignHint": "Coupon store links get <code>utm_source=myvitri&utm_medium=creator&utm_campaign={campaign}</code>. Product links stay exactly as you pasted them."
+      "remove": "Delete outfit",
+      "sending": "Uploading photo…",
+      "changePhoto": "Change photo",
+      "pickPhoto": "Choose the outfit photo",
+      "caption": "Caption (optional)",
+      "captionPlaceholder": "Write a caption for the look…",
+      "pieces": "Pieces in this look ({n}/{max})",
+      "pieceLink": "Add a piece by link",
+      "piecePlaceholder": "https://store.com/item",
+      "pieceHint": "Your affiliate link or the store's. We fetch the name and photo, and the piece is also added to Products.",
+      "addPiece": "Add",
+      "adding": "Searching…",
+      "importFailed": "We couldn't fetch this link's details.",
+      "addAnyway": "Add with just the link",
+      "full": "This look already has {max} pieces, the maximum.",
+      "fromProducts": "Choose from my products ({count})"
     },
     "delete": {
       "open": "Delete my account",
@@ -917,6 +825,39 @@
       "deleting": "Deleting…",
       "submit": "Delete forever",
       "cancel": "Cancel"
+    },
+    "editHint": "Tap any part of your storefront to edit it. Everything is saved as a draft until you publish.",
+    "edit": {
+      "cover": "Change cover",
+      "addCover": "Add cover",
+      "avatar": "Change profile photo",
+      "addSub": "Tap to write a short intro",
+      "socials": "Edit social media",
+      "addSocials": "Add social media",
+      "add": "Add",
+      "coupon": "Edit coupon {name}",
+      "newCoupon": "new",
+      "addCoupon": "Add coupon",
+      "emptyCoupons": "Start with the coupon you share the most.",
+      "product": "Edit product {name}",
+      "newProduct": "untitled",
+      "addProduct": "Add product",
+      "emptyProducts": "Paste the link of a product you recommend and we fetch its name and photo.",
+      "ghostOff": "10% OFF",
+      "ghostCode": "YOURCODE"
+    },
+    "sheet": {
+      "position": "Position {pos} of {total}",
+      "moveBefore": "Move earlier",
+      "moveAfter": "Move later",
+      "confirmRemove": "Tap again to delete",
+      "done": "Done",
+      "newCoupon": "New coupon",
+      "coupon": "Edit coupon",
+      "newProduct": "New product",
+      "product": "Edit product",
+      "cover": "Cover",
+      "socials": "Social media"
     }
   },
   "legal": {

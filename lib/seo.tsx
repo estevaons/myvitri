@@ -3,7 +3,6 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { localizePath, routing, type Locale } from "@/lib/i18n/routing";
 import { BRAND, CONTACT_EMAIL, SITE_URL } from "@/lib/brand";
 import { vitrinePath } from "@/lib/vitrine/links";
-import { isActive } from "@/lib/vitrine/pricing";
 import type { VitrineContent } from "@/lib/vitrine/types";
 
 /**
@@ -103,10 +102,10 @@ export async function appJsonLd(faq: [question: string, answer: string][]) {
   };
 }
 
-/** Marcas com cupom valendo hoje, sem repetir, na ordem em que aparecem na vitrine. */
-export function activeBrands(content: VitrineContent, today: string) {
+/** Marcas com cupom, sem repetir, na ordem em que aparecem na vitrine. */
+export function activeBrands(content: VitrineContent) {
   const seen = new Map<string, string>();
-  for (const c of content.coupons) if (isActive(c, today) && !seen.has(c.brand.toLowerCase())) seen.set(c.brand.toLowerCase(), c.brand);
+  for (const c of content.coupons) if (!seen.has(c.brand.toLowerCase())) seen.set(c.brand.toLowerCase(), c.brand);
   return [...seen.values()];
 }
 

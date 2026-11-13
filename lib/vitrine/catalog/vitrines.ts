@@ -2,8 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { createPublicSupabase } from "@/lib/supabase/server";
-import { HOME_TAG, live, rank, todayISO, type HomeCreator } from "../data";
-import { daysLeft } from "../pricing";
+import { HOME_TAG, live, rank, type HomeCreator } from "../data";
 import { isMissingTable, toCoupon, toProduct, topCreatorsToday, type FeedVitrine } from "../store";
 import type { Coupon } from "../types";
 
@@ -28,14 +27,11 @@ export type CatalogVitrine = {
   posts: number;
   /** O maior desconto entre os cupons ativos. */
   best: Coupon | null;
-  /** Validade (AAAA-MM-DD) do cupom ativo que vence primeiro, se for em até 7 dias; o card monta o "Vence em 3 dias". */
-  expiring: string | null;
   updatedAt: string;
 };
 
-export type VitrinesCatalog = { vitrines: CatalogVitrine[]; categories: CatalogOption[]; brands: CatalogOption[]; today: string };
+export type VitrinesCatalog = { vitrines: CatalogVitrine[]; categories: CatalogOption[]; brands: CatalogOption[] };
 
-const EXPIRING_DAYS = 7;
 const MAX_OPTIONS = 12;
 
 // O PostgREST do Supabase devolve no máximo 1000 linhas por resposta: lemos de 1000 em 1000.
@@ -103,7 +99,6 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
   const productsOf = group(products);
   const postsOf = group(posts);
 
-  const today = todayISO();
   const vitrines: CatalogVitrine[] = [];
   for (const row of rows) {
     const feed: FeedVitrine = {
@@ -116,7 +111,7 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
       products: (productsOf.get(row.id) ?? []).map(toProduct),
     };
     // cupons ativos com o melhor primeiro; produtos à venda
-    const { coupons: active, products: onSale } = live(feed, today);
+    const { coupons: active, products: onSale } = live(feed);
     if (!active.length && !onSale.length) continue;
 
     const forSale = new Set(onSale.map((p) => p.id));
@@ -126,10 +121,6 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
       if (keyOf(b) && !brands.has(keyOf(b))) brands.set(keyOf(b), b.trim());
     }
     const categories = tally(onSale.map((p) => p.category));
-    const soonest = active
-      .map((c) => ({ c, d: daysLeft(c, today) }))
-      .filter((x): x is { c: Coupon; d: number } => x.d !== null && x.d <= EXPIRING_DAYS)
-      .sort((a, b) => a.d - b.d)[0];
 
     vitrines.push({
       card: {
@@ -146,7 +137,6 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
       brandKeys: [...brands.keys()],
       posts: (postsOf.get(row.id) ?? []).filter((p) => p.product_ids.some((id) => forSale.has(id))).length,
       best: active[0] ?? null,
-      expiring: soonest?.c.expiresAt ?? null,
       updatedAt: row.updated_at,
     });
   }
@@ -156,7 +146,6 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
     vitrines,
     categories: tally(vitrines.flatMap((v) => v.categories)).slice(0, MAX_OPTIONS),
     brands: tally(vitrines.flatMap((v) => v.brands)).slice(0, MAX_OPTIONS),
-    today,
   };
 }
 

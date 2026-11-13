@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getUser } from "@/lib/supabase/server";
 import { pickSocials } from "./socials";
-import { COUPON_EXTRA, emptyContent, pickProfile, PRODUCT_EXTRA, TRACKING, type Coupon, type IconId, type Post, type Product, type VitrineContent, type VitrineProfile } from "./types";
+import { COUPON_EXTRA, emptyContent, pickProfile, PRODUCT_EXTRA, type Coupon, type IconId, type Post, type Product, type VitrineContent, type VitrineProfile } from "./types";
 
 /**
  * Persistência das vitrines no Supabase. Toda leitura/escrita passa por aqui;
@@ -88,7 +88,6 @@ async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
     sub: v.sub,
     look: pickLook(v.look as Partial<VitrineContent["look"]>, base.look),
     show: { ...base.show, ...(v.show as object) },
-    tracking: { ...TRACKING, ...(v.tracking as object) },
     // sem a migração das redes a coluna não vem: fica tudo vazio
     socials: pickSocials(v.socials),
     coupons: (coupons.data ?? []).map(toCoupon),
@@ -230,15 +229,14 @@ export async function findDraft(db: Db, ownerId: string, published: VitrineConte
   if (!d || typeof d !== "object" || ![d.coupons, d.products].every(Array.isArray)) return null;
   return {
     ...published,
-    // rascunhos de antes dos posts ainda trazem os kits, que saíram do app
-    ...without(d, "kits"),
+    // rascunhos antigos ainda trazem os kits e a UTM (`tracking`), que saíram do app
+    ...without(d, "kits", "tracking"),
     ...pickProfile(published),
     coupons: d.coupons!.map((c) => ({ ...COUPON_EXTRA, ...without(c, "color") })),
     products: d.products!.map((p) => ({ ...PRODUCT_EXTRA, ...p })),
     // rascunho salvo antes de existirem os posts
     posts: Array.isArray(d.posts) ? d.posts : published.posts,
     show: { ...published.show, ...d.show },
-    tracking: { ...published.tracking, ...d.tracking },
     // rascunho salvo antes de existirem as redes
     socials: d.socials ? pickSocials(d.socials) : published.socials,
   };

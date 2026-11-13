@@ -17,6 +17,8 @@
 @theme {
   --animate-heart-pop: heart-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-rise-in: rise-in 0.25s ease-out;
+  /* a janela de edição do editor (components/editor/Sheet.tsx) entrando */
+  --animate-sheet-up: rise-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 
   @keyframes heart-pop {
     0% {

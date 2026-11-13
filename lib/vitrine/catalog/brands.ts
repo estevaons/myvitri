@@ -1,8 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
-import { HOME_TAG, rank, todayISO } from "../data";
-import { isActive } from "../pricing";
+import { HOME_TAG, rank } from "../data";
 import { toCoupon } from "../store";
 import type { Coupon } from "../types";
 import { slug } from "./products";
@@ -33,7 +32,7 @@ export type CatalogBrand = {
   categories: string[];
 };
 
-export type CatalogBrands = { brands: CatalogBrand[]; categoryLabels: Record<string, string>; today: string };
+export type CatalogBrands = { brands: CatalogBrand[]; categoryLabels: Record<string, string> };
 
 const norm = (s: string) => s.trim().toLowerCase();
 
@@ -52,17 +51,13 @@ const mostUsed = (spellings: Map<string, number>) => [...spellings].reduce((a, b
 export async function getCatalogBrands(): Promise<CatalogBrands> {
   "use cache";
   cacheTag(HOME_TAG);
-  // horas: cupom vencido sai do diretório mesmo sem nova publicação
   cacheLife("hours");
 
-  const today = todayISO();
   const db = createPublicSupabase();
   const [coupons, products] = await Promise.all([
     db
       .from("coupons")
       .select("*, vitrines!inner(handle, name, avatar_url)")
-      .or(`starts_at.is.null,starts_at.lte.${today}`)
-      .or(`expires_at.is.null,expires_at.gte.${today}`)
       .order("position")
       .limit(MAX_COUPONS),
     db
@@ -79,7 +74,6 @@ export async function getCatalogBrands(): Promise<CatalogBrands> {
   const couponBrand = new Map<string, string>();
   for (const { vitrines: v, ...row } of coupons.data ?? []) {
     const c: BrandCoupon = { ...toCoupon(row), code: "", howTo: "", storeUrl: "", handle: v.handle, name: v.name, avatarUrl: v.avatar_url };
-    if (!isActive(c, today)) continue;
     const key = norm(c.brand);
     if (!key) continue;
     couponBrand.set(c.id, key);
@@ -128,5 +122,5 @@ export async function getCatalogBrands(): Promise<CatalogBrands> {
     b.categories = [...(brandCats.get(b.key) ?? [])];
   }
 
-  return { brands: [...brands.values()], categoryLabels, today };
+  return { brands: [...brands.values()], categoryLabels };
 }

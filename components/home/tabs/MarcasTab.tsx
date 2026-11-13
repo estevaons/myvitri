@@ -2,10 +2,10 @@ import { getTranslations } from "next-intl/server";
 import { Fragment, type CSSProperties } from "react";
 import { getCatalogBrands } from "@/lib/vitrine/catalog/brands";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
-import { CatalogEmpty, CatalogFrame, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
+import { CatalogEmpty, CatalogFrame, FilterChips, LoadMore, SortMenu } from "../catalog/ui";
 import { BrandCard } from "./marcas/BrandCard";
 import { BrandDetail } from "./marcas/BrandDetail";
-import { expiringSoon, LETTER_MIN, letterOf, optionsBy, OTHER_LETTER, passes, sortBrands, sortsFor } from "./marcas/query";
+import { LETTER_MIN, letterOf, optionsBy, OTHER_LETTER, passes, sortBrands, sortsFor } from "./marcas/query";
 
 // colunas da grade em cada largura: celular, md e lg (o comparativo entra embaixo da linha da marca aberta)
 const COLS = [2, 3, 4] as const;
@@ -16,10 +16,10 @@ const grid = "grid grid-cols-2 gap-1 md:grid-cols-3 lg:grid-cols-4";
  * todas as vitrines — o que nenhuma vitrine sozinha mostra. `?brand=` abre o comparativo dos cupons dela.
  */
 export async function MarcasTab({ params }: { params: TabParams }) {
-  const [{ brands: all, categoryLabels, today }, t, tCount] = await Promise.all([getCatalogBrands(), getTranslations("catalog"), getTranslations("counts")]);
+  const [{ brands: all, categoryLabels }, t, tCount] = await Promise.all([getCatalogBrands(), getTranslations("catalog"), getTranslations("counts")]);
 
   const filtered = sortBrands(
-    all.filter((b) => passes(b, params, today)),
+    all.filter((b) => passes(b, params)),
     params.sort,
   );
   const limit = limitOf(params);
@@ -27,7 +27,7 @@ export async function MarcasTab({ params }: { params: TabParams }) {
 
   // opções de cada filtro tiradas das marcas que os outros filtros deixam, para nenhum chip levar a uma lista vazia
   const catOptions = optionsBy(
-    all.filter((b) => passes(b, params, today, "category")).flatMap((b) => b.categories),
+    all.filter((b) => passes(b, params, "category")).flatMap((b) => b.categories),
     (v) => categoryLabels[v] ?? v,
     params.category,
     12,
@@ -35,18 +35,16 @@ export async function MarcasTab({ params }: { params: TabParams }) {
   const letterOptions =
     all.length > LETTER_MIN
       ? optionsBy(
-          all.filter((b) => passes(b, params, today, "letter")).map((b) => letterOf(b.brand)),
+          all.filter((b) => passes(b, params, "letter")).map((b) => letterOf(b.brand)),
           (v) => (v === OTHER_LETTER ? "#" : v.toUpperCase()),
           params.letter,
         ).sort(([a], [b]) => (a === OTHER_LETTER ? 1 : b === OTHER_LETTER ? -1 : a.localeCompare(b)))
       : [];
-  const showSoon = params.expiring === "1" || all.some((b) => passes(b, params, today, "expiring") && expiringSoon(b, today));
 
-  const filters = (catOptions.length > 1 || letterOptions.length > 1 || showSoon) && (
+  const filters = (catOptions.length > 1 || letterOptions.length > 1) && (
     <>
       <FilterChips label={t("filters.category")} param="category" options={catOptions} params={params} />
       <FilterChips label={t("filters.letter")} param="letter" options={letterOptions} params={params} />
-      {showSoon && <ToggleChip label={t("filters.expiringWeek")} param="expiring" params={params} />}
     </>
   );
 
@@ -70,8 +68,8 @@ export async function MarcasTab({ params }: { params: TabParams }) {
   );
 
   const sorts = sortsFor(all, params.sort);
-  const filtering = Boolean(params.category || params.expiring || params.letter);
-  const clearHref = hrefWith(params, { category: null, expiring: null, letter: null, brand: null });
+  const filtering = Boolean(params.category || params.letter);
+  const clearHref = hrefWith(params, { category: null, letter: null, brand: null });
   return (
     <CatalogFrame
       title={t("brands.title")}

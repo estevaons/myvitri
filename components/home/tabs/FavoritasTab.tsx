@@ -14,7 +14,7 @@ import { VitrineCard } from "./vitrines/VitrineCard";
  * sugestão para começar a favoritar.
  */
 export async function FavoritasTab({ params, favorites }: { params: TabParams; favorites: string[] }) {
-  const { vitrines, today } = favorites.length ? await getVitrinesCatalog() : { vitrines: [], today: "" };
+  const { vitrines } = favorites.length ? await getVitrinesCatalog() : { vitrines: [] };
   const byHandle = new Map(vitrines.map((v) => [v.card.handle, v]));
   const active = favorites.flatMap((h) => byHandle.get(h) ?? []);
   const shown = active.slice(0, limitOf(params));
@@ -27,7 +27,7 @@ export async function FavoritasTab({ params, favorites }: { params: TabParams; f
           <>
             <div className={catalogGrid}>
               {shown.map((v) => (
-                <VitrineCard key={v.card.handle} v={v} today={today} favorited stay />
+                <VitrineCard key={v.card.handle} v={v} favorited stay />
               ))}
             </div>
             <LoadMore params={params} shown={shown.length} total={active.length} />

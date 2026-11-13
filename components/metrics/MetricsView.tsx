@@ -1,4 +1,4 @@
-import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Link, vitrineHref, type Href } from "@/lib/i18n/navigation";
 import { kicker, pad, pillDark, pillLight, SiteFooter, SiteHeader } from "@/components/home/chrome";
@@ -6,7 +6,7 @@ import { CopyLinkButton } from "@/components/home/CopyLinkButton";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import { HOST } from "@/lib/brand";
 import { vitrineAddress } from "@/lib/vitrine/links";
-import { couponOff, couponStatus, daysLeft, ddmm, expiryValues } from "@/lib/vitrine/pricing";
+import { couponOff } from "@/lib/vitrine/pricing";
 import { postItems, type Coupon, type Post, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import { DailyChart } from "./DailyChart";
 import { PERIODS, type EventKind, type Period, type Stats } from "./stats";
@@ -159,30 +159,13 @@ function Ranking({ label, title, unit, rows, empty }: { label: string; title: st
 type Alert = { key: string; title: string; text: string; href: Href; cta: string; urgent: boolean };
 
 /** Uma aba do editor (`/editor?tab=coupons`). */
-const editorTab = (tab: "coupons" | "products" | "share"): Href => ({ pathname: "/editor", query: { tab } });
+const editorTab = (tab: "coupons" | "products"): Href => ({ pathname: "/editor", query: { tab } });
 
-/**
- * O que precisa de atenção na vitrine publicada. Cupons: o mesmo critério do `couponAlerts` do editor
- * (vence em até 7 dias ou já venceu), que não dá para chamar daqui por ser de um módulo de cliente.
- */
-function alertsOf(v: VitrineContent, today: string, t: MetricsT, expiry: (c: Coupon) => string, locale: string): Alert[] {
-  const coupons = v.coupons.flatMap((c): Alert[] => {
-    const name = t("alerts.couponName", { code: c.code, brand: c.brand });
-    const status = couponStatus(c, today);
-    if (status === "agendado")
-      return [{ key: c.id, title: name, text: t("alerts.scheduled", { date: ddmm(c.startsAt!, locale) }), href: editorTab("coupons"), cta: t("alerts.seeCoupon"), urgent: false }];
-    if (status === "vencido")
-      return [{ key: c.id, title: name, text: t("alerts.expired", { date: ddmm(c.expiresAt!, locale) }), href: editorTab("coupons"), cta: t("alerts.fix"), urgent: true }];
-    const days = daysLeft(c, today);
-    if (days !== null && days <= 7)
-      return [{ key: c.id, title: name, text: t("alerts.expiring", { label: expiry(c) }), href: editorTab("coupons"), cta: t("alerts.fix"), urgent: true }];
-    return [];
-  });
-  const soldOut = v.products
+/** O que precisa de atenção na vitrine publicada: os produtos esgotados. */
+function alertsOf(v: VitrineContent, t: MetricsT): Alert[] {
+  return v.products
     .filter((p) => p.soldOut)
     .map((p): Alert => ({ key: p.id, title: p.name, text: t("alerts.soldOut"), href: editorTab("products"), cta: t("alerts.fix"), urgent: true }));
-  // os urgentes primeiro; os agendados são só um lembrete
-  return [...coupons, ...soldOut].sort((a, b) => Number(b.urgent) - Number(a.urgent));
 }
 
 function PeriodTabs({ period, path }: { period: Period; path: "/metricas" }) {
@@ -220,9 +203,6 @@ function Position({ position, handle }: { position: number | null; handle: strin
       </p>
       <div className="flex flex-wrap gap-2">
         <CopyLinkButton handle={handle} />
-        <Link href={editorTab("share")} className={pillLight}>
-          {t("share")}
-        </Link>
       </div>
     </div>
   );
@@ -262,8 +242,6 @@ function Alerts({ alerts }: { alerts: Alert[] }) {
  */
 export function MetricsView({ vitrine, stats, period, today, position, path = "/metricas" }: MetricsData) {
   const t = useTranslations("metrics");
-  const tCoupon = useTranslations("coupon");
-  const locale = useLocale();
   const pct = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : "–");
   const total = (k: EventKind) => stats?.totals[k] ?? 0;
   const prev = stats?.previous;
@@ -283,7 +261,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
   const toStore = total("buy") + total("copy");
   const copied = total("copy");
   const clicks = toStore + total("post") + total("video");
-  const alerts = alertsOf(vitrine, today, t, (c) => tCoupon("expiry", expiryValues(c, today, locale)), locale);
+  const alerts = alertsOf(vitrine, t);
 
   const productRows: RankRow[] = top("buy").map(({ id, n }) => {
     const p = products.get(id);

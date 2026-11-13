@@ -14,11 +14,11 @@ import { kicker, pad, pillDark } from "./chrome";
 /** As peças que a mulher da foto do topo (`/hero/retrato.webp`, recortada em `/hero/retrato-outfit.webp`) está usando: `/hero/<id>.webp` e `pitch.outfitsPieces.<id>`. */
 const OUTFIT = ["blazer", "calca", "bolsa"] as const;
 /** O resto do que a vitrine faz, sem desenho: os três de cima já mostram como ela é. */
-const MORE = ["metrics", "stories", "utm", "dates", "video", "soldOut"] as const;
+const MORE = ["metrics", "video", "soldOut"] as const;
 const STEPS = ["link", "items", "bio"] as const;
 
 /** Respostas curtas e diretas: aparecem na página e vão no FAQPage, que é de onde buscadores e assistentes de IA tiram a resposta. */
-const FAQ = ["what", "cost", "link", "manual", "track", "affiliate", "share"] as const;
+const FAQ = ["what", "cost", "link", "manual", "affiliate", "share"] as const;
 
 /** As perguntas e respostas no idioma da página, para os dados estruturados (FAQPage) da landing. */
 export async function faqItems(): Promise<[question: string, answer: string][]> {

@@ -15,5 +15,5 @@ export async function GET(request: Request, { params }: RouteContext<"/[locale]/
     return new Response(t("notFound"), { status: 404 });
   }
   const { origin } = new URL(request.url);
-  return shareImage(vitrine.content, vitrine.today, `${origin}${localizedPath(vitrinePath(vitrine.content.handle), locale)}`, "story", locale);
+  return shareImage(vitrine.content, `${origin}${localizedPath(vitrinePath(vitrine.content.handle), locale)}`, "story", locale);
 }
