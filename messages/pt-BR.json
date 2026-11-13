@@ -32,6 +32,25 @@
     "favoritesTitle": "Favoritos de {name}",
     "favoritesLabel": "Produtos favoritos de {name}",
     "favoriteBadge": "Favorito de {name}",
+    "product": {
+      "open": "Ver {name}",
+      "close": "Fechar",
+      "buy": "Comprar na loja",
+      "category": "Categoria: {category}",
+      "soldOutText": "Esgotado na loja no momento.",
+      "share": "Criar imagem para os stories",
+      "shareTitle": "Imagem para os stories",
+      "shareHint": "Poste nos stories e adicione a figurinha de link com o link do produto.",
+      "generating": "Criando a imagem…",
+      "failed": "Não deu para criar a imagem agora. Tente de novo.",
+      "retry": "Tentar de novo",
+      "shareImage": "Compartilhar imagem",
+      "download": "Baixar imagem",
+      "copyLink": "Copiar link do produto",
+      "linkCopied": "Link copiado",
+      "back": "Voltar ao produto",
+      "imageAlt": "Imagem para os stories divulgando {name}"
+    },
     "search": "Buscar",
     "searchLabel": "Buscar produto ou marca",
     "all": "Todos",
@@ -397,7 +416,9 @@
     "coupons": "Cupons",
     "offerIn": "{offer} em {brands}",
     "allInLink": "Todos os cupons no link",
-    "siteTagline": "Cupons e produtos de quem você segue, num link só."
+    "siteTagline": "Cupons e produtos de quem você segue, num link só.",
+    "productPick": "Achado de {name}",
+    "productCta": "Toque no link para ver"
   },
   "counts": {
     "products": "{count, plural, one {# produto} other {# produtos}}",

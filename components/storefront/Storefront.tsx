@@ -15,6 +15,7 @@ import { Comments } from "./Comments";
 import { CoverLetter } from "@/components/home/CreatorCard";
 import { FavoriteButton } from "./FavoriteButton";
 import { ProductArt } from "./ProductIcon";
+import { ProductModal } from "./ProductModal";
 
 /**
  * Vitrine pública com visual fixo, no espírito das lojas de esporte: branco, cinza claro atrás dos produtos,
@@ -689,6 +690,18 @@ export function Storefront({
 
 
   const [copied, flash] = useFlash();
+
+  // produto ampliado aberto (e o outfit de onde veio, para a métrica do post)
+  const [viewing, setViewing] = useState<{ product: Product; postId?: string } | null>(null);
+  // ?p=<id>: o link da figurinha dos stories abre a vitrine já com o produto ampliado
+  useEffect(() => {
+    if (preview) return;
+    const id = new URLSearchParams(window.location.search).get("p");
+    const product = id ? content.products.find((x) => x.id === id) : undefined;
+    if (!product) return;
+    const timer = setTimeout(() => setViewing({ product }));
+    return () => clearTimeout(timer);
+  }, [preview, content.products]);
   // cupons em que a cópia na hora falhou: true se a segunda tentativa copiou, false se o visitante copia à mão
   const [fallback, setFallback] = useState<Record<string, boolean>>({});
 
@@ -747,6 +760,8 @@ export function Storefront({
   /** Liga o produto ao link dele: o de afiliado ou, sem ele, o da loja. Esgotado ou sem link não é clicável. */
   const linkProps = (p: Product, postId?: string) => ({
     href: p.soldOut ? "" : productHref(p),
+    // na vitrine pública o toque abre o produto ampliado; a métrica de compra conta no botão da loja, lá dentro
+    onView: preview ? undefined : () => setViewing({ product: p, postId }),
     onOpen: (e: MouseEvent) => {
       // na prévia do editor o clique não tira a pessoa da página
       if (preview) e.preventDefault();
@@ -1093,6 +1108,21 @@ export function Storefront({
         </Link>
         <span>{t("footer")}</span>
       </footer>
+
+      {viewing && (
+        <ProductModal
+          key={viewing.product.id}
+          product={viewing.product}
+          owner={Boolean(viewer?.user && viewer.owner)}
+          onBuy={() => {
+            send("buy", viewing.product.id);
+            // o clique também conta para o post de onde veio
+            if (viewing.postId) send("post", viewing.postId);
+          }}
+          onVideo={() => send("video", viewing.product.id)}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1101,7 +1131,8 @@ export function Storefront({
 const OUTFIT_MS = 6000;
 
 type Outfit = { post: Post; items: Product[] };
-type LinkFor = (p: Product, postId: string) => { href: string; onOpen: (e: MouseEvent) => void };
+type ProductLinkProps = { href: string; onOpen: (e: MouseEvent) => void; onView?: () => void };
+type LinkFor = (p: Product, postId: string) => ProductLinkProps;
 
 /**
  * Outfits (no código, posts): um por vez, na largura toda da seção, sem o próximo cortado na borda. A troca é um
@@ -1253,7 +1284,7 @@ function OutfitSlide({
   n: number;
   total: number;
   alt: string;
-  link: (p: Product) => { href: string; onOpen: (e: MouseEvent) => void };
+  link: (p: Product) => ProductLinkProps;
 }) {
   const t = useTranslations("storefront");
   const two = (x: number) => String(x).padStart(2, "0");
@@ -1329,7 +1360,14 @@ function OutfitSlide({
 }
 
 /** O produto vira um link quando há para onde ir; sem link (ou esgotado), é só a foto e o nome. */
-function ProductLink({ href, onOpen, className, children }: { href: string; onOpen: (e: MouseEvent) => void; className: string; children: ReactNode }) {
+function ProductLink({ href, onOpen, onView, className, children }: ProductLinkProps & { className: string; children: ReactNode }) {
+  // na vitrine pública: botão que abre o produto ampliado (inclusive esgotado, que não tem link)
+  if (onView)
+    return (
+      <button type="button" onClick={onView} className={`${className} cursor-pointer border-0 bg-transparent p-0 font-[inherit] [text-align:inherit]`}>
+        {children}
+      </button>
+    );
   if (!href) return <div className={className}>{children}</div>;
   return (
     <a href={href} target="_blank" rel="sponsored noopener noreferrer" onClick={onOpen} className={className}>
