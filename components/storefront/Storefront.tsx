@@ -393,9 +393,10 @@ function CoverHit({ label, onClick, image, busy = false }: { label: string; onCl
 
 /**
  * Camada clicável por cima de uma parte da vitrine no modo de edição: cobre tudo (os botões de dentro não respondem) e
- * mostra o lápis no canto, sempre visível, porque no celular não há hover.
+ * mostra o lápis no canto, sempre visível, porque no celular não há hover. Nos cards de produto o lápis sai
+ * (`pencil={false}`): o canto é do coração de favorito, e o contorno no hover já mostra que o card abre a edição.
  */
-function EditHit({ label, onClick }: { label: string; onClick: () => void }) {
+function EditHit({ label, onClick, pencil = true }: { label: string; onClick: () => void; pencil?: boolean }) {
   return (
     <button
       type="button"
@@ -404,7 +405,7 @@ function EditHit({ label, onClick }: { label: string; onClick: () => void }) {
       title={label}
       className="group/edit absolute inset-0 z-20 cursor-pointer border-0 bg-transparent p-0 transition-shadow hover:shadow-[inset_0_0_0_2px_var(--color-ink)] focus-visible:shadow-[inset_0_0_0_2px_var(--color-ink)] focus-visible:outline-none"
     >
-      <PencilBadge className="absolute top-2.5 right-2.5 group-hover/edit:scale-105" />
+      {pencil && <PencilBadge className="absolute top-2.5 right-2.5 group-hover/edit:scale-105" />}
     </button>
   );
 }
@@ -944,7 +945,7 @@ export function Storefront({
           <Carousel title={t("favoritesTitle", { name: firstName })} label={t("favoritesLabel", { name: firstName })}>
             {favoriteProducts.map((p) => (
               <article key={p.id} className="relative flex w-[260px] flex-none snap-start flex-col items-center text-center @max-md:w-[62%]">
-                {edit && <EditHit label={te("product", { name: p.name || te("newProduct") })} onClick={() => edit.product(p.id)} />}
+                {edit && <EditHit label={te("product", { name: p.name || te("newProduct") })} onClick={() => edit.product(p.id)} pencil={false} />}
                 <ProductLink {...linkProps(p)} className="flex w-full min-w-0 flex-col text-ink no-underline">
                   <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
                     <ProductArt product={p} iconClassName="w-[52%]" />
@@ -999,7 +1000,7 @@ export function Storefront({
           <div className="grid grid-cols-2 gap-x-3 gap-y-10 @3xl:grid-cols-3 @3xl:gap-x-4 @3xl:gap-y-12">
             {shownProducts.map((p) => (
               <article key={p.id} className="relative flex min-w-0 flex-col items-center text-center">
-                {edit && <EditHit label={te("product", { name: p.name || te("newProduct") })} onClick={() => edit.product(p.id)} />}
+                {edit && <EditHit label={te("product", { name: p.name || te("newProduct") })} onClick={() => edit.product(p.id)} pencil={false} />}
                 {/* no editor, o coração marca e desmarca o favorito ali mesmo; na vitrine é só o selo */}
                 {edit ? (
                   <button
@@ -1008,13 +1009,13 @@ export function Storefront({
                     aria-pressed={p.favorite}
                     aria-label={te(p.favorite ? "favoriteOn" : "favoriteOff", { name: p.name || te("newProduct") })}
                     title={te(p.favorite ? "favoriteOn" : "favoriteOff", { name: p.name || te("newProduct") })}
-                    className={`absolute top-2.5 left-2.5 z-30 flex size-9 cursor-pointer items-center justify-center rounded-full border-0 shadow-[0_1px_4px_rgba(17,17,17,0.18)] transition-transform hover:scale-105 ${p.favorite ? "bg-ink text-white" : "bg-white text-ink"}`}
+                    className={`absolute top-2.5 right-2.5 z-30 flex size-9 cursor-pointer items-center justify-center rounded-full border-0 shadow-[0_1px_4px_rgba(17,17,17,0.18)] transition-transform hover:scale-105 ${p.favorite ? "bg-ink text-white" : "bg-white text-ink"}`}
                   >
                     <HeartIcon on={p.favorite} />
                   </button>
                 ) : (
                   p.favorite && (
-                    <span title={t("favoriteBadge", { name: firstName })} className="pointer-events-none absolute top-2.5 left-2.5 z-10 flex size-8 items-center justify-center rounded-full bg-white text-ink shadow-sm">
+                    <span title={t("favoriteBadge", { name: firstName })} className="pointer-events-none absolute top-2.5 right-2.5 z-10 flex size-8 items-center justify-center rounded-full bg-white text-ink shadow-sm">
                       <HeartIcon on size={15} />
                       <span className="sr-only">{t("favoriteBadge", { name: firstName })}</span>
                     </span>
