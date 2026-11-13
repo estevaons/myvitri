@@ -340,8 +340,23 @@ function PencilIcon({ size = 16 }: { size?: number }) {
 }
 
 /**
- * A capa no modo de edição, toda clicável e sem nada por cima em repouso: no mouse, o hover escurece de leve e mostra
- * a pílula "Trocar capa" no meio; no toque (sem hover), um tracejado claro por dentro da borda avisa que dá para tocar.
+ * O selo de lápis do modo de edição: um círculo branco com o lápis, sempre visível (no celular não há hover), que marca o
+ * que dá para editar. Só ilustra (`pointer-events-none`): o clique vai para o que está embaixo. Quem usa posiciona.
+ */
+export function PencilBadge({ className = "" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none flex size-9 flex-none items-center justify-center rounded-full bg-white text-ink shadow-[0_1px_4px_rgba(17,17,17,0.18)] transition-[transform,opacity] ${className}`}
+    >
+      <PencilIcon />
+    </span>
+  );
+}
+
+/**
+ * A capa no modo de edição, toda clicável, com o lápis no canto: no mouse, o hover escurece de leve e mostra a pílula
+ * "Trocar capa" no meio; no toque (sem hover), um tracejado claro por dentro da borda avisa que dá para tocar.
  */
 function CoverHit({ label, onClick, image }: { label: string; onClick: () => void; image: boolean }) {
   return (
@@ -365,6 +380,7 @@ function CoverHit({ label, onClick, image }: { label: string; onClick: () => voi
         <CameraIcon size={16} />
         {label}
       </span>
+      <PencilBadge className="absolute top-3 right-3 group-hover/cover:scale-105" />
     </button>
   );
 }
@@ -382,12 +398,7 @@ function EditHit({ label, onClick }: { label: string; onClick: () => void }) {
       title={label}
       className="group/edit absolute inset-0 z-20 cursor-pointer border-0 bg-transparent p-0 transition-shadow hover:shadow-[inset_0_0_0_2px_var(--color-ink)] focus-visible:shadow-[inset_0_0_0_2px_var(--color-ink)] focus-visible:outline-none"
     >
-      <span
-        aria-hidden="true"
-        className="absolute top-2.5 right-2.5 flex size-9 items-center justify-center rounded-full bg-white text-ink shadow-[0_1px_4px_rgba(17,17,17,0.18)] transition-transform group-hover/edit:scale-105"
-      >
-        <PencilIcon />
-      </span>
+      <PencilBadge className="absolute top-2.5 right-2.5 group-hover/edit:scale-105" />
     </button>
   );
 }
@@ -477,8 +488,9 @@ export function InlineText({
 
 /**
  * A frase de destaque e o texto de apoio no modo de edição: os dois já são campos, no mesmo lugar e com a mesma letra
- * da vitrine. Sem botão por cima: no mouse, um fundo leve e o cursor de texto aparecem no hover; no toque (sem hover),
- * um tracejado bem claro fica sempre em volta. Com o cursor dentro, a borda fica cheia e o contador aparece.
+ * da vitrine. O lápis fica no canto enquanto nenhum dos dois está com o cursor; no mouse, um fundo leve e o cursor de
+ * texto aparecem no hover; no toque (sem hover), um tracejado bem claro fica em volta. Com o cursor dentro, a borda fica
+ * cheia, o lápis some e o contador aparece.
  */
 function InlineTexts({
   content,
@@ -496,9 +508,9 @@ function InlineTexts({
   const count = focused === "headline" ? [content.headline.length, 90] : focused === "sub" ? [content.sub.length, 240] : null;
   return (
     <div
-      // tocar no respiro em volta dos textos também começa a editar, com o cursor no fim da frase
+      // tocar no respiro em volta dos textos (ou no lápis) também começa a editar, com o cursor no fim da frase
       onMouseDown={(e) => {
-        if (e.target !== e.currentTarget) return;
+        if (e.target !== e.currentTarget && !(e.target as Element).closest("[data-pencil]")) return;
         e.preventDefault();
         const el = headlineRef.current;
         el?.focus();
@@ -507,6 +519,12 @@ function InlineTexts({
       className="relative flex w-full cursor-text flex-col items-center gap-4 rounded-[12px] px-4 py-5 outline-2 outline-transparent outline-solid transition-[background-color,outline-color] hover:bg-ink/[0.035] has-focus:bg-transparent has-focus:outline-ink"
     >
       {!focused && <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden rounded-[12px] border border-dashed border-ink/20 pointer-coarse:block" />}
+      {/* o lápis fica meio para fora do bloco: o span em volta recebe o toque, para ele também começar a edição */}
+      {!focused && (
+        <span data-pencil className="absolute -top-3 -right-3">
+          <PencilBadge />
+        </span>
+      )}
       <InlineText
         inputRef={headlineRef}
         value={content.headline}

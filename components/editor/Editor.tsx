@@ -194,7 +194,8 @@ export function Editor({
   return (
     <div className="flex min-h-dvh flex-col bg-paper text-ink">
       <header ref={header} className="sticky top-0 z-30 border-b border-[#E0DCD3] bg-white">
-        <div className="flex items-center gap-3.5 px-5 py-3 max-sm:gap-2.5 max-sm:px-3">
+        {/* a barra vai de ponta a ponta, mas o conteúdo segue a mesma largura do /inicio e da vitrine (1440px, px-5 / md:px-12) */}
+        <div className="mx-auto box-border flex w-full max-w-[1440px] items-center gap-3.5 px-5 py-3 md:px-12 max-sm:gap-2.5 max-sm:px-3">
           <BackLink href="/inicio" onClick={confirmLeave} label="home" labelClass="max-sm:hidden" divider />
           <Link href="/inicio" onClick={confirmLeave} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline max-sm:hidden">
             <Wordmark label="" className="h-[17px] w-auto" />
@@ -229,27 +230,29 @@ export function Editor({
           <AccountMenu account={account} onLeave={confirmLeave} />
         </div>
         {(error || photoError) && (
-          <div role="alert" className="flex items-center gap-3 border-t border-[#F1C9BC] bg-[#FFF1EC] px-5 py-2.5 text-sm font-semibold text-[#A3361B]">
-            <span className="flex-1">{error ? t("publishError", { error }) : photoError}</span>
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                setPhotoError("");
-              }}
-              className="border-0 bg-transparent text-sm font-bold text-[#A3361B] underline"
-            >
-              {t("close")}
-            </button>
+          <div role="alert" className="border-t border-[#F1C9BC] bg-[#FFF1EC] text-sm font-semibold text-[#A3361B]">
+            <div className="mx-auto box-border flex w-full max-w-[1440px] items-center gap-3 px-5 py-2.5 md:px-12">
+              <span className="flex-1">{error ? t("publishError", { error }) : photoError}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setPhotoError("");
+                }}
+                className="border-0 bg-transparent text-sm font-bold text-[#A3361B] underline"
+              >
+                {t("close")}
+              </button>
+            </div>
           </div>
         )}
       </header>
 
-      <main className={`box-border flex flex-1 flex-col items-center gap-4 p-6 max-sm:px-0 max-sm:pt-0 ${dirty ? "max-sm:pb-24" : "max-sm:pb-6"}`}>
-        <p className="m-0 w-full max-w-[1100px] text-[13px] leading-snug text-[#5E5A52] max-sm:px-4 max-sm:pt-3">{t("editHint")}</p>
+      <main className={`mx-auto box-border flex w-full max-w-[1440px] flex-1 flex-col items-center gap-4 px-5 py-6 md:px-12 max-sm:px-0 max-sm:pt-0 ${dirty ? "max-sm:pb-24" : "max-sm:pb-6"}`}>
+        <p className="m-0 w-full text-[13px] leading-snug text-[#5E5A52] max-sm:px-4 max-sm:pt-3">{t("editHint")}</p>
         {/* flex-none: a vitrine cresce com o conteúdo e quem rola é a página */}
         <div
-          className="w-full max-w-[1100px] flex-none overflow-hidden bg-white sm:rounded-2xl sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]"
+          className="w-full flex-none overflow-hidden bg-white sm:rounded-2xl sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]"
         >
           <div className="flex items-center justify-center border-b border-[#E8E5DF] bg-[#F7F6F3] px-3.5 py-2.5 max-sm:hidden">
             <span className="flex items-center gap-1.5 rounded-full border border-[#E8E5DF] bg-white px-3.5 py-1.5 text-xs text-[#3A3A3A]">
