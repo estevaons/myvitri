@@ -5,6 +5,7 @@ import { useState, useTransition, type DragEvent, type ReactNode } from "react";
 import { useRouter } from "@/lib/i18n/navigation";
 import { updateCoverAction } from "@/app/actions";
 import { FilePick, UploadIcon } from "@/components/editor/ImageField";
+import { useImageCrop } from "@/components/editor/ImageCrop";
 import { uploadImage } from "@/components/editor/upload";
 import { kicker, pillDark } from "./chrome";
 import { CoverLetter } from "./CreatorCard";
@@ -24,6 +25,7 @@ export function CoverPicker({ hasCover, name, children }: { hasCover: boolean; n
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [cropper, crop] = useImageCrop();
 
   const save = (url: () => Promise<{ ok: true; url: string } | { ok: false; error: string }>) => {
     setError("");
@@ -34,7 +36,10 @@ export function CoverPicker({ hasCover, name, children }: { hasCover: boolean; n
       router.refresh();
     });
   };
-  const send = (file: File) => save(() => uploadImage("cover", file, tErrors("imageUnreadable")));
+  const send = async (picked: File) => {
+    const file = await crop(picked, "cover");
+    if (file) save(() => uploadImage("cover", file, tErrors("imageUnreadable")));
+  };
 
   const drop = {
     onDragOver: (e: DragEvent) => {
@@ -61,6 +66,7 @@ export function CoverPicker({ hasCover, name, children }: { hasCover: boolean; n
   if (!hasCover)
     return (
       <div className="flex min-w-0 flex-col gap-2">
+        {cropper}
         <div {...drop} className={`group relative ${dragging ? "ring-2 ring-ink ring-offset-2" : ""} ${sending ? "animate-pulse" : ""}`}>
           <FilePick onFile={send} disabled={sending} className="relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center bg-sand text-center has-focus-visible:ring-2 has-focus-visible:ring-ink">
             <div className="absolute inset-0 overflow-hidden [&_span]:text-ink/[0.06]">
@@ -84,6 +90,7 @@ export function CoverPicker({ hasCover, name, children }: { hasCover: boolean; n
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
+      {cropper}
       <div {...drop} className={`relative ${dragging ? "ring-2 ring-ink ring-offset-2" : ""} ${sending ? "animate-pulse" : ""}`}>
         {children}
       </div>

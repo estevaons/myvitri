@@ -287,7 +287,11 @@
     "productsRef": "ref=voce",
     "outfitsTitle": "Outfits que vendem o look",
     "outfitsText": "Poste uma foto sua usando o look e liste embaixo cada peça, cada uma com o seu link.",
-    "outfitsPieces": { "blazer": "Blazer de lã", "calca": "Calça de alfaiataria", "bolsa": "Bolsa de couro" },
+    "outfitsPieces": {
+      "blazer": "Blazer de lã",
+      "calca": "Calça de alfaiataria",
+      "bolsa": "Bolsa de couro"
+    },
     "moreTitle": "E ainda",
     "more": {
       "metricsTitle": "Veja o que funciona",
@@ -571,6 +575,24 @@
     "saving": "Salvando…",
     "change": "Trocar capa",
     "remove": "Remover"
+  },
+  "crop": {
+    "title": "Ajustar foto",
+    "area": "Enquadramento da foto",
+    "roledescription": "recorte",
+    "loading": "Abrindo a foto…",
+    "zoom": "Zoom",
+    "desktop": "No computador",
+    "cancel": "Cancelar",
+    "confirm": "Usar foto",
+    "hint": {
+      "avatar": "Deixe o rosto no centro do círculo.",
+      "cover": "No celular aparece o quadro todo; no computador, só a faixa marcada.",
+      "product": "Afaste para mostrar a peça inteira ou aproxime para destacar um detalhe.",
+      "post": "É o formato do card do outfit na vitrine (4:5)."
+    },
+    "hintMouse": "Arraste para enquadrar e use a rodinha ou o controle para aproximar.",
+    "hintTouch": "Arraste para enquadrar e use dois dedos ou o controle para aproximar."
   },
   "account": {
     "label": "Sua conta ({email})",

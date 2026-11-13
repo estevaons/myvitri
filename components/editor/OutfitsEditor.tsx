@@ -10,6 +10,7 @@ import { POST_MAX_ITEMS, postItems, type Post, type Product } from "@/lib/vitrin
 import { newProduct } from "./ProductForm";
 import { FilePick } from "./ImageField";
 import { inputCls, newId, reorder, type Update } from "./ui";
+import { useImageCrop } from "./ImageCrop";
 import { uploadImage } from "./upload";
 
 export const newPost = (): Post => ({ id: newId(), photoUrl: "", caption: "", productIds: [] });
@@ -44,6 +45,7 @@ export function OutfitsEditor({ posts, products, update }: { posts: Post[]; prod
   // fotos subindo, por outfit: a imagem do aparelho aparece na hora, antes de chegar ao servidor
   const [uploading, setUploading] = useState<Record<string, string>>({});
   const [photoError, setPhotoError] = useState("");
+  const [cropper, crop] = useImageCrop();
 
   const current = posts.find((p) => p.id === selected) ?? posts[0] ?? null;
   const index = current ? posts.indexOf(current) : -1;
@@ -80,7 +82,10 @@ export function OutfitsEditor({ posts, products, update }: { posts: Post[]; prod
     setSelected(next?.id ?? null);
   };
 
-  const sendPhoto = async (file: File) => {
+  const sendPhoto = async (picked: File) => {
+    // o recorte vem antes de criar o outfit: cancelar não deixa um outfit em branco
+    const file = await crop(picked, "post");
+    if (!file) return;
     const id = ensure();
     setPhotoError("");
     const preview = URL.createObjectURL(file);
@@ -112,6 +117,7 @@ export function OutfitsEditor({ posts, products, update }: { posts: Post[]; prod
 
   return (
     <div className="flex flex-col gap-4">
+      {cropper}
       {posts.length > 0 && (
         <div role="tablist" aria-label={t("list")} className="no-scrollbar flex items-end gap-2 overflow-x-auto pb-1">
           {posts.map((p, i) => {

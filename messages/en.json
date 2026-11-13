@@ -287,7 +287,11 @@
     "productsRef": "ref=you",
     "outfitsTitle": "Outfits that sell the look",
     "outfitsText": "Post a photo of you wearing the look and list each piece below it, each with its own link.",
-    "outfitsPieces": { "blazer": "Wool blazer", "calca": "Tailored trousers", "bolsa": "Leather bag" },
+    "outfitsPieces": {
+      "blazer": "Wool blazer",
+      "calca": "Tailored trousers",
+      "bolsa": "Leather bag"
+    },
     "moreTitle": "And also",
     "more": {
       "metricsTitle": "See what works",
@@ -571,6 +575,24 @@
     "saving": "Saving…",
     "change": "Change cover",
     "remove": "Remove"
+  },
+  "crop": {
+    "title": "Adjust photo",
+    "area": "Photo framing",
+    "roledescription": "crop",
+    "loading": "Opening the photo…",
+    "zoom": "Zoom",
+    "desktop": "On desktop",
+    "cancel": "Cancel",
+    "confirm": "Use photo",
+    "hint": {
+      "avatar": "Keep the face in the center of the circle.",
+      "cover": "Phones show the whole frame; desktop shows only the marked band.",
+      "product": "Zoom out to show the whole item or zoom in to highlight a detail.",
+      "post": "This is the outfit card format on the storefront (4:5)."
+    },
+    "hintMouse": "Drag to frame it and use the scroll wheel or the slider to zoom.",
+    "hintTouch": "Drag to frame it and pinch or use the slider to zoom."
   },
   "account": {
     "label": "Your account ({email})",

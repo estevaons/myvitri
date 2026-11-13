@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState, type DragEvent, type ReactNode } from "react";
+import { useImageCrop } from "./ImageCrop";
 import { IMAGE_ACCEPT, uploadImage } from "./upload";
 
 const linkBtn = "min-h-8 border-0 bg-transparent p-0 text-[13px] font-medium text-[#5E5A52] underline-offset-4 hover:text-ink hover:underline";
@@ -43,8 +44,11 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
   const [broken, setBroken] = useState("");
+  const [cropper, crop] = useImageCrop();
 
-  const send = async (file: File) => {
+  const send = async (picked: File) => {
+    const file = await crop(picked, "product");
+    if (!file) return;
     setError("");
     setUploading(true);
     const res = await uploadImage("product", file, tErrors("imageUnreadable"));
@@ -74,6 +78,7 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
 
   return (
     <div className="flex flex-col gap-2">
+      {cropper}
       {value ? (
         <div {...drop} className="flex items-center gap-4">
           <span

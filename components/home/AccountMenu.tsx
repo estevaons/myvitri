@@ -6,6 +6,7 @@ import { Link, useRouter } from "@/lib/i18n/navigation";
 import { requestPasswordResetAction, signOutAction, updateProfileAction, type FormState } from "@/app/actions";
 import { DeleteAccount } from "@/components/editor/DeleteAccount";
 import { FilePick } from "@/components/editor/ImageField";
+import { useImageCrop } from "@/components/editor/ImageCrop";
 import { uploadImage } from "@/components/editor/upload";
 import { HOST } from "@/lib/brand";
 import { kicker, pillDark, pillLight } from "./chrome";
@@ -163,6 +164,7 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
   const [saving, startSaving] = useTransition();
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [cropper, crop] = useImageCrop();
 
   const changedLink = handle !== vitrine.handle;
   const changed = name !== vitrine.name || changedLink || avatarUrl !== vitrine.avatarUrl;
@@ -173,7 +175,9 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
     setError("");
   };
 
-  const pick = async (file: File) => {
+  const pick = async (picked: File) => {
+    const file = await crop(picked, "avatar");
+    if (!file) return;
     setError("");
     setSaved(false);
     setUploading(true);
@@ -197,6 +201,7 @@ function ProfileBlock({ vitrine, googlePhoto }: { vitrine: NonNullable<Account["
   return (
     <Block title={t("profile")}>
       <form onSubmit={save} className="flex flex-col gap-4">
+        {cropper}
         <div className="flex items-center gap-4">
           <Avatar key={avatarUrl} url={avatarUrl} label={name} className={`size-16 flex-none text-[20px] ${uploading ? "animate-pulse" : ""}`} />
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">

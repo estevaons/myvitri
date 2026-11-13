@@ -13,6 +13,7 @@ import { Storefront, type StorefrontEdit } from "@/components/storefront/Storefr
 import { vitrineAddress } from "@/lib/vitrine/links";
 import { pickProfile, type Coupon, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import { CouponForm, isBlankCoupon, newCoupon } from "./CouponForm";
+import { useImageCrop } from "./ImageCrop";
 import { IMAGE_ACCEPT, uploadImage } from "./upload";
 import { isBlankPost, OutfitsEditor } from "./OutfitsEditor";
 import { isBlankProduct, newProduct, ProductForm, ProductImport } from "./ProductForm";
@@ -75,6 +76,7 @@ export function Editor({
   const [saving, startSaving] = useTransition();
   const [sendingPhoto, startPhoto] = useTransition();
   const avatarInput = useRef<HTMLInputElement>(null);
+  const [cropper, crop] = useImageCrop();
 
   // O estado acima só lê as props ao montar, e o Next mantém a tela viva ao navegar: nome, link, foto e capa, que mudam nas
   // Configurações, na home e aqui mesmo (salvos na hora, com router.refresh), entram sem tocar no que a pessoa está editando.
@@ -132,7 +134,9 @@ export function Editor({
   };
 
   // A foto de perfil não passa pelo rascunho: salva na hora, como na home (o perfil novo chega pelo router.refresh).
-  const sendAvatar = (file: File) => {
+  const sendAvatar = async (picked: File) => {
+    const file = await crop(picked, "avatar");
+    if (!file) return;
     setPhotoError("");
     startPhoto(async () => {
       const up = await uploadImage("avatar", file, tErrors("imageUnreadable"));
@@ -292,6 +296,7 @@ export function Editor({
         }}
       />
 
+      {cropper}
       {open && <EditSheet open={open} draft={draft} update={update} close={close} setOpen={setOpen} patch={patch} move={move} remove={remove} />}
     </div>
   );
