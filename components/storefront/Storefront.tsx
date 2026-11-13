@@ -104,15 +104,17 @@ const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCas
 
 /** Estado "copiado" que volta ao normal sozinho. */
 function useFlash(ms = 2500) {
-  const [key, setKey] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const flash = (k: string) => {
-    setKey(k);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setKey(null), ms);
-  };
-  return [key, flash] as const;
+  const [flashed, setFlashed] = useState<{ key: string; n: number } | null>(null);
+  // a volta é agendada por um Effect, não no clique: com `cacheComponents` a página sai de cena escondida (React
+  // <Activity>), a limpeza cancela o timer e o aviso ficaria preso; ao voltar, o Effect roda de novo e agenda a volta.
+  // `n` recomeça a contagem a cada toque, mesmo no mesmo item.
+  useEffect(() => {
+    if (!flashed) return;
+    const id = setTimeout(() => setFlashed(null), ms);
+    return () => clearTimeout(id);
+  }, [flashed, ms]);
+  const flash = (key: string) => setFlashed((f) => ({ key, n: (f?.n ?? 0) + 1 }));
+  return [flashed?.key ?? null, flash] as const;
 }
 
 function Avatar({ content, className }: { content: VitrineContent; className: string }) {

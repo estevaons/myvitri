@@ -26,6 +26,7 @@ import {
   deleteComment,
   deleteDraft,
   findMine,
+  findMineSummary,
   HandleTakenError,
   isHandleTaken,
   listCommentedHandles,
@@ -335,8 +336,10 @@ export async function saveOnboardingAction(_prev: OnboardingState, form: FormDat
     recording_opt_in: a.recording,
     $set: { persona: a.persona, audience_band: a.audience, heard_from: a.heardFrom, marketing_opt_in: a.marketingOptIn },
   });
-  // creator monta a vitrine (editor); comprador vai para a home. A página de origem (`next`) só vale para quem pulou.
-  return go(a.persona === "creator" ? "/editor" : "/inicio");
+  // creator monta a vitrine (editor, ou /editor/criar se ainda não escolheu o link); comprador vai para a home.
+  // A página de origem (`next`) só vale para quem pulou.
+  if (a.persona !== "creator") return go("/inicio");
+  return go((await findMineSummary(supabase, user.id)) ? "/editor" : "/editor/criar");
 }
 
 /** "Pular" no onboarding: conta como respondido para não perguntar de novo, sem respostas. */

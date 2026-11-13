@@ -16,22 +16,29 @@ const useOrigin = () => useSyncExternalStore(noop, () => window.location.origin,
 function useCopyLink(handle: string) {
   const t = useTranslations("linkBar");
   const [state, setState] = useState<"idle" | "copied" | "manual">("idle");
+  // cada cópia conta: copiar de novo com "Link copiado" na tela recomeça os 2 segundos
+  const [copies, setCopies] = useState(0);
   const field = useRef<HTMLInputElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const origin = useOrigin();
   const url = origin ? `${origin}${vitrinePath(handle)}` : "";
-  useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => {
     if (state === "manual") field.current?.select();
   }, [state]);
+  // O "Link copiado" volta a "Copiar link" por um Effect, e não por um timer guardado no clique: com `cacheComponents`
+  // a página sai de cena escondida (React <Activity>), o que roda as limpezas e cancelaria o timer, e o botão ficaria
+  // em "Link copiado" para sempre. Assim, ao voltar, o Effect roda de novo e agenda a volta.
+  useEffect(() => {
+    if (state !== "copied") return;
+    const id = setTimeout(() => setState("idle"), 2000);
+    return () => clearTimeout(id);
+  }, [state, copies]);
 
   const copy = () => {
     if (!navigator.clipboard) return setState("manual");
     navigator.clipboard.writeText(url).then(
       () => {
         setState("copied");
-        clearTimeout(timer.current);
-        timer.current = setTimeout(() => setState("idle"), 2000);
+        setCopies((n) => n + 1);
       },
       () => setState("manual"),
     );

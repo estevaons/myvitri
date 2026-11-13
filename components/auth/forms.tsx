@@ -17,6 +17,7 @@ import { RESEND_AFTER_SECONDS } from "@/lib/auth/email";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { AuthPhoto } from "@/components/auth/AuthPhoto";
+import { Bone, LoadingScreen } from "@/components/brand/Skeleton";
 import { hrefOf, Link, useRouter } from "@/lib/i18n/navigation";
 import { internalPath } from "@/lib/i18n/routing";
 import { PASSWORD_MIN } from "@/lib/auth/password";
@@ -489,18 +490,6 @@ function SignupFormBody() {
   );
 }
 
-function Panel({ title, text, children }: { title: string; text: string; children: ReactNode }) {
-  return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white p-6">
-      <div className="flex w-full max-w-[460px] flex-col gap-5">
-        <h1 className="m-0 font-display text-5xl leading-[1] font-normal">{title}</h1>
-        <p className="m-0 text-[17px] leading-relaxed text-mute">{text}</p>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 /** A página atual, sem o aviso de erro do login nem o idioma, para voltar a ela depois de entrar. */
 function herePath() {
   const url = new URL(location.href);
@@ -627,21 +616,52 @@ export function LoginButton({ className, children, onOpen }: { className?: strin
   );
 }
 
-export function CreateVitrinePanel({ suggestedName }: { suggestedName: string }) {
+/**
+ * /editor/criar: criar só a vitrine, para quem já tem conta (entrou para favoritar, por exemplo). O /criar-vitrine
+ * manda para lá quem já entrou, e o /editor, quem ainda não tem vitrine. Mesma tela do cadastro, sem a parte de como
+ * entrar; a seta volta para o /inicio. A moldura e o título não dependem da sessão: entram no shell estático e
+ * aparecem na hora, e só o formulário (`CreateVitrineForm`, com o nome da conta) espera, no formato dele.
+ */
+export function CreateVitrineScreen({ children }: { children: ReactNode }) {
+  const t = useTranslations("auth");
+  return (
+    <AuthShell back="/inicio">
+      <AuthTitle title={t("claimPanel.title")} text={t("claimPanel.text")} />
+      {children}
+    </AuthShell>
+  );
+}
+
+export function CreateVitrineForm({ suggestedName }: { suggestedName: string }) {
   const t = useTranslations("auth");
   const [state, action, pending] = useActionState<FormState, FormData>(createVitrineAction, {});
   const claim = useClaim(suggestedName);
   return (
-    <Panel title={t("claimPanel.title")} text={t("claimPanel.text")}>
-      <form action={action} className="flex flex-col gap-3">
-        <div className={box}>
-          <ClaimFields claim={claim} />
-          <button type="submit" disabled={pending} className={submit}>
-            {pending ? t("creating") : t("claimPanel.submit")}
-          </button>
-        </div>
-        <ErrorText>{state.error}</ErrorText>
-      </form>
-    </Panel>
+    <form action={action} className={box}>
+      <ClaimFields claim={claim} />
+      <button type="submit" disabled={pending} className={submit}>
+        {pending ? t("creating") : t("claimPanel.submit")}
+      </button>
+      <ErrorText>{state.error}</ErrorText>
+    </form>
+  );
+}
+
+/** Espera do `CreateVitrineForm`, com as mesmas medidas: os rótulos já escritos, os campos e o botão em osso. */
+export function CreateVitrineFormSkeleton() {
+  const t = useTranslations("auth.claim");
+  return (
+    <LoadingScreen className={box}>
+      <span className={label}>
+        {t("name")}
+        <Bone className="h-12 w-full" />
+      </span>
+      <span className={label}>
+        {t("link")}
+        <Bone className="h-12 w-full" />
+      </span>
+      <span className="-mt-2.5 pl-5 text-left text-[13px] text-mute">{t("linkHint")}</span>
+      <Bone className="h-12 w-full" />
+    </LoadingScreen>
   );
 }
