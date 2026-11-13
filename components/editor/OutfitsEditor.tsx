@@ -10,6 +10,7 @@ import { POST_MAX_ITEMS, postItems, type Post, type Product } from "@/lib/vitrin
 import { newProduct } from "./ProductForm";
 import { FilePick } from "./ImageField";
 import { inputCls, newId, reorder, type Update } from "./ui";
+import { useConfirm } from "@/components/brand/ConfirmDialog";
 import { useImageCrop } from "./ImageCrop";
 import { uploadImage } from "./upload";
 
@@ -447,7 +448,7 @@ function OutfitFooter({
 }) {
   const t = useTranslations("editor.posts");
   const tSheet = useTranslations("editor.sheet");
-  const [armed, setArmed] = useState(false);
+  const [confirmDialog, ask] = useConfirm();
   const arrow =
     "flex size-9 flex-none cursor-pointer items-center justify-center rounded-full border border-ink/15 bg-transparent p-0 text-ink hover:border-ink disabled:cursor-default disabled:opacity-30";
   const chevron = (d: string): ReactNode => (
@@ -481,16 +482,14 @@ function OutfitFooter({
         )}
         <button
           type="button"
-          onClick={() => {
-            if (armed) return onRemove();
-            setArmed(true);
-            setTimeout(() => setArmed(false), 4000);
+          onClick={async () => {
+            if (await ask({ title: t("removeTitle"), confirm: tSheet("remove"), danger: true })) onRemove();
           }}
-          onBlur={() => setArmed(false)}
-          className={`min-h-10 cursor-pointer rounded-full border-0 px-3.5 text-[13px] font-medium text-[#A3361B] ${armed ? "bg-[#FFF1EC] font-semibold" : "bg-transparent hover:bg-[#FFF1EC]"}`}
+          className="min-h-10 cursor-pointer rounded-full border-0 bg-transparent px-3.5 text-[13px] font-medium text-[#A3361B] hover:bg-[#FFF1EC]"
         >
-          {armed ? tSheet("confirmRemove") : t("remove")}
+          {t("remove")}
         </button>
+        {confirmDialog}
       </div>
     </div>
   );

@@ -1,11 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { publishVitrine, saveDraftAction, updateAvatarAction, updateCoverAction } from "@/app/actions";
 import { BackLink } from "@/components/brand/BackLink";
+import { useConfirm } from "@/components/brand/ConfirmDialog";
 import { Wordmark } from "@/components/brand/Logo";
-import { AccountMenu, type Account } from "@/components/home/AccountMenu";
+import { AccountMenu, type Account, type LeaveGuard } from "@/components/home/AccountMenu";
 import { Link, useRouter, vitrineHref } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 import { Storefront, type StorefrontEdit } from "@/components/storefront/Storefront";
@@ -77,6 +78,7 @@ export function Editor({
   const [sendingCover, startCover] = useTransition();
   const coverInput = useRef<HTMLInputElement>(null);
   const [cropper, crop] = useImageCrop();
+  const [confirmDialog, ask] = useConfirm();
 
   // O estado acima só lê as props ao montar, e o Next mantém a tela viva ao navegar: nome, link, foto e capa, que mudam nas
   // Configurações, na home e aqui mesmo (salvos na hora, com router.refresh), entram sem tocar no que a pessoa está editando.
@@ -161,8 +163,9 @@ export function Editor({
     if (file) saveCover(() => uploadImage("cover", file, tErrors("imageUnreadable")));
   };
   // a capa sai na hora da vitrine pública: pede confirmação
-  const removeCover = () => {
-    if (confirm(t("edit.removeCoverConfirm"))) saveCover(async () => ({ ok: true, url: "" }));
+  const removeCover = async () => {
+    const ok = await ask({ title: t("edit.removeCoverTitle"), text: t("edit.removeCoverText"), confirm: t("edit.removeCoverConfirm"), danger: true });
+    if (ok) saveCover(async () => ({ ok: true, url: "" }));
   };
 
   /* Itens: criar, mudar, mover, excluir. */
@@ -211,9 +214,12 @@ export function Editor({
     outfits: <OutfitsEditor posts={draft.posts} products={draft.products} update={update} />,
   };
 
-  // a navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso
-  const confirmLeave = (e: MouseEvent) => {
-    if (unsaved && !confirm(t("leaveConfirm"))) e.preventDefault();
+  // A navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso. Com algo por salvar, o
+  // clique para e a janela pergunta; `go` faz a saída se a pessoa confirmar.
+  const confirmLeave: LeaveGuard = (e, go) => {
+    if (!unsaved) return;
+    e.preventDefault();
+    void ask({ title: t("leave.title"), text: t("leave.text"), confirm: t("leave.confirm") }).then((ok) => ok && go());
   };
 
   return (
@@ -221,8 +227,8 @@ export function Editor({
       <header ref={header} className="sticky top-0 z-30 border-b border-[#E0DCD3] bg-white">
         {/* a barra vai de ponta a ponta, mas o conteúdo segue a mesma largura do /inicio e da vitrine (1440px, px-5 / md:px-12) */}
         <div className="mx-auto box-border flex w-full max-w-[1440px] items-center gap-3.5 px-5 py-3 md:px-12 max-sm:gap-2.5 max-sm:px-3">
-          <BackLink href="/inicio" onClick={confirmLeave} label="home" labelClass="max-sm:hidden" divider />
-          <Link href="/inicio" onClick={confirmLeave} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline max-sm:hidden">
+          <BackLink href="/inicio" onClick={(e) => confirmLeave(e, () => router.push("/inicio"))} label="home" labelClass="max-sm:hidden" divider />
+          <Link href="/inicio" onClick={(e) => confirmLeave(e, () => router.push("/inicio"))} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline max-sm:hidden">
             <Wordmark label="" className="h-[17px] w-auto" />
           </Link>
           <div className="flex-1" />
@@ -242,7 +248,7 @@ export function Editor({
           {!dirty && (
             <Link
               href={vitrineHref(published.handle)}
-              onClick={confirmLeave}
+              onClick={(e) => confirmLeave(e, () => router.push({ pathname: "/[handle]", params: { handle: `@${published.handle}` } }))}
               className="flex min-h-11 flex-none items-center gap-2 rounded-full border border-ink px-5 text-sm font-bold text-ink no-underline transition-colors hover:bg-ink hover:text-white max-sm:min-h-10 max-sm:px-4"
             >
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -332,6 +338,7 @@ export function Editor({
       />
 
       {cropper}
+      {confirmDialog}
       {open && <EditSheet open={open} draft={draft} update={update} close={close} setOpen={setOpen} patch={patch} move={move} remove={remove} />}
     </div>
   );
@@ -390,6 +397,7 @@ function EditSheet({
       onDone={close}
       onRemove={() => remove(key, open.id)}
       removeLabel={t(`${key}.remove`)}
+      removeAsk={{ title: t(`${key}.removeTitle`), text: t(`${key}.removeText`) }}
       move={{ pos: index + 1, total: list.length, onMove: (to) => move(key, index, to) }}
     />
   );

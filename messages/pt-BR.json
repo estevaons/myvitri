@@ -198,6 +198,9 @@
     "carousel": "carrossel",
     "loading": "Carregando…"
   },
+  "confirm": {
+    "cancel": "Cancelar"
+  },
   "landing": {
     "nav": {
       "vitrines": "Vitrines",
@@ -394,7 +397,6 @@
     "signInToComment": "Entrar para comentar",
     "owner": "Da vitrine",
     "sending": "Enviando…",
-    "confirmDelete": "Excluir mesmo",
     "cancel": "Cancelar",
     "deleteLabel": "Excluir o comentário de {name}",
     "delete": "Excluir",
@@ -412,7 +414,9 @@
     "signInToReply": "Entrar para responder",
     "replied": "Resposta publicada.",
     "hideReplies": "Ocultar respostas",
-    "showReplies": "{count, plural, one {Ver # resposta} other {Ver # respostas}}"
+    "showReplies": "{count, plural, one {Ver # resposta} other {Ver # respostas}}",
+    "deleteTitle": "Excluir este comentário?",
+    "deleteText": "Não dá para desfazer."
   },
   "share": {
     "headline": "A vitrine de {name}",
@@ -725,7 +729,11 @@
     "postN": "Outfit {n}"
   },
   "editor": {
-    "leaveConfirm": "Ainda estamos salvando suas alterações. Sair mesmo assim?",
+    "leave": {
+      "title": "Sair do editor?",
+      "text": "Ainda estamos salvando suas alterações. Se sair agora, a última mudança pode se perder.",
+      "confirm": "Sair mesmo assim"
+    },
     "draftFailed": "Erro ao salvar o rascunho",
     "unpublished": "Alterações não publicadas",
     "publishing": "Publicando…",
@@ -762,7 +770,9 @@
       "stepsPlaceholder": "Ex.: Válido só no app\nNão acumula com outras promoções",
       "remove": "Excluir cupom",
       "groupCoupon": "Cupom",
-      "groupStore": "Loja"
+      "groupStore": "Loja",
+      "removeTitle": "Excluir este cupom?",
+      "removeText": "Ele também sai dos produtos ligados a ele."
     },
     "logo": {
       "status": {
@@ -822,7 +832,9 @@
       "addHint": "Pode ser seu link de afiliado ou o da loja. A gente puxa nome e foto, e o clique leva ao link que você colou.",
       "manual": "Preencher manualmente",
       "or": "ou",
-      "importFailed": "Não conseguimos puxar os dados desse link ({error}). Preencha abaixo."
+      "importFailed": "Não conseguimos puxar os dados desse link ({error}). Preencha abaixo.",
+      "removeTitle": "Excluir este produto?",
+      "removeText": "Ele também sai dos outfits em que aparece."
     },
     "posts": {
       "tag": "Pôr {name} no outfit",
@@ -849,7 +861,8 @@
       "importFailed": "Não conseguimos puxar os dados desse link.",
       "addAnyway": "Adicionar só com o link",
       "full": "Esse look já tem {max} peças, o máximo.",
-      "fromProducts": "Escolher dos meus produtos ({count})"
+      "fromProducts": "Escolher dos meus produtos ({count})",
+      "removeTitle": "Excluir este outfit?"
     },
     "delete": {
       "open": "Excluir minha conta",
@@ -865,7 +878,6 @@
       "cover": "Trocar capa",
       "addCover": "Adicionar capa",
       "removeCover": "Remover capa",
-      "removeCoverConfirm": "Remover a capa? Ela sai na hora da vitrine pública.",
       "avatar": "Trocar foto de perfil",
       "addSub": "Toque para escrever um texto de apoio",
       "socials": "Editar redes sociais",
@@ -882,19 +894,22 @@
       "addProduct": "Adicionar produto",
       "emptyProducts": "Cole o link de um produto que você indica e a gente puxa nome e foto.",
       "ghostOff": "10% OFF",
-      "ghostCode": "SEUCUPOM"
+      "ghostCode": "SEUCUPOM",
+      "removeCoverTitle": "Remover a capa?",
+      "removeCoverText": "Ela sai na hora da vitrine pública.",
+      "removeCoverConfirm": "Remover"
     },
     "sheet": {
       "position": "Posição {pos} de {total}",
       "moveBefore": "Mover para antes",
       "moveAfter": "Mover para depois",
-      "confirmRemove": "Toque de novo para excluir",
       "done": "Concluir",
       "newCoupon": "Novo cupom",
       "coupon": "Editar cupom",
       "newProduct": "Novo produto",
       "product": "Editar produto",
-      "socials": "Redes sociais"
+      "socials": "Redes sociais",
+      "remove": "Excluir"
     }
   },
   "legal": {

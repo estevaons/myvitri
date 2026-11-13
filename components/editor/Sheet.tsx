@@ -1,7 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useConfirm } from "@/components/brand/ConfirmDialog";
+import { useEffect, useRef, type ReactNode } from "react";
 
 /**
  * A janela de edição de um item da vitrine: um <dialog> nativo (Esc fecha e o foco fica dentro). No celular sobe de
@@ -65,25 +66,33 @@ export function Sheet({ title, onClose, footer, children }: { title: string; onC
   );
 }
 
-/** Rodapé padrão: posição na lista com as setas, excluir (pede um segundo toque) e Concluir. */
+/** Rodapé padrão: posição na lista com as setas, excluir (confirma numa janela) e Concluir. */
 export function SheetFooter({
   onDone,
   onRemove,
   removeLabel,
+  removeAsk,
   move,
 }: {
   onDone: () => void;
   onRemove?: () => void;
   removeLabel?: string;
+  /** a pergunta da janela de confirmação de excluir ("Excluir este produto?") e o que mais acontece */
+  removeAsk?: { title: string; text?: string };
   /** posição atual (1…total) e quem troca de lugar; sem isso, não mostra as setas */
   move?: { pos: number; total: number; onMove: (to: number) => void };
 }) {
   const t = useTranslations("editor.sheet");
-  const [armed, setArmed] = useArmed();
+  const [confirmDialog, ask] = useConfirm();
   const arrow =
     "flex size-10 flex-none cursor-pointer items-center justify-center rounded-full border border-[#E6E2DA] bg-white p-0 text-ink transition-colors hover:border-[#B9B2A6] disabled:cursor-default disabled:opacity-35";
+  const remove = async () => {
+    if (!onRemove) return;
+    if (await ask({ title: removeAsk?.title ?? `${removeLabel}?`, text: removeAsk?.text, confirm: t("remove"), danger: true })) onRemove();
+  };
   return (
     <div className="flex flex-col gap-3">
+      {confirmDialog}
       {move && move.total > 1 && (
         <div className="flex items-center justify-between gap-3">
           <span className="text-[13px] text-[#5E5A52] tabular-nums">{t("position", { pos: move.pos, total: move.total })}</span>
@@ -105,10 +114,10 @@ export function SheetFooter({
         {onRemove ? (
           <button
             type="button"
-            onClick={() => (armed ? onRemove() : setArmed())}
-            className={`-ml-2 min-h-11 cursor-pointer rounded-[10px] border-0 px-2 text-sm font-medium text-[#A3361B] ${armed ? "bg-[#FFF1EC] font-semibold" : "bg-transparent hover:bg-[#FFF1EC]"}`}
+            onClick={remove}
+            className="-ml-2 min-h-11 cursor-pointer rounded-[10px] border-0 bg-transparent px-2 text-sm font-medium text-[#A3361B] hover:bg-[#FFF1EC]"
           >
-            {armed ? t("confirmRemove") : removeLabel}
+            {removeLabel}
           </button>
         ) : (
           <span />
@@ -119,19 +128,4 @@ export function SheetFooter({
       </div>
     </div>
   );
-}
-
-/** "Excluir" pede um segundo toque: o primeiro arma por alguns segundos. */
-function useArmed(ms = 4000) {
-  // `armed` conta os toques (0 = desarmado), para cada toque recomeçar a contagem. A volta é agendada por um Effect,
-  // não no clique: com `cacheComponents` a página sai de cena escondida (React <Activity>), a limpeza cancela o timer
-  // e o botão ficaria armado; ao voltar, o Effect roda de novo e agenda a volta.
-  const [armed, setArmed] = useState(0);
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(0), ms);
-    return () => clearTimeout(id);
-  }, [armed, ms]);
-  const arm = () => setArmed((n) => n + 1);
-  return [armed > 0, arm] as const;
 }
