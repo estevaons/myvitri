@@ -1,38 +1,35 @@
-import { useTranslations } from "next-intl";
 import { Bone, LoadingScreen } from "@/components/brand/Skeleton";
-import { TabNav } from "./catalog/ui";
-import { kicker, pad, SiteHeader } from "./chrome";
+import { HomeBar } from "./catalog/ui";
+import { pad, SiteHeader } from "./chrome";
 
 /**
- * Tela de espera do /inicio, no formato do HomeView: cabeçalho, saudação, busca, abas e uma faixa de cards.
- * As abas já são links de verdade (nenhuma marcada, porque a aba atual vem da URL), e o resto são blocos cinza.
+ * Tela de espera do /inicio, no formato do HomeView: cabeçalho, o perfil (foto, nome, endereço, números e botões),
+ * a barra de busca e abas e uma grade de cards. As abas já são links de verdade (nenhuma marcada, porque a aba atual
+ * vem da URL), e o resto são blocos cinza.
  */
 export function HomeSkeleton() {
-  const t = useTranslations("home");
   return (
     <LoadingScreen className="overflow-x-clip bg-white text-ink">
       <SiteHeader links={[]} home="/inicio" action={<Bone className="size-11 rounded-full" />} />
 
-      <section className={`mx-auto flex max-w-[1440px] flex-col gap-6 pt-8 md:gap-8 md:pt-12 ${pad}`}>
-        <div className="flex flex-col gap-3">
-          <span className={`${kicker} text-gold`}>{t("kicker")}</span>
-          <Bone className="h-[clamp(40px,4.8vw,68px)] w-[min(24rem,80%)]" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Bone className="h-14 w-full" />
-          <Bone className="h-4 w-64 max-w-full" />
+      <section className={`mx-auto flex max-w-[52rem] flex-col items-center gap-5 pt-10 pb-10 md:pt-14 ${pad}`}>
+        <Bone className="size-28 rounded-full md:size-34" />
+        <Bone className="h-[clamp(38px,4.4vw,56px)] w-[min(20rem,80%)]" />
+        <Bone className="h-12 w-full max-w-[34rem]" />
+        <Bone className="h-24 w-full" />
+        <div className="grid w-full max-w-[34rem] grid-cols-2 gap-2">
+          <Bone className="h-12" />
+          <Bone className="h-12" />
         </div>
       </section>
 
-      <div aria-hidden="true" className="h-5 md:h-6" />
-      <TabNav />
+      <div className={`mx-auto max-w-[1440px] pt-4 pb-4 md:pt-6 ${pad}`}>
+        <Bone className="h-6 w-32 md:h-7" />
+      </div>
+      <HomeBar search={<Bone className="h-12 w-full" />} />
 
-      <section className={`mx-auto flex max-w-[1440px] flex-col gap-10 pt-10 md:pt-14 ${pad}`}>
-        <div className="flex flex-col items-center gap-4">
-          <Bone className="h-3 w-28" />
-          <Bone className="h-[clamp(40px,5.2vw,68px)] w-[min(28rem,80%)]" />
-          <Bone className="h-4 w-[min(30rem,90%)]" />
-        </div>
+      <section className={`mx-auto flex max-w-[1440px] flex-col gap-8 pt-8 md:pt-10 ${pad}`}>
+        <Bone className="h-[clamp(30px,3.2vw,44px)] w-[min(16rem,70%)]" />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           {Array.from({ length: 4 }, (_, i) => (
             <div key={i} className="flex flex-col gap-3">

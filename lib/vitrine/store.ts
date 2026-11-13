@@ -160,29 +160,6 @@ export async function topCreatorsToday(db: Db, limit: number) {
 }
 
 export type By = { handle: string; creator: string };
-export type FeedPost = By & { post: Post; products: Product[] };
-
-/** Posts publicados mais recentes, com os produtos deles. Sem a migração dos posts, lista vazia. */
-export async function listRecentPosts(db: Db, limit: number): Promise<FeedPost[]> {
-  const { data: posts, error } = await db
-    .from("posts")
-    .select("*, vitrines(handle, name)")
-    .order("published_at", { ascending: false })
-    .limit(limit);
-  if (isMissingTable(error)) return [];
-  if (error) throw error;
-  if (!posts.length) return [];
-
-  const { data: products, error: productsError } = await db.from("products").select("*").in("id", [...new Set(posts.flatMap((p) => p.product_ids))]);
-  if (productsError) throw productsError;
-
-  return posts.map(({ vitrines: v, ...p }) => ({
-    handle: v.handle,
-    creator: v.name,
-    post: toPost(p),
-    products: products.filter((x) => x.vitrine_id === p.vitrine_id).map(toProduct),
-  }));
-}
 
 /** O que `search_catalog` devolve: as linhas das tabelas (sem vitrine_id e position) mais quem indica. */
 type Hit<T> = Fields<T> & By;
@@ -244,7 +221,7 @@ export async function findMineSummary(db: Db, ownerId: string): Promise<MineSumm
 /**
  * Rascunho do editor por cima da versão publicada. Ele pode ter itens ainda incompletos
  * (por isso não passa pelo schema da publicação); só conferimos o formato antes de usar.
- * Nome, link, foto e capa não têm rascunho: valem os do banco, que mudam na home e nas configurações.
+ * Nome, link, foto e capa não têm rascunho: valem os do banco, que mudam nas configurações (nome, link, foto) e no editor (capa).
  */
 export async function findDraft(db: Db, ownerId: string, published: VitrineContent): Promise<VitrineContent | null> {
   const { data, error } = await db.from("vitrine_drafts").select("content").eq("owner_id", ownerId).maybeSingle();

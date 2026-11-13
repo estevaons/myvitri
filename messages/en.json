@@ -415,36 +415,30 @@
   },
   "home": {
     "title": "Home",
-    "kicker": "Your home",
-    "hello": "Hi, <em>{name}</em>",
-    "yourVitrine": {
-      "kicker": "Your storefront",
-      "openLabel": "Open the {name} storefront",
-      "statProducts": "{count, plural, one {Product} other {Products}}",
-      "statCoupons": "{count, plural, one {Active coupon} other {Active coupons}}",
-      "statPosts": "{count, plural, one {Outfit} other {Outfits}}",
+    "profile": {
+      "views": "{count, plural, one {visit} other {visits}}",
+      "clicks": "{count, plural, one {product click} other {product clicks}}",
+      "copied": "{count, plural, one {coupon copied} other {coupons copied}}",
+      "period": "Last {days} days",
       "metrics": "See metrics",
       "edit": "Edit storefront",
-      "view": "View my storefront"
+      "view": "View my storefront",
+      "create": {
+        "kicker": "Do you create content?",
+        "title": "Build your storefront <em>too</em>",
+        "text": "Gather the coupons and products you use and recommend in a single link. It's free and ready in 2 minutes.",
+        "button": "Create my storefront"
+      }
     },
-    "create": {
-      "kicker": "Do you create content?",
-      "title": "Build your storefront",
-      "titleEm": "too",
-      "text": "Gather the coupons and products you use and recommend in a single link. It's free and ready in 2 minutes.",
-      "button": "Create my storefront",
-      "handle": "{host}/@yourname"
-    },
-    "forYou": {
+    "explore": "Explore",
+    "daily": {
       "rankedKicker": "Trending today",
       "newKicker": "Just published",
       "rankedTitle": "Storefronts of the day",
       "newTitle": "New storefronts",
       "rankedText": "The storefronts with the most clicks today.",
       "newText": "The latest storefronts to go live.",
-      "postsKicker": "Just out",
-      "postsTitle": "Latest outfits",
-      "postsText": "Photos from creators, with every piece of the outfit."
+      "suggestKicker": "To get started"
     },
     "post": {
       "items": "{count, plural, one {# piece} other {# pieces}}",
@@ -454,7 +448,6 @@
   "catalog": {
     "tabs": {
       "label": "Home tabs",
-      "for-you": "For you",
       "saved": "Saved",
       "storefronts": "Storefronts",
       "products": "Products",
@@ -478,7 +471,6 @@
     },
     "favorites": {
       "title": "Saved",
-      "text": "The storefronts you saved, newest first. Only those with an active coupon or a product for sale show up.",
       "staleTitle": "Nothing new in your saved storefronts right now",
       "staleText": "They'll show up here again once they have an active coupon or a product for sale.",
       "emptyTitle": "No saved storefronts yet",
@@ -486,8 +478,7 @@
       "explore": "Explore storefronts"
     },
     "posts": {
-      "title": "Outfits",
-      "text": "Photos of creators using the products, with every piece listed.",
+      "title": "Latest outfits",
       "filteredTitle": "No outfits match these filters",
       "filteredText": "Remove a filter to see more outfits.",
       "emptyTitle": "No outfits yet",
@@ -495,7 +486,6 @@
     },
     "brands": {
       "title": "Brands",
-      "text": "Every brand in the storefronts, with its best coupon across all creators. Open a brand to compare its coupons and see its products.",
       "sorts": {
         "recommended": "Most recommended",
         "discount": "Biggest discount",
@@ -514,7 +504,6 @@
     },
     "products": {
       "title": "Products",
-      "text": "Everything the storefronts recommend.",
       "emptyTitle": "Nothing here",
       "filteredText": "No products with these filters. Remove one to see more finds.",
       "emptyText": "The storefronts don't have products for sale yet. Check back soon.",
@@ -522,7 +511,6 @@
     },
     "vitrines": {
       "title": "Storefronts",
-      "text": "Every storefront with an active coupon or a product for sale. Filter by what you're looking for and step into the one that suits you.",
       "sorts": {
         "trending": "Trending today",
         "recent": "Most recent",
@@ -539,7 +527,6 @@
     "label": "Search storefronts, brands and products",
     "placeholder": "Nike, sunscreen, @marina",
     "clear": "Clear",
-    "hint": "Search for a person, a brand or a product.",
     "searching": "Searching…",
     "error": "Search isn't working right now. Try again in a moment.",
     "empty": "Nothing found for “{q}”. Try the brand, the product or the person who recommends it.",
@@ -551,10 +538,7 @@
   "linkBar": {
     "fieldLabel": "Your storefront link",
     "copiedLink": "Link copied",
-    "copyLink": "Copy link",
-    "openLabel": "Open the storefront {url} in a new tab",
-    "copied": "Copied",
-    "copy": "Copy"
+    "copyLink": "Copy link"
   },
   "cover": {
     "kicker": "First impressions",
@@ -749,6 +733,8 @@
     "publishError": "Couldn't publish: {error}",
     "close": "Close",
     "profile": {
+      "cover": "Cover",
+      "coverHint": "The photo at the top of your storefront and on its card on the home page. Saved right away, no need to publish.",
       "section": "Text",
       "headline": "Headline",
       "headlineHint": "Shown in large letters, right below the cover.",

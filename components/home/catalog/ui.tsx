@@ -10,11 +10,24 @@ import { hrefWith, PAGE, TABS, type TabId, type TabParams } from "./params";
  * menus): o servidor monta a aba de novo com os filtros. `scroll={false}` mantém a pessoa onde estava.
  */
 
-/** As abas, presas no topo ao rolar. Trocar de aba limpa os filtros da aba anterior. Sem `current` (tela de espera), nenhuma fica marcada. */
-export function TabNav({ current }: { current?: TabId }) {
+/**
+ * A barra presa no topo ao rolar: a busca (`search`) em cima e as abas embaixo. O perfil acima dela rola junto
+ * com a página. Precisa ser filha direta de um bloco que vá até o fim da página, ou deixa de ficar presa.
+ */
+export function HomeBar({ current, search }: { current?: TabId; search: ReactNode }) {
+  return (
+    <div className="sticky top-0 z-20 border-y border-sand bg-white/95 backdrop-blur-sm">
+      <div className={`mx-auto max-w-[1440px] pt-3 ${pad}`}>{search}</div>
+      <TabNav current={current} />
+    </div>
+  );
+}
+
+/** As abas. Trocar de aba limpa os filtros da aba anterior. Sem `current` (tela de espera), nenhuma fica marcada. */
+function TabNav({ current }: { current?: TabId }) {
   const t = useTranslations("catalog.tabs");
   return (
-    <nav aria-label={t("label")} className="sticky top-0 z-20 border-b border-sand bg-white/95 backdrop-blur-sm">
+    <nav aria-label={t("label")}>
       <div className={`no-scrollbar mx-auto flex max-w-[1440px] gap-7 overflow-x-auto md:gap-10 ${pad}`}>
         {TABS.map((id) => (
           <Link
@@ -22,7 +35,7 @@ export function TabNav({ current }: { current?: TabId }) {
             href={hrefWith({}, { tab: id })}
             scroll={false}
             aria-current={id === current ? "page" : undefined}
-            className={`${kicker} -mb-px flex min-h-13 flex-none items-center border-b whitespace-nowrap no-underline ${id === current ? "border-ink text-ink" : "border-transparent text-mute hover:text-ink"}`}
+            className={`${kicker} -mb-px flex min-h-13 flex-none items-center border-b-2 whitespace-nowrap no-underline ${id === current ? "border-ink text-ink" : "border-transparent text-mute hover:text-ink"}`}
           >
             {t(id)}
           </Link>
@@ -135,7 +148,6 @@ export function SortMenu({ options, params, param = "sort" }: { options: [value:
  */
 export function CatalogFrame({
   title,
-  text,
   filters,
   sort,
   count,
@@ -143,7 +155,6 @@ export function CatalogFrame({
   children,
 }: {
   title: string;
-  text: string;
   filters?: ReactNode;
   sort?: ReactNode;
   count: string;
@@ -153,11 +164,8 @@ export function CatalogFrame({
   const t = useTranslations("catalog");
   return (
     <section className={`mx-auto flex max-w-[1440px] flex-col gap-5 pt-8 md:gap-6 md:pt-10 ${pad}`}>
-      {/* a aba já dá o nome: o título fica discreto e o texto vai ao lado dele, como no topo da página */}
-      <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] lg:items-end lg:gap-12">
-        <h2 className="m-0 font-display text-[clamp(30px,3.2vw,44px)] leading-[1] font-normal">{title}</h2>
-        <p className="m-0 text-[15px] leading-relaxed text-mute">{text}</p>
-      </div>
+      {/* só o título, sem texto de apoio: a aba já diz o que é */}
+      <h2 className="m-0 font-display text-[clamp(30px,3.2vw,44px)] leading-[1] font-normal">{title}</h2>
       <div className="flex flex-col gap-2 border-y border-sand py-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-x-8">
         {/* empty: os filtros com menos de duas opções não aparecem e a lista pode ficar sem nenhum */}
         {filters && <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 empty:hidden md:mx-0 md:flex-wrap md:overflow-visible md:px-0">{filters}</div>}

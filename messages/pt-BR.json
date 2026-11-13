@@ -415,36 +415,30 @@
   },
   "home": {
     "title": "Início",
-    "kicker": "Sua home",
-    "hello": "Olá, <em>{name}</em>",
-    "yourVitrine": {
-      "kicker": "Sua vitrine",
-      "openLabel": "Abrir a vitrine {name}",
-      "statProducts": "{count, plural, one {Produto} other {Produtos}}",
-      "statCoupons": "{count, plural, one {Cupom ativo} other {Cupons ativos}}",
-      "statPosts": "{count, plural, one {Outfit} other {Outfits}}",
+    "profile": {
+      "views": "{count, plural, =1 {visita} other {visitas}}",
+      "clicks": "{count, plural, =1 {clique nos produtos} other {cliques nos produtos}}",
+      "copied": "{count, plural, =1 {cupom copiado} other {cupons copiados}}",
+      "period": "Últimos {days} dias",
       "metrics": "Ver métricas",
       "edit": "Editar vitrine",
-      "view": "Ver minha vitrine"
+      "view": "Ver minha vitrine",
+      "create": {
+        "kicker": "Você cria conteúdo?",
+        "title": "Monte sua vitrine <em>também</em>",
+        "text": "Junte num link só os cupons e produtos que você usa e indica. É grátis e fica pronta em 2 minutos.",
+        "button": "Criar minha vitrine"
+      }
     },
-    "create": {
-      "kicker": "Você cria conteúdo?",
-      "title": "Monte sua vitrine",
-      "titleEm": "também",
-      "text": "Junte num link só os cupons e produtos que você usa e indica. É grátis e fica pronta em 2 minutos.",
-      "button": "Criar minha vitrine",
-      "handle": "{host}/@seunome"
-    },
-    "forYou": {
+    "explore": "Explorar",
+    "daily": {
       "rankedKicker": "Em alta hoje",
       "newKicker": "Acabaram de publicar",
       "rankedTitle": "Vitrines do dia",
       "newTitle": "Vitrines novas",
       "rankedText": "As vitrines que mais receberam cliques hoje.",
       "newText": "As últimas vitrines a entrar no ar.",
-      "postsKicker": "Acabaram de sair",
-      "postsTitle": "Últimos outfits",
-      "postsText": "Fotos de quem indica, com cada peça do conjunto."
+      "suggestKicker": "Para começar"
     },
     "post": {
       "items": "{count, plural, one {# peça} other {# peças}}",
@@ -454,7 +448,6 @@
   "catalog": {
     "tabs": {
       "label": "Abas da home",
-      "for-you": "Para você",
       "saved": "Favoritas",
       "storefronts": "Vitrines",
       "products": "Produtos",
@@ -478,7 +471,6 @@
     },
     "favorites": {
       "title": "Favoritas",
-      "text": "As vitrines que você guardou, da última para a primeira. Aparecem as que têm cupom ativo ou produto à venda.",
       "staleTitle": "Suas favoritas estão sem novidade agora",
       "staleText": "Elas voltam a aparecer aqui quando tiverem cupom ativo ou produto à venda.",
       "emptyTitle": "Nenhuma vitrine favorita ainda",
@@ -486,8 +478,7 @@
       "explore": "Explorar vitrines"
     },
     "posts": {
-      "title": "Outfits",
-      "text": "Fotos de quem indica usando os produtos, com cada peça listada.",
+      "title": "Últimos outfits",
       "filteredTitle": "Nenhum outfit com esses filtros",
       "filteredText": "Tire um filtro para ver mais outfits.",
       "emptyTitle": "Ainda não há outfits",
@@ -495,7 +486,6 @@
     },
     "brands": {
       "title": "Marcas",
-      "text": "Todas as marcas das vitrines, com o melhor cupom de cada uma somando todas as creators. Abra uma marca para comparar os cupons e ver os produtos.",
       "sorts": {
         "recommended": "Mais indicadas",
         "discount": "Maior desconto",
@@ -514,7 +504,6 @@
     },
     "products": {
       "title": "Produtos",
-      "text": "Tudo o que as vitrines indicam.",
       "emptyTitle": "Nada por aqui",
       "filteredText": "Nenhum produto com esses filtros. Tire algum para ver mais achados.",
       "emptyText": "As vitrines ainda não têm produtos à venda. Volte daqui a pouco.",
@@ -522,7 +511,6 @@
     },
     "vitrines": {
       "title": "Vitrines",
-      "text": "Todas as vitrines com cupom ativo ou produto à venda. Filtre pelo que você procura e entre na que tem a sua cara.",
       "sorts": {
         "trending": "Em alta hoje",
         "recent": "Mais recentes",
@@ -539,7 +527,6 @@
     "label": "Buscar vitrines, marcas e produtos",
     "placeholder": "Nike, protetor solar, @marina",
     "clear": "Limpar",
-    "hint": "Busque por uma pessoa, uma marca ou um produto.",
     "searching": "Buscando…",
     "error": "Não deu para buscar agora. Tente de novo em instantes.",
     "empty": "Nada encontrado para “{q}”. Tente o nome da marca, do produto ou de quem indica.",
@@ -551,10 +538,7 @@
   "linkBar": {
     "fieldLabel": "Link da sua vitrine",
     "copiedLink": "Link copiado",
-    "copyLink": "Copiar link",
-    "openLabel": "Abrir a vitrine {url} numa aba nova",
-    "copied": "Copiado",
-    "copy": "Copiar"
+    "copyLink": "Copiar link"
   },
   "cover": {
     "kicker": "A primeira impressão",
@@ -749,6 +733,8 @@
     "publishError": "Não deu para publicar: {error}",
     "close": "Fechar",
     "profile": {
+      "cover": "Capa",
+      "coverHint": "A foto do topo da sua vitrine e do card dela na home. Salva na hora, sem precisar publicar.",
       "section": "Textos",
       "headline": "Frase de destaque",
       "headlineHint": "Aparece em letras grandes, logo abaixo da capa.",

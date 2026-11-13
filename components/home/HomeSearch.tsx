@@ -22,19 +22,30 @@ const groupTitle = `${kicker} text-[11px] text-mute`;
 const row = "flex min-w-0 items-center gap-3 py-2.5 text-ink no-underline hover:text-gold";
 
 /**
- * Busca de creators, marcas e produtos enquanto a pessoa digita (via /api/busca). Os resultados abrem
- * logo abaixo do campo, empurrando a página; Esc limpa. Cada resultado leva à vitrine de quem indica.
+ * Busca de creators, marcas e produtos enquanto a pessoa digita (via /api/busca). Fica na barra presa no topo, junto
+ * das abas: os resultados abrem num painel por cima do conteúdo, que fecha com um clique fora (volta ao focar o campo);
+ * Esc limpa. Cada resultado leva à vitrine de quem indica.
  */
 export function HomeSearch() {
   const t = useTranslations("search");
   const tCount = useTranslations("counts");
   const [q, setQ] = useState("");
   const [state, setState] = useState<State | null>(null);
+  const [open, setOpen] = useState(true);
+  const root = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const inFlight = useRef<AbortController>(undefined);
   const id = useId();
   const term = q.trim();
   const active = term.length >= MIN;
+
+  useEffect(() => {
+    const outside = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, []);
 
   useEffect(() => {
     clearTimeout(timer.current);
@@ -63,17 +74,17 @@ export function HomeSearch() {
   const r = shown?.status === "ok" ? shown.results : null;
   const groups = r ? [r.creators, r.brands, r.products].filter((g) => g.length > 0).length : 0;
   const empty = r && groups === 0;
+  const status = loading && !shown ? t("searching") : shown?.status === "error" ? t("error") : empty ? t("empty", { q: shown?.q ?? "" }) : "";
 
   return (
-    <div className="flex flex-col gap-4">
+    <div ref={root} className="relative">
       <form role="search" onSubmit={(e) => e.preventDefault()}>
-        {/* a dica embaixo do campo já diz o que dá para buscar: o rótulo fica só para leitor de tela */}
+        {/* o placeholder já diz o que dá para buscar: o rótulo fica só para leitor de tela */}
         <label htmlFor={id} className="sr-only">
           {t("label")}
         </label>
-        {/* o campo herda a fonte (globals.css): a serifa vem daqui */}
-        <div className="flex min-h-14 items-center gap-3 border border-sand bg-cream px-4 font-display focus-within:border-ink md:px-5">
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 flex-none" fill="none" stroke="currentColor" strokeWidth={1.8}>
+        <div className="flex min-h-12 items-center gap-3 border border-sand bg-cream px-4 focus-within:border-ink">
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="size-[18px] flex-none text-mute" fill="none" stroke="currentColor" strokeWidth={1.8}>
             <circle cx="11" cy="11" r="7" />
             <path d="m20 20-3.5-3.5" />
           </svg>
@@ -81,38 +92,32 @@ export function HomeSearch() {
             id={id}
             type="search"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
             onKeyDown={(e) => e.key === "Escape" && setQ("")}
             placeholder={t("placeholder")}
             autoComplete="off"
             enterKeyHint="search"
             spellCheck={false}
             maxLength={60}
-            aria-describedby={`${id}-dica`}
-            className="min-w-0 flex-1 border-0 bg-transparent p-0 [&::-webkit-search-cancel-button]:appearance-none text-[clamp(20px,1.8vw,24px)] text-ink outline-none placeholder:text-mute/60"
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 [&::-webkit-search-cancel-button]:appearance-none text-base text-ink outline-none placeholder:text-mute"
           />
           {q && (
-            <button type="button" onClick={() => setQ("")} className={`${kicker} flex-none border-0 bg-transparent p-0 text-[11px] text-mute hover:text-ink`}>
-              {/* o botão herda a serifa do campo (globals.css): o rótulo volta para a fonte do texto */}
-              <span className="font-sans">{t("clear")}</span>
+            <button type="button" onClick={() => setQ("")} className={`${kicker} min-h-11 flex-none border-0 bg-transparent p-0 text-[11px] text-mute hover:text-ink`}>
+              {t("clear")}
             </button>
           )}
         </div>
-        {/* discreta, colada no campo: só lembra o que dá para buscar */}
-        <p id={`${id}-dica`} className="m-0 mt-2 text-[13px] text-mute">
-          {t("hint")}
-        </p>
       </form>
 
-      <div aria-live="polite" className="contents">
-        {loading && !shown && <p className="m-0 text-[15px] text-mute">{t("searching")}</p>}
-        {shown?.status === "error" && <p className="m-0 text-[15px] text-mute">{t("error")}</p>}
-        {empty && (
-          <p className="m-0 text-[15px] text-mute">
-            {t("empty", { q: shown?.q ?? "" })}
-          </p>
-        )}
-      </div>
+      {/* o painel abre por cima da página: a barra é presa no topo e não pode crescer */}
+      <div className={`absolute inset-x-0 top-full z-30 mt-2 max-h-[min(70dvh,36rem)] overflow-y-auto bg-white shadow-[0_16px_40px_rgba(17,17,17,0.12)] ${open && (status || (r && !empty)) ? "" : "hidden"}`}>
+        <p aria-live="polite" className={`m-0 text-[15px] text-mute ${status ? "border border-sand p-5" : "sr-only"}`}>
+          {status}
+        </p>
 
       {r && !empty && (
         <div className={`grid gap-8 border border-sand p-5 md:p-6 ${COLS[groups]} ${loading ? "opacity-60" : ""}`}>
@@ -172,6 +177,7 @@ export function HomeSearch() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

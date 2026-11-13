@@ -75,7 +75,6 @@ export async function MarcasTab({ params }: { params: TabParams }) {
   return (
     <CatalogFrame
       title={t("brands.title")}
-      text={t("brands.text")}
       filters={filters || undefined}
       sort={all.length > 1 && sorts.length > 1 ? <SortMenu options={sorts.map((s) => [s, t(`brands.sorts.${s}`)])} params={params} /> : undefined}
       count={tCount("brands", { count: filtered.length })}

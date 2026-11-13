@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { CoverPicker } from "@/components/home/CoverPicker";
 import { SOCIAL_LABELS, SOCIAL_NETWORKS, socialUrl } from "@/lib/vitrine/socials";
 import type { VitrineContent } from "@/lib/vitrine/types";
 import { Field, Section, TextInput, inputCls } from "./ui";
@@ -8,10 +9,32 @@ import { Field, Section, TextInput, inputCls } from "./ui";
 export type Update = (fn: (d: VitrineContent) => VitrineContent) => void;
 type PanelProps = { draft: VitrineContent; update: Update };
 
+/**
+ * A capa da vitrine (topo da vitrine pública e cards da home). Não passa pelo rascunho: salva na hora pelo
+ * `CoverPicker`, que faz `router.refresh()`; o editor recebe a capa nova no perfil publicado e a copia para o rascunho.
+ */
+function CoverField({ draft }: { draft: VitrineContent }) {
+  const t = useTranslations("editor.profile");
+  const cover = draft.look.bannerUrl;
+  return (
+    <Section title={t("cover")}>
+      <p className="m-0 -mt-2 text-xs leading-snug text-[#77726A]">{t("coverHint")}</p>
+      <div className="w-full max-w-[18rem]">
+        <CoverPicker hasCover={Boolean(cover)} name={draft.name}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- capa enviada pela creator para o bucket */}
+          <img src={cover} alt="" className="block aspect-square w-full bg-sand object-cover" />
+        </CoverPicker>
+      </div>
+    </Section>
+  );
+}
+
 export function ProfilePanel({ draft, update }: PanelProps) {
   const t = useTranslations("editor.profile");
   const set = (patch: Partial<VitrineContent>) => update((d) => ({ ...d, ...patch }));
   return (
+    <>
+    <CoverField draft={draft} />
     <Section title={t("section")}>
       <Field label={t("headline")} hint={t("headlineHint")} count={[draft.headline.length, 90]}>
         <TextInput value={draft.headline} onChange={(headline) => set({ headline })} maxLength={90} />
@@ -27,6 +50,7 @@ export function ProfilePanel({ draft, update }: PanelProps) {
       </Field>
       <SocialsFields draft={draft} update={update} />
     </Section>
+    </>
   );
 }
 

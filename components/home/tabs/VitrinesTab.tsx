@@ -1,11 +1,16 @@
 import { getTranslations } from "next-intl/server";
+import { getDailyCreators } from "@/lib/vitrine/data";
 import { bestRank, getTrendingHandles, getVitrinesCatalog, keyOf, type CatalogOption, type CatalogVitrine } from "@/lib/vitrine/catalog/vitrines";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
 import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore, SortMenu, ToggleChip } from "../catalog/ui";
+import { DailyCreators } from "./vitrines/DailyCreators";
 import { VitrineCard } from "./vitrines/VitrineCard";
 
-/** Ordens na URL (`?sort=`), a primeira é a padrão. Os rótulos ficam em `catalog.vitrines.sorts`. */
-const SORTS = ["trending", "recent", "discount", "coupons"] as const;
+/**
+ * Ordens na URL (`?sort=`), a primeira é a padrão. Os rótulos ficam em `catalog.vitrines.sorts`. A padrão é a das
+ * mais recentes: as em alta já aparecem no destaque "Vitrines do dia" logo acima da lista.
+ */
+const SORTS = ["recent", "trending", "discount", "coupons"] as const;
 
 const FILTER_KEYS = ["category", "brand", "expiring"] as const;
 
@@ -16,15 +21,17 @@ const withActive = (options: CatalogOption[], active: string | undefined): Catal
 const byRecent = (a: CatalogVitrine, b: CatalogVitrine) => b.updatedAt.localeCompare(a.updatedAt);
 
 /**
- * Aba "Vitrines" do /inicio: todas as vitrines com algo ativo (e, como cada conta tem uma só, todas as
- * creators). Filtra, ordena e corta no servidor; o catálogo vem do cache de horas e o ranking do dia,
- * que muda a cada clique, do cache de minutos.
+ * Aba "Vitrines" do /inicio: no topo, o destaque das "Vitrines do dia" (só sem filtro ativo); embaixo, todas as
+ * vitrines com algo ativo (e, como cada conta tem uma só, todas as creators). Filtra, ordena e corta no servidor;
+ * o catálogo vem do cache de horas e o ranking do dia, que muda a cada clique, do cache de minutos.
  */
 export async function VitrinesTab({ params, favorites = [] }: { params: TabParams; favorites?: string[] }) {
   const sort = SORTS.find((id) => id === params.sort) ?? SORTS[0];
-  const [{ vitrines, categories, brands, today }, trending, t, tCount] = await Promise.all([
+  const filtering = FILTER_KEYS.some((k) => params[k]);
+  const [{ vitrines, categories, brands, today }, trending, daily, t, tCount] = await Promise.all([
     getVitrinesCatalog(),
     sort === "trending" ? getTrendingHandles() : [],
+    filtering ? null : getDailyCreators(),
     getTranslations("catalog"),
     getTranslations("counts"),
   ]);
@@ -51,7 +58,6 @@ export async function VitrinesTab({ params, favorites = [] }: { params: TabParam
 
   const limit = limitOf(params);
   const shown = sorted.slice(0, limit);
-  const filtering = FILTER_KEYS.some((k) => params[k]);
   const clearHref = hrefWith(params, Object.fromEntries(FILTER_KEYS.map((k) => [k, null])));
 
   // o liga/desliga só aparece se houver alguma vitrine para mostrar com ele (ou se já estiver ligado)
@@ -65,9 +71,10 @@ export async function VitrinesTab({ params, favorites = [] }: { params: TabParam
   );
 
   return (
+    <>
+    {daily && <DailyCreators {...daily} favorites={favorites} variant="band" />}
     <CatalogFrame
       title={t("vitrines.title")}
-      text={t("vitrines.text")}
       filters={filters}
       sort={<SortMenu options={SORTS.map((s) => [s, t(`vitrines.sorts.${s}`)])} params={params} />}
       count={tCount("vitrines", { count: sorted.length })}
@@ -88,5 +95,6 @@ export async function VitrinesTab({ params, favorites = [] }: { params: TabParam
         <CatalogEmpty title={t("vitrines.emptyTitle")} text={t("vitrines.emptyText")} />
       )}
     </CatalogFrame>
+    </>
   );
 }
