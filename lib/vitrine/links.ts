@@ -17,6 +17,18 @@ export function handleFromSegment(segment: string) {
 }
 
 /**
+ * Completa o `https://` de um endereço digitado como se fala ("nike.com.br", "www.loja.com/produto"). O que já tem
+ * esquema (`http://`, `https://`), o que não parece um endereço ("Nike") e o vazio voltam como vieram, para a
+ * validação apontar o erro em vez de virar um link inventado.
+ */
+export function withHttps(raw: string) {
+  const s = raw.trim();
+  if (s.startsWith("//")) return `https:${s}`;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s) || !/^[^\s/:@]+\.[a-z]{2,}(?=[/:?#]|$)/i.test(s)) return s;
+  return `https://${s}`;
+}
+
+/**
  * Para onde o clique no produto leva: exatamente o link que a pessoa colou. Não dá para saber se ele é de afiliado, e
  * redirecionadores quebram com parâmetros extras, então ele sai intacto. `affiliateUrl` só existe em produtos antigos, de quando eram dois campos.
  */

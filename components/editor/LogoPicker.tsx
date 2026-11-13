@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { findLogoAction } from "@/app/actions";
+import { withHttps } from "@/lib/vitrine/links";
 import { IMAGE_ACCEPT, uploadImage } from "./upload";
 import { TextInput, inputCls, labelCls } from "./ui";
 
@@ -12,7 +13,9 @@ const isLink = (s: string) => /^https?:\/\/[^/\s]+\.[^/\s]+/i.test(s.trim());
  * Logo da marca do cupom. Com o link da loja preenchido, busca sozinha os logos do site
  * e mostra como opções (sem escolher por conta própria); colar o link da imagem fica como alternativa.
  */
-export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; logoUrl: string; onChange: (url: string) => void }) {
+export function LogoPicker({ storeUrl: typedStore, logoUrl, onChange }: { storeUrl: string; logoUrl: string; onChange: (url: string) => void }) {
+  // "nike.com.br" já vale para buscar o logo, sem esperar a pessoa sair do campo da loja
+  const storeUrl = withHttps(typedStore);
   const t = useTranslations("editor.logo");
   const tErrors = useTranslations("errors");
   const [found, setFound] = useState<{ for: string; logos: string[]; error?: string } | null>(null);
@@ -167,14 +170,14 @@ export function LogoPicker({ storeUrl, logoUrl, onChange }: { storeUrl: string; 
             value={typed}
             onChange={(url) => {
               setTyped(url);
-              onChange(url.trim());
+              onChange(withHttps(url));
             }}
             placeholder={t("urlPlaceholder")}
             inputMode="url"
             aria-label={t("urlLabel")}
             className={`${inputCls} bg-white`}
           />
-          {typed && broken.includes(typed.trim()) ? (
+          {typed && broken.includes(withHttps(typed)) ? (
             <span role="alert" className="text-xs font-medium text-[#A3361B]">
               {t("broken")}
             </span>

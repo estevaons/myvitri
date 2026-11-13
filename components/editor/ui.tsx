@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useState, type ReactNode } from "react";
+import { withHttps } from "@/lib/vitrine/links";
 import { centsToInput, parseBRL } from "@/lib/vitrine/pricing";
 import type { VitrineContent } from "@/lib/vitrine/types";
 
@@ -55,6 +56,27 @@ export function TextInput({
   ...rest
 }: { value: string; onChange: (v: string) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
   return <input {...rest} value={value} onChange={(e) => onChange(e.target.value)} className={rest.className ?? inputCls} />;
+}
+
+/** Campo de link: ao sair dele, "nike.com.br" vira "https://nike.com.br" (`withHttps`), como a vitrine vai guardar. */
+export function UrlInput({ value, onChange, onBlur, ...rest }: React.ComponentProps<typeof TextInput>) {
+  return (
+    <TextInput
+      placeholder="https://…"
+      inputMode="url"
+      autoCapitalize="none"
+      autoCorrect="off"
+      spellCheck={false}
+      {...rest}
+      value={value}
+      onChange={onChange}
+      onBlur={(e) => {
+        const full = withHttps(value);
+        if (full !== value) onChange(full);
+        onBlur?.(e);
+      }}
+    />
+  );
 }
 
 /** Preço em reais digitado livremente ("189,90"), guardado em centavos. */

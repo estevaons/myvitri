@@ -764,7 +764,7 @@
       "broken": "That image didn't load. Upload another photo."
     },
     "products": {
-      "fullLink": "Paste the full product link, starting with https://",
+      "fullLink": "Paste the product link, like store.com/product.",
       "photo": "Photo",
       "product": "Product",
       "name": "Name",

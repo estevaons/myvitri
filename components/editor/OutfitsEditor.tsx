@@ -5,6 +5,7 @@ import { useState, useTransition, type DragEvent, type ReactNode } from "react";
 import { importProductAction } from "@/app/actions";
 import { InlineText } from "@/components/storefront/Storefront";
 import { ProductArt } from "@/components/storefront/ProductIcon";
+import { withHttps } from "@/lib/vitrine/links";
 import { POST_MAX_ITEMS, postItems, type Post, type Product } from "@/lib/vitrine/types";
 import { newProduct } from "./ProductForm";
 import { FilePick } from "./ImageField";
@@ -307,7 +308,9 @@ function PieceByLink({ full, onAdd }: { full: boolean; onAdd: (patch: Partial<Pr
   };
 
   const search = () => {
-    const url = link.trim();
+    // "nike.com.br/camiseta" também vale: o campo mostra o link completo que vai ser buscado
+    const url = withHttps(link);
+    setLink(url);
     if (!/^https?:\/\//i.test(url)) return setError(tProducts("fullLink"));
     setError(null);
     start(async () => {

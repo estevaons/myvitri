@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { COUPON_EXTRA, type Coupon } from "@/lib/vitrine/types";
 import { LogoPicker } from "./LogoPicker";
-import { Field, Group, MoneyInput, PercentInput, Segmented, TextInput, inputCls, labelCls, newId } from "./ui";
+import { Field, Group, MoneyInput, PercentInput, Segmented, TextInput, UrlInput, inputCls, labelCls, newId } from "./ui";
 
 export const newCoupon = (): Coupon => ({
   id: newId(),
@@ -72,7 +72,7 @@ export function CouponForm({ coupon: c, onChange }: { coupon: Coupon; onChange: 
       </Group>
       <Group title={t("groupStore")}>
         <Field label={t("storeUrl")}>
-          <TextInput value={c.storeUrl} onChange={(storeUrl) => onChange({ storeUrl })} placeholder="https://…" inputMode="url" />
+          <UrlInput value={c.storeUrl} onChange={(storeUrl) => onChange({ storeUrl })} />
         </Field>
         <LogoPicker storeUrl={c.storeUrl} logoUrl={c.logoUrl} onChange={(logoUrl) => onChange({ logoUrl })} />
         {/* "Como usar" fica recolhido; já abre se o cupom tiver os passos preenchidos. */}

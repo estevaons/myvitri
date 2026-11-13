@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { withHttps } from "./links";
 import { SOCIALS, socialUrl, type SocialNetwork } from "./socials";
 
 export const ICONS = ["Bikini", "Glasses", "Jar", "Bottle", "Shoe", "Hat", "Nuts", "Bag"] as const;
@@ -12,11 +13,20 @@ export const RESERVED_HANDLES = new Set(["admin", "myvitri", "vitri", "suporte",
 
 export const HANDLE_RE = /^[a-z0-9_.]{3,30}$/;
 
-const httpUrl = z
-  .string()
-  .trim()
-  .max(2000)
-  .refine((v) => v === "" || /^https?:\/\//i.test(v), "httpUrl");
+/**
+ * Link http(s). "nike.com.br" ganha o `https://` antes de validar (`withHttps`): é como a maioria digita, e um
+ * rascunho salvo assim não pode travar a publicação. `required` é a mensagem quando o link é obrigatório.
+ */
+const link = (required?: string) =>
+  z.preprocess(
+    (v) => (typeof v === "string" ? withHttps(v) : v),
+    z
+      .string()
+      .max(2000)
+      .min(required ? 1 : 0, required)
+      .refine((v) => v === "" || /^https?:\/\//i.test(v), "httpUrl"),
+  );
+const httpUrl = link();
 
 const text = (max: number) => z.string().trim().max(max);
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -72,7 +82,7 @@ export const POST_MAX_ITEMS = 8;
  */
 export const postSchema = z.object({
   id: z.uuid(),
-  photoUrl: httpUrl.min(1, "postPhoto"),
+  photoUrl: link("postPhoto"),
   caption: text(300),
   productIds: z
     .array(z.uuid())

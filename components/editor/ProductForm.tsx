@@ -3,9 +3,10 @@
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { importProductAction } from "@/app/actions";
+import { withHttps } from "@/lib/vitrine/links";
 import { PRODUCT_EXTRA, type Product } from "@/lib/vitrine/types";
 import { ImageField } from "./ImageField";
-import { Field, Group, Hint, Pill, TextInput, inputCls, newId } from "./ui";
+import { Field, Group, Hint, Pill, TextInput, UrlInput, inputCls, newId } from "./ui";
 
 export const newProduct = (patch: Partial<Product> = {}): Product => ({
   id: newId(),
@@ -35,7 +36,9 @@ export function ProductImport({ onAdd }: { onAdd: (patch: Partial<Product>, erro
   const [importing, start] = useTransition();
 
   const search = () => {
-    const url = link.trim();
+    // "nike.com.br/tenis" também vale: o campo mostra o link completo que vai ser buscado
+    const url = withHttps(link);
+    setLink(url);
     if (!/^https?:\/\//i.test(url)) return setError(t("fullLink"));
     setError(null);
     start(async () => {
@@ -148,11 +151,11 @@ export function ProductForm({
       <Group title={t("links")}>
         <Field label={t("link")} hint={t("linkHint")}>
           {/* produtos antigos podem ter os dois links: vale o de afiliado, e editar deixa só o que foi colado */}
-          <TextInput value={p.affiliateUrl || p.url} onChange={(url) => onChange({ url, affiliateUrl: "" })} placeholder="https://…" inputMode="url" />
+          <UrlInput value={p.affiliateUrl || p.url} onChange={(url) => onChange({ url, affiliateUrl: "" })} />
         </Field>
         {video || p.videoUrl ? (
           <Field label={t("video")} hint={t("videoHint")}>
-            <TextInput value={p.videoUrl} onChange={(videoUrl) => onChange({ videoUrl })} placeholder="https://…" inputMode="url" autoFocus={video && !p.videoUrl} />
+            <UrlInput value={p.videoUrl} onChange={(videoUrl) => onChange({ videoUrl })} autoFocus={video && !p.videoUrl} />
           </Field>
         ) : (
           <button

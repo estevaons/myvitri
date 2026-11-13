@@ -764,7 +764,7 @@
       "broken": "Essa imagem não abriu. Envie outra foto."
     },
     "products": {
-      "fullLink": "Cole o link completo do produto, começando com https://",
+      "fullLink": "Cole o link do produto, como loja.com/produto.",
       "photo": "Foto",
       "product": "Produto",
       "name": "Nome",
