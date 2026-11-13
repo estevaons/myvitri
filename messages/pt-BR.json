@@ -803,7 +803,14 @@
       "tap": "Toque para escolher uma imagem",
       "click": "Clique ou arraste uma imagem para cá",
       "none": "Sem foto, a vitrine mostra uma ilustração",
-      "broken": "Essa imagem não abriu. Envie outra foto."
+      "broken": "Essa imagem não abriu. Envie outra foto.",
+      "title": "Foto do produto",
+      "changeTap": "Toque na foto para trocar.",
+      "changeClick": "Clique na foto para trocar ou arraste outra para cá.",
+      "remove": "Remover foto",
+      "removeTitle": "Remover a foto do produto?",
+      "removeText": "A vitrine passa a mostrar uma ilustração no lugar.",
+      "removeConfirm": "Remover"
     },
     "products": {
       "fullLink": "Cole o link do produto, como loja.com/produto.",

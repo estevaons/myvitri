@@ -803,7 +803,14 @@
       "tap": "Tap to choose an image",
       "click": "Click or drag an image here",
       "none": "Without a photo, the storefront shows an illustration",
-      "broken": "That image didn't load. Upload another photo."
+      "broken": "That image didn't load. Upload another photo.",
+      "title": "Product photo",
+      "changeTap": "Tap the photo to change it.",
+      "changeClick": "Click the photo to change it or drag another one here.",
+      "remove": "Remove photo",
+      "removeTitle": "Remove the product photo?",
+      "removeText": "The storefront will show an illustration instead.",
+      "removeConfirm": "Remove"
     },
     "products": {
       "fullLink": "Paste the product link, like store.com/product.",

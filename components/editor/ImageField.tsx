@@ -4,8 +4,10 @@ import { useTranslations } from "next-intl";
 import { useState, type DragEvent, type ReactNode } from "react";
 import { useImageCrop } from "./ImageCrop";
 import { IMAGE_ACCEPT, uploadImage } from "./upload";
+import { useConfirm } from "@/components/brand/ConfirmDialog";
 
-const linkBtn = "min-h-8 border-0 bg-transparent p-0 text-[13px] font-medium text-[#5E5A52] underline-offset-4 hover:text-ink hover:underline";
+// os círculos brancos do canto da foto (lápis e X), como os da capa no editor
+const badge = "flex size-7 items-center justify-center rounded-full bg-white text-ink shadow-[0_1px_4px_rgba(17,17,17,0.18)]";
 
 export function UploadIcon() {
   return (
@@ -45,6 +47,7 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
   const [dragging, setDragging] = useState(false);
   const [broken, setBroken] = useState("");
   const [cropper, crop] = useImageCrop();
+  const [confirmDialog, ask] = useConfirm();
 
   const send = async (picked: File) => {
     const file = await crop(picked, "product");
@@ -55,6 +58,10 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
     setUploading(false);
     if (!res.ok) return setError(res.error);
     onChange(res.url);
+  };
+
+  const remove = async () => {
+    if (await ask({ title: t("removeTitle"), text: t("removeText"), confirm: t("removeConfirm"), danger: true })) onChange("");
   };
 
   const drop = {
@@ -79,33 +86,62 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
   return (
     <div className="flex flex-col gap-2">
       {cropper}
+      {confirmDialog}
       {value ? (
+        // com foto, igual à capa no editor: a própria foto troca (tocando ou soltando outra nela), com o lápis e o X no canto
         <div {...drop} className="flex items-center gap-4">
-          <span
-            aria-hidden="true"
-            className={`relative flex size-24 flex-none items-center justify-center overflow-hidden rounded-[12px] bg-cream text-[#8F897E] ${uploading ? "animate-pulse" : ""} ${dragging ? "ring-2 ring-ink ring-offset-2" : ""}`}
-          >
-            {/* igual à vitrine, inteiro e com o fundo branco da foto se fundindo ao card */}
-            {uploading ? null : shown ? (
-              // eslint-disable-next-line @next/next/no-img-element -- imagem vem de URL arbitrária ou do bucket
-              <img src={value} alt="" onError={() => setBroken(value)} className="size-full object-contain mix-blend-multiply" />
-            ) : (
-              <UploadIcon />
-            )}
-          </span>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div className="relative flex-none">
             <FilePick
               onFile={send}
               disabled={uploading}
-              className="flex min-h-9 cursor-pointer items-center rounded-[10px] border border-[#E6E2DA] bg-white px-3.5 text-[13px] font-semibold text-ink transition-colors hover:border-[#D6D0C5] hover:bg-[#FAF9F7] has-focus-visible:ring-2 has-focus-visible:ring-ink"
+              className={`group/photo relative flex size-32 cursor-pointer items-center justify-center overflow-hidden rounded-[14px] bg-cream text-[#8F897E] has-focus-visible:ring-2 has-focus-visible:ring-ink has-focus-visible:ring-offset-2 ${uploading ? "animate-pulse" : ""} ${dragging ? "ring-2 ring-ink ring-offset-2" : ""}`}
             >
-              {uploading ? t("sending") : t("change")}
+              <span className="sr-only">{uploading ? t("sending") : t("change")}</span>
+              {/* igual à vitrine, inteiro e com o fundo branco da foto se fundindo ao card */}
+              {uploading ? null : shown ? (
+                // eslint-disable-next-line @next/next/no-img-element -- imagem vem de URL arbitrária ou do bucket
+                <img src={value} alt="" onError={() => setBroken(value)} className="size-full object-contain mix-blend-multiply" />
+              ) : (
+                <UploadIcon />
+              )}
+              {/* no mouse, o hover escurece de leve e mostra "Trocar foto" embaixo */}
+              {!uploading && (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 flex items-end justify-center bg-ink/0 pb-2.5 transition-colors duration-200 group-hover/photo:bg-ink/15"
+                >
+                  <span className="translate-y-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink opacity-0 shadow-[0_2px_8px_rgba(17,17,17,0.18)] transition duration-200 group-hover/photo:translate-y-0 group-hover/photo:opacity-100">
+                    {t("change")}
+                  </span>
+                </span>
+              )}
             </FilePick>
             {!uploading && (
-              <button type="button" onClick={() => onChange("")} className={`${linkBtn} text-[#A3361B] hover:text-[#A3361B]`}>
-                Remover
-              </button>
+              <>
+                <span aria-hidden="true" className={`${badge} pointer-events-none absolute top-1.5 right-1.5`}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z" />
+                  </svg>
+                </span>
+                {/* um botão à parte, ao lado do lápis: a foto inteira já é o botão de trocar */}
+                <button
+                  type="button"
+                  onClick={remove}
+                  aria-label={t("remove")}
+                  title={t("remove")}
+                  className={`${badge} absolute top-1.5 right-10 cursor-pointer border-0 p-0 transition-[transform,color] hover:scale-105 hover:text-[#A3361B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink`}
+                >
+                  <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </>
             )}
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="text-sm font-semibold text-ink">{uploading ? t("sending") : t("title")}</span>
+            <span className="text-[13px] leading-snug text-[#5E5A52] md:hidden">{t("changeTap")}</span>
+            <span className="text-[13px] leading-snug text-[#5E5A52] max-md:hidden">{t("changeClick")}</span>
           </div>
         </div>
       ) : (
