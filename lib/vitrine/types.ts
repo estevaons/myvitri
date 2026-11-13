@@ -69,6 +69,8 @@ export const productSchema = z.object({
   /** review em vídeo (Reels, TikTok, YouTube) */
   videoUrl: httpUrl,
   soldOut: z.boolean(),
+  /** favorito da creator: aparece também na seção Favoritos, no topo da vitrine */
+  favorite: z.boolean(),
   /** Legado: ISO da última vez que o preço foi conferido na loja. */
   priceCheckedAt: z.string().max(40).nullable(),
 });
@@ -126,7 +128,7 @@ export const pickProfile = ({ handle, name, avatarUrl, look }: VitrineProfile): 
 
 /** Campos que chegaram depois: completam rascunhos e linhas antigas. */
 export const COUPON_EXTRA = { logoUrl: "", howTo: "", startsAt: null } satisfies Partial<z.infer<typeof couponSchema>>;
-export const PRODUCT_EXTRA = { affiliateUrl: "", videoUrl: "", soldOut: false, priceCheckedAt: null } satisfies Partial<z.infer<typeof productSchema>>;
+export const PRODUCT_EXTRA = { affiliateUrl: "", videoUrl: "", soldOut: false, favorite: false, priceCheckedAt: null } satisfies Partial<z.infer<typeof productSchema>>;
 
 export type Coupon = z.infer<typeof couponSchema>;
 export type Product = z.infer<typeof productSchema>;

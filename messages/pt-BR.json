@@ -1,12 +1,13 @@
 {
   "storefront": {
     "favorite": {
-      "on": "Favorita",
-      "off": "Favoritar",
-      "label": "Favoritar a vitrine de {name}",
-      "count": "{count, plural, one {# pessoa favoritou} other {# pessoas favoritaram}}"
+      "on": "Seguindo",
+      "off": "Seguir",
+      "label": "Seguir a vitrine de {name}",
+      "count": "{count, plural, one {# seguidor} other {# seguidores}}"
     },
     "defaultHeadline": "A vitrine de {name}",
+    "editVitrine": "Editar vitrine",
     "nav": {
       "label": "Seções",
       "coupons": "Cupons",
@@ -28,6 +29,9 @@
     "copyManually": "Copie o código acima",
     "goToStore": "Ir para a loja",
     "productsTitle": "Produtos",
+    "favoritesTitle": "Favoritos de {name}",
+    "favoritesLabel": "Produtos favoritos de {name}",
+    "favoriteBadge": "Favorito de {name}",
     "search": "Buscar",
     "searchLabel": "Buscar produto ou marca",
     "all": "Todos",
@@ -443,7 +447,7 @@
   "catalog": {
     "tabs": {
       "label": "Abas da home",
-      "saved": "Favoritas",
+      "saved": "Seguindo",
       "storefronts": "Vitrines",
       "products": "Produtos",
       "outfits": "Outfits",
@@ -463,11 +467,11 @@
       "withVideo": "Com review em vídeo"
     },
     "favorites": {
-      "title": "Favoritas",
-      "staleTitle": "Suas favoritas estão sem novidade agora",
+      "title": "Seguindo",
+      "staleTitle": "As vitrines que você segue estão sem novidade agora",
       "staleText": "Elas voltam a aparecer aqui quando tiverem cupom ativo ou produto à venda.",
-      "emptyTitle": "Nenhuma vitrine favorita ainda",
-      "emptyText": "Toque no coração de uma vitrine para encontrar ela aqui depois.",
+      "emptyTitle": "Você ainda não segue nenhuma vitrine",
+      "emptyText": "Toque em Seguir numa vitrine para encontrar ela aqui depois.",
       "explore": "Explorar vitrines"
     },
     "posts": {
@@ -698,6 +702,7 @@
     "unpublished": "Alterações não publicadas",
     "publishing": "Publicando…",
     "publish": "Publicar",
+    "viewVitrine": "Ver vitrine",
     "publishError": "Não deu para publicar: {error}",
     "close": "Fechar",
     "profile": {
@@ -780,6 +785,8 @@
       "video": "Review em vídeo (opcional)",
       "videoHint": "Link do seu Reels, TikTok ou YouTube sobre o produto.",
       "addVideo": "+ Review em vídeo",
+      "favorite": "Favorito",
+      "favoriteHint": "Aparece também em Favoritos, no topo dos produtos da sua vitrine.",
       "remove": "Excluir produto",
       "linkPlaceholder": "https://loja.com/produto",
       "linkLabel": "Link do produto",
@@ -820,7 +827,7 @@
     "delete": {
       "open": "Excluir minha conta",
       "withVitrine": "Apaga sua conta, a vitrine {url}, os cupons, produtos, outfits e métricas. Não dá para desfazer.",
-      "withoutVitrine": "Apaga sua conta, seus favoritos e seus comentários. Não dá para desfazer.",
+      "withoutVitrine": "Apaga sua conta, as vitrines que você segue e seus comentários. Não dá para desfazer.",
       "confirm": "Para confirmar, digite {word}",
       "deleting": "Excluindo…",
       "submit": "Excluir para sempre",
@@ -840,6 +847,8 @@
       "addCoupon": "Adicionar cupom",
       "emptyCoupons": "Comece pelo cupom que você mais divulga.",
       "product": "Editar produto {name}",
+      "favoriteOn": "Tirar {name} dos favoritos",
+      "favoriteOff": "Marcar {name} como favorito",
       "newProduct": "sem nome",
       "addProduct": "Adicionar produto",
       "emptyProducts": "Cole o link de um produto que você indica e a gente puxa nome e foto.",
