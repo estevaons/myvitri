@@ -1,119 +1,83 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState, useTransition, type MouseEvent, type ReactNode } from "react";
-import { publishVitrine, saveDraftAction } from "@/app/actions";
+import { useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
+import { publishVitrine, saveDraftAction, updateAvatarAction } from "@/app/actions";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { AccountMenu, type Account } from "@/components/home/AccountMenu";
-import { Link, vitrineHref } from "@/lib/i18n/navigation";
+import { CoverPicker } from "@/components/home/CoverPicker";
+import { Link, useRouter } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
-import { Storefront } from "@/components/storefront/Storefront";
+import { Storefront, type StorefrontEdit } from "@/components/storefront/Storefront";
 import { vitrineAddress } from "@/lib/vitrine/links";
-import { pickProfile, type VitrineContent } from "@/lib/vitrine/types";
-import { couponAlerts, CouponsPanel } from "./CouponsPanel";
-import { PostsPanel } from "./PostsPanel";
-import { ProfilePanel, type Update } from "./panels";
-import { ProductsPanel } from "./ProductsPanel";
-import { SharePanel } from "./SharePanel";
+import { pickProfile, type Coupon, type Product, type VitrineContent } from "@/lib/vitrine/types";
+import { CouponForm, isBlankCoupon, newCoupon } from "./CouponForm";
+import { IMAGE_ACCEPT, uploadImage } from "./upload";
+import { isBlankPost, OutfitsEditor } from "./OutfitsEditor";
+import { isBlankProduct, newProduct, ProductForm, ProductImport } from "./ProductForm";
+import { SocialsForm } from "./SocialsForm";
+import { Sheet, SheetFooter } from "./Sheet";
+import { reorder, type Update } from "./ui";
 
-/** [id, nome na URL (?tab=…)]; o rótulo vem de `editor.tabs.<id>` */
-const TABS = [
-  ["profile", "profile"],
-  ["coupons", "coupons"],
-  ["products", "products"],
-  ["posts", "outfits"],
-  ["share", "share"],
-] as const;
-type TabId = (typeof TABS)[number][0];
+/** O que está aberto na janela de edição. `isNew`: o item acabou de ser criado e sai do rascunho se fechar em branco. */
+type Open =
+  | { kind: "coupon"; id: string; isNew: boolean }
+  | { kind: "product"; id: string; isNew: boolean; notice?: string }
+  | { kind: "productNew" }
+  | { kind: "socials" }
+  | { kind: "cover" };
 
-/** Ícones das abas: traços do Lucide (lucide.dev, licença ISC). */
-const TAB_ICONS: Record<TabId, ReactNode> = {
-  profile: (
-    <>
-      <circle cx="12" cy="8" r="5" />
-      <path d="M20 21a8 8 0 0 0-16 0" />
-    </>
-  ),
-  coupons: (
-    <>
-      <path d="M2 9a3 3 0 1 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
-      <path d="M9 9h.01M15 15h.01M15 9l-6 6" />
-    </>
-  ),
-  products: (
-    <>
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-      <path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
-    </>
-  ),
-  posts: (
-    <>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <circle cx="9" cy="9" r="2" />
-      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-    </>
-  ),
-  share: (
-    <>
-      <path d="m3 11 18-5v12L3 14v-3z" />
-      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-    </>
-  ),
-};
+/** `?tab=` (links das métricas e de versões antigas do editor) → a seção da vitrine para onde o editor rola ao abrir. */
+const SECTION_OF: Record<string, string> = { coupons: "cupons", products: "produtos", outfits: "outfits" };
 
-function DesktopIcon() {
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="12" rx="2" />
-      <path d="M8 20h8M12 16v4" />
-    </svg>
-  );
-}
+/** Listas da vitrine que a janela de edição reordena. */
+const dropBlanks = (c: VitrineContent): VitrineContent => ({
+  ...c,
+  coupons: c.coupons.filter((x) => !isBlankCoupon(x)),
+  products: c.products.filter((x) => !isBlankProduct(x)),
+  posts: c.posts.filter((x) => !isBlankPost(x)),
+});
 
-function MobileIcon() {
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="7" y="2" width="10" height="20" rx="2" />
-      <path d="M11 18h2" />
-    </svg>
-  );
-}
+type ListKey = "coupons" | "products" | "posts";
 
+/**
+ * O editor é a própria vitrine: tocar em qualquer parte (capa, foto, textos, cupom, produto, outfit) abre a janela de
+ * edição dela, e cada seção tem o card "+" para adicionar. As mudanças vão para o rascunho (salvo sozinho no servidor) e
+ * só chegam à vitrine pública ao Publicar, que só aparece quando há o que publicar.
+ */
 export function Editor({
   published: initialPublished,
   draft: initialDraft,
-  today,
   account,
   initialTab,
 }: {
   published: VitrineContent;
   draft: VitrineContent | null;
-  today: string;
   account: Account;
-  /** valor de ?tab= na URL, para voltar à mesma aba ao recarregar */
+  /** valor de ?tab= na URL: a seção para onde rolar ao abrir */
   initialTab?: string;
 }) {
   const t = useTranslations("editor");
   const tCommon = useTranslations("common");
-  const [draft, setDraft] = useState(initialDraft ?? initialPublished);
+  const tErrors = useTranslations("errors");
+  const router = useRouter();
+  // um item novo em branco que ficou no rascunho (a página recarregou com a janela dele aberta) some ao abrir o editor,
+  // como sumiria ao fechar a janela; o autosave grava a limpeza
+  const [draft, setDraft] = useState(() => dropBlanks(initialDraft ?? initialPublished));
   const [published, setPublished] = useState(initialPublished);
   // O que já está guardado no servidor (rascunho ou, sem rascunho, a versão publicada).
   const [savedJson, setSavedJson] = useState(() => JSON.stringify(initialDraft ?? initialPublished));
   const [saveFailed, setSaveFailed] = useState(false);
-  const [tab, setTab] = useState<TabId>(() => TABS.find(([, slug]) => slug === initialTab)?.[0] ?? (draft.coupons.length ? "profile" : "coupons"));
-  const openTab = (id: TabId, slug: string) => {
-    setTab(id);
-    const url = new URL(window.location.href);
-    url.searchParams.set("tab", slug);
-    window.history.replaceState(null, "", url);
-  };
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [open, setOpen] = useState<Open | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState("");
   const [saving, startSaving] = useTransition();
+  const [sendingPhoto, startPhoto] = useTransition();
+  const avatarInput = useRef<HTMLInputElement>(null);
 
   // O estado acima só lê as props ao montar, e o Next mantém a tela viva ao navegar: nome, link, foto e capa, que mudam nas
-  // Configurações e na home, entram aqui sem tocar no que a pessoa está editando.
+  // Configurações, na home e aqui mesmo (salvos na hora, com router.refresh), entram sem tocar no que a pessoa está editando.
   const profileJson = JSON.stringify(pickProfile(initialPublished));
   const [seenProfile, setSeenProfile] = useState(profileJson);
   if (profileJson !== seenProfile) {
@@ -147,6 +111,13 @@ export function Editor({
     return () => window.removeEventListener("beforeunload", warn);
   }, [unsaved]);
 
+  // ?tab=coupons (vindo das métricas): rola até a seção, descontando o cabeçalho preso no topo
+  const header = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = initialTab && SECTION_OF[initialTab] ? document.getElementById(SECTION_OF[initialTab]) : null;
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - (header.current?.offsetHeight ?? 0) - 8 });
+  }, [initialTab]);
+
   const publish = () => {
     const snapshot = draft;
     setError(null);
@@ -156,167 +127,244 @@ export function Editor({
         setPublished(snapshot);
         // publicar apaga o rascunho no servidor
         setSavedJson(JSON.stringify(snapshot));
-      }
-      else setError(res.error);
+      } else setError(res.error);
     });
   };
 
-  const panelProps = { draft, update };
-  const alerts =couponAlerts(draft.coupons, today).length;
+  // A foto de perfil não passa pelo rascunho: salva na hora, como na home (o perfil novo chega pelo router.refresh).
+  const sendAvatar = (file: File) => {
+    setPhotoError("");
+    startPhoto(async () => {
+      const up = await uploadImage("avatar", file, tErrors("imageUnreadable"));
+      const res = up.ok ? await updateAvatarAction(up.url) : up;
+      if (!res.ok) return setPhotoError(res.error);
+      router.refresh();
+    });
+  };
+
+  /* Itens: criar, mudar, mover, excluir. */
+  const add = <K extends ListKey>(key: K, item: VitrineContent[K][number]) => update((d) => ({ ...d, [key]: [...d[key], item] }));
+  const patch = <K extends ListKey>(key: K, id: string, p: Partial<VitrineContent[K][number]>) =>
+    update((d) => ({ ...d, [key]: (d[key] as { id: string }[]).map((x) => (x.id === id ? { ...x, ...p } : x)) }));
+  const move = (key: ListKey, from: number, to: number) => update((d) => ({ ...d, [key]: reorder(d[key] as { id: string }[], from, to) }));
+  const remove = (key: ListKey, id: string) => {
+    update((d) => ({
+      ...d,
+      coupons: key === "coupons" ? d.coupons.filter((c) => c.id !== id) : d.coupons,
+      // o cupom some dos produtos ligados a ele, e o produto some dos outfits
+      products: key === "products" ? d.products.filter((p) => p.id !== id) : key === "coupons" ? d.products.map((p) => (p.couponId === id ? { ...p, couponId: null } : p)) : d.products,
+      posts: key === "posts" ? d.posts.filter((p) => p.id !== id) : key === "products" ? d.posts.map((p) => ({ ...p, productIds: p.productIds.filter((x) => x !== id) })) : d.posts,
+    }));
+    setOpen(null);
+  };
+
+  // Fechar um item novo ainda em branco desfaz a criação: tocar no "+" e desistir não deixa card vazio na vitrine.
+  const close = () => {
+    if (open && "isNew" in open && open.isNew) {
+      const key = open.kind === "coupon" ? "coupons" : "products";
+      const item = (draft[key] as { id: string }[]).find((x) => x.id === open.id);
+      const blank = item && (open.kind === "coupon" ? isBlankCoupon(item as Coupon) : isBlankProduct(item as Product));
+      if (blank) update((d) => ({ ...d, [key]: (d[key] as { id: string }[]).filter((x) => x.id !== open.id) }));
+    }
+    setOpen(null);
+  };
+
+  const edit: StorefrontEdit = {
+    cover: () => setOpen({ kind: "cover" }),
+    avatar: () => avatarInput.current?.click(),
+    avatarBusy: sendingPhoto,
+    text: (patch) => update((d) => ({ ...d, ...patch })),
+    socials: () => setOpen({ kind: "socials" }),
+    coupon: (id) => {
+      if (id) return setOpen({ kind: "coupon", id, isNew: false });
+      const c = newCoupon();
+      add("coupons", c);
+      setOpen({ kind: "coupon", id: c.id, isNew: true });
+    },
+    product: (id) => setOpen(id ? { kind: "product", id, isNew: false } : { kind: "productNew" }),
+    outfits: <OutfitsEditor posts={draft.posts} products={draft.products} update={update} />,
+  };
+
   // a navegação é no cliente: sem isso, o rascunho que ainda não foi salvo se perderia sem aviso
   const confirmLeave = (e: MouseEvent) => {
     if (unsaved && !confirm(t("leaveConfirm"))) e.preventDefault();
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-paper text-ink lg:h-dvh">
-      <header className="border-b border-[#E0DCD3] bg-white">
-        <div className="flex flex-wrap items-center gap-3.5 px-5 py-3">
-          <BackLink href="/inicio" onClick={confirmLeave} label="home" divider />
-          <Link href="/inicio" onClick={confirmLeave} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline">
+    <div className="flex min-h-dvh flex-col bg-paper text-ink">
+      <header ref={header} className="sticky top-0 z-30 border-b border-[#E0DCD3] bg-white">
+        <div className="flex items-center gap-3.5 px-5 py-3 max-sm:gap-2.5 max-sm:px-3">
+          <BackLink href="/inicio" onClick={confirmLeave} label="home" labelClass="max-sm:hidden" divider />
+          <Link href="/inicio" onClick={confirmLeave} aria-label={tCommon("brandHome", { brand: BRAND })} className="flex text-ink no-underline max-sm:hidden">
             <Wordmark label="" className="h-[17px] w-auto" />
           </Link>
           <div className="flex-1" />
-          <div role="group" aria-label={t("previewSize")} className="flex gap-0.5 rounded-xl bg-[#F2F0EB] p-[3px] max-sm:hidden">
-            {(
-              [
-                ["desktop", t("desktop"), <DesktopIcon key="d" />],
-                ["mobile", t("mobile"), <MobileIcon key="m" />],
-              ] as const
-            ).map(([id, label, icon]) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={device === id}
-                onClick={() => setDevice(id)}
-                className={`flex min-h-10 items-center gap-1.5 rounded-[9px] border-0 px-3.5 text-[13px] ${
-                  device === id ? "bg-white font-bold shadow-[0_1px_2px_rgba(0,0,0,0.12)]" : "bg-transparent font-semibold text-[#3A3A3A]"
-                }`}
-              >
-                {icon}
-                {label}
-              </button>
-            ))}
-          </div>
-          {/* um estado de cada vez: com alterações, o aviso e o botão de publicar; sem elas, a confirmação e o caminho para ver o resultado. No celular, ganha uma linha só dele. */}
-          <div className="flex items-center gap-3.5 max-sm:order-last max-sm:w-full max-sm:justify-between">
-            <span role="status" className={`flex items-center gap-2 text-[13px] font-medium ${saveFailed ? "text-[#A3361B]" : dirty ? "text-ink" : "text-[#5E5A52]"}`}>
-              {dirty ? (
-                <>
-                  <span aria-hidden="true" className={`size-2 flex-none rounded-full ${saveFailed ? "bg-[#A3361B]" : "bg-[#E8590C]"}`} />
-                  {saveFailed ? t("draftFailed") : t("unpublished")}
-                </>
-              ) : (
-                <>
-                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1F6B3A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                  {t("published")}
-                </>
-              )}
-            </span>
-            {dirty ? (
+          {/* só com alterações: o aviso e o botão de publicar. No celular vira uma barra presa embaixo da tela, perto do polegar. */}
+          {dirty && (
+            <div className="flex items-center gap-3.5 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:justify-between max-sm:border-t max-sm:border-[#E0DCD3] max-sm:bg-white max-sm:px-4 max-sm:pt-2.5 max-sm:pb-[max(10px,env(safe-area-inset-bottom))] max-sm:shadow-[0_-4px_16px_rgba(17,17,17,0.06)]">
+              <span role="status" className={`flex items-center gap-2 text-[13px] font-medium ${saveFailed ? "text-[#A3361B]" : "text-ink"}`}>
+                <span aria-hidden="true" className={`size-2 flex-none rounded-full ${saveFailed ? "bg-[#A3361B]" : "bg-[#E8590C]"}`} />
+                {saveFailed ? t("draftFailed") : t("unpublished")}
+              </span>
               <button type="button" onClick={publish} disabled={saving} className="min-h-11 flex-none cursor-pointer rounded-full border-0 bg-ink px-6 text-sm font-bold text-white transition-opacity hover:opacity-85 disabled:cursor-default disabled:opacity-60">
                 {saving ? t("publishing") : t("publish")}
               </button>
-            ) : (
-              <Link
-                href={vitrineHref(published.handle)}
-                target="_blank"
-                rel="noopener"
-                className="group flex min-h-11 flex-none items-center gap-1.5 rounded-full border border-[#D8D3C9] bg-white px-5 text-sm font-semibold text-ink no-underline transition-colors hover:border-ink"
-              >
-                {t("view")}
-                <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                  <path d="M7 17L17 7M9 7h8v8" />
-                </svg>
-              </Link>
-            )}
-          </div>
+            </div>
+          )}
           <AccountMenu account={account} onLeave={confirmLeave} />
         </div>
-        {error && (
+        {(error || photoError) && (
           <div role="alert" className="flex items-center gap-3 border-t border-[#F1C9BC] bg-[#FFF1EC] px-5 py-2.5 text-sm font-semibold text-[#A3361B]">
-            <span className="flex-1">{t("publishError", { error })}</span>
-            <button type="button" onClick={() => setError(null)} className="border-0 bg-transparent text-sm font-bold text-[#A3361B] underline">
+            <span className="flex-1">{error ? t("publishError", { error }) : photoError}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setPhotoError("");
+              }}
+              className="border-0 bg-transparent text-sm font-bold text-[#A3361B] underline"
+            >
               {t("close")}
             </button>
           </div>
         )}
       </header>
 
-      <div className="flex flex-1 flex-wrap items-stretch lg:min-h-0 lg:flex-nowrap">
-        <aside className="flex max-w-full min-w-0 flex-[1_1_400px] flex-col border-r border-[#EEEBE5] bg-white lg:max-w-[440px] lg:overflow-y-auto">
+      <main className={`box-border flex flex-1 flex-col items-center gap-4 p-6 max-sm:px-0 max-sm:pt-0 ${dirty ? "max-sm:pb-24" : "max-sm:pb-6"}`}>
+        <p className="m-0 w-full max-w-[1100px] text-[13px] leading-snug text-[#5E5A52] max-sm:px-4 max-sm:pt-3">{t("editHint")}</p>
+        {/* flex-none: a vitrine cresce com o conteúdo e quem rola é a página */}
+        <div
+          className="w-full max-w-[1100px] flex-none overflow-hidden bg-white sm:rounded-2xl sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]"
+        >
+          <div className="flex items-center justify-center border-b border-[#E8E5DF] bg-[#F7F6F3] px-3.5 py-2.5 max-sm:hidden">
+            <span className="flex items-center gap-1.5 rounded-full border border-[#E8E5DF] bg-white px-3.5 py-1.5 text-xs text-[#3A3A3A]">
+              <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="5" y="11" width="14" height="10" rx="2" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
+              {vitrineAddress(draft.handle)}
+            </span>
+          </div>
+          {/* A prévia é interativa, mas links não podem tirar a pessoa do editor. */}
           <div
-            role="tablist"
-            aria-label={t("tabs.label")}
-            className="sticky top-0 z-10 grid grid-cols-5 gap-1 border-b border-[#EEEBE5] bg-white/95 px-3 py-2.5 backdrop-blur"
+            onClickCapture={(e) => {
+              const a = (e.target as HTMLElement).closest("a");
+              if (a && !a.getAttribute("href")?.startsWith("#")) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
           >
-            {TABS.map(([id, slug]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={tab === id}
-                onClick={() => openTab(id, slug)}
-                className={`relative flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-1 rounded-[10px] border-0 px-0.5 text-[11.5px] transition-colors ${
-                  tab === id ? "bg-[#F4F2EE] font-semibold text-ink" : "bg-transparent font-medium text-[#8F897E] hover:bg-[#FAF9F7] hover:text-ink"
-                }`}
-              >
-                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === id ? 2 : 1.75} strokeLinecap="round" strokeLinejoin="round">
-                  {TAB_ICONS[id]}
-                </svg>
-                <span className="max-w-full truncate">{t(`tabs.${id}`)}</span>
-                {id === "coupons" && alerts > 0 && (
-                  <span
-                    aria-label={t("couponsExpiring", { count: alerts })}
-                    className="absolute top-0.5 right-[calc(50%-24px)] inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#E8590C] px-1 text-[10px] font-bold text-white ring-2 ring-white"
-                  >
-                    {alerts}
-                  </span>
-                )}
-              </button>
-            ))}
+            <Storefront content={draft} preview edit={edit} />
           </div>
-          <div role="tabpanel" className="flex flex-col gap-8 px-5 pt-6 pb-10">
-            {tab === "profile" && <ProfilePanel {...panelProps} />}
-            {tab === "coupons" && <CouponsPanel {...panelProps} today={today} />}
-            {tab === "products" && <ProductsPanel {...panelProps} />}
-            {tab === "posts" && <PostsPanel {...panelProps} />}
-            {tab === "share" && <SharePanel {...panelProps} publishedHandle={published.handle} publishedJson={JSON.stringify(published)} />}
-          </div>
-        </aside>
+        </div>
+      </main>
 
-        <main className="box-border flex min-w-0 flex-[999_1_560px] flex-col items-center p-6 max-sm:p-3 lg:overflow-y-auto">
-          {/* flex-none: a prévia cresce com a vitrine e quem rola é o <main> (sem isso ela encolhia e cortava) */}
-          <div
-            className="w-full flex-none overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)] transition-[max-width] duration-300"
-            style={{ maxWidth: device === "mobile" ? 400 : 1100 }}
-          >
-            <div className="flex items-center justify-center border-b border-[#E8E5DF] bg-[#F7F6F3] px-3.5 py-2.5">
-              <span className="flex items-center gap-1.5 rounded-full border border-[#E8E5DF] bg-white px-3.5 py-1.5 text-xs text-[#3A3A3A]">
-                <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="5" y="11" width="14" height="10" rx="2" />
-                  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                </svg>
-                {vitrineAddress(draft.handle)}
-              </span>
-            </div>
-            {/* A prévia é interativa, mas links não podem tirar a pessoa do editor. */}
-            <div
-              onClickCapture={(e) => {
-                const a = (e.target as HTMLElement).closest("a");
-                if (a && !a.getAttribute("href")?.startsWith("#")) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              }}
-            >
-              <Storefront content={draft} today={today} preview />
-            </div>
-          </div>
-        </main>
-      </div>
+      <input
+        ref={avatarInput}
+        type="file"
+        accept={IMAGE_ACCEPT}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="sr-only"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) sendAvatar(file);
+        }}
+      />
+
+      {open && <EditSheet open={open} draft={draft} update={update} close={close} setOpen={setOpen} patch={patch} move={move} remove={remove} />}
     </div>
   );
+}
+
+/** A janela de edição do que está aberto: o formulário certo, com o rodapé de mover, excluir e concluir. */
+function EditSheet({
+  open,
+  draft,
+  update,
+  close,
+  setOpen,
+  patch,
+  move,
+  remove,
+}: {
+  open: Open;
+  draft: VitrineContent;
+  update: Update;
+  close: () => void;
+  setOpen: (o: Open) => void;
+  patch: <K extends ListKey>(key: K, id: string, p: Partial<VitrineContent[K][number]>) => void;
+  move: (key: ListKey, from: number, to: number) => void;
+  remove: (key: ListKey, id: string) => void;
+}) {
+  const t = useTranslations("editor");
+  const tSheet = useTranslations("editor.sheet");
+  const done = <SheetFooter onDone={close} />;
+
+  if (open.kind === "cover") {
+    const cover = draft.look.bannerUrl;
+    return (
+      <Sheet title={tSheet("cover")} onClose={close} footer={done}>
+        <p className="m-0 text-[13px] leading-snug text-[#5E5A52]">{t("profile.coverHint")}</p>
+        <CoverPicker hasCover={Boolean(cover)} name={draft.name}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- capa enviada pela creator para o bucket */}
+          <img src={cover} alt="" className="block aspect-[4/3] w-full bg-sand object-cover" />
+        </CoverPicker>
+      </Sheet>
+    );
+  }
+
+  if (open.kind === "socials")
+    return (
+      <Sheet title={tSheet("socials")} onClose={close} footer={done}>
+        <SocialsForm draft={draft} update={update} />
+      </Sheet>
+    );
+
+  if (open.kind === "productNew")
+    return (
+      <Sheet title={tSheet("newProduct")} onClose={close}>
+        <ProductImport
+          onAdd={(p, error) => {
+            const product = newProduct(p);
+            update((d) => ({ ...d, products: [...d.products, product] }));
+            setOpen({ kind: "product", id: product.id, isNew: true, notice: error });
+          }}
+        />
+      </Sheet>
+    );
+
+  const key = open.kind === "coupon" ? "coupons" : "products";
+  const list = draft[key] as { id: string }[];
+  const index = list.findIndex((x) => x.id === open.id);
+  if (index < 0) return null;
+  const footer = (
+    <SheetFooter
+      onDone={close}
+      onRemove={() => remove(key, open.id)}
+      removeLabel={t(`${key}.remove`)}
+      move={{ pos: index + 1, total: list.length, onMove: (to) => move(key, index, to) }}
+    />
+  );
+
+  if (open.kind === "coupon")
+    return (
+      <Sheet title={open.isNew ? tSheet("newCoupon") : tSheet("coupon")} onClose={close} footer={footer}>
+        <CouponForm coupon={draft.coupons[index]} onChange={(p) => patch("coupons", open.id, p)} />
+      </Sheet>
+    );
+
+  return (
+      <Sheet title={open.isNew ? tSheet("newProduct") : tSheet("product")} onClose={close} footer={footer}>
+        <ProductForm
+          product={draft.products[index]}
+          categories={[...new Set(draft.products.map((p) => p.category).filter(Boolean))]}
+          notice={open.notice}
+          onChange={(p) => patch("products", open.id, p)}
+        />
+      </Sheet>
+    );
+
 }

@@ -5,7 +5,7 @@ import sharp from "sharp";
 import { WORDMARK_RATIO, Wordmark } from "@/components/brand/Logo";
 import type { Locale } from "@/lib/i18n/routing";
 import { fetchPublic } from "./import-link";
-import { couponOff, isActive } from "./pricing";
+import { couponOff } from "./pricing";
 import type { Product, VitrineContent } from "./types";
 
 /**
@@ -86,10 +86,10 @@ export async function fonts() {
 }
 
 /** `locale`: idioma dos textos da imagem (o da página que pediu: a prévia do link ou o story). */
-export async function shareImage(content: VitrineContent, today: string, url: string, format: keyof typeof SHARE_SIZES, locale: Locale) {
+export async function shareImage(content: VitrineContent, url: string, format: keyof typeof SHARE_SIZES, locale: Locale) {
   const t = await getTranslations({ locale, namespace: "share" });
   const story = format === "story";
-  const active = content.coupons.filter((c) => isActive(c, today));
+  const active = content.coupons;
   const headline = plain(content.headline) || t("headline", { name: content.name });
   const shortUrl = url.replace(/^https?:\/\//, "");
   const tile = story ? 286 : 250;

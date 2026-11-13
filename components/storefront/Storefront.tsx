@@ -1,13 +1,13 @@
 "use client";
 
 import { useFormatter, useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
 import { Link } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
-import { productHref, withUtm } from "@/lib/vitrine/links";
-import { couponOff, isActive } from "@/lib/vitrine/pricing";
+import { productHref } from "@/lib/vitrine/links";
+import { couponOff } from "@/lib/vitrine/pricing";
 import type { CommentList, Viewer } from "@/lib/vitrine/social";
 import { SOCIAL_LABELS, socialLinks, type SocialNetwork } from "@/lib/vitrine/socials";
 import { postItems, type Post, type Product, type VitrineContent } from "@/lib/vitrine/types";
@@ -177,9 +177,36 @@ const SOCIAL_ICONS: Record<SocialNetwork, ReactNode> = {
  * da capa, alinhados à direita dela (o bloco de quem indica começa 40px acima do fim da capa, por isso o `top-12`); no
  * celular não há espaço ao lado da foto e eles ficam centralizados embaixo do @. Nada aparece sem rede válida.
  */
-function SocialLinks({ socials, name }: { socials: VitrineContent["socials"]; name: string }) {
+function SocialLinks({ socials, name, onEdit }: { socials: VitrineContent["socials"]; name: string; onEdit?: () => void }) {
   const t = useTranslations("storefront");
+  const te = useTranslations("editor.edit");
   const links = socialLinks(socials);
+  // no modo de edição os ícones viram um botão só, com o lápis ao lado (o lápis por cima cobriria ícones tão pequenos);
+  // sem nenhuma rede, o botão fica no mesmo lugar, com os ícones apagados e o "+"
+  if (onEdit) {
+    const empty = links.length === 0;
+    const icons: SocialNetwork[] = empty ? ["instagram", "tiktok"] : links.map(([n]) => n);
+    return (
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label={te(empty ? "addSocials" : "socials")}
+        title={te(empty ? "addSocials" : "socials")}
+        className="-mt-1 flex cursor-pointer items-center gap-0.5 rounded-full border-0 bg-transparent py-0 pr-1 pl-0 text-mute/70 hover:bg-cream hover:text-ink @2xl:absolute @2xl:top-12 @2xl:-right-2 @2xl:mt-0"
+      >
+        {icons.map((n) => (
+          <span key={n} aria-hidden="true" className={`flex size-8 items-center justify-center ${empty ? "opacity-40" : ""}`}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              {SOCIAL_ICONS[n]}
+            </svg>
+          </span>
+        ))}
+        <span aria-hidden="true" className="ml-0.5 flex size-7 items-center justify-center rounded-full bg-white text-ink shadow-[0_1px_4px_rgba(17,17,17,0.18)]">
+          {empty ? <PlusIcon size={13} /> : <PencilIcon size={13} />}
+        </span>
+      </button>
+    );
+  }
   if (!links.length) return null;
   return (
     <ul className="m-0 -mt-1 flex list-none items-center gap-0.5 p-0 @2xl:absolute @2xl:top-12 @2xl:-right-2 @2xl:mt-0">
@@ -212,7 +239,7 @@ function Chevron({ left }: { left?: boolean }) {
 }
 
 /** Faixa que rola de lado, com título e setas (as setas somem quando tudo cabe na tela). */
-function Carousel({ title, label, children }: { title: string; label: string; children: ReactNode }) {
+function Carousel({ title, label, action, sub, children }: { title: string; label: string; action?: ReactNode; sub?: ReactNode; children: ReactNode }) {
   const t = useTranslations("common");
   const trackRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
@@ -241,6 +268,7 @@ function Carousel({ title, label, children }: { title: string; label: string; ch
     <>
       <div className={`flex items-center justify-between gap-4 ${pad}`}>
         <SectionTitle>{title}</SectionTitle>
+        {action && <div className="ml-auto">{action}</div>}
         {!(atStart && atEnd) && (
           <div className="flex gap-3 @max-2xl:hidden">
             {([-1, 1] as const).map((dir) => (
@@ -258,6 +286,7 @@ function Carousel({ title, label, children }: { title: string; label: string; ch
           </div>
         )}
       </div>
+      {sub}
       <div
         ref={trackRef}
         onScroll={sync}
@@ -271,36 +300,369 @@ function Carousel({ title, label, children }: { title: string; label: string; ch
   );
 }
 
+/**
+ * Modo de edição, só no editor: cada parte da vitrine vira um botão que abre a edição dela (capa, foto, redes, cada
+ * cupom e produto), a frase e o texto de apoio viram campos, os outfits são editados no lugar da seção, e produtos e
+ * cupons ganham o esqueleto "+" para adicionar, mesmo vazios. Sem `edit`, nada muda.
+ */
+export type StorefrontEdit = {
+  cover: () => void;
+  avatar: () => void;
+  avatarBusy?: boolean;
+  /** a frase de destaque e o texto de apoio, editados ali mesmo na vitrine */
+  text: (patch: Partial<Pick<VitrineContent, "headline" | "sub">>) => void;
+  socials: () => void;
+  /** null: adicionar um novo */
+  coupon: (id: string | null) => void;
+  product: (id: string | null) => void;
+  /** os outfits editados no lugar da seção (o editor monta) */
+  outfits: ReactNode;
+};
+
+function PencilIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z" />
+    </svg>
+  );
+}
+
+/**
+ * A capa no modo de edição, toda clicável e sem nada por cima em repouso: no mouse, o hover escurece de leve e mostra
+ * a pílula "Trocar capa" no meio; no toque (sem hover), um tracejado claro por dentro da borda avisa que dá para tocar.
+ */
+function CoverHit({ label, onClick, image }: { label: string; onClick: () => void; image: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="group/cover absolute inset-0 z-20 flex cursor-pointer items-center justify-center border-0 bg-transparent p-0 focus-visible:outline-none"
+    >
+      <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-ink/0 transition-colors duration-200 group-hover/cover:bg-ink/15 group-focus-visible/cover:bg-ink/15" />
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-3 hidden rounded-[10px] border border-dashed pointer-coarse:block ${image ? "border-white/70" : "border-ink/20"}`}
+      />
+      <span
+        aria-hidden="true"
+        // a pílula só aparece no hover, e branca para ler sobre qualquer capa (e sobre a letra, sem capa)
+        className="relative flex h-10 translate-y-1 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-semibold text-ink opacity-0 shadow-[0_2px_10px_rgba(17,17,17,0.18)] transition duration-200 group-hover/cover:translate-y-0 group-hover/cover:opacity-100 group-focus-visible/cover:translate-y-0 group-focus-visible/cover:opacity-100"
+      >
+        <CameraIcon size={16} />
+        {label}
+      </span>
+    </button>
+  );
+}
+
+/**
+ * Camada clicável por cima de uma parte da vitrine no modo de edição: cobre tudo (os botões de dentro não respondem) e
+ * mostra o lápis no canto, sempre visível, porque no celular não há hover.
+ */
+function EditHit({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="group/edit absolute inset-0 z-20 cursor-pointer border-0 bg-transparent p-0 transition-shadow hover:shadow-[inset_0_0_0_2px_var(--color-ink)] focus-visible:shadow-[inset_0_0_0_2px_var(--color-ink)] focus-visible:outline-none"
+    >
+      <span
+        aria-hidden="true"
+        className="absolute top-2.5 right-2.5 flex size-9 items-center justify-center rounded-full bg-white text-ink shadow-[0_1px_4px_rgba(17,17,17,0.18)] transition-transform group-hover/edit:scale-105"
+      >
+        <PencilIcon />
+      </span>
+    </button>
+  );
+}
+
+const CameraIcon = ({ size = 22 }: { size?: number }) => (
+  <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+    <circle cx="12" cy="13" r="3" />
+  </svg>
+);
+
+const PlusIcon = ({ size = 22 }: { size?: number }) => (
+  <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+/**
+ * Texto editado no próprio lugar, no modo de edição: um textarea com a mesma letra do texto da vitrine, que cresce com o
+ * texto. Tocar já põe o cursor ali; Enter e Esc encerram (os dois textos são de uma linha só, quebrada pela largura).
+ */
+export function InlineText({
+  value,
+  onChange,
+  maxLength,
+  placeholder,
+  label,
+  className,
+  onFocus,
+  onBlur,
+  inputRef,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  maxLength: number;
+  placeholder: string;
+  label: string;
+  className: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  inputRef?: RefObject<HTMLTextAreaElement | null>;
+}) {
+  const own = useRef<HTMLTextAreaElement>(null);
+  const ref = inputRef ?? own;
+  // a altura acompanha o texto e a largura (o field-sizing do CSS ainda não chega a todo navegador)
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    // a fonte da vitrine pode chegar depois da primeira medida, e com ela a altura muda
+    document.fonts?.addEventListener("loadingdone", fit);
+    return () => {
+      ro.disconnect();
+      document.fonts?.removeEventListener("loadingdone", fit);
+    };
+  }, [ref, value]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={(e) => onChange(e.target.value.replace(/\s*\n\s*/g, " "))}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === "Escape") {
+          e.preventDefault();
+          e.currentTarget.blur();
+        }
+      }}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      maxLength={maxLength}
+      placeholder={placeholder}
+      aria-label={label}
+      // sem o sublinhado vermelho por cima da vitrine
+      spellCheck={false}
+      // alinhamento e respiro ficam com quem usa
+      className={`m-0 block w-full resize-none overflow-hidden border-0 bg-transparent text-inherit outline-none placeholder:text-ink/30 ${className}`}
+    />
+  );
+}
+
+/**
+ * A frase de destaque e o texto de apoio no modo de edição: os dois já são campos, no mesmo lugar e com a mesma letra
+ * da vitrine. Sem botão por cima: no mouse, um fundo leve e o cursor de texto aparecem no hover; no toque (sem hover),
+ * um tracejado bem claro fica sempre em volta. Com o cursor dentro, a borda fica cheia e o contador aparece.
+ */
+function InlineTexts({
+  content,
+  placeholder,
+  onChange,
+}: {
+  content: VitrineContent;
+  placeholder: string;
+  onChange: (patch: Partial<Pick<VitrineContent, "headline" | "sub">>) => void;
+}) {
+  const te = useTranslations("editor.edit");
+  const tp = useTranslations("editor.profile");
+  const [focused, setFocused] = useState<"headline" | "sub" | null>(null);
+  const headlineRef = useRef<HTMLTextAreaElement>(null);
+  const count = focused === "headline" ? [content.headline.length, 90] : focused === "sub" ? [content.sub.length, 240] : null;
+  return (
+    <div
+      // tocar no respiro em volta dos textos também começa a editar, com o cursor no fim da frase
+      onMouseDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        e.preventDefault();
+        const el = headlineRef.current;
+        el?.focus();
+        el?.setSelectionRange(el.value.length, el.value.length);
+      }}
+      className="relative flex w-full cursor-text flex-col items-center gap-4 rounded-[12px] px-4 py-5 outline-2 outline-transparent outline-solid transition-[background-color,outline-color] hover:bg-ink/[0.035] has-focus:bg-transparent has-focus:outline-ink"
+    >
+      {!focused && <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden rounded-[12px] border border-dashed border-ink/20 pointer-coarse:block" />}
+      <InlineText
+        inputRef={headlineRef}
+        value={content.headline}
+        onChange={(headline) => onChange({ headline })}
+        maxLength={90}
+        placeholder={placeholder}
+        label={tp("headline")}
+        onFocus={() => setFocused("headline")}
+        onBlur={() => setFocused(null)}
+        // font-display! porque o globals.css faz os campos herdarem a fonte, fora das camadas do Tailwind
+        className="p-0 text-center font-display! text-[clamp(44px,8cqw,96px)] leading-[1] font-normal text-balance"
+      />
+      <InlineText
+        value={content.sub}
+        onChange={(sub) => onChange({ sub })}
+        maxLength={240}
+        placeholder={te("addSub")}
+        label={tp("sub")}
+        onFocus={() => setFocused("sub")}
+        onBlur={() => setFocused(null)}
+        className="max-w-[36rem] p-0 text-center text-[17px] leading-relaxed text-mute"
+      />
+      {count && (
+        <span aria-live="polite" className="absolute right-3 bottom-1.5 text-[12px] text-mute tabular-nums">
+          {count[0]}/{count[1]}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/*
+ * Esqueletos do modo de edição: com a seção vazia, ela já aparece no formato final (a grade de produtos; o cupom), em
+ * traço claro, e a creator vai preenchendo. O tracejado marca o que é clicável.
+ */
+
+/** Uma linha de texto ainda por escrever. */
+const Bar = ({ className }: { className: string }) => <span aria-hidden="true" className={`block flex-none rounded-full bg-ink/[0.08] ${className}`} />;
+
+/** Tracejado por cima do esqueleto clicável; escurece no hover. */
+const Dashed = ({ className = "inset-0" }: { className?: string }) => (
+  <span aria-hidden="true" className={`pointer-events-none absolute border-2 border-dashed border-ink/20 transition-colors group-hover/ghost:border-ink/60 ${className}`} />
+);
+
+/** Um produto por preencher, no lugar dele na grade: a foto quadrada e o nome embaixo. Sem `onClick`, só ilustra. */
+function ProductGhost({ onClick, className = "" }: { onClick?: () => void; className?: string }) {
+  const te = useTranslations("editor.edit");
+  const art = onClick ? (
+    <>
+      <Dashed />
+      <span className="flex size-12 items-center justify-center rounded-full bg-ink text-white transition-transform group-hover/ghost:scale-105">
+        <PlusIcon />
+      </span>
+      <span className="text-[12px] font-semibold tracking-[0.12em] uppercase">{te("addProduct")}</span>
+    </>
+  ) : (
+    // a etiqueta de preço, apagada
+    <svg aria-hidden="true" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="text-ink/15">
+      <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" />
+      <circle cx="7.5" cy="7.5" r="1.5" />
+    </svg>
+  );
+  const inner = (
+    <>
+      <span className="relative flex aspect-square w-full flex-col items-center justify-center gap-3 bg-cream p-4 text-center">{art}</span>
+      <Bar className="mt-4 h-3 w-2/3" />
+    </>
+  );
+  return onClick ? (
+    <button type="button" onClick={onClick} className={`group/ghost flex min-w-0 cursor-pointer flex-col items-center border-0 bg-transparent p-0 text-ink ${className}`}>
+      {inner}
+    </button>
+  ) : (
+    <div aria-hidden="true" className={`flex min-w-0 flex-col items-center ${className}`}>
+      {inner}
+    </div>
+  );
+}
+
+/** Um cupom por preencher, no formato do cupom da vitrine (marca, desconto, código e o botão). Sem `onClick`, só ilustra. */
+function CouponGhost({ onClick }: { onClick?: () => void }) {
+  const te = useTranslations("editor.edit");
+  const cls = "relative box-border flex min-h-[290px] w-[300px] flex-none snap-start flex-col gap-4 bg-cream p-6 text-left text-ink @max-md:w-[82%]";
+  const inner = (
+    <>
+      <Dashed />
+      <span className="flex items-center gap-2">
+        <span className="size-8 flex-none rounded-full bg-ink/[0.08]" />
+        <Bar className="h-3.5 w-24" />
+      </span>
+      <span className="flex flex-col gap-3">
+        <span className="font-display text-[56px] leading-[1] font-normal lining-nums text-ink/[0.13]">{te("ghostOff")}</span>
+        <Bar className="h-3 w-3/4" />
+      </span>
+      <span className="mt-auto flex flex-col gap-2">
+        <span className="flex min-h-12 items-center justify-center border border-dashed border-gold/50 bg-white px-4 font-mono text-[15px] font-bold tracking-[0.08em] text-ink/20">
+          {te("ghostCode")}
+        </span>
+        {onClick ? (
+          <span className="flex min-h-12 items-center justify-center gap-2 bg-ink px-3 text-[11px] font-semibold tracking-[0.14em] text-white uppercase transition-opacity group-hover/ghost:opacity-90">
+            <PlusIcon size={14} />
+            {te("addCoupon")}
+          </span>
+        ) : (
+          <span className="min-h-12 bg-ink/[0.08]" />
+        )}
+      </span>
+    </>
+  );
+  return onClick ? (
+    <button type="button" onClick={onClick} className={`group/ghost cursor-pointer border-0 ${cls}`}>
+      {inner}
+    </button>
+  ) : (
+    <div aria-hidden="true" className={`opacity-40 ${cls}`}>
+      {inner}
+    </div>
+  );
+}
+
+/** Botão pequeno "+ Adicionar" ao lado do título da seção, no modo de edição (o card "+" fica no fim da lista). */
+function AddPill({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-10 flex-none cursor-pointer items-center gap-1.5 rounded-full border border-ink bg-white px-4 text-[12px] font-semibold tracking-[0.12em] text-ink uppercase hover:bg-ink hover:text-white"
+    >
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      {label}
+    </button>
+  );
+}
+
 export function Storefront({
   content,
-  today,
-  preview = false,
+  preview: previewProp = false,
+  edit,
   comments,
   favorites = null,
 }: {
   content: VitrineContent;
-  today: string;
   preview?: boolean;
+  /** modo de edição do editor (veja `StorefrontEdit`); implica `preview` */
+  edit?: StorefrontEdit;
   /** Não vem na prévia do editor, que não mostra comentários nem o coração. */
   comments?: CommentList;
   /** Quantas pessoas favoritaram; null: não deu para contar. */
   favorites?: number | null;
 }) {
   const t = useTranslations("storefront");
+  const te = useTranslations("editor.edit");
   const format = useFormatter();
+  const preview = previewProp || Boolean(edit);
   const viewer = useViewer(content.handle, preview);
   const firstName = content.name.split(" ")[0] || content.name;
   const headline = content.headline.replace(/\*/g, "").trim() || t("defaultHeadline", { name: firstName });
   const banner = content.look.bannerUrl;
 
-  const coupons = useMemo(() => content.coupons.filter((c) => isActive(c, today)), [content.coupons, today]);
+  // no modo de edição aparecem todos, inclusive vencidos e agendados, para dar para corrigir
+  const coupons = content.coupons;
   // esgotados vão para o fim da lista
   const products = useMemo(() => [...content.products].sort((a, b) => Number(a.soldOut) - Number(b.soldOut)), [content.products]);
-  // post sem foto ou sem nenhum produto que ainda exista não aparece
-  const posts = useMemo(
-    () => content.posts.map((p) => ({ post: p, items: postItems(p, products) })).filter((p) => p.post.photoUrl && p.items.length > 0),
-    [content.posts, products],
-  );
+  // post sem foto ou sem nenhum produto que ainda exista não aparece (no modo de edição aparece, para completar)
+  const allPosts = useMemo(() => content.posts.map((p) => ({ post: p, items: postItems(p, products) })), [content.posts, products]);
+  const posts = useMemo(() => allPosts.filter((p) => p.post.photoUrl && p.items.length > 0), [allPosts]);
 
   const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))], [products]);
   // "" é "todas as categorias": nenhuma categoria de produto tem nome vazio
@@ -320,7 +682,7 @@ export function Storefront({
     send("copy", c.id);
     if (copyNow(c.code)) {
       flash(`c:${c.id}`);
-      if (!preview) openStore(withUtm(c.storeUrl, content));
+      if (!preview) openStore(c.storeUrl);
       return;
     }
     // não diz "Copiado" sem ter copiado: tenta de novo e, se falhar, deixa o código selecionado para copiar à mão;
@@ -332,12 +694,24 @@ export function Storefront({
     });
   };
 
+  // os outfits vêm primeiro: a vitrine é de quem usa as peças
   const nav = [
-    ["#cupons", t("nav.coupons"), coupons.length > 0],
-    ["#produtos", t("nav.products"), products.length > 0],
     ["#outfits", t("nav.posts"), posts.length > 0],
+    ["#produtos", t("nav.products"), products.length > 0],
+    ["#cupons", t("nav.coupons"), coupons.length > 0],
     ["#comentarios", t("nav.comments"), Boolean(comments)],
   ] as const;
+
+  // os dois primeiros atalhos do topo, na ordem das seções: outfits, produtos, cupons
+  const ctas = (
+    [
+      ["#outfits", t("seeOutfits"), posts.length > 0],
+      ["#produtos", t("seeProducts"), products.length > 0],
+      ["#cupons", t("seeCoupons"), coupons.length > 0],
+    ] as const
+  )
+    .filter(([, , on]) => on)
+    .slice(0, 2);
 
   const send = (kind: Parameters<typeof track>[1], item?: string) => {
     if (!preview) track(content.handle, kind, item);
@@ -370,6 +744,8 @@ export function Storefront({
 
   return (
     <div className="@container w-full overflow-hidden bg-white font-sans text-ink">
+      {/* no modo de edição o editor tem o próprio cabeçalho */}
+      {!edit && (
       <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-3.5 ${pad}`}>
         {/* "/" serve aos dois: o proxy leva quem entrou para /inicio e quem não entrou fica na landing.
             Na prévia do editor é só a aparência, para o clique não tirar a pessoa do editor. */}
@@ -384,8 +760,10 @@ export function Storefront({
           )}
         </nav>
       </header>
+      )}
 
-      <section className={`mx-auto max-w-[1440px] ${pad}`}>
+      <section className={`mx-auto max-w-[1440px] ${pad} ${edit ? "pt-5 @3xl:pt-6" : ""}`}>
+        <div className="relative">
         {banner ? (
           // eslint-disable-next-line @next/next/no-img-element -- capa vem de URL arbitrária
           <img src={banner} alt="" fetchPriority="high" className="block aspect-[21/9] w-full bg-cream object-cover @max-2xl:aspect-[4/3]" />
@@ -394,14 +772,36 @@ export function Storefront({
             <CoverLetter name={content.name} />
           </div>
         )}
+        {edit && <CoverHit label={banner ? te("cover") : te("addCover")} onClick={edit.cover} image={Boolean(banner)} />}
+        </div>
         {/* quem indica: a foto fica sobre a borda da capa */}
         <div className="relative -mt-10 flex flex-col items-center gap-2.5 text-center">
-          <Avatar content={content} className="box-border size-20 flex-none rounded-full text-2xl ring-4 ring-white" />
+          {edit ? (
+            <button
+              type="button"
+              onClick={edit.avatar}
+              disabled={edit.avatarBusy}
+              aria-label={te("avatar")}
+              title={te("avatar")}
+              className={`group/avatar relative z-20 cursor-pointer rounded-full border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${edit.avatarBusy ? "animate-pulse" : ""}`}
+            >
+              <Avatar content={content} className="box-border size-20 flex-none rounded-full text-2xl ring-4 ring-white" />
+              {/* o selo de câmera: diz que a foto é clicável, sem cobrir o rosto */}
+              <span aria-hidden="true" className="absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full border-2 border-white bg-ink text-white transition-transform group-hover/avatar:scale-110">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                  <circle cx="12" cy="13" r="3" />
+                </svg>
+              </span>
+            </button>
+          ) : (
+            <Avatar content={content} className="box-border size-20 flex-none rounded-full text-2xl ring-4 ring-white" />
+          )}
           <div className="flex max-w-full min-w-0 flex-col leading-tight">
             <span className="font-display text-[22px] leading-tight font-medium break-words">{content.name}</span>
             <span className="text-[13px] break-words text-mute">@{content.handle}</span>
           </div>
-          <SocialLinks socials={content.socials} name={content.name} />
+          <SocialLinks socials={content.socials} name={content.name} onEdit={edit?.socials} />
           {/* favoritar fica junto de quem indica, não no cabeçalho; na prévia do editor não aparece */}
           {!preview && (
             <div className="pt-1.5">
@@ -419,20 +819,21 @@ export function Storefront({
           )}
         </div>
         <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 pt-7 pb-2 text-center @3xl:pt-8">
-          <h1 className="m-0 font-display text-[clamp(44px,8cqw,96px)] leading-[1] font-normal text-balance">{headline}</h1>
-          {content.sub && <p className="m-0 max-w-[36rem] text-[17px] leading-relaxed text-mute">{content.sub}</p>}
-          {(products.length > 0 || coupons.length > 0) && (
+          {edit ? (
+            <InlineTexts content={content} placeholder={t("defaultHeadline", { name: firstName })} onChange={edit.text} />
+          ) : (
+            <div className="flex flex-col items-center gap-4">
+              <h1 className="m-0 font-display text-[clamp(44px,8cqw,96px)] leading-[1] font-normal text-balance">{headline}</h1>
+              {content.sub && <p className="m-0 max-w-[36rem] text-[17px] leading-relaxed text-mute">{content.sub}</p>}
+            </div>
+          )}
+          {ctas.length > 0 && (
             <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {products.length > 0 && (
-                <a href="#produtos" className={pillDark}>
-                  {t("seeProducts")}
+              {ctas.map(([href, label], i) => (
+                <a key={href} href={href} className={i === 0 ? pillDark : pillLight}>
+                  {label}
                 </a>
-              )}
-              {coupons.length > 0 && (
-                <a href="#cupons" className={products.length > 0 ? pillLight : pillDark}>
-                  {t("seeCoupons")}
-                </a>
-              )}
+              ))}
             </div>
           )}
           {/* no celular o menu de seções some: este link é o caminho até a conversa */}
@@ -444,15 +845,104 @@ export function Storefront({
         </div>
       </section>
 
-      {coupons.length > 0 && (
+      {edit ? (
+        <section id="outfits" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
+          {/* os outfits se configuram ali mesmo (o editor manda o OutfitsEditor): postar o look é o principal da vitrine */}
+          <div className={pad}>
+            <SectionTitle>{t("postsTitle")}</SectionTitle>
+          </div>
+          <div className={`mt-6 @3xl:mt-8 ${pad}`}>{edit.outfits}</div>
+        </section>
+      ) : (
+        posts.length > 0 && (
+          <section id="outfits" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
+            <OutfitCarousel outfits={posts} firstName={firstName} link={linkProps} />
+          </section>
+        )
+      )}
+
+      {(products.length > 0 || edit) && (
+        <section id="produtos" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-6 pt-16 @3xl:pt-24 ${pad}`}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <SectionTitle>
+              {t("productsTitle")} {products.length > 0 && <span className="text-mute">({format.number(products.length)})</span>}
+            </SectionTitle>
+            {edit && products.length > 0 && <AddPill label={te("add")} onClick={() => edit.product(null)} />}
+            {products.length > 8 && (
+              <div className="relative w-full max-w-[320px]">
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t("search")}
+                  aria-label={t("searchLabel")}
+                  className="box-border h-11 w-full border border-sand bg-white pr-4 pl-11 text-[15px] text-ink outline-none placeholder:text-mute focus:border-ink"
+                />
+              </div>
+            )}
+          </div>
+
+          {categories.length > 1 && (
+            <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0">
+              {["", ...categories].map((c) => (
+                <Chip key={c} active={c === cat} aria-pressed={c === cat} onClick={() => setCat(c)}>
+                  {c || t("all")}
+                </Chip>
+              ))}
+            </div>
+          )}
+          {edit && products.length === 0 && <p className="m-0 -mt-2 max-w-[36rem] text-[15px] leading-snug text-mute">{te("emptyProducts")}</p>}
+          {products.length > 0 && shownProducts.length === 0 && <p className="m-0 text-[17px] text-mute">{t("noResults", { query: query.trim() })}</p>}
+
+          <div className="grid grid-cols-2 gap-x-3 gap-y-10 @3xl:grid-cols-3 @3xl:gap-x-4 @3xl:gap-y-12">
+            {shownProducts.map((p) => (
+              <article key={p.id} className="relative flex min-w-0 flex-col items-center text-center">
+                {edit && <EditHit label={te("product", { name: p.name || te("newProduct") })} onClick={() => edit.product(p.id)} />}
+                <ProductLink {...linkProps(p)} className="flex w-full min-w-0 flex-col text-ink no-underline">
+                  <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
+                    <ProductArt
+                      product={p}
+                      className={p.soldOut ? "size-full object-contain opacity-50 mix-blend-multiply grayscale" : undefined}
+                      iconClassName={`w-[52%] ${p.soldOut ? "opacity-40" : ""}`}
+                    />
+                  </div>
+                  <h3 className="m-0 pt-3 text-[15px] leading-snug font-medium underline-offset-2 [a:hover_&]:underline @max-2xl:text-sm">{p.name}</h3>
+                </ProductLink>
+                {p.soldOut && <span className="pt-0.5 text-[13px] text-mute">{t("soldOut")}</span>}
+                {p.videoUrl && <ReviewLink href={p.videoUrl} onClick={() => send("video", p.id)} />}
+              </article>
+            ))}
+            {edit && <ProductGhost onClick={() => edit.product(null)} />}
+            {/* vazia, a grade já mostra o lugar dos próximos */}
+            {edit && products.length === 0 && (
+              <>
+                <ProductGhost className="opacity-60" />
+                <ProductGhost className="opacity-35 @max-3xl:hidden" />
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      {(coupons.length > 0 || edit) && (
         <section id="cupons" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
-          <Carousel title={t("couponsTitle")} label={t("couponsLabel")}>
+          <Carousel
+            title={t("couponsTitle")}
+            label={t("couponsLabel")}
+            action={edit && coupons.length > 0 ? <AddPill label={te("add")} onClick={() => edit.coupon(null)} /> : undefined}
+            sub={edit && coupons.length === 0 ? <p className={`m-0 mt-4 max-w-[36rem] text-[15px] leading-snug text-mute ${pad}`}>{te("emptyCoupons")}</p> : undefined}
+          >
             {coupons.map((c) => (
-              <article key={c.id} className="box-border flex min-h-[290px] w-[300px] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-6 @max-md:w-[82%]">
+              <article key={c.id} className="relative box-border flex min-h-[290px] w-[300px] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-6 @max-md:w-[82%]">
+                {edit && <EditHit label={te("coupon", { name: c.brand || c.code || te("newCoupon") })} onClick={() => edit.coupon(c.id)} />}
                 <div className="flex min-w-0 items-center gap-2">
                   <BrandLogo url={c.logoUrl} className="size-8" />
                   {c.storeUrl ? (
-                    <a href={withUtm(c.storeUrl, content)} target="_blank" rel="noopener noreferrer" className="truncate text-[15px] font-medium text-inherit">
+                    <a href={c.storeUrl} target="_blank" rel="noopener noreferrer" className="truncate text-[15px] font-medium text-inherit">
                       {c.brand}
                     </a>
                   ) : (
@@ -496,7 +986,7 @@ export function Storefront({
                   </button>
                   {c.storeUrl && fallback[c.id] !== undefined && !preview && (
                     <a
-                      href={withUtm(c.storeUrl, content)}
+                      href={c.storeUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex min-h-12 items-center justify-center border border-ink px-3 text-[11px] font-medium tracking-[0.14em] whitespace-nowrap text-ink uppercase no-underline hover:bg-ink hover:text-white"
@@ -507,69 +997,9 @@ export function Storefront({
                 </div>
               </article>
             ))}
+            {edit && <CouponGhost onClick={() => edit.coupon(null)} />}
+            {edit && coupons.length === 0 && <CouponGhost />}
           </Carousel>
-        </section>
-      )}
-
-      {products.length > 0 && (
-        <section id="produtos" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-6 pt-16 @3xl:pt-24 ${pad}`}>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <SectionTitle>
-              {t("productsTitle")} <span className="text-mute">({format.number(products.length)})</span>
-            </SectionTitle>
-            {products.length > 8 && (
-              <div className="relative w-full max-w-[320px]">
-                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3.5-3.5" />
-                </svg>
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={t("search")}
-                  aria-label={t("searchLabel")}
-                  className="box-border h-11 w-full border border-sand bg-white pr-4 pl-11 text-[15px] text-ink outline-none placeholder:text-mute focus:border-ink"
-                />
-              </div>
-            )}
-          </div>
-
-          {categories.length > 1 && (
-            <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0">
-              {["", ...categories].map((c) => (
-                <Chip key={c} active={c === cat} aria-pressed={c === cat} onClick={() => setCat(c)}>
-                  {c || t("all")}
-                </Chip>
-              ))}
-            </div>
-          )}
-          {shownProducts.length === 0 && <p className="m-0 text-[17px] text-mute">{t("noResults", { query: query.trim() })}</p>}
-
-          <div className="grid grid-cols-2 gap-x-3 gap-y-10 @3xl:grid-cols-3 @3xl:gap-x-4 @3xl:gap-y-12">
-            {shownProducts.map((p) => (
-              <article key={p.id} className="flex min-w-0 flex-col items-center text-center">
-                <ProductLink {...linkProps(p)} className="flex w-full min-w-0 flex-col text-ink no-underline">
-                  <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
-                    <ProductArt
-                      product={p}
-                      className={p.soldOut ? "size-full object-contain opacity-50 mix-blend-multiply grayscale" : undefined}
-                      iconClassName={`w-[52%] ${p.soldOut ? "opacity-40" : ""}`}
-                    />
-                  </div>
-                  <h3 className="m-0 pt-3 text-[15px] leading-snug font-medium underline-offset-2 [a:hover_&]:underline @max-2xl:text-sm">{p.name}</h3>
-                </ProductLink>
-                {p.soldOut && <span className="pt-0.5 text-[13px] text-mute">{t("soldOut")}</span>}
-                {p.videoUrl && <ReviewLink href={p.videoUrl} onClick={() => send("video", p.id)} />}
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {posts.length > 0 && (
-        <section id="outfits" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
-          <OutfitCarousel outfits={posts} firstName={firstName} link={linkProps} />
         </section>
       )}
 
@@ -782,6 +1212,14 @@ function OutfitSlide({
       </div>
       <div className="flex min-w-0 flex-col gap-6 p-5 @3xl:justify-between @3xl:p-12 @6xl:p-16">
         <div className="flex flex-col gap-4">
+          {/* a legenda da creator: a voz dela sobre o look, antes das peças */}
+          {post.caption.trim() && (
+            <p
+              className={`m-0 font-display text-[clamp(24px,2.6cqw,36px)] leading-[1.15] font-normal break-words whitespace-pre-line transition-all duration-700 motion-reduce:transition-none ${active ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}
+            >
+              {post.caption.trim()}
+            </p>
+          )}
           <span
             className={`text-[12px] font-medium tracking-[0.22em] text-gold uppercase transition-all delay-150 duration-700 motion-reduce:transition-none ${active ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}
           >

@@ -62,7 +62,7 @@ erDiagram
         text sub
         jsonb look "so bannerUrl e usado"
         jsonb show "legado"
-        jsonb tracking "utm, campaign"
+        jsonb tracking "legado, nao usado pelo app"
         jsonb socials "instagram, tiktok, youtube, x"
         timestamptz created_at
         timestamptz updated_at
@@ -220,7 +220,7 @@ Uma linha por creator. É a "capa" pública da vitrine. Criada em `2026110200000
 | `sub` | `text` | não | `''` | `CHECK char_length <= 240` |
 | `look` | `jsonb` | não | `{"theme":"vibrante","accent":"#FF5A36","font":"moderna","radius":"arredondado","layout":"grade"}` | Hoje o app **só lê/grava `bannerUrl`** (foto de capa, opcional: vazia, a vitrine mostra a primeira letra do nome). As outras chaves são de um visual antigo e são descartadas por `pickLook` (`lib/vitrine/store.ts:26`). |
 | `show` | `jsonb` | não | `{"ticker":true,"products":true,"coupons":true,"kits":true,"cta":true}` | **Legado.** É gravada na publicação, mas nenhum componente lê (`lib/vitrine/types.ts:91`). |
-| `tracking` | `jsonb` | não | `'{}'` | `CHECK pg_column_size(tracking) <= 2000`. Formato `{ utm: boolean, campaign: string }`; o app completa com `TRACKING = { utm: true, campaign: "" }` (`lib/vitrine/types.ts:107`). |
+| `tracking` | `jsonb` | não | `'{}'` | `CHECK pg_column_size(tracking) <= 2000`. **Legado:** o app não lê nem escreve mais esta coluna (a UTM saiu e o `tracking` saiu do `VitrineContent`). Sem migração, ela continua existindo e `publish_vitrine()` segue gravando `coalesce(content->'tracking', '{}')`, que agora resulta em `'{}'`. Valores antigos ficam como estão. |
 | `socials` | `jsonb` | não | `'{}'` | `CHECK jsonb_typeof(socials) = 'object' and pg_column_size(socials) <= 2000` (`20261110020000_vitrine_socials.sql`). Guarda o que a creator digitou em `{ instagram, tiktok, youtube, x }` (`@usuario`, `usuario` ou link); o app transforma em link do perfil com `socialUrl` (`lib/vitrine/socials.ts`) e `loadContent` lê com `pickSocials` (`lib/vitrine/store.ts:93`). Gravada por `publish_vitrine()` |
 | `created_at` | `timestamptz` | não | `now()` | |
 | `updated_at` | `timestamptz` | não | `now()` | Atualizado por `publish_vitrine()` e por `updateProfile` (nome, link, foto e capa). A home ordena por ele (`lib/vitrine/store.ts:118`). |
@@ -241,11 +241,11 @@ Cupons de desconto de uma vitrine. `20261102000000_vitrines.sql:18-30` + colunas
 | `kind` | `text` | não | — | `CHECK kind in ('percent','fixed')` |
 | `value` | `int` | não | — | `CHECK value > 0 and (kind = 'fixed' or value <= 100)`. `percent`: 1–100; `fixed`: centavos. |
 | `condition` | `text` | não | `''` | Sem limite no banco; o Zod limita a 120 (`lib/vitrine/types.ts:30`). |
-| `expires_at` | `date` | sim | — | `null` = sem validade. Vencido some da vitrine pública. |
-| `store_url` | `text` | não | `''` | Link da loja (recebe UTM na vitrine, via `withUtm`). |
+| `expires_at` | `date` | sim | — | Sem uso: a validade saiu do produto, nada lê nem filtra por ela e a interface não a preenche (cupons novos ficam `null`). A coluna segue no banco e no schema Zod (`expiresAt`). |
+| `store_url` | `text` | não | `''` | Link da loja, exatamente como a creator colou (a vitrine abre-o sem acrescentar UTM). |
 | `logo_url` | `text` | não | `''` | Logo da marca (bucket `brand-logos` ou URL externa). |
 | `how_to` | `text` | não | `''` | `CHECK char_length <= 400`. Passos, um por linha. |
-| `starts_at` | `date` | sim | — | Antes dessa data o cupom fica "agendado" e escondido. O editor atual não deixa criar agendamentos novos. |
+| `starts_at` | `date` | sim | — | Sem uso, como `expires_at`: não há mais cupom "agendado"; todo cupom publicado aparece. A coluna segue no banco e no schema Zod (`startsAt`). |
 | `color` | `jsonb` | não | `'"auto"'` | `CHECK jsonb_typeof(color) in ('string','number') and pg_column_size(color) <= 40`. **Legado:** o schema Zod não tem `color`, então toda publicação grava `"auto"`. |
 
 **Índices:** `coupons_vitrine_idx (vitrine_id, position)`.
@@ -302,7 +302,7 @@ Foto da creator usando um conjunto ("Outfit" na interface) e a lista ordenada da
 | `vitrine_id` | `uuid` | não | — | FK → `vitrines(id)` **on delete cascade** |
 | `position` | `int` | não | — | Ordem |
 | `photo_url` | `text` | não | — | `CHECK char_length between 1 and 2000`. Foto enviada ao bucket `vitrine-photos` |
-| `caption` | `text` | não | `''` | `CHECK char_length <= 300`. Sem uso na interface: novos outfits gravam `""` (continua no schema Zod e no rascunho) |
+| `caption` | `text` | não | `''` | `CHECK char_length <= 300`. Legenda do outfit: a creator preenche no `OutfitsEditor` e a vitrine pública a mostra; `""` quando não há |
 | `product_ids` | `uuid[]` | não | `'{}'` | `CHECK cardinality <= 8`. IDs de `products`, na ordem da lista. **Sem FK** (array). Zod: de 1 a 8, sem repetição |
 | `published_at` | `timestamptz` | não | `now()` | Primeira publicação do post. `publish_vitrine()` reinsere os posts, mas preserva o valor pelo `id`; post novo recebe `now()`. |
 
@@ -475,7 +475,6 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
   "sub": "...",
   "look": { "bannerUrl": "" },
   "show": { "ticker": true, "products": true, "coupons": true, "kits": true, "cta": true },
-  "tracking": { "utm": true, "campaign": "" },
   "socials": { "instagram": "", "tiktok": "", "youtube": "", "x": "" },
   "coupons": [{ "id": "uuid", "brand": "", "code": "", "kind": "percent", "value": 10, "condition": "", "expiresAt": null, "storeUrl": "", "logoUrl": "", "howTo": "", "startsAt": null }],
   "products": [{ "id": "uuid", "name": "", "brand": "", "category": "", "price": 0, "couponId": null, "url": "", "imageUrl": "", "icon": "Bag", "affiliateUrl": "", "videoUrl": "", "soldOut": false, "priceCheckedAt": null }],
@@ -538,8 +537,8 @@ graph TD
 ```
 
 - `favorites` e `comments` caem por **duas** cascatas: ao apagar a conta de quem favoritou/comentou, e ao apagar a vitrine favoritada/comentada. Por isso `deleteAccountAction` lê antes (`listCommentedHandles`) as vitrines em que a pessoa comentou e invalida o cache `comentarios:{handle}` de cada uma depois da exclusão.
-- Apagar um **cupom** no editor também limpa o `couponId` dos produtos no próprio rascunho (`components/editor/CouponsPanel.tsx:44-51`); no banco, o `on delete set null` faria o mesmo.
-- Apagar um **produto** no editor remove o ID dos posts no rascunho (`components/editor/ProductsPanel.tsx:83`). No banco não há FK no array, então um post pode guardar IDs órfãos se alguém gravar direto; a vitrine ignora IDs que não encontra (`postItems`, `lib/vitrine/types.ts`).
+- Apagar um **cupom** no editor também limpa o `couponId` dos produtos no próprio rascunho (`remove` em `components/editor/Editor.tsx`); no banco, o `on delete set null` faria o mesmo.
+- Apagar um **produto** no editor remove o ID dos posts no rascunho (`remove` em `components/editor/Editor.tsx`). No banco não há FK no array, então um post pode guardar IDs órfãos se alguém gravar direto; a vitrine ignora IDs que não encontra (`postItems`, `lib/vitrine/types.ts`).
 - **Arquivos do Storage não somem com a conta**: `deleteAccountAction` lista e apaga até 1000 arquivos de cada bucket antes de chamar a RPC (`app/actions.ts:273`). Já a troca de foto de perfil ou de capa apaga a foto antiga de `vitrine-photos` na hora (`saveProfile`, `app/actions.ts:492`); fotos de produto e de outfit ficam órfãs até a exclusão da conta.
 
 ## Mapeamento banco ↔ app

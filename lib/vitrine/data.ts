@@ -3,7 +3,6 @@ import { getFormatter } from "next-intl/server";
 import { cacheLife, cacheTag } from "next/cache";
 import type { Locale } from "@/lib/i18n/routing";
 import { createPublicSupabase } from "@/lib/supabase/server";
-import { isActive } from "./pricing";
 import {
   favoriteCount,
   findByHandle,
@@ -115,17 +114,17 @@ export function interleave<T>(lists: T[][]): T[] {
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 
-/** Cupons ativos (o melhor primeiro) e produtos à venda. */
-export function live(v: FeedVitrine, today: string) {
+/** Cupons (o melhor primeiro) e produtos à venda. */
+export function live(v: FeedVitrine) {
   const by = { handle: v.handle, creator: v.name };
-  const coupons = v.coupons.filter((c) => isActive(c, today)).sort((a, b) => rank(b) - rank(a));
+  const coupons = [...v.coupons].sort((a, b) => rank(b) - rank(a));
   const products = v.products.filter((p) => !p.soldOut);
   return { v, by, coupons, products };
 }
 
-/** Só as vitrines com algum cupom ativo ou produto à venda. */
-const liveFeed = (vitrines: FeedVitrine[], today: string) =>
-  vitrines.map((v) => live(v, today)).filter((f) => f.coupons.length > 0 || f.products.length > 0);
+/** Só as vitrines com algum cupom ou produto à venda. */
+const liveFeed = (vitrines: FeedVitrine[]) =>
+  vitrines.map((v) => live(v)).filter((f) => f.coupons.length > 0 || f.products.length > 0);
 
 const toHomeCreator = ({ v, by, coupons, products }: ReturnType<typeof live>): HomeCreator => ({
   ...by,
@@ -169,8 +168,7 @@ export async function getHomeFeed(): Promise<HomeFeed> {
   cacheTag(HOME_TAG);
   cacheLife("hours");
 
-  const today = todayISO();
-  const live = liveFeed(await listFeed(createPublicSupabase(), 24), today);
+  const live = liveFeed(await listFeed(createPublicSupabase(), 24));
 
   const coupons = interleave(live.map((f) => f.coupons.map((c): HomeCoupon => ({ ...c, ...f.by }))));
   const products = interleave(live.map((f) => f.products.map((p): HomeProduct => ({ ...p, ...f.by }))));
@@ -192,7 +190,7 @@ export async function getTopCreators(): Promise<HomeCreator[]> {
 
   const db = createPublicSupabase();
   const handles = await topCreatorsToday(db, 12);
-  return liveFeed(await listFeedByHandles(db, handles), todayISO()).map(toHomeCreator);
+  return liveFeed(await listFeedByHandles(db, handles)).map(toHomeCreator);
 }
 
 /**
@@ -227,11 +225,10 @@ export async function searchHome(q: string): Promise<SearchResults> {
   cacheLife("minutes");
 
   if (q.trim().length < SEARCH_MIN) return { creators: [], brands: [], products: [] };
-  const today = todayISO();
   const hits = await searchCatalog(createPublicSupabase(), q, SEARCH_LIMIT);
   return {
     creators: hits.creators,
-    brands: groupBrands(hits.coupons.filter((c) => isActive(c, today))).slice(0, SEARCH_LIMIT),
+    brands: groupBrands(hits.coupons).slice(0, SEARCH_LIMIT),
     products: hits.products.filter((p) => !p.soldOut).slice(0, SEARCH_LIMIT),
   };
 }

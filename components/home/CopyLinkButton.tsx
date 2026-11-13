@@ -6,7 +6,7 @@ import { vitrineAddress, vitrinePath } from "@/lib/vitrine/links";
 import { pillLight } from "./chrome";
 
 const noop = () => () => {};
-// o mesmo endereço em que a pessoa está (em dev, localhost), como no painel Divulgar
+// o mesmo endereço em que a pessoa está (em dev, localhost)
 const useOrigin = () => useSyncExternalStore(noop, () => window.location.origin, () => "");
 
 /**

@@ -48,8 +48,9 @@
       "text": "Reúna seus cupons e produtos favoritos num link só para a bio. É grátis e fica pronta em 2 minutos.",
       "button": "Criar minha vitrine"
     },
-    "footer": "Cupons podem mudar na loja da marca. Links com identificação desta vitrine.",
-    "review": "Ver meu review"
+    "footer": "Cupons podem mudar na loja da marca.",
+    "review": "Ver meu review",
+    "seeOutfits": "Ver outfits"
   },
   "seo": {
     "vitrine": {
@@ -268,12 +269,6 @@
     "more": {
       "metricsTitle": "Veja o que funciona",
       "metricsText": "Visitas, cliques, produtos mais clicados e cupons mais copiados, dia a dia.",
-      "storiesTitle": "Pronta para os stories",
-      "storiesText": "Baixe uma imagem com seus cupons, poste e cole a figurinha de link para a vitrine.",
-      "utmTitle": "Links com UTM",
-      "utmText": "Os links para as lojas levam UTM, para a marca ver que a visita veio da sua vitrine.",
-      "datesTitle": "Cupom com data",
-      "datesText": "Agende quando o cupom começa e quando vence. Vencido, ele sai da vitrine sozinho.",
       "videoTitle": "Review em vídeo",
       "videoText": "Junte ao produto o seu Reels, TikTok ou vídeo do YouTube mostrando como ele é.",
       "soldOutTitle": "Esgotou? Sem apagar",
@@ -295,12 +290,10 @@
       "linkA": "Sua vitrine fica em {host}/@seunome. É esse endereço que vai na bio do Instagram, do TikTok ou onde você quiser.",
       "manualQ": "Preciso cadastrar cada produto na mão?",
       "manualA": "Não. Cole o link do produto na loja e a gente puxa nome e foto. Depois é só colocar o seu link de afiliado, se tiver.",
-      "trackQ": "A marca consegue ver que a venda veio de mim?",
-      "trackA": "Os links para as lojas podem sair com UTM, para a marca ver que a visita veio da sua vitrine.",
       "affiliateQ": "Posso usar meu link de afiliado?",
       "affiliateA": "Pode. Cada produto tem um campo para o seu link de afiliado, e o clique no produto leva direto para ele, do jeito que você colou. Os cupons ficam na mesma vitrine: seu público tem o desconto e você, a comissão.",
       "shareQ": "Como divulgo a vitrine?",
-      "shareA": "O link já gera uma prévia com os seus cupons no WhatsApp e nas redes, e você baixa uma imagem pronta para os stories com os seus cupons."
+      "shareA": "Coloque o link na bio do Instagram e do TikTok e nos stories. Ele já gera uma prévia com os seus cupons no WhatsApp e nas redes."
     },
     "ctaTitle": "Seu link na bio, pronto hoje",
     "ctaText": "Grátis para começar. É só escolher o link e criar sua conta.",
@@ -467,9 +460,7 @@
       "brand": "Marca",
       "vitrine": "Vitrine",
       "letter": "Letra",
-      "expiringWeek": "Vencendo esta semana",
-      "withVideo": "Com review em vídeo",
-      "expiringCoupon": "Cupom vencendo"
+      "withVideo": "Com review em vídeo"
     },
     "favorites": {
       "title": "Favoritas",
@@ -491,7 +482,6 @@
       "sorts": {
         "recommended": "Mais indicadas",
         "discount": "Maior desconto",
-        "expiring": "Vencendo antes",
         "az": "A–Z"
       },
       "filteredTitle": "Nenhuma marca com esses filtros",
@@ -594,10 +584,6 @@
     "terms": "Termos de Uso",
     "privacy": "Política de Privacidade"
   },
-  "coupon": {
-    "expiry": "{kind, select, none {Sem validade} today {Vence hoje} tomorrow {Vence amanhã} days {Vence em {days} dias} other {Válido até {date}}}",
-    "expiringBadge": "{kind, select, none {Cupom sem validade} today {Cupom vence hoje} tomorrow {Cupom vence amanhã} days {Cupom vence em {days} dias} other {Cupom válido até {date}}}"
-  },
   "metrics": {
     "vsPrevious": "vs. {period} dias anteriores",
     "same": "= igual aos {period} dias anteriores",
@@ -608,17 +594,12 @@
     "unitCopies": "{count, plural, one {cópia} other {cópias}}",
     "items": "{count, plural, one {# item} other {# itens}}",
     "alerts": {
-      "couponName": "Cupom {code} · {brand}",
-      "scheduled": "Agendado: entra na vitrine em {date}.",
-      "expired": "Venceu em {date} e saiu da vitrine.",
-      "expiring": "{label}. Confira com a marca se ele continua valendo.",
       "soldOut": "Esgotado: aparece sem o link para a loja.",
-      "seeCoupon": "Ver cupom",
       "fix": "Corrigir",
       "label": "Avisos",
       "title": "O que merece atenção",
       "allGood": "Tudo em dia",
-      "none": "Nenhum cupom vencendo, nenhum produto esgotado."
+      "none": "Nenhum produto esgotado."
     },
     "period": "Período",
     "days": "{n} dias",
@@ -631,8 +612,7 @@
       "youNth": "Você é a {position}ª vitrine mais clicada hoje",
       "inHome": "{lead} e está entre as que aparecem em “Vitrines do dia”, na home.",
       "almost": "{lead}. Mais alguns cliques e ela chega a “Vitrines do dia”, na home.",
-      "notYet": "Sua vitrine ainda não está entre as mais clicadas de hoje. Divulgue o link nos stories e na bio: as vitrines mais clicadas do dia aparecem em “Vitrines do dia”, na home.",
-      "share": "Divulgar"
+      "notYet": "Sua vitrine ainda não está entre as mais clicadas de hoje. Divulgue o link nos stories e na bio: as vitrines mais clicadas do dia aparecem em “Vitrines do dia”, na home."
     },
     "removed": "Item removido",
     "gone": "não está mais na vitrine",
@@ -713,57 +693,28 @@
     "postN": "Outfit {n}"
   },
   "editor": {
-    "tabs": {
-      "label": "Opções",
-      "profile": "Perfil",
-      "coupons": "Cupons",
-      "products": "Produtos",
-      "posts": "Outfits",
-      "share": "Divulgar"
-    },
-    "couponsExpiring": "{count, plural, one {# cupom vencendo} other {# cupons vencendo}}",
     "leaveConfirm": "Ainda estamos salvando suas alterações. Sair mesmo assim?",
-    "previewSize": "Tamanho da prévia",
-    "desktop": "Computador",
-    "mobile": "Celular",
     "draftFailed": "Erro ao salvar o rascunho",
     "unpublished": "Alterações não publicadas",
-    "published": "Publicado",
     "publishing": "Publicando…",
     "publish": "Publicar",
-    "view": "Ver vitrine",
     "publishError": "Não deu para publicar: {error}",
     "close": "Fechar",
     "profile": {
-      "cover": "Capa",
       "coverHint": "A foto do topo da sua vitrine e do card dela na home. Salva na hora, sem precisar publicar.",
-      "section": "Textos",
       "headline": "Frase de destaque",
-      "headlineHint": "Aparece em letras grandes, logo abaixo da capa.",
       "sub": "Texto de apoio"
     },
     "socials": {
-      "title": "Redes sociais",
       "hint": "Aparecem discretas embaixo do seu nome. Pode ser o @ ou o link do perfil.",
       "placeholder": "@seuusuario",
       "invalid": "Não parece um perfil do {network}. Use o @ ou o link do perfil."
     },
     "ui": {
       "percentLabel": "Porcentagem de desconto",
-      "moneyPlaceholder": "0,00",
-      "move": "Mover {title}, posição {pos} de {total}. Use as setas para cima e para baixo.",
-      "drag": "Arraste para mudar a ordem",
-      "done": "Concluir"
+      "moneyPlaceholder": "0,00"
     },
     "coupons": {
-      "startsOn": "Entra em {date}",
-      "expired": "Vencido",
-      "until": "até {date}",
-      "title": "Seus cupons",
-      "hint": "Cadastre uma vez. Quando um cupom vence, ele sai da vitrine sozinho.",
-      "alert": "<b>{count, plural, one {# cupom vencendo.} other {# cupons vencendo.}}</b> Renove a data ou troque o código.",
-      "empty": "Nenhum cupom ainda. Comece pelo cupom que você mais divulga.",
-      "new": "Novo cupom",
       "brand": "Marca",
       "brandPlaceholder": "Ex.: Maré",
       "code": "Código",
@@ -778,24 +729,8 @@
       "stepsHint": "Um passo por linha. Aparece no cupom como uma lista.",
       "stepsPlaceholder": "Ex.: Válido só no app\nNão acumula com outras promoções",
       "remove": "Excluir cupom",
-      "add": "+ Adicionar cupom"
-    },
-    "dates": {
-      "prevMonth": "Mês anterior",
-      "nextMonth": "Próximo mês",
-      "dayLabel": "{date}{isToday, select, yes {, hoje} other {}}",
-      "past": "já passou",
-      "today": "hoje",
-      "tomorrow": "amanhã",
-      "inDays": "em {n} dias",
-      "shortcuts": "Atalhos",
-      "until": "Vale até",
-      "expired": "já venceu",
-      "expires": "vence {when}",
-      "noExpiry": "Sem validade",
-      "days": "{n} dias",
-      "scheduled": "Só entra na vitrine em {date}.",
-      "startNow": "Começar agora"
+      "groupCoupon": "Cupom",
+      "groupStore": "Loja"
     },
     "logo": {
       "status": {
@@ -829,12 +764,7 @@
       "broken": "Essa imagem não abriu. Envie outra foto."
     },
     "products": {
-      "fullLink": "Cole o link completo do produto, começando com https://",
-      "order": "Ordem dos produtos",
-      "orderHint": "O primeiro aparece no topo da vitrine.",
-      "empty": "Cole o link de um produto que você indica e a gente puxa nome e foto.",
-      "new": "Novo produto",
-      "soldOut": "Esgotado",
+      "fullLink": "Cole o link do produto, como loja.com/produto.",
       "photo": "Foto",
       "product": "Produto",
       "name": "Nome",
@@ -850,64 +780,42 @@
       "video": "Review em vídeo (opcional)",
       "videoHint": "Link do seu Reels, TikTok ou YouTube sobre o produto.",
       "addVideo": "+ Review em vídeo",
-      "remove": "Remover",
-      "addByLink": "+ Adicionar pelo link",
+      "remove": "Excluir produto",
       "linkPlaceholder": "https://loja.com/produto",
       "linkLabel": "Link do produto",
       "searching": "Buscando…",
-      "search": "Buscar",
+      "search": "Buscar produto",
       "addHint": "Pode ser seu link de afiliado ou o da loja. A gente puxa nome e foto, e o clique leva ao link que você colou.",
-      "manual": "Adicionar manualmente"
+      "manual": "Preencher manualmente",
+      "or": "ou",
+      "importFailed": "Não conseguimos puxar os dados desse link ({error}). Preencha abaixo."
     },
     "posts": {
-      "title": "Seus outfits",
-      "hint": "Poste uma foto sua usando o outfit e liste embaixo cada peça, até {max}. Na vitrine, cada peça leva ao link dela.",
-      "needProducts": "Adicione produtos primeiro para listar as peças de um outfit.",
-      "empty": "Nenhum outfit ainda. Que tal o do treino de hoje?",
-      "postN": "Outfit {n}",
-      "items": "{count, plural, =0 {Nenhuma peça} one {# peça} other {# peças}}",
-      "noPhoto": "Sem foto",
-      "photo": "Foto",
+      "tag": "Pôr {name} no outfit",
+      "list": "Seus outfits",
+      "outfitN": "Outfit {n}",
+      "newOutfit": "Novo outfit",
+      "missingPhoto": "Falta a foto para este outfit aparecer na vitrine.",
+      "missingPieces": "Marque pelo menos uma peça para este outfit aparecer na vitrine.",
       "photoHint": "Uma foto sua usando as peças. Vertical fica melhor: a vitrine mostra no formato 4:5.",
-      "pickFirst": "Escolha abaixo as peças que aparecem na foto.",
       "untag": "Tirar {name} do outfit",
-      "addProducts": "Escolher peças ({n}/{max})",
       "unnamed": "Produto sem nome",
-      "remove": "Excluir",
-      "add": "+ Novo outfit"
-    },
-    "share": {
-      "where": {
-        "profile": "No seu perfil, toque em <b>Editar perfil</b>",
-        "igLinks": "Toque em <b>Links</b> e depois em <b>Adicionar link externo</b>",
-        "paste": "Cole o link da vitrine e salve",
-        "ttSite": "Toque em <b>Site</b>",
-        "storyPost": "Poste a imagem de stories daqui de baixo (ou qualquer story)",
-        "storySticker": "Toque em <b>Figurinhas</b> e escolha <b>Link</b>",
-        "storyText": "Cole o link e escreva algo como “meus cupons”"
-      },
-      "network": "Rede social",
-      "howTo": "Como colar no {name}",
-      "previewAlt": "Prévia: {title}",
-      "publishFirst": "Publique a vitrine para gerar a imagem.",
-      "download": "Baixar",
-      "yourLink": "Seu link",
-      "copiedHint": "Copiado! Agora é só colar na bio.",
-      "tapToCopy": "Toque para copiar",
-      "copied": "Link copiado",
-      "unpublished": "Você tem mudanças não publicadas. Publique para elas aparecerem no link e nas imagens.",
-      "live": "No ar com a última versão",
-      "whereTitle": "Onde colar",
-      "images": "Imagens prontas",
-      "storyTitle": "Stories",
-      "storyText": "Poste e cole a figurinha de link por cima.",
-      "ogTitle": "Prévia do link",
-      "ogText": "Aparece sozinha quando mandam seu link no WhatsApp.",
-      "utmTitle": "Identificar minhas vendas (UTM)",
-      "utmHint": "As marcas veem no analytics delas que a visita veio de você.",
-      "utmSwitch": "Adicionar UTM aos links das lojas",
-      "campaign": "Nome da campanha",
-      "campaignHint": "Os links de loja dos cupons ganham <code>utm_source=myvitri&utm_medium=creator&utm_campaign={campaign}</code>. Os links de produto ficam como você colou."
+      "remove": "Excluir outfit",
+      "sending": "Enviando a foto…",
+      "changePhoto": "Trocar foto",
+      "pickPhoto": "Escolher a foto do look",
+      "caption": "Legenda (opcional)",
+      "captionPlaceholder": "Escreva uma legenda para o look…",
+      "pieces": "Peças do look ({n}/{max})",
+      "pieceLink": "Adicionar peça pelo link",
+      "piecePlaceholder": "https://loja.com/peca",
+      "pieceHint": "Seu link de afiliado ou o da loja. A gente puxa nome e foto, e a peça também entra em Produtos.",
+      "addPiece": "Adicionar",
+      "adding": "Buscando…",
+      "importFailed": "Não conseguimos puxar os dados desse link.",
+      "addAnyway": "Adicionar só com o link",
+      "full": "Esse look já tem {max} peças, o máximo.",
+      "fromProducts": "Escolher dos meus produtos ({count})"
     },
     "delete": {
       "open": "Excluir minha conta",
@@ -917,6 +825,39 @@
       "deleting": "Excluindo…",
       "submit": "Excluir para sempre",
       "cancel": "Cancelar"
+    },
+    "editHint": "Toque em qualquer parte da vitrine para editar. Tudo fica salvo como rascunho até você publicar.",
+    "edit": {
+      "cover": "Trocar capa",
+      "addCover": "Adicionar capa",
+      "avatar": "Trocar foto de perfil",
+      "addSub": "Toque para escrever um texto de apoio",
+      "socials": "Editar redes sociais",
+      "addSocials": "Adicionar redes sociais",
+      "add": "Adicionar",
+      "coupon": "Editar cupom {name}",
+      "newCoupon": "novo",
+      "addCoupon": "Adicionar cupom",
+      "emptyCoupons": "Comece pelo cupom que você mais divulga.",
+      "product": "Editar produto {name}",
+      "newProduct": "sem nome",
+      "addProduct": "Adicionar produto",
+      "emptyProducts": "Cole o link de um produto que você indica e a gente puxa nome e foto.",
+      "ghostOff": "10% OFF",
+      "ghostCode": "SEUCUPOM"
+    },
+    "sheet": {
+      "position": "Posição {pos} de {total}",
+      "moveBefore": "Mover para antes",
+      "moveAfter": "Mover para depois",
+      "confirmRemove": "Toque de novo para excluir",
+      "done": "Concluir",
+      "newCoupon": "Novo cupom",
+      "coupon": "Editar cupom",
+      "newProduct": "Novo produto",
+      "product": "Editar produto",
+      "cover": "Capa",
+      "socials": "Redes sociais"
     }
   },
   "legal": {

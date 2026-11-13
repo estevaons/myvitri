@@ -14,9 +14,9 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/[handle]
   const handle = handleFromSegment((await params).handle);
   const [vitrine, t] = await Promise.all([handle ? getPublicVitrine(handle) : null, getTranslations("seo.vitrine")]);
   if (!vitrine) return { title: t("notFound"), robots: { index: false } };
-  const { content, today } = vitrine;
+  const { content } = vitrine;
   const { name } = content;
-  const brands = activeBrands(content, today);
+  const brands = activeBrands(content);
   // a busca chega por "cupom <marca> <pessoa>": as marcas entram no título e na descrição
   const title = brands.length ? t("titleWithBrands", { name, brands: await listNames(brands, 3) }) : t("title", { name });
   const base = content.sub || t("fallbackSub", { name });
@@ -48,7 +48,7 @@ async function VitrinePage({ params }: Pick<PageProps<"/[locale]/[handle]">, "pa
   return (
     <>
       <JsonLd data={await vitrineJsonLd(vitrine.content)} />
-      <Storefront content={vitrine.content} today={vitrine.today} comments={comments} favorites={favorites} />
+      <Storefront content={vitrine.content} comments={comments} favorites={favorites} />
     </>
   );
 }

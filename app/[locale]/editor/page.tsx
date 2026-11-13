@@ -40,7 +40,7 @@ async function EditorLoader({ searchParams }: Pick<PageProps<"/[locale]/editor">
   return (
     <>
       <IdentifyUser id={user.id} recording={recording} />
-      <Editor published={vitrine} draft={draft} today={new Date().toISOString().slice(0, 10)} account={accountOf(user, vitrine)} initialTab={typeof tab === "string" ? tab : undefined} />
+      <Editor published={vitrine} draft={draft} account={accountOf(user, vitrine)} initialTab={typeof tab === "string" ? tab : undefined} />
     </>
   );
 }
