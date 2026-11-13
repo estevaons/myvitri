@@ -898,10 +898,11 @@
       "ghostCode": "SEUCUPOM",
       "removeCoverTitle": "Remover a capa?",
       "removeCoverText": "Ela sai na hora da vitrine pública.",
-      "removeCoverConfirm": "Remover"
+      "removeCoverConfirm": "Remover",
+      "reorderHint": "Arraste os cards para mudar a ordem.",
+      "reorderHintTouch": "Toque e segure um card para arrastá-lo."
     },
     "sheet": {
-      "position": "Posição {pos} de {total}",
       "moveBefore": "Mover para antes",
       "moveAfter": "Mover para depois",
       "done": "Concluir",

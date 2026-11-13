@@ -79,26 +79,21 @@ export function Sheet({
   );
 }
 
-/** Rodapé padrão, numa linha só: excluir (confirma numa janela), posição na lista com as setas e Concluir. */
+/** Rodapé padrão, numa linha só: excluir (confirma numa janela) e Concluir. A ordem muda arrastando o card na vitrine. */
 export function SheetFooter({
   onDone,
   onRemove,
   removeLabel,
   removeAsk,
-  move,
 }: {
   onDone: () => void;
   onRemove?: () => void;
   removeLabel?: string;
   /** a pergunta da janela de confirmação de excluir ("Excluir este produto?") e o que mais acontece */
   removeAsk?: { title: string; text?: string };
-  /** posição atual (1…total) e quem troca de lugar; sem isso, não mostra as setas */
-  move?: { pos: number; total: number; onMove: (to: number) => void };
 }) {
   const t = useTranslations("editor.sheet");
   const [confirmDialog, ask] = useConfirm();
-  const arrow =
-    "flex size-10 flex-none cursor-pointer items-center justify-center rounded-full border border-[#E6E2DA] bg-white p-0 text-ink transition-colors hover:border-[#B9B2A6] disabled:cursor-default disabled:opacity-35";
   const remove = async () => {
     if (!onRemove) return;
     if (await ask({ title: removeAsk?.title ?? `${removeLabel}?`, text: removeAsk?.text, confirm: t("remove"), danger: true })) onRemove();
@@ -122,26 +117,6 @@ export function SheetFooter({
             {removeLabel}
           </span>
         </button>
-      )}
-      {move && move.total > 1 && (
-        <div className="flex items-center gap-1.5">
-          <button type="button" aria-label={t("moveBefore")} title={t("moveBefore")} disabled={move.pos <= 1} onClick={() => move.onMove(move.pos - 2)} className={arrow}>
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </button>
-          <span className="min-w-8 text-center text-[13px] text-[#5E5A52] tabular-nums">
-            <span aria-hidden="true">
-              {move.pos}/{move.total}
-            </span>
-            <span className="sr-only">{t("position", { pos: move.pos, total: move.total })}</span>
-          </span>
-          <button type="button" aria-label={t("moveAfter")} title={t("moveAfter")} disabled={move.pos >= move.total} onClick={() => move.onMove(move.pos)} className={arrow}>
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
       )}
       <button type="button" onClick={onDone} className="ml-auto min-h-11 cursor-pointer rounded-full border-0 bg-ink px-7 text-sm font-semibold text-white hover:opacity-85">
         {t("done")}

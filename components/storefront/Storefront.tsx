@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormatter, useTranslations } from "next-intl";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type MouseEvent, type ReactNode, type RefObject } from "react";
 import { Link } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 import { BackLink } from "@/components/brand/BackLink";
@@ -16,6 +16,7 @@ import { CoverLetter } from "@/components/home/CreatorCard";
 import { FavoriteButton } from "./FavoriteButton";
 import { ProductArt } from "./ProductIcon";
 import { ProductModal } from "./ProductModal";
+import { useDragReorder } from "./useDragReorder";
 
 /**
  * Vitrine pública com visual fixo, no espírito das lojas de esporte: branco, cinza claro atrás dos produtos,
@@ -324,6 +325,8 @@ export type StorefrontEdit = {
   product: (id: string | null) => void;
   /** marca ou desmarca o produto como favorito da creator (seção Favoritos), sem abrir a janela */
   favorite: (id: string, on: boolean) => void;
+  /** arrastando o card na vitrine: `from` vai para o lugar de `to` */
+  reorder: (key: "products" | "coupons", from: string, to: string) => void;
   /** os outfits editados no lugar da seção (o editor monta) */
   outfits: ReactNode;
 };
@@ -396,9 +399,10 @@ function CoverHit({ label, onClick, image, busy = false }: { label: string; onCl
  * mostra o lápis no canto, sempre visível, porque no celular não há hover. Nos cards de produto o lápis sai
  * (`pencil={false}`): o canto é do coração de favorito, e o contorno no hover já mostra que o card abre a edição.
  */
-function EditHit({ label, onClick, pencil = true }: { label: string; onClick: () => void; pencil?: boolean }) {
+function EditHit({ label, onClick, pencil = true, ...rest }: { label: string; onClick: () => void; pencil?: boolean } & ComponentProps<"button">) {
   return (
     <button
+      {...rest}
       type="button"
       onClick={onClick}
       aria-label={label}
@@ -407,6 +411,17 @@ function EditHit({ label, onClick, pencil = true }: { label: string; onClick: ()
     >
       {pencil && <PencilBadge className="absolute top-2.5 right-2.5 group-hover/edit:scale-105" />}
     </button>
+  );
+}
+
+/** No editor, como mudar a ordem dos cards: arrastar com o mouse, segurar e arrastar no toque. */
+function ReorderHint({ className }: { className: string }) {
+  const te = useTranslations("editor.edit");
+  return (
+    <p className={`m-0 text-[13px] leading-snug text-mute ${className}`}>
+      <span className="pointer-coarse:hidden">{te("reorderHint")}</span>
+      <span className="hidden pointer-coarse:inline">{te("reorderHintTouch")}</span>
+    </p>
   );
 }
 
@@ -715,6 +730,11 @@ export function Storefront({
 
   const [copied, flash] = useFlash();
 
+  // no editor, produtos e cupons mudam de ordem arrastando o card ali mesmo
+  const dragProducts = useDragReorder(shownProducts.map((p) => p.id), (from, to) => edit?.reorder("products", from, to), !!edit);
+  const dragCoupons = useDragReorder(coupons.map((c) => c.id), (from, to) => edit?.reorder("coupons", from, to), !!edit);
+  const dragged = "z-40 scale-[1.03] bg-white shadow-[0_18px_40px_rgba(17,17,17,0.2)]";
+
   // produto ampliado aberto (e o outfit de onde veio, para a métrica do post)
   const [viewing, setViewing] = useState<{ product: Product; postId?: string } | null>(null);
   // ?p=<id>: o link da figurinha dos stories abre a vitrine já com o produto ampliado
@@ -995,12 +1015,17 @@ export function Storefront({
             </div>
           )}
           {edit && products.length === 0 && <p className="m-0 -mt-2 max-w-[36rem] text-[15px] leading-snug text-mute">{te("emptyProducts")}</p>}
+          {edit && shownProducts.length > 1 && <ReorderHint className="-mt-3" />}
           {products.length > 0 && shownProducts.length === 0 && <p className="m-0 text-[17px] text-mute">{t("noResults", { query: query.trim() })}</p>}
 
           <div className="grid grid-cols-2 gap-x-3 gap-y-10 @3xl:grid-cols-3 @3xl:gap-x-4 @3xl:gap-y-12">
             {shownProducts.map((p) => (
-              <article key={p.id} className="relative flex min-w-0 flex-col items-center text-center">
-                {edit && <EditHit label={te("product", { name: p.name || te("newProduct") })} onClick={() => edit.product(p.id)} pencil={false} />}
+              <article
+                key={p.id}
+                data-reorder-id={edit ? p.id : undefined}
+                className={`relative flex min-w-0 flex-col items-center text-center ${edit ? "select-none [-webkit-touch-callout:none]" : ""} ${dragProducts.dragging === p.id ? dragged : ""}`}
+              >
+                {edit && <EditHit label={te("product", { name: p.name || te("newProduct") })} onClick={() => edit.product(p.id)} pencil={false} {...dragProducts.handle(p.id)} />}
                 {/* no editor, o coração marca e desmarca o favorito ali mesmo; na vitrine é só o selo */}
                 {edit ? (
                   <button
@@ -1053,11 +1078,21 @@ export function Storefront({
             title={t("couponsTitle")}
             label={t("couponsLabel")}
             action={edit && coupons.length > 0 ? <AddPill label={te("add")} onClick={() => edit.coupon(null)} /> : undefined}
-            sub={edit && coupons.length === 0 ? <p className={`m-0 mt-4 max-w-[36rem] text-[15px] leading-snug text-mute ${pad}`}>{te("emptyCoupons")}</p> : undefined}
+            sub={
+              edit && coupons.length === 0 ? (
+                <p className={`m-0 mt-4 max-w-[36rem] text-[15px] leading-snug text-mute ${pad}`}>{te("emptyCoupons")}</p>
+              ) : edit && coupons.length > 1 ? (
+                <ReorderHint className={`mt-2 ${pad}`} />
+              ) : undefined
+            }
           >
             {coupons.map((c) => (
-              <article key={c.id} className="relative box-border flex min-h-[290px] w-[300px] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-6 @max-md:w-[82%]">
-                {edit && <EditHit label={te("coupon", { name: c.brand || c.code || te("newCoupon") })} onClick={() => edit.coupon(c.id)} />}
+              <article
+                key={c.id}
+                data-reorder-id={edit ? c.id : undefined}
+                className={`relative box-border flex min-h-[290px] w-[300px] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-6 @max-md:w-[82%] ${edit ? "select-none [-webkit-touch-callout:none]" : ""} ${dragCoupons.dragging === c.id ? dragged : ""}`}
+              >
+                {edit && <EditHit label={te("coupon", { name: c.brand || c.code || te("newCoupon") })} onClick={() => edit.coupon(c.id)} {...dragCoupons.handle(c.id)} />}
                 <div className="flex min-w-0 items-center gap-2">
                   <BrandLogo url={c.logoUrl} className="size-8" />
                   {c.storeUrl ? (

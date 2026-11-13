@@ -898,10 +898,11 @@
       "ghostCode": "YOURCODE",
       "removeCoverTitle": "Remove the cover?",
       "removeCoverText": "It disappears from your public storefront right away.",
-      "removeCoverConfirm": "Remove"
+      "removeCoverConfirm": "Remove",
+      "reorderHint": "Drag the cards to change the order.",
+      "reorderHintTouch": "Touch and hold a card to drag it."
     },
     "sheet": {
-      "position": "Position {pos} of {total}",
       "moveBefore": "Move earlier",
       "moveAfter": "Move later",
       "done": "Done",

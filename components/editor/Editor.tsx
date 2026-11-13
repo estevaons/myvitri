@@ -31,7 +31,7 @@ type Open =
 /** `?tab=` (links das métricas e de versões antigas do editor) → a seção da vitrine para onde o editor rola ao abrir. */
 const SECTION_OF: Record<string, string> = { coupons: "cupons", products: "produtos", outfits: "outfits" };
 
-/** Listas da vitrine que a janela de edição reordena. */
+/** Itens novos que ficaram em branco saem do rascunho. */
 const dropBlanks = (c: VitrineContent): VitrineContent => ({
   ...c,
   coupons: c.coupons.filter((x) => !isBlankCoupon(x)),
@@ -172,7 +172,13 @@ export function Editor({
   const add = <K extends ListKey>(key: K, item: VitrineContent[K][number]) => update((d) => ({ ...d, [key]: [...d[key], item] }));
   const patch = <K extends ListKey>(key: K, id: string, p: Partial<VitrineContent[K][number]>) =>
     update((d) => ({ ...d, [key]: (d[key] as { id: string }[]).map((x) => (x.id === id ? { ...x, ...p } : x)) }));
-  const move = (key: ListKey, from: number, to: number) => update((d) => ({ ...d, [key]: reorder(d[key] as { id: string }[], from, to) }));
+  // `from` vai para o lugar de `to` (arrastando o card na vitrine); pelos ids, porque a vitrine pode estar filtrada
+  const move = (key: ListKey, from: string, to: string) =>
+    update((d) => {
+      const list = d[key] as { id: string }[];
+      const [i, j] = [list.findIndex((x) => x.id === from), list.findIndex((x) => x.id === to)];
+      return i < 0 || j < 0 || i === j ? d : { ...d, [key]: reorder(list, i, j) };
+    });
   const remove = (key: ListKey, id: string) => {
     update((d) => ({
       ...d,
@@ -211,6 +217,7 @@ export function Editor({
     },
     product: (id) => setOpen(id ? { kind: "product", id, isNew: false } : { kind: "productNew" }),
     favorite: (id, on) => patch("products", id, { favorite: on }),
+    reorder: move,
     outfits: <OutfitsEditor posts={draft.posts} products={draft.products} update={update} />,
   };
 
@@ -339,12 +346,12 @@ export function Editor({
 
       {cropper}
       {confirmDialog}
-      {open && <EditSheet open={open} draft={draft} update={update} close={close} setOpen={setOpen} patch={patch} move={move} remove={remove} />}
+      {open && <EditSheet open={open} draft={draft} update={update} close={close} setOpen={setOpen} patch={patch} remove={remove} />}
     </div>
   );
 }
 
-/** A janela de edição do que está aberto: o formulário certo, com o rodapé de mover, excluir e concluir. */
+/** A janela de edição do que está aberto: o formulário certo, com o rodapé de excluir e concluir. */
 function EditSheet({
   open,
   draft,
@@ -352,7 +359,6 @@ function EditSheet({
   close,
   setOpen,
   patch,
-  move,
   remove,
 }: {
   open: Open;
@@ -361,7 +367,6 @@ function EditSheet({
   close: () => void;
   setOpen: (o: Open) => void;
   patch: <K extends ListKey>(key: K, id: string, p: Partial<VitrineContent[K][number]>) => void;
-  move: (key: ListKey, from: number, to: number) => void;
   remove: (key: ListKey, id: string) => void;
 }) {
   const t = useTranslations("editor");
@@ -398,7 +403,6 @@ function EditSheet({
       onRemove={() => remove(key, open.id)}
       removeLabel={t(`${key}.remove`)}
       removeAsk={{ title: t(`${key}.removeTitle`), text: t(`${key}.removeText`) }}
-      move={{ pos: index + 1, total: list.length, onMove: (to) => move(key, index, to) }}
     />
   );
 
