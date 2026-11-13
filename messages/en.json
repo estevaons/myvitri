@@ -561,21 +561,6 @@
     "copiedLink": "Link copied",
     "copyLink": "Copy link"
   },
-  "cover": {
-    "kicker": "First impressions",
-    "title": "Add a photo that feels like you",
-    "text": "It's the first thing people see. Without a cover, only the first letter of your name shows.",
-    "sending": "Uploading…",
-    "send": "Upload cover",
-    "drag": "or drag the photo here",
-    "confirmLabel": "Confirm cover removal",
-    "confirm": "Remove the cover?",
-    "yes": "Yes, remove",
-    "cancel": "Cancel",
-    "saving": "Saving…",
-    "change": "Change cover",
-    "remove": "Remove"
-  },
   "crop": {
     "title": "Adjust photo",
     "area": "Photo framing",
@@ -749,7 +734,6 @@
     "publishError": "Couldn't publish: {error}",
     "close": "Close",
     "profile": {
-      "coverHint": "The photo at the top of your storefront and on its card on the home page. Saved right away, no need to publish.",
       "headline": "Headline",
       "sub": "Supporting text"
     },
@@ -880,6 +864,8 @@
     "edit": {
       "cover": "Change cover",
       "addCover": "Add cover",
+      "removeCover": "Remove cover",
+      "removeCoverConfirm": "Remove the cover? It disappears from your public storefront right away.",
       "avatar": "Change profile photo",
       "addSub": "Tap to write a short intro",
       "socials": "Edit social media",
@@ -908,7 +894,6 @@
       "coupon": "Edit coupon",
       "newProduct": "New product",
       "product": "Edit product",
-      "cover": "Cover",
       "socials": "Social media"
     }
   },

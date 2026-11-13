@@ -309,7 +309,11 @@ function Carousel({ title, label, action, sub, children }: { title: string; labe
  * cupons ganham o esqueleto "+" para adicionar, mesmo vazios. Sem `edit`, nada muda.
  */
 export type StorefrontEdit = {
+  /** trocar (ou pôr) a capa: abre o seletor de arquivo */
   cover: () => void;
+  /** tirar a capa (o X ao lado do lápis, só com capa) */
+  removeCover: () => void;
+  coverBusy?: boolean;
   avatar: () => void;
   avatarBusy?: boolean;
   /** a frase de destaque e o texto de apoio, editados ali mesmo na vitrine */
@@ -356,17 +360,18 @@ export function PencilBadge({ className = "" }: { className?: string }) {
 }
 
 /**
- * A capa no modo de edição, toda clicável, com o lápis no canto: no mouse, o hover escurece de leve e mostra a pílula
+ * A capa no modo de edição, toda clicável (abre o seletor de arquivo), com o lápis no canto: no mouse, o hover escurece de leve e mostra a pílula
  * "Trocar capa" no meio; no toque (sem hover), um tracejado claro por dentro da borda avisa que dá para tocar.
  */
-function CoverHit({ label, onClick, image }: { label: string; onClick: () => void; image: boolean }) {
+function CoverHit({ label, onClick, image, busy = false }: { label: string; onClick: () => void; image: boolean; busy?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={busy}
       aria-label={label}
       title={label}
-      className="group/cover absolute inset-0 z-20 flex cursor-pointer items-center justify-center border-0 bg-transparent p-0 focus-visible:outline-none"
+      className={`group/cover absolute inset-0 z-20 flex cursor-pointer items-center justify-center border-0 bg-transparent p-0 focus-visible:outline-none disabled:cursor-progress ${busy ? "animate-pulse bg-white/30" : ""}`}
     >
       <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-ink/0 transition-colors duration-200 group-hover/cover:bg-ink/15 group-focus-visible/cover:bg-ink/15" />
       <span
@@ -831,7 +836,21 @@ export function Storefront({
             <CoverLetter name={content.name} />
           </div>
         )}
-        {edit && <CoverHit label={banner ? te("cover") : te("addCover")} onClick={edit.cover} image={Boolean(banner)} />}
+        {edit && <CoverHit label={banner ? te("cover") : te("addCover")} onClick={edit.cover} image={Boolean(banner)} busy={edit.coverBusy} />}
+        {edit && banner && !edit.coverBusy && (
+          // ao lado do lápis (que fica em top-3 right-3, size-9): um botão à parte, porque a capa inteira já é um botão
+          <button
+            type="button"
+            onClick={edit.removeCover}
+            aria-label={te("removeCover")}
+            title={te("removeCover")}
+            className="absolute top-3 right-14 z-30 flex size-9 cursor-pointer items-center justify-center rounded-full border-0 bg-white p-0 text-ink shadow-[0_1px_4px_rgba(17,17,17,0.18)] transition-[transform,color] hover:scale-105 hover:text-[#A3361B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        )}
         </div>
         {/* quem indica: a foto fica sobre a borda da capa */}
         <div className="relative -mt-10 flex flex-col items-center gap-2.5 text-center">

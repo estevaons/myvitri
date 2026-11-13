@@ -2,11 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
-import { publishVitrine, saveDraftAction, updateAvatarAction } from "@/app/actions";
+import { publishVitrine, saveDraftAction, updateAvatarAction, updateCoverAction } from "@/app/actions";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { AccountMenu, type Account } from "@/components/home/AccountMenu";
-import { CoverPicker } from "@/components/home/CoverPicker";
 import { Link, useRouter, vitrineHref } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 import { Storefront, type StorefrontEdit } from "@/components/storefront/Storefront";
@@ -26,8 +25,7 @@ type Open =
   | { kind: "coupon"; id: string; isNew: boolean }
   | { kind: "product"; id: string; isNew: boolean; notice?: string }
   | { kind: "productNew" }
-  | { kind: "socials" }
-  | { kind: "cover" };
+  | { kind: "socials" };
 
 /** `?tab=` (links das métricas e de versões antigas do editor) → a seção da vitrine para onde o editor rola ao abrir. */
 const SECTION_OF: Record<string, string> = { coupons: "cupons", products: "produtos", outfits: "outfits" };
@@ -76,6 +74,8 @@ export function Editor({
   const [saving, startSaving] = useTransition();
   const [sendingPhoto, startPhoto] = useTransition();
   const avatarInput = useRef<HTMLInputElement>(null);
+  const [sendingCover, startCover] = useTransition();
+  const coverInput = useRef<HTMLInputElement>(null);
   const [cropper, crop] = useImageCrop();
 
   // O estado acima só lê as props ao montar, e o Next mantém a tela viva ao navegar: nome, link, foto e capa, que mudam nas
@@ -146,6 +146,25 @@ export function Editor({
     });
   };
 
+  // A capa também salva na hora: tocar nela abre direto o seletor de arquivo (e o recorte); o X ao lado do lápis remove.
+  const saveCover = (url: () => Promise<{ ok: true; url: string } | { ok: false; error: string }>) => {
+    setPhotoError("");
+    startCover(async () => {
+      const up = await url();
+      const res = up.ok ? await updateCoverAction(up.url) : up;
+      if (!res.ok) return setPhotoError(res.error);
+      router.refresh();
+    });
+  };
+  const sendCover = async (picked: File) => {
+    const file = await crop(picked, "cover");
+    if (file) saveCover(() => uploadImage("cover", file, tErrors("imageUnreadable")));
+  };
+  // a capa sai na hora da vitrine pública: pede confirmação
+  const removeCover = () => {
+    if (confirm(t("edit.removeCoverConfirm"))) saveCover(async () => ({ ok: true, url: "" }));
+  };
+
   /* Itens: criar, mudar, mover, excluir. */
   const add = <K extends ListKey>(key: K, item: VitrineContent[K][number]) => update((d) => ({ ...d, [key]: [...d[key], item] }));
   const patch = <K extends ListKey>(key: K, id: string, p: Partial<VitrineContent[K][number]>) =>
@@ -174,7 +193,9 @@ export function Editor({
   };
 
   const edit: StorefrontEdit = {
-    cover: () => setOpen({ kind: "cover" }),
+    cover: () => coverInput.current?.click(),
+    removeCover,
+    coverBusy: sendingCover,
     avatar: () => avatarInput.current?.click(),
     avatarBusy: sendingPhoto,
     text: (patch) => update((d) => ({ ...d, ...patch })),
@@ -296,6 +317,20 @@ export function Editor({
         }}
       />
 
+      <input
+        ref={coverInput}
+        type="file"
+        accept={IMAGE_ACCEPT}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="sr-only"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) sendCover(file);
+        }}
+      />
+
       {cropper}
       {open && <EditSheet open={open} draft={draft} update={update} close={close} setOpen={setOpen} patch={patch} move={move} remove={remove} />}
     </div>
@@ -325,19 +360,6 @@ function EditSheet({
   const t = useTranslations("editor");
   const tSheet = useTranslations("editor.sheet");
   const done = <SheetFooter onDone={close} />;
-
-  if (open.kind === "cover") {
-    const cover = draft.look.bannerUrl;
-    return (
-      <Sheet title={tSheet("cover")} onClose={close} footer={done}>
-        <p className="m-0 text-[13px] leading-snug text-[#5E5A52]">{t("profile.coverHint")}</p>
-        <CoverPicker hasCover={Boolean(cover)} name={draft.name}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- capa enviada pela creator para o bucket */}
-          <img src={cover} alt="" className="block aspect-[4/3] w-full bg-sand object-cover" />
-        </CoverPicker>
-      </Sheet>
-    );
-  }
 
   if (open.kind === "socials")
     return (

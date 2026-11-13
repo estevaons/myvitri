@@ -561,21 +561,6 @@
     "copiedLink": "Link copiado",
     "copyLink": "Copiar link"
   },
-  "cover": {
-    "kicker": "A primeira impressão",
-    "title": "Coloque uma foto com a sua cara",
-    "text": "É o que as pessoas veem primeiro. Sem capa, aparece só a primeira letra do seu nome.",
-    "sending": "Enviando…",
-    "send": "Enviar capa",
-    "drag": "ou arraste a foto para cá",
-    "confirmLabel": "Confirmar remoção da capa",
-    "confirm": "Remover a capa?",
-    "yes": "Sim, remover",
-    "cancel": "Cancelar",
-    "saving": "Salvando…",
-    "change": "Trocar capa",
-    "remove": "Remover"
-  },
   "crop": {
     "title": "Ajustar foto",
     "area": "Enquadramento da foto",
@@ -749,7 +734,6 @@
     "publishError": "Não deu para publicar: {error}",
     "close": "Fechar",
     "profile": {
-      "coverHint": "A foto do topo da sua vitrine e do card dela na home. Salva na hora, sem precisar publicar.",
       "headline": "Frase de destaque",
       "sub": "Texto de apoio"
     },
@@ -880,6 +864,8 @@
     "edit": {
       "cover": "Trocar capa",
       "addCover": "Adicionar capa",
+      "removeCover": "Remover capa",
+      "removeCoverConfirm": "Remover a capa? Ela sai na hora da vitrine pública.",
       "avatar": "Trocar foto de perfil",
       "addSub": "Toque para escrever um texto de apoio",
       "socials": "Editar redes sociais",
@@ -908,7 +894,6 @@
       "coupon": "Editar cupom",
       "newProduct": "Novo produto",
       "product": "Editar produto",
-      "cover": "Capa",
       "socials": "Redes sociais"
     }
   },
