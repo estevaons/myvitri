@@ -41,7 +41,7 @@ export function TermsEn({ updated }: { updated: string }) {
       <Section title="2. Your account">
         <ul>
           <li>
-            To create a storefront, save storefronts or comment, you sign in with your Google account or with email and password, and you must be 18
+            To create a storefront, follow storefronts or comment, you sign in with your Google account or with email and password, and you must be 18
             or older or have permission from a parent or guardian.
           </li>
           <li>Each account has one storefront and one link. You are responsible for everything that happens in your account.</li>

@@ -1,12 +1,13 @@
 {
   "storefront": {
     "favorite": {
-      "on": "Saved",
-      "off": "Save",
-      "label": "Save {name}'s storefront",
-      "count": "{count, plural, one {Saved by # person} other {Saved by # people}}"
+      "on": "Following",
+      "off": "Follow",
+      "label": "Follow {name}'s storefront",
+      "count": "{count, plural, one {# follower} other {# followers}}"
     },
     "defaultHeadline": "{name}'s storefront",
+    "editVitrine": "Edit storefront",
     "nav": {
       "label": "Sections",
       "coupons": "Coupons",
@@ -28,6 +29,9 @@
     "copyManually": "Copy the code above",
     "goToStore": "Go to store",
     "productsTitle": "Products",
+    "favoritesTitle": "{name}'s favorites",
+    "favoritesLabel": "{name}'s favorite products",
+    "favoriteBadge": "{name}'s favorite",
     "search": "Search",
     "searchLabel": "Search products or brands",
     "all": "All",
@@ -443,7 +447,7 @@
   "catalog": {
     "tabs": {
       "label": "Home tabs",
-      "saved": "Saved",
+      "saved": "Following",
       "storefronts": "Storefronts",
       "products": "Products",
       "outfits": "Outfits",
@@ -463,11 +467,11 @@
       "withVideo": "With video review"
     },
     "favorites": {
-      "title": "Saved",
-      "staleTitle": "Nothing new in your saved storefronts right now",
+      "title": "Following",
+      "staleTitle": "Nothing new from the storefronts you follow right now",
       "staleText": "They'll show up here again once they have an active coupon or a product for sale.",
-      "emptyTitle": "No saved storefronts yet",
-      "emptyText": "Tap the heart on a storefront to find it here later.",
+      "emptyTitle": "You don't follow any storefronts yet",
+      "emptyText": "Tap Follow on a storefront to find it here later.",
       "explore": "Explore storefronts"
     },
     "posts": {
@@ -698,6 +702,7 @@
     "unpublished": "Unpublished changes",
     "publishing": "Publishing…",
     "publish": "Publish",
+    "viewVitrine": "View storefront",
     "publishError": "Couldn't publish: {error}",
     "close": "Close",
     "profile": {
@@ -780,6 +785,8 @@
       "video": "Video review (optional)",
       "videoHint": "Link to your Reels, TikTok or YouTube video about the product.",
       "addVideo": "+ Video review",
+      "favorite": "Favorite",
+      "favoriteHint": "Also shows in Favorites, above the products on your storefront.",
       "remove": "Delete product",
       "linkPlaceholder": "https://store.com/product",
       "linkLabel": "Product link",
@@ -820,7 +827,7 @@
     "delete": {
       "open": "Delete my account",
       "withVitrine": "Deletes your account, the storefront {url}, its coupons, products, outfits and metrics. This can't be undone.",
-      "withoutVitrine": "Deletes your account, your saved storefronts and your comments. This can't be undone.",
+      "withoutVitrine": "Deletes your account, the storefronts you follow and your comments. This can't be undone.",
       "confirm": "To confirm, type {word}",
       "deleting": "Deleting…",
       "submit": "Delete forever",
@@ -840,6 +847,8 @@
       "addCoupon": "Add coupon",
       "emptyCoupons": "Start with the coupon you share the most.",
       "product": "Edit product {name}",
+      "favoriteOn": "Remove {name} from favorites",
+      "favoriteOff": "Mark {name} as a favorite",
       "newProduct": "untitled",
       "addProduct": "Add product",
       "emptyProducts": "Paste the link of a product you recommend and we fetch its name and photo.",

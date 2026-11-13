@@ -7,7 +7,7 @@ import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { AccountMenu, type Account } from "@/components/home/AccountMenu";
 import { CoverPicker } from "@/components/home/CoverPicker";
-import { Link, useRouter } from "@/lib/i18n/navigation";
+import { Link, useRouter, vitrineHref } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 import { Storefront, type StorefrontEdit } from "@/components/storefront/Storefront";
 import { vitrineAddress } from "@/lib/vitrine/links";
@@ -182,6 +182,7 @@ export function Editor({
       setOpen({ kind: "coupon", id: c.id, isNew: true });
     },
     product: (id) => setOpen(id ? { kind: "product", id, isNew: false } : { kind: "productNew" }),
+    favorite: (id, on) => patch("products", id, { favorite: on }),
     outfits: <OutfitsEditor posts={draft.posts} products={draft.products} update={update} />,
   };
 
@@ -210,6 +211,20 @@ export function Editor({
                 {saving ? t("publishing") : t("publish")}
               </button>
             </div>
+          )}
+          {/* sem alterações pendentes (ou logo depois de publicar), o que está aqui é o que está no ar: dá para ir ver a vitrine pública */}
+          {!dirty && (
+            <Link
+              href={vitrineHref(published.handle)}
+              onClick={confirmLeave}
+              className="flex min-h-11 flex-none items-center gap-2 rounded-full border border-ink px-5 text-sm font-bold text-ink no-underline transition-colors hover:bg-ink hover:text-white max-sm:min-h-10 max-sm:px-4"
+            >
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              {t("viewVitrine")}
+            </Link>
           )}
           <AccountMenu account={account} onLeave={confirmLeave} />
         </div>

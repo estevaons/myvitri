@@ -57,6 +57,8 @@ export const toProduct = (p: Fields<ProductRow>): Product => ({
   affiliateUrl: p.affiliate_url,
   videoUrl: p.video_url,
   soldOut: p.sold_out,
+  // antes da migração 20261113000000_product_favorite a coluna não existe
+  favorite: p.favorite ?? false,
   priceCheckedAt: p.price_checked_at,
 });
 

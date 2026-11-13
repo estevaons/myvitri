@@ -27,7 +27,7 @@ export function TermsPt({ updated }: { updated: string }) {
 
       <Section title="2. Sua conta">
         <ul>
-          <li>Para criar uma vitrine, favoritar ou comentar você entra com sua conta Google ou com e-mail e senha e precisa ter 18 anos ou mais, ou autorização dos responsáveis.</li>
+          <li>Para criar uma vitrine, seguir vitrines ou comentar você entra com sua conta Google ou com e-mail e senha e precisa ter 18 anos ou mais, ou autorização dos responsáveis.</li>
           <li>Cada conta tem uma vitrine e um link. Você é responsável por tudo o que acontece na sua conta.</li>
           <li>
             Alguns links são reservados. Podemos recuperar um link que se passe por outra pessoa ou marca, ou que viole direitos de

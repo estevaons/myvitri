@@ -317,9 +317,19 @@ export type StorefrontEdit = {
   /** null: adicionar um novo */
   coupon: (id: string | null) => void;
   product: (id: string | null) => void;
+  /** marca ou desmarca o produto como favorito da creator (seção Favoritos), sem abrir a janela */
+  favorite: (id: string, on: boolean) => void;
   /** os outfits editados no lugar da seção (o editor monta) */
   outfits: ReactNode;
 };
+
+function HeartIcon({ size = 16, on }: { size?: number; on: boolean }) {
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill={on ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    </svg>
+  );
+}
 
 function PencilIcon({ size = 16 }: { size?: number }) {
   return (
@@ -663,6 +673,8 @@ export function Storefront({
   // esgotados vão para o fim da lista
   const products = useMemo(() => [...content.products].sort((a, b) => Number(a.soldOut) - Number(b.soldOut)), [content.products]);
   // post sem foto ou sem nenhum produto que ainda exista não aparece (no modo de edição aparece, para completar)
+  // favoritos da creator (esgotados ficam só na lista de produtos), na ordem dos produtos
+  const favoriteProducts = useMemo(() => products.filter((p) => p.favorite && !p.soldOut), [products]);
   const allPosts = useMemo(() => content.posts.map((p) => ({ post: p, items: postItems(p, products) })), [content.posts, products]);
   const posts = useMemo(() => allPosts.filter((p) => p.post.photoUrl && p.items.length > 0), [allPosts]);
 
@@ -752,15 +764,27 @@ export function Storefront({
         {/* "/" serve aos dois: o proxy leva quem entrou para /inicio e quem não entrou fica na landing.
             Na prévia do editor é só a aparência, para o clique não tirar a pessoa do editor. */}
         <BackLink href={preview ? undefined : "/"} label="home" labelClass="@max-2xl:hidden" />
-        <nav aria-label={t("nav.label")} className="flex flex-none gap-6 @max-2xl:hidden">
-          {nav.map(([href, label, on]) =>
-            on ? (
-              <a key={href} href={href} className="text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold">
-                {label}
-              </a>
-            ) : null,
+        <div className="flex flex-none items-center gap-8">
+          <nav aria-label={t("nav.label")} className="flex flex-none gap-6 @max-2xl:hidden">
+            {nav.map(([href, label, on]) =>
+              on ? (
+                <a key={href} href={href} className="text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold">
+                  {label}
+                </a>
+              ) : null,
+            )}
+          </nav>
+          {/* a dona vê o atalho para o editor (quem é dona vem de /api/eu: a página em si é a mesma para todos) */}
+          {!preview && viewer?.user && viewer.owner && (
+            <Link
+              href="/editor"
+              className="flex min-h-10 flex-none items-center gap-2 border border-ink px-4 text-[12px] font-medium tracking-[0.18em] text-ink uppercase no-underline hover:bg-ink hover:text-white"
+            >
+              <PencilIcon size={14} />
+              {t("editVitrine")}
+            </Link>
           )}
-        </nav>
+        </div>
       </header>
       )}
 
@@ -863,6 +887,26 @@ export function Storefront({
         )
       )}
 
+      {favoriteProducts.length > 0 && (
+        <section id="favoritos" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
+          <Carousel title={t("favoritesTitle", { name: firstName })} label={t("favoritesLabel", { name: firstName })}>
+            {favoriteProducts.map((p) => (
+              <article key={p.id} className="relative flex w-[260px] flex-none snap-start flex-col items-center text-center @max-md:w-[62%]">
+                {edit && <EditHit label={te("product", { name: p.name || te("newProduct") })} onClick={() => edit.product(p.id)} />}
+                <ProductLink {...linkProps(p)} className="flex w-full min-w-0 flex-col text-ink no-underline">
+                  <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
+                    <ProductArt product={p} iconClassName="w-[52%]" />
+                  </div>
+                  <h3 className="m-0 pt-3 text-[15px] leading-snug font-medium underline-offset-2 [a:hover_&]:underline @max-2xl:text-sm">{p.name}</h3>
+                </ProductLink>
+                {p.brand && <span className="pt-0.5 text-[13px] text-mute">{p.brand}</span>}
+                {p.videoUrl && <ReviewLink href={p.videoUrl} onClick={() => send("video", p.id)} />}
+              </article>
+            ))}
+          </Carousel>
+        </section>
+      )}
+
       {(products.length > 0 || edit) && (
         <section id="produtos" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-6 pt-16 @3xl:pt-24 ${pad}`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -904,6 +948,26 @@ export function Storefront({
             {shownProducts.map((p) => (
               <article key={p.id} className="relative flex min-w-0 flex-col items-center text-center">
                 {edit && <EditHit label={te("product", { name: p.name || te("newProduct") })} onClick={() => edit.product(p.id)} />}
+                {/* no editor, o coração marca e desmarca o favorito ali mesmo; na vitrine é só o selo */}
+                {edit ? (
+                  <button
+                    type="button"
+                    onClick={() => edit.favorite(p.id, !p.favorite)}
+                    aria-pressed={p.favorite}
+                    aria-label={te(p.favorite ? "favoriteOn" : "favoriteOff", { name: p.name || te("newProduct") })}
+                    title={te(p.favorite ? "favoriteOn" : "favoriteOff", { name: p.name || te("newProduct") })}
+                    className={`absolute top-2.5 left-2.5 z-30 flex size-9 cursor-pointer items-center justify-center rounded-full border-0 shadow-[0_1px_4px_rgba(17,17,17,0.18)] transition-transform hover:scale-105 ${p.favorite ? "bg-ink text-white" : "bg-white text-ink"}`}
+                  >
+                    <HeartIcon on={p.favorite} />
+                  </button>
+                ) : (
+                  p.favorite && (
+                    <span title={t("favoriteBadge", { name: firstName })} className="pointer-events-none absolute top-2.5 left-2.5 z-10 flex size-8 items-center justify-center rounded-full bg-white text-ink shadow-sm">
+                      <HeartIcon on size={15} />
+                      <span className="sr-only">{t("favoriteBadge", { name: firstName })}</span>
+                    </span>
+                  )
+                )}
                 <ProductLink {...linkProps(p)} className="flex w-full min-w-0 flex-col text-ink no-underline">
                   <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
                     <ProductArt
