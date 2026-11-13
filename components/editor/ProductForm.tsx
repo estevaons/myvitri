@@ -119,39 +119,10 @@ export function ProductForm({
         </p>
       )}
       {/* Sem títulos de seção (cada campo tem o seu rótulo), para a janela caber sem rolar. Do `sm` em diante, duas colunas:
-          a foto e o favorito à esquerda, os campos à direita. */}
+          a foto à esquerda, os campos à direita. O favorito não fica aqui: é o coração no card do produto, na vitrine. */}
       <div className="grid gap-4 sm:grid-cols-[232px_minmax(0,1fr)] sm:items-start sm:gap-6">
         <div className="flex flex-col gap-3">
           <ImageField value={p.imageUrl} onChange={(imageUrl) => onChange({ imageUrl })} />
-          {/* Favorito da creator (aparece também na seção Favoritos, no topo dos produtos da vitrine). O cartão inteiro liga e
-              desliga, com o mesmo coração em círculo do card do produto: branco desligado, preto e cheio ligado. */}
-          <button
-            type="button"
-            aria-pressed={p.favorite}
-            aria-label={t("favorite")}
-            aria-describedby="favorito-dica"
-            onClick={() => onChange({ favorite: !p.favorite })}
-            className={`group flex w-full cursor-pointer items-center gap-3.5 rounded-[14px] border p-3 text-left text-ink transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-              p.favorite ? "border-ink bg-white" : "border-[#EEEBE5] bg-[#FAF9F7] hover:border-[#D6D0C5]"
-            }`}
-          >
-            <span
-              aria-hidden="true"
-              className={`flex size-10 flex-none items-center justify-center rounded-full shadow-[0_1px_4px_rgba(17,17,17,0.18)] transition-[transform,background-color,color] duration-200 group-hover:scale-105 group-active:scale-95 ${
-                p.favorite ? "bg-ink text-white" : "bg-white text-ink"
-              }`}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill={p.favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-              </svg>
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-sm font-semibold">{p.favorite ? t("favoriteOn") : t("favoriteOff")}</span>
-              <span id="favorito-dica" className="text-[13px] leading-snug text-[#5E5A52]">
-                {p.favorite ? t("favoriteOnHint") : t("favoriteHint")}
-              </span>
-            </span>
-          </button>
         </div>
 
         <div className="flex min-w-0 flex-col gap-3.5">

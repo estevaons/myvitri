@@ -825,8 +825,6 @@
       "video": "Video review (optional)",
       "videoHint": "Link to your Reels, TikTok or YouTube video about the product.",
       "addVideo": "+ Video review",
-      "favorite": "Favorite",
-      "favoriteHint": "It also shows up in Favorites, at the top of your storefront.",
       "remove": "Delete product",
       "linkPlaceholder": "https://store.com/product",
       "linkLabel": "Product link",
@@ -837,10 +835,7 @@
       "or": "or",
       "importFailed": "We couldn't fetch this link's details ({error}). Fill them in below.",
       "removeTitle": "Delete this product?",
-      "removeText": "It is also removed from the outfits it appears in.",
-      "favoriteOff": "Mark as favorite",
-      "favoriteOn": "In your favorites",
-      "favoriteOnHint": "It shows up in Favorites, at the top of your storefront. Tap to remove."
+      "removeText": "It is also removed from the outfits it appears in."
     },
     "posts": {
       "tag": "Add {name} to the outfit",

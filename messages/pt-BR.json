@@ -825,8 +825,6 @@
       "video": "Review em vídeo (opcional)",
       "videoHint": "Link do seu Reels, TikTok ou YouTube sobre o produto.",
       "addVideo": "+ Review em vídeo",
-      "favorite": "Favorito",
-      "favoriteHint": "Aparece também em Favoritos, no topo da sua vitrine.",
       "remove": "Excluir produto",
       "linkPlaceholder": "https://loja.com/produto",
       "linkLabel": "Link do produto",
@@ -837,10 +835,7 @@
       "or": "ou",
       "importFailed": "Não conseguimos puxar os dados desse link ({error}). Preencha abaixo.",
       "removeTitle": "Excluir este produto?",
-      "removeText": "Ele também sai dos outfits em que aparece.",
-      "favoriteOff": "Marcar como favorito",
-      "favoriteOn": "Está nos seus favoritos",
-      "favoriteOnHint": "Aparece em Favoritos, no topo da sua vitrine. Toque para tirar."
+      "removeText": "Ele também sai dos outfits em que aparece."
     },
     "posts": {
       "tag": "Pôr {name} no outfit",
