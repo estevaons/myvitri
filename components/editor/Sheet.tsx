@@ -9,7 +9,20 @@ import { useEffect, useRef, type ReactNode } from "react";
  * baixo e ocupa quase a tela toda, com o rodapé (Concluir, Excluir) fixo perto do polegar; do `sm` em diante fica no
  * centro. Abre quando monta e avisa `onClose` quando a pessoa fecha (X, Esc, fundo escuro ou o botão do rodapé).
  */
-export function Sheet({ title, onClose, footer, children }: { title: string; onClose: () => void; footer?: ReactNode; children: ReactNode }) {
+export function Sheet({
+  title,
+  onClose,
+  footer,
+  wide = false,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  footer?: ReactNode;
+  /** do `sm` em diante, a janela larga (o produto, em duas colunas, cabe sem rolar) */
+  wide?: boolean;
+  children: ReactNode;
+}) {
   const t = useTranslations("editor");
   const ref = useRef<HTMLDialogElement>(null);
   // o onClose muda a cada render; o efeito só deve abrir uma vez
@@ -45,7 +58,7 @@ export function Sheet({ title, onClose, footer, children }: { title: string; onC
       tabIndex={-1}
       // clique no fundo escurecido (fora da caixa) fecha
       onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
-      className="box-border flex max-h-[92dvh] outline-none w-full max-w-none flex-col overflow-hidden rounded-t-[20px] border-0 bg-white p-0 text-ink backdrop:bg-ink/45 max-sm:mt-auto max-sm:mb-0 motion-safe:animate-sheet-up sm:m-auto sm:max-h-[min(88dvh,820px)] sm:w-[calc(100%-32px)] sm:max-w-[520px] sm:rounded-[20px] [&:not([open])]:hidden"
+      className={`box-border flex max-h-[92dvh] outline-none w-full max-w-none flex-col overflow-hidden rounded-t-[20px] border-0 bg-white p-0 text-ink backdrop:bg-ink/45 max-sm:mt-auto max-sm:mb-0 motion-safe:animate-sheet-up sm:m-auto sm:max-h-[min(88dvh,820px)] sm:w-[calc(100%-32px)] ${wide ? "sm:max-w-[760px]" : "sm:max-w-[520px]"} sm:rounded-[20px] [&:not([open])]:hidden`}
     >
       <header className="flex flex-none items-center justify-between gap-3 border-b border-[#EEEBE5] py-2 pr-2 pl-5">
         <h2 className="m-0 truncate text-[17px] font-semibold">{title}</h2>
@@ -66,7 +79,7 @@ export function Sheet({ title, onClose, footer, children }: { title: string; onC
   );
 }
 
-/** Rodapé padrão: posição na lista com as setas, excluir (confirma numa janela) e Concluir. */
+/** Rodapé padrão, numa linha só: excluir (confirma numa janela), posição na lista com as setas e Concluir. */
 export function SheetFooter({
   onDone,
   onRemove,
@@ -91,41 +104,48 @@ export function SheetFooter({
     if (await ask({ title: removeAsk?.title ?? `${removeLabel}?`, text: removeAsk?.text, confirm: t("remove"), danger: true })) onRemove();
   };
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex items-center gap-2">
       {confirmDialog}
+      {onRemove && (
+        // no celular só a lixeira (o nome vai para o leitor de tela), para tudo caber numa linha
+        <button
+          type="button"
+          onClick={remove}
+          aria-label={removeLabel}
+          title={removeLabel}
+          className="-ml-2 flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1.5 rounded-full border-0 bg-transparent px-2.5 text-sm font-medium text-[#A3361B] hover:bg-[#FFF1EC]"
+        >
+          <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          </svg>
+          <span aria-hidden="true" className="max-sm:hidden">
+            {removeLabel}
+          </span>
+        </button>
+      )}
       {move && move.total > 1 && (
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[13px] text-[#5E5A52] tabular-nums">{t("position", { pos: move.pos, total: move.total })}</span>
-          <div className="flex gap-2">
-            <button type="button" aria-label={t("moveBefore")} title={t("moveBefore")} disabled={move.pos <= 1} onClick={() => move.onMove(move.pos - 2)} className={arrow}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 5l-7 7 7 7" />
-              </svg>
-            </button>
-            <button type="button" aria-label={t("moveAfter")} title={t("moveAfter")} disabled={move.pos >= move.total} onClick={() => move.onMove(move.pos)} className={arrow}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+        <div className="flex items-center gap-1.5">
+          <button type="button" aria-label={t("moveBefore")} title={t("moveBefore")} disabled={move.pos <= 1} onClick={() => move.onMove(move.pos - 2)} className={arrow}>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </button>
+          <span className="min-w-8 text-center text-[13px] text-[#5E5A52] tabular-nums">
+            <span aria-hidden="true">
+              {move.pos}/{move.total}
+            </span>
+            <span className="sr-only">{t("position", { pos: move.pos, total: move.total })}</span>
+          </span>
+          <button type="button" aria-label={t("moveAfter")} title={t("moveAfter")} disabled={move.pos >= move.total} onClick={() => move.onMove(move.pos)} className={arrow}>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       )}
-      <div className="flex items-center justify-between gap-2">
-        {onRemove ? (
-          <button
-            type="button"
-            onClick={remove}
-            className="-ml-2 min-h-11 cursor-pointer rounded-[10px] border-0 bg-transparent px-2 text-sm font-medium text-[#A3361B] hover:bg-[#FFF1EC]"
-          >
-            {removeLabel}
-          </button>
-        ) : (
-          <span />
-        )}
-        <button type="button" onClick={onDone} className="min-h-11 cursor-pointer rounded-full border-0 bg-ink px-7 text-sm font-semibold text-white hover:opacity-85">
-          {t("done")}
-        </button>
-      </div>
+      <button type="button" onClick={onDone} className="ml-auto min-h-11 cursor-pointer rounded-full border-0 bg-ink px-7 text-sm font-semibold text-white hover:opacity-85">
+        {t("done")}
+      </button>
     </div>
   );
 }

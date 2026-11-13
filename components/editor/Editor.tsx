@@ -410,7 +410,7 @@ function EditSheet({
     );
 
   return (
-      <Sheet title={open.isNew ? tSheet("newProduct") : tSheet("product")} onClose={close} footer={footer}>
+      <Sheet title={open.isNew ? tSheet("newProduct") : tSheet("product")} onClose={close} footer={footer} wide>
         <ProductForm
           product={draft.products[index]}
           categories={[...new Set(draft.products.map((p) => p.category).filter(Boolean))]}
