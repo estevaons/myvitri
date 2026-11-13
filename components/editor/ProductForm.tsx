@@ -139,27 +139,36 @@ export function ProductForm({
             <option key={c} value={c} />
           ))}
         </datalist>
+        {/* Favorito da creator (aparece também na seção Favoritos, no topo dos produtos da vitrine). O cartão inteiro liga e
+            desliga, com o mesmo coração em círculo do card do produto: branco desligado, preto e cheio ligado. */}
+        <button
+          type="button"
+          aria-pressed={p.favorite}
+          aria-label={t("favorite")}
+          aria-describedby="favorito-dica"
+          onClick={() => onChange({ favorite: !p.favorite })}
+          className={`group mt-1 flex w-full cursor-pointer items-center gap-3.5 rounded-[14px] border p-3 text-left text-ink transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
+            p.favorite ? "border-ink bg-white" : "border-[#EEEBE5] bg-[#FAF9F7] hover:border-[#D6D0C5]"
+          }`}
+        >
+          <span
+            aria-hidden="true"
+            className={`flex size-10 flex-none items-center justify-center rounded-full shadow-[0_1px_4px_rgba(17,17,17,0.18)] transition-[transform,background-color,color] duration-200 group-hover:scale-105 group-active:scale-95 ${
+              p.favorite ? "bg-ink text-white" : "bg-white text-ink"
+            }`}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={p.favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+            </svg>
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-sm font-semibold">{p.favorite ? t("favoriteOn") : t("favoriteOff")}</span>
+            <span id="favorito-dica" className="text-[13px] leading-snug text-[#5E5A52]">
+              {p.favorite ? t("favoriteOnHint") : t("favoriteHint")}
+            </span>
+          </span>
+        </button>
       </Group>
-
-      {/* favorito da creator: aparece também na seção Favoritos, no topo dos produtos da vitrine */}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={p.favorite}
-        onClick={() => onChange({ favorite: !p.favorite })}
-        className="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-[12px] border border-[#E0DCD3] bg-white px-3.5 py-3 text-left text-ink hover:border-ink"
-      >
-        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill={p.favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-        </svg>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-sm font-semibold">{t("favorite")}</span>
-          <span className="text-[13px] leading-snug text-[#5E5A52]">{t("favoriteHint")}</span>
-        </span>
-        <span aria-hidden="true" className={`relative h-6 w-10 flex-none rounded-full transition-colors ${p.favorite ? "bg-ink" : "bg-[#D6D2C9]"}`}>
-          <span className={`absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-[left] ${p.favorite ? "left-[18px]" : "left-0.5"}`} />
-        </span>
-      </button>
 
       {p.soldOut && (
         <Group title={t("onVitrine")}>
