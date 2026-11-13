@@ -19,7 +19,7 @@ export function EditorSkeleton() {
   return (
     <LoadingScreen className="flex min-h-dvh flex-col bg-paper text-ink">
       <header className="border-b border-[#E0DCD3] bg-white">
-        <div className="flex items-center gap-3.5 px-5 py-3 max-sm:gap-2.5 max-sm:px-3">
+        <div className="mx-auto box-border flex w-full max-w-[1440px] items-center gap-3.5 px-5 py-3 md:px-12 max-sm:gap-2.5 max-sm:px-3">
           <BackLink href="/inicio" label="home" labelClass="max-sm:hidden" divider />
           <Link href="/inicio" aria-label={t("brandHome", { brand: BRAND })} className="flex text-ink no-underline max-sm:hidden">
             <Wordmark label="" className="h-[17px] w-auto" />
@@ -29,9 +29,9 @@ export function EditorSkeleton() {
         </div>
       </header>
 
-      <main className="box-border flex flex-1 flex-col items-center gap-4 p-6 max-sm:px-0 max-sm:pt-0 max-sm:pb-6">
-        <p className="m-0 w-full max-w-[1100px] text-[13px] leading-snug text-[#5E5A52] max-sm:px-4 max-sm:pt-3">{te("editHint")}</p>
-        <div className="w-full max-w-[1100px] flex-none overflow-hidden bg-white sm:rounded-2xl sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]">
+      <main className="mx-auto box-border flex w-full max-w-[1440px] flex-1 flex-col items-center gap-4 px-5 py-6 md:px-12 max-sm:px-0 max-sm:pt-0 max-sm:pb-6">
+        <p className="m-0 w-full text-[13px] leading-snug text-[#5E5A52] max-sm:px-4 max-sm:pt-3">{te("editHint")}</p>
+        <div className="w-full flex-none overflow-hidden bg-white sm:rounded-2xl sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]">
           <div className="flex items-center justify-center border-b border-[#E8E5DF] bg-[#F7F6F3] px-3.5 py-2.5 max-sm:hidden">
             <span className="flex items-center gap-1.5 rounded-full border border-[#E8E5DF] bg-white px-3.5 py-1.5 text-xs text-[#3A3A3A]">
               <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">

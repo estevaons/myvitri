@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState, useTransition, type DragEvent, type ReactNode } from "react";
 import { importProductAction } from "@/app/actions";
-import { InlineText } from "@/components/storefront/Storefront";
+import { InlineText, PencilBadge } from "@/components/storefront/Storefront";
 import { ProductArt } from "@/components/storefront/ProductIcon";
 import { withHttps } from "@/lib/vitrine/links";
 import { POST_MAX_ITEMS, postItems, type Post, type Product } from "@/lib/vitrine/types";
@@ -161,14 +161,18 @@ export function OutfitsEditor({ posts, products, update }: { posts: Post[]; prod
         />
 
         <div className="flex min-w-0 flex-col gap-7 p-5 pb-6 @3xl:p-12 @6xl:p-16">
-          <InlineText
-            value={current?.caption ?? ""}
-            onChange={(caption) => change({ caption })}
-            maxLength={300}
-            placeholder={t("captionPlaceholder")}
-            label={t("caption")}
-            className="-mx-2 rounded-[10px] px-2 py-1 text-left font-display! text-[clamp(24px,2.6cqw,36px)] leading-[1.15] font-normal transition-colors hover:bg-ink/[0.035] focus:bg-white"
-          />
+          {/* o lápis no canto diz que a legenda é editável; some com o cursor dentro */}
+          <div className="group/caption relative">
+            <InlineText
+              value={current?.caption ?? ""}
+              onChange={(caption) => change({ caption })}
+              maxLength={300}
+              placeholder={t("captionPlaceholder")}
+              label={t("caption")}
+              className="-mx-2 rounded-[10px] py-1 pr-12 pl-2 text-left font-display! text-[clamp(24px,2.6cqw,36px)] leading-[1.15] font-normal transition-colors hover:bg-ink/[0.035] focus:bg-white"
+            />
+            <PencilBadge className="absolute top-0.5 -right-1 group-has-focus/caption:opacity-0" />
+          </div>
 
           <div className="flex flex-col gap-1">
             <span className="text-[12px] font-medium tracking-[0.22em] text-gold uppercase">{t("pieces", { n: tagged.length, max: POST_MAX_ITEMS })}</span>
