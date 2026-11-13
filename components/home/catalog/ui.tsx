@@ -166,7 +166,7 @@ export function CatalogFrame({
     <section className={`mx-auto flex max-w-[1440px] flex-col gap-5 pt-8 md:gap-6 md:pt-10 ${pad}`}>
       {/* só o título, sem texto de apoio: a aba já diz o que é */}
       <h2 className="m-0 font-display text-[clamp(30px,3.2vw,44px)] leading-[1] font-normal">{title}</h2>
-      <div className="flex flex-col gap-2 border-y border-sand py-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-x-8">
+      <div className="flex flex-col gap-2 border-t border-sand py-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-x-8">
         {/* empty: os filtros com menos de duas opções não aparecem e a lista pode ficar sem nenhum */}
         {filters && <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 empty:hidden md:mx-0 md:flex-wrap md:overflow-visible md:px-0">{filters}</div>}
         <div className="flex min-h-10 items-center justify-between gap-5 text-[14px] md:ml-auto md:justify-end">

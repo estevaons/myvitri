@@ -358,6 +358,7 @@ export type Database = {
           url: string
           vitrine_id: string
           affiliate_url: string
+          favorite: boolean
           price_checked_at: string | null
           sold_out: boolean
           video_url: string
@@ -375,6 +376,7 @@ export type Database = {
           url?: string
           vitrine_id: string
           affiliate_url?: string
+          favorite?: boolean
           price_checked_at?: string | null
           sold_out?: boolean
           video_url?: string
@@ -392,6 +394,7 @@ export type Database = {
           url?: string
           vitrine_id?: string
           affiliate_url?: string
+          favorite?: boolean
           price_checked_at?: string | null
           sold_out?: boolean
           video_url?: string

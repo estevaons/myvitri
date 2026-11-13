@@ -67,7 +67,7 @@ export function PrivacyPt({ updated }: { updated: string }) {
           quem visita: a Vercel diferencia as visitas por um código temporário, descartado a cada dia.
         </p>
         <p>
-          <strong>Quem favorita ou comenta.</strong> Os mesmos dados do login. A lista de favoritas é privada. Comentários
+          <strong>Quem segue vitrines ou comenta.</strong> Os mesmos dados do login. A lista das vitrines que você segue é privada. Comentários
           e respostas são públicos: o texto aparece na vitrine com a data, o seu nome e, se você entrar com o Google, a sua foto de perfil, para qualquer pessoa
           que abrir a página. Você pode apagar seus comentários a qualquer momento, e quem é dono da vitrine também pode apagar os que
           estão nela. Apagar um comentário apaga também as respostas dele.
@@ -96,7 +96,7 @@ export function PrivacyPt({ updated }: { updated: string }) {
           <li>Criar e manter sua conta, identificar você no login e proteger o acesso ao editor (execução do contrato).</li>
           <li>Preencher a foto da sua vitrine com a foto do Google, que você pode trocar ou remover a qualquer momento.</li>
           <li>Publicar sua vitrine e mostrar a você as métricas de visitas e cliques (execução do contrato).</li>
-          <li>Guardar suas vitrines favoritas e publicar seus comentários com seu nome e foto (execução do contrato).</li>
+          <li>Guardar as vitrines que você segue e publicar seus comentários com seu nome e foto (execução do contrato).</li>
           <li>Falar com você sobre sua conta, mudanças importantes no serviço ou pedidos que você fizer (legítimo interesse).</li>
           <li>Entender, de forma agregada, como o site é usado e se ele carrega bem, para melhorá-lo (legítimo interesse).</li>
           <li>Entender como as pessoas chegam ao {BRAND} e usam o site, para melhorar o produto (legítimo interesse).</li>
@@ -126,7 +126,7 @@ export function PrivacyPt({ updated }: { updated: string }) {
           <li>Um cookie que lembra o idioma do site que você escolheu por último (até 1 ano).</li>
           <li>
             Registros na sessão do navegador para não contar a mesma visita duas vezes, guardar o rascunho de um comentário e lembrar a
-            vitrine que você quis favoritar enquanto entra; eles somem quando a aba é fechada.
+            vitrine que você quis seguir enquanto entra; eles somem quando a aba é fechada.
           </li>
           <li>Um cookie de origem (<code>vitri_ref</code>), que guarda de onde veio a primeira visita e expira em 30 dias (veja o item 2).</li>
           <li>Um identificador anônimo guardado pelo PostHog no armazenamento local do navegador (não é cookie), para reconhecer o navegador entre visitas.</li>
@@ -180,7 +180,7 @@ export function PrivacyPt({ updated }: { updated: string }) {
         <p>
           Mantemos os dados da sua conta e da sua vitrine enquanto a conta existir. Você pode excluir a conta quando quiser, nas Configurações
           (no menu da sua foto, “Excluir minha conta”): na mesma hora apagamos a conta, a vitrine, os cupons, os produtos, os outfits, as fotos
-          enviadas, o rascunho, as métricas, as favoritas e os comentários que você escreveu, e o link fica livre. Se preferir, peça a exclusão por {mail} e fazemos em até 15 dias. Cópias de segurança do banco
+          enviadas, o rascunho, as métricas, as vitrines que você segue e os comentários que você escreveu, e o link fica livre. Se preferir, peça a exclusão por {mail} e fazemos em até 15 dias. Cópias de segurança do banco
           de dados e registros técnicos dos provedores são apagados automaticamente em prazos curtos. Só guardamos algo depois disso se
           a lei obrigar. Os dados do onboarding saem junto com a conta. Os eventos já enviados ao PostHog não são apagados automaticamente
           com a conta: seguem o prazo de retenção configurado no projeto, inclusive as gravações de sessão.
@@ -218,7 +218,7 @@ export function PrivacyPt({ updated }: { updated: string }) {
 
       <Section title="11. Menores de idade">
         <p>
-          Para criar uma vitrine, favoritar ou comentar é preciso ter 18 anos ou mais, ou autorização dos pais ou responsáveis. Visitar
+          Para criar uma vitrine, seguir vitrines ou comentar é preciso ter 18 anos ou mais, ou autorização dos pais ou responsáveis. Visitar
           vitrines não exige cadastro.
         </p>
       </Section>

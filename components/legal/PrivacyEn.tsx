@@ -78,7 +78,7 @@ export function PrivacyEn({ updated }: { updated: string }) {
           with a temporary code that is discarded every day.
         </p>
         <p>
-          <strong>People who save storefronts or comment.</strong> The same sign-in data. The list of saved storefronts is private. Comments
+          <strong>People who follow storefronts or comment.</strong> The same sign-in data. The list of storefronts you follow is private. Comments
           and replies are public: the text appears on the storefront with the date, your name and, if you sign in with Google, your profile photo, to anyone
           who opens the page. You can delete your comments at any time, and the storefront owner can also delete the ones on it. Deleting a comment also deletes its replies.
         </p>
@@ -105,7 +105,7 @@ export function PrivacyEn({ updated }: { updated: string }) {
           <li>To create and maintain your account, identify you at sign-in and protect access to the editor (performance of contract).</li>
           <li>To fill in your storefront photo with your Google photo, which you can change or remove at any time.</li>
           <li>To publish your storefront and show you visit and click metrics (performance of contract).</li>
-          <li>To keep your saved storefronts and publish your comments with your name and photo (performance of contract).</li>
+          <li>To keep the storefronts you follow and publish your comments with your name and photo (performance of contract).</li>
           <li>To contact you about your account, important changes to the service or requests you make (legitimate interest).</li>
           <li>To understand, in aggregate, how the site is used and whether it loads well, so we can improve it (legitimate interest).</li>
           <li>To understand how people reach {BRAND} and use the site, in order to improve the product (legitimate interest).</li>
@@ -138,7 +138,7 @@ export function PrivacyEn({ updated }: { updated: string }) {
           <li>A cookie that remembers the site language you last chose (up to 1 year).</li>
           <li>
             Entries in the browser session so the same visit is not counted twice, to keep a comment draft and to remember the storefront you
-            wanted to save while you sign in; they disappear when the tab is closed.
+            wanted to follow while you sign in; they disappear when the tab is closed.
           </li>
           <li>An origin cookie (<code>vitri_ref</code>), which stores where your first visit came from and expires in 30 days (see item 2).</li>
           <li>An anonymous identifier stored by PostHog in the browser&apos;s local storage (not a cookie), to recognize the browser between visits.</li>
@@ -192,7 +192,7 @@ export function PrivacyEn({ updated }: { updated: string }) {
         <p>
           We keep your account and storefront data for as long as the account exists. You can delete your account whenever you want in Settings
           (in your photo&apos;s menu, “Delete my account”): we immediately delete the account, the storefront, coupons, products, outfits, uploaded
-          photos, draft, metrics, saved storefronts and the comments you wrote, and the link becomes available. If you prefer, request deletion at {mail} and we
+          photos, draft, metrics, the storefronts you follow and the comments you wrote, and the link becomes available. If you prefer, request deletion at {mail} and we
           will do it within 15 days. Database backups and providers&apos; technical logs are deleted automatically within short periods. We only
           keep anything after that if the law requires it. Onboarding data is deleted together with your account. Events already sent to PostHog
           are not automatically deleted with the account: they follow the retention period configured for the project, including session recordings.
@@ -230,7 +230,7 @@ export function PrivacyEn({ updated }: { updated: string }) {
 
       <Section title="11. Minors">
         <p>
-          To create a storefront, save storefronts or comment, you must be 18 or older or have permission from a parent or guardian. Visiting
+          To create a storefront, follow storefronts or comment, you must be 18 or older or have permission from a parent or guardian. Visiting
           storefronts does not require an account.
         </p>
       </Section>

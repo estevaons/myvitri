@@ -19,7 +19,7 @@ const PROFILE_LOOK = { on: "border-ink bg-ink text-white", off: "border-sand bg-
 // a capa pode ser clara ou escura: o círculo translúcido garante o contraste nas duas
 const CARD_LOOK = { on: "bg-white text-ink shadow-sm", off: "bg-black/45 text-white backdrop-blur-sm group-hover/heart:bg-black/70" };
 
-/** Vitrine que a pessoa ia favoritar quando o login abriu: o coração termina o pedido na volta do Google. */
+/** Vitrine que a pessoa ia seguir quando o login abriu: o botão termina o pedido na volta do Google. */
 const INTENT = "vitri:favoritar";
 function remember(handle: string | null) {
   try {
@@ -37,29 +37,32 @@ function remembered() {
   }
 }
 
-function Heart({ on, pop, className }: { on: boolean; pop: boolean; className: string }) {
+/** Pessoa com "+" (seguir) ou com o visto (seguindo). O coração ficou para os produtos favoritos da creator. */
+function FollowIcon({ on, pop, className }: { on: boolean; pop: boolean; className: string }) {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
       className={`${className} flex-none ${pop ? "motion-safe:animate-heart-pop" : ""}`}
-      fill={on ? "currentColor" : "none"}
+      fill="none"
       stroke="currentColor"
       strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      {on ? <path d="m16 11 2 2 4-4" /> : <path d="M19 8v6M22 11h-6" />}
     </svg>
   );
 }
 
-/** O coração de cada variante: no card, dentro do círculo; no perfil, solto ao lado do texto. */
+/** O ícone de cada variante: no card, dentro do círculo; no perfil, solto ao lado do texto. */
 function Icon({ variant, on, pop }: { variant: keyof typeof SHAPE; on: boolean; pop: boolean }) {
-  if (variant === "profile") return <Heart on={on} pop={pop} className="size-[18px]" />;
+  if (variant === "profile") return <FollowIcon on={on} pop={pop} className="size-[18px]" />;
   return (
     <span className={`flex size-8 items-center justify-center rounded-full transition-colors group-focus-visible/heart:outline-2 group-focus-visible/heart:outline-offset-2 group-focus-visible/heart:outline-white ${CARD_LOOK[on ? "on" : "off"]}`}>
-      <Heart on={on} pop={pop} className="size-[18px] translate-y-px" />
+      <FollowIcon on={on} pop={pop} className="size-[18px] translate-y-px" />
     </span>
   );
 }
@@ -93,9 +96,9 @@ function ErrorToast({ text, onClose }: { text: string; onClose: () => void }) {
 }
 
 /**
- * Coração de favoritar. Muda na hora, sem aviso: desfazer é tocar nele de novo. Se o servidor recusar, volta
- * atrás e explica. Quem não entrou vê o mesmo coração: o toque abre o login e, na volta, a vitrine já
- * fica favoritada.
+ * Seguir a vitrine (na interface é "Seguir/Seguindo"; no código e no banco segue o nome antigo, favorito). Muda na
+ * hora, sem aviso: desfazer é tocar de novo. Se o servidor recusar, volta atrás e explica. Quem não entrou vê o mesmo
+ * botão: o toque abre o login e, na volta, a vitrine já fica seguida.
  */
 export function FavoriteButton({
   variant,
@@ -113,7 +116,7 @@ export function FavoriteButton({
   guest: boolean;
   /** ainda não se sabe quem está vendo: aparece igual, mas o toque não faz nada */
   loading?: boolean;
-  /** No perfil: quantas pessoas favoritaram, contando quem está vendo se `favorited`. null: não mostra. */
+  /** No perfil: quantas pessoas seguem, contando quem está vendo se `favorited`. null: não mostra. */
   count?: number | null;
 }) {
   const t = useTranslations("storefront.favorite");
