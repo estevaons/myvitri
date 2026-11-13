@@ -3,6 +3,7 @@ import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import type { Account } from "./AccountMenu";
 import { kicker, pad, pillDark } from "./chrome";
 import { VitrineLinkLine } from "./CopyLinkButton";
+import { ProfilePhoto } from "./ProfilePhoto";
 
 /**
  * Botões do perfil no areia das capas sem foto (`CoverLetter`), com o texto escuro: o principal (editar) preenchido,
@@ -15,20 +16,6 @@ const pillSandLine = `${pill} border border-sand bg-white hover:bg-sand`;
 /** Os números do topo: visitas, cliques nos produtos e cupons copiados nos últimos `WEEK` dias (RPC `vitrine_stats`). */
 export type WeekStats = { views: number; clicks: number; copied: number };
 export const WEEK = 7;
-
-/** A foto de perfil grande, centralizada; sem foto, a primeira letra do nome em serifa sobre o areia. */
-function ProfilePhoto({ name, url }: { name: string; url: string }) {
-  const box = "box-border size-28 flex-none rounded-full border-4 border-white ring-1 ring-sand md:size-34";
-  if (url) {
-    // eslint-disable-next-line @next/next/no-img-element -- foto da vitrine (bucket) ou do Google
-    return <img src={url} alt="" referrerPolicy="no-referrer" className={`${box} bg-sand object-cover`} />;
-  }
-  return (
-    <span aria-hidden="true" className={`${box} flex items-center justify-center bg-sand font-display text-[56px] leading-none text-ink/55 md:text-[68px]`}>
-      {[...name.trim()][0]?.toUpperCase() || "?"}
-    </span>
-  );
-}
 
 function Stat({ n, label }: { n: number; label: string }) {
   const format = useFormatter();
@@ -43,7 +30,7 @@ function Stat({ n, label }: { n: number; label: string }) {
 }
 
 /**
- * O topo da home logada, como um perfil do Instagram: a foto centralizada, o nome, o endereço (que abre e copia),
+ * O topo da home logada, como um perfil do Instagram: a foto centralizada (tocar nela troca a foto, `ProfilePhoto`), o nome, o endereço (que copia),
  * as métricas da semana e os botões de editar e de ver a vitrine. Rola junto com a página; quem fica presa no
  * topo é a barra de busca e abas logo abaixo. Quem ainda não tem vitrine vê a própria conta (nome e foto do
  * Google) e, no lugar dos números, o convite para criar uma.
@@ -54,7 +41,7 @@ export function ProfileHeader({ account, stats }: { account: Account; stats: Wee
   const name = v?.name || account.name;
   return (
     <section aria-labelledby="perfil" className={`mx-auto flex max-w-[52rem] flex-col items-center gap-5 pt-10 pb-10 text-center md:pt-14 ${pad}`}>
-      <ProfilePhoto name={name} url={account.avatarUrl} />
+      <ProfilePhoto name={name} url={account.avatarUrl} editable={Boolean(v)} />
       <div className="flex flex-col items-center gap-1">
         <h1 id="perfil" className="m-0 font-display text-[clamp(38px,4.4vw,56px)] leading-[1] font-normal break-words text-balance">
           {name}

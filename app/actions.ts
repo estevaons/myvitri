@@ -536,7 +536,12 @@ export async function updateProfileAction(profile: Pick<VitrineProfile, "handle"
   return saveProfile(profile);
 }
 
-/** Home: a capa; vazia remove, e a vitrine passa a mostrar a primeira letra do nome. */
+/** Home: a foto de perfil, trocada tocando na foto do topo; salva na hora, sem mexer no nome e no link. */
+export async function updateAvatarAction(avatarUrl: string): Promise<SocialResult> {
+  return saveProfile({ avatarUrl });
+}
+
+/** Editor (painel Perfil): a capa; vazia remove, e a vitrine passa a mostrar a primeira letra do nome. */
 export async function updateCoverAction(bannerUrl: string): Promise<SocialResult> {
   return saveProfile({ look: { bannerUrl } });
 }

@@ -423,6 +423,8 @@
       "metrics": "See metrics",
       "edit": "Edit storefront",
       "view": "View my storefront",
+      "photoChange": "Change profile photo",
+      "photoSending": "Uploading the photo…",
       "create": {
         "kicker": "Do you create content?",
         "title": "Build your storefront <em>too</em>",

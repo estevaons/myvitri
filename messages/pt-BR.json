@@ -423,6 +423,8 @@
       "metrics": "Ver métricas",
       "edit": "Editar vitrine",
       "view": "Ver minha vitrine",
+      "photoChange": "Trocar foto de perfil",
+      "photoSending": "Enviando a foto…",
       "create": {
         "kicker": "Você cria conteúdo?",
         "title": "Monte sua vitrine <em>também</em>",

@@ -215,7 +215,7 @@ Uma linha por creator. É a "capa" pública da vitrine. Criada em `2026110200000
 | `owner_id` | `uuid` | **sim** | — | `UNIQUE`, FK → `auth.users(id)` **on delete cascade**. Nulo só na vitrine demo do seed (ninguém consegue editá-la). O `UNIQUE` garante **uma vitrine por conta**. |
 | `handle` | `text` | não | — | `UNIQUE`, `CHECK (handle ~ '^[a-z0-9_.]{3,30}$')`. É o caminho da URL (`/marinacosta`). |
 | `name` | `text` | não | — | `CHECK char_length between 1 and 60` |
-| `avatar_url` | `text` | não | `''` | URL da foto de perfil (bucket `vitrine-photos`, Google ou link colado). A vitrine nova de quem entra pelo Google já nasce com a foto da conta (`starterContent`) e `saveProfile` regrava `avatarUrl \|\| googlePhoto(user)` a cada gravação de perfil ou de capa; vazio para quem usa só e-mail e senha (a vitrine mostra as iniciais). `publish_vitrine()` não preenche a foto |
+| `avatar_url` | `text` | não | `''` | URL da foto de perfil (bucket `vitrine-photos`, Google ou link colado). A vitrine nova de quem entra pelo Google já nasce com a foto da conta (`starterContent`) e `saveProfile` regrava `avatarUrl \|\| googlePhoto(user)` a cada gravação de perfil, de foto ou de capa; vazio para quem usa só e-mail e senha (a vitrine mostra as iniciais). `publish_vitrine()` não preenche a foto |
 | `headline` | `text` | não | `''` | `CHECK char_length <= 90` |
 | `sub` | `text` | não | `''` | `CHECK char_length <= 240` |
 | `look` | `jsonb` | não | `{"theme":"vibrante","accent":"#FF5A36","font":"moderna","radius":"arredondado","layout":"grade"}` | Hoje o app **só lê/grava `bannerUrl`** (foto de capa, opcional: vazia, a vitrine mostra a primeira letra do nome). As outras chaves são de um visual antigo e são descartadas por `pickLook` (`lib/vitrine/store.ts:26`). |
@@ -540,7 +540,7 @@ graph TD
 - `favorites` e `comments` caem por **duas** cascatas: ao apagar a conta de quem favoritou/comentou, e ao apagar a vitrine favoritada/comentada. Por isso `deleteAccountAction` lê antes (`listCommentedHandles`) as vitrines em que a pessoa comentou e invalida o cache `comentarios:{handle}` de cada uma depois da exclusão.
 - Apagar um **cupom** no editor também limpa o `couponId` dos produtos no próprio rascunho (`components/editor/CouponsPanel.tsx:44-51`); no banco, o `on delete set null` faria o mesmo.
 - Apagar um **produto** no editor remove o ID dos posts no rascunho (`components/editor/ProductsPanel.tsx:83`). No banco não há FK no array, então um post pode guardar IDs órfãos se alguém gravar direto; a vitrine ignora IDs que não encontra (`postItems`, `lib/vitrine/types.ts`).
-- **Arquivos do Storage não somem com a conta**: `deleteAccountAction` lista e apaga até 1000 arquivos de cada bucket antes de chamar a RPC (`app/actions.ts:273`). Já a troca de foto de perfil ou de capa apaga a foto antiga de `vitrine-photos` na hora (`saveProfile`, `app/actions.ts:379`); fotos de produto e de outfit ficam órfãs até a exclusão da conta.
+- **Arquivos do Storage não somem com a conta**: `deleteAccountAction` lista e apaga até 1000 arquivos de cada bucket antes de chamar a RPC (`app/actions.ts:273`). Já a troca de foto de perfil ou de capa apaga a foto antiga de `vitrine-photos` na hora (`saveProfile`, `app/actions.ts:492`); fotos de produto e de outfit ficam órfãs até a exclusão da conta.
 
 ## Mapeamento banco ↔ app
 
@@ -552,7 +552,7 @@ O app trabalha em `camelCase` (`VitrineContent`), o banco em `snake_case`. A con
 | linha → `Product` | `toProduct` | `lib/vitrine/store.ts:47` |
 | linhas → `VitrineContent` | `loadContent` (`socials` com `pickSocials`; sem a coluna, tudo vazio) | `lib/vitrine/store.ts:73` |
 | `VitrineContent` → banco | RPC `publish_vitrine` (o próprio SQL converte) | `lib/vitrine/store.ts:282` |
-| nome, link, foto e capa → banco | `updateProfile`: `UPDATE` direto em `vitrines` (`handle`, `name`, `avatar_url`, `look`, `updated_at`), sem a RPC e sem o rascunho; vem de `updateProfileAction` e `updateCoverAction`, validados por `vitrineProfileSchema` (`lib/vitrine/types.ts`) | `lib/vitrine/store.ts:275` |
+| nome, link, foto e capa → banco | `updateProfile`: `UPDATE` direto em `vitrines` (`handle`, `name`, `avatar_url`, `look`, `updated_at`), sem a RPC e sem o rascunho; vem de `updateProfileAction`, `updateAvatarAction` e `updateCoverAction`, validados por `vitrineProfileSchema` (`lib/vitrine/types.ts`) | `lib/vitrine/store.ts:275` |
 | rascunho → `VitrineContent` | `findDraft` (completa campos novos como `posts`, descarta os `kits` de rascunhos antigos e remove legados e sempre usa nome, link, foto e capa da linha publicada em `vitrines`, nunca os do rascunho, via `pickProfile`) | `lib/vitrine/store.ts:226` |
 | linha → `Post` | `toPost` | `lib/vitrine/store.ts:63` |
 | respostas do onboarding → `profiles` | `saveOnboardingProfile`: `upsert` por `user_id` (`answers` nulo = pulou). Leitura de "já passou?" em `needsOnboarding` | `lib/onboarding/store.ts` |
