@@ -21,6 +21,7 @@ export const routing = defineRouting({
     "/nova-senha": { "pt-BR": "/nova-senha", en: "/new-password" },
     "/boas-vindas": { "pt-BR": "/boas-vindas", en: "/welcome" },
     "/editor": "/editor",
+    "/editor/criar": { "pt-BR": "/editor/criar", en: "/editor/create" },
     "/metricas": { "pt-BR": "/metricas", en: "/metrics" },
     "/termos": { "pt-BR": "/termos", en: "/terms" },
     "/privacidade": { "pt-BR": "/privacidade", en: "/privacy" },

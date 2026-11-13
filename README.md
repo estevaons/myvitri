@@ -135,7 +135,7 @@ O site abre em português; a versão em inglês fica em [http://localhost:3000/e
 **Não existe usuário administrador nem painel admin** no app. Para ter uma vitrine de teste:
 
 1. Acesse [http://localhost:3000/criar-vitrine](http://localhost:3000/criar-vitrine), escolha nome e link e, em "Como você quer entrar?", clique em **Criar com Google** (não pede e-mail nem senha) ou preencha e-mail, senha e a confirmação da senha e use **Criar conta** (depois confirme o e-mail pelo link recebido, no mesmo navegador).
-2. Depois do login você cai no editor (`/editor`). Em logins seguintes (botão **Entrar** do site, que leva a `/entrar` com e-mail e senha ou Google), você volta à página em que clicou em **Entrar** (ou, sem ela, à home `/inicio`), de onde se chega ao editor. Quem esqueceu a senha usa **Esqueci minha senha** em `/entrar` e define a nova em `/nova-senha`. Cadastre um cupom, um produto e clique em **Publicar**.
+2. Depois do login você cai no editor (`/editor`). Quem já tem conta e ainda não tem vitrine (por exemplo, entrou só para favoritar) e abre `/criar-vitrine` é levado pelo proxy a `/editor/criar`, que pede só nome e link (quem já tem vitrine segue para o `/editor`). Em logins seguintes (botão **Entrar** do site, que leva a `/entrar` com e-mail e senha ou Google), você volta à página em que clicou em **Entrar** (ou, sem ela, à home `/inicio`), de onde se chega ao editor. Quem esqueceu a senha usa **Esqueci minha senha** em `/entrar` e define a nova em `/nova-senha`. Cadastre um cupom, um produto e clique em **Publicar**.
 3. Veja a vitrine em `http://localhost:3000/<seu-link>`.
 
 Tarefas administrativas (editar dados, excluir contas, liberar links) são feitas no painel do Supabase.

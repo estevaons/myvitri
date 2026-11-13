@@ -3,7 +3,6 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { redirect } from "@/lib/i18n/navigation";
-import { CreateVitrinePanel } from "@/components/auth/forms";
 import { Editor } from "@/components/editor/Editor";
 import { EditorSkeleton } from "@/components/editor/EditorSkeleton";
 import { IdentifyUser } from "@/components/analytics/IdentifyUser";
@@ -26,16 +25,9 @@ async function EditorLoader({ searchParams }: Pick<PageProps<"/[locale]/editor">
   if (!user) return redirect({ href: { pathname: "/entrar", query: { next: "/editor" } }, locale });
   // quem acabou de criar a conta responde o onboarding antes de editar (volta para cá depois)
   if (await needsOnboarding(supabase, user.id)) return redirect({ href: { pathname: "/boas-vindas", query: { next: "/editor" } }, locale });
+  // sem vitrine, a pessoa escolhe o link em /editor/criar (que tem a própria tela de espera, no formato do formulário)
+  if (!vitrine) return redirect({ href: "/editor/criar", locale });
   const recording = await recordingConsent(supabase, user.id);
-  if (!vitrine) {
-    const meta = user.user_metadata as { name?: string };
-    return (
-      <>
-        <IdentifyUser id={user.id} recording={recording} />
-        <CreateVitrinePanel suggestedName={meta.name ?? ""} />
-      </>
-    );
-  }
   const draft = await findDraft(supabase, user.id, vitrine);
   return (
     <>

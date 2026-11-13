@@ -47,8 +47,9 @@ export async function GET(request: NextRequest) {
       await track(data.user.id, "vitrine_created", { via: data.user.app_metadata?.provider === "google" ? "google" : "email" });
       revalidateTag(vitrineTag(parsed.data.handle), { expire: 0 });
     } catch (e) {
-      // link ocupado nesse meio-tempo: o editor pede outro
+      // link ocupado nesse meio-tempo: a pessoa escolhe outro em /editor/criar
       if (!(e instanceof HandleTakenError)) throw e;
+      return NextResponse.redirect(new URL("/editor/criar", request.url));
     }
     return NextResponse.redirect(editor);
   }

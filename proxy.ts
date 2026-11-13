@@ -16,8 +16,9 @@ const SESSION_PATHS = ["/", "/criar-vitrine", "/entrar", "/nova-senha", "/boas-v
  *   navegador não conta: o público é brasileiro, e um navegador em inglês não deve tirar ninguém do português.
  * - Sessão: renova os cookies do Supabase antes das rotas que dependem de login.
  * - Encaminha `/?code=…` para o callback, caso o Supabase volte do Google para a Site URL em vez de /auth/callback.
- * - Portas de entrada: quem já entrou vai da landing e de /entrar para /inicio; quem não entrou vai de /inicio
- *   para a landing (assim a landing não lê cookies e continua estática).
+ * - Portas de entrada: quem já entrou vai da landing e de /entrar para /inicio, e de /criar-vitrine para /editor/criar
+ *   (criar só a vitrine, sem cadastro); quem não entrou vai de /inicio para a landing (assim a landing e o
+ *   /criar-vitrine não leem cookies e continuam estáticos).
  */
 export async function proxy(incoming: NextRequest) {
   const headers = new Headers(incoming.headers);
@@ -61,14 +62,16 @@ export async function proxy(incoming: NextRequest) {
         renewed.forEach(({ name, value, options }) => redirect.cookies.set(name, value, options));
         return redirect;
       }
-    } else if (path !== "/" && path !== "/entrar") {
+    } else if (path !== "/" && path !== "/entrar" && path !== "/criar-vitrine") {
       await supabase.auth.getClaims();
     } else {
       // A landing e o /entrar mandam para o /inicio, então conferem a sessão no Supabase: getClaims só valida o JWT
       // e aceitaria uma sessão já encerrada até ele expirar, com "/" e "/inicio" se redirecionando sem fim.
+      // /criar-vitrine é o cadastro (conta + vitrine): quem já tem conta vai para o /editor/criar, que pede só nome
+      // e link (e manda para o editor quem já tem vitrine).
       const { data } = await supabase.auth.getUser();
       if (data.user) {
-        const redirect = NextResponse.redirect(localized("/inicio"));
+        const redirect = NextResponse.redirect(localized(path === "/criar-vitrine" ? "/editor/criar" : "/inicio"));
         // leva junto os cookies da sessão que acabaram de ser renovados
         renewed.forEach(({ name, value, options }) => redirect.cookies.set(name, value, options));
         return redirect;

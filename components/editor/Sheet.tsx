@@ -123,13 +123,15 @@ export function SheetFooter({
 
 /** "Excluir" pede um segundo toque: o primeiro arma por alguns segundos. */
 function useArmed(ms = 4000) {
-  const [armed, setArmed] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const arm = () => {
-    setArmed(true);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setArmed(false), ms);
-  };
-  return [armed, arm] as const;
+  // `armed` conta os toques (0 = desarmado), para cada toque recomeçar a contagem. A volta é agendada por um Effect,
+  // não no clique: com `cacheComponents` a página sai de cena escondida (React <Activity>), a limpeza cancela o timer
+  // e o botão ficaria armado; ao voltar, o Effect roda de novo e agenda a volta.
+  const [armed, setArmed] = useState(0);
+  useEffect(() => {
+    if (!armed) return;
+    const id = setTimeout(() => setArmed(0), ms);
+    return () => clearTimeout(id);
+  }, [armed, ms]);
+  const arm = () => setArmed((n) => n + 1);
+  return [armed > 0, arm] as const;
 }
