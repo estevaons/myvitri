@@ -229,3 +229,60 @@ export async function shareImage(content: VitrineContent, url: string, format: k
     { ...SHARE_SIZES[format], fonts: await fonts(), headers: { "cache-control": "public, max-age=600" } },
   );
 }
+
+/**
+ * Story 1080×1920 de um produto só, para divulgar: quem indica no topo, a foto grande no quadrado creme, marca e nome,
+ * e embaixo o endereço com espaço livre para a figurinha de link (que leva ao produto aberto na vitrine).
+ */
+export async function productStoryImage(content: VitrineContent, product: Product, url: string, locale: Locale) {
+  const t = await getTranslations({ locale, namespace: "share" });
+  const { width, height } = SHARE_SIZES.story;
+  const side = width - 2 * 96;
+  const [avatar, picture] = await Promise.all([
+    content.avatarUrl ? photo(content.avatarUrl, 240, "avatar") : null,
+    product.imageUrl ? photo(product.imageUrl, side, "product") : null,
+  ]);
+  const firstName = content.name.split(" ")[0] || content.name;
+  const shortUrl = url.replace(/^https?:\/\//, "");
+  const logoHeight = 30;
+  const avatarSize = 104;
+
+  return new ImageResponse(
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", padding: "110px 96px", gap: 44, background: "#FFFFFF", color: INK, fontFamily: "Body" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 26 }}>
+        {avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img>
+          <img src={avatar} width={avatarSize} height={avatarSize} alt="" style={{ borderRadius: avatarSize }} />
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: avatarSize, height: avatarSize, borderRadius: avatarSize, background: SAND, fontSize: 44, fontWeight: 500, color: MUTE }}>
+            {(content.name || content.handle).slice(0, 1).toUpperCase()}
+          </div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ fontSize: 28, fontWeight: 500, letterSpacing: 4, textTransform: "uppercase", color: GOLD }}>{t("productPick", { name: firstName })}</span>
+          <span style={{ fontSize: 30, color: MUTE }}>@{content.handle}</span>
+        </div>
+      </div>
+      {picture ? (
+        // eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img>
+        <img src={picture} width={side} height={side} alt="" />
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: side, height: side, background: CREAM, fontFamily: "Display", fontSize: 260, color: SAND }}>
+          {product.name.slice(0, 1).toUpperCase()}
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {product.brand && <span style={{ fontSize: 30, fontWeight: 500, letterSpacing: 5, textTransform: "uppercase", color: MUTE }}>{product.brand}</span>}
+        <span style={{ fontFamily: "Display", fontSize: product.name.length > 40 ? 64 : 80, fontWeight: 400, lineHeight: 1.05 }}>{product.name}</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: "auto", borderTop: `2px solid ${SAND}`, paddingTop: 40 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <span style={{ fontSize: 40, fontWeight: 500 }}>{t("productCta")}</span>
+          <span style={{ fontSize: 30, color: MUTE }}>{shortUrl}</span>
+        </div>
+        <Wordmark label="" ink={INK} height={logoHeight} width={Math.round(logoHeight * WORDMARK_RATIO)} />
+      </div>
+    </div>,
+    { width, height, fonts: await fonts(), headers: { "cache-control": "public, max-age=600" } },
+  );
+}
