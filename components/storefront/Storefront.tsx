@@ -788,9 +788,11 @@ export function Storefront({
     if (!preview) track(content.handle, kind, item);
   };
 
-  // uma visita por aba, para recarregar a página não inflar o número
+  // uma visita por aba, para recarregar a página não inflar o número (e o /api/t ainda conta uma por pessoa por dia).
+  // Espera o /api/eu: a dona abrindo a própria vitrine não conta como visita.
+  const owner = Boolean(viewer?.user && viewer.owner);
   useEffect(() => {
-    if (preview) return;
+    if (preview || !viewer || owner) return;
     const key = `vitri:visto:${content.handle}`;
     try {
       if (sessionStorage.getItem(key)) return;
@@ -799,7 +801,7 @@ export function Storefront({
       // sessionStorage bloqueado: conta a visita mesmo assim
     }
     track(content.handle, "view");
-  }, [preview, content.handle]);
+  }, [preview, content.handle, viewer, owner]);
 
   /** Liga o produto ao link dele: o de afiliado ou, sem ele, o da loja. Esgotado ou sem link não é clicável. */
   const linkProps = (p: Product, postId?: string) => ({
@@ -823,7 +825,8 @@ export function Storefront({
         {/* "/" serve aos dois: o proxy leva quem entrou para /inicio e quem não entrou fica na landing.
             Na prévia do editor é só a aparência, para o clique não tirar a pessoa do editor. */}
         <BackLink href={preview ? undefined : "/"} label="home" labelClass="@max-2xl:hidden" />
-        <div className="flex flex-none items-center gap-8">
+        {/* min-h-10: a linha já nasce com a altura do "Editar vitrine", que só chega depois do /api/eu, para o cabeçalho não crescer e empurrar a página */}
+        <div className="flex min-h-10 flex-none items-center gap-8">
           <nav aria-label={t("nav.label")} className="flex flex-none gap-6 @max-2xl:hidden">
             {nav.map(([href, label, on]) =>
               on ? (

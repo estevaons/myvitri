@@ -54,8 +54,10 @@ export function PrivacyEn({ updated }: { updated: string }) {
         </p>
         <p>
           <strong>Storefront visitors.</strong> We count visits and clicks (for example, “coupon copied” or “click to go to the store”) to show
-          metrics to the storefront owner. Each record stores only the event type, the item clicked and the date and time. In these records we
-          do not store name, email or IP address. In addition, the site sends PostHog (see item 6) a record of each page opened, with an
+          metrics to the storefront owner. Each record stores only the event type, the item clicked, the date and time and an anonymous daily
+          code. This code is computed from the IP address and the browser, changes every day and is different for each storefront. It lets
+          the same person opening a storefront several times on the same day count as a single visit, and it cannot be used to recover the
+          IP address or to follow anyone across days or storefronts. In these records we do not store name, email or IP address. In addition, the site sends PostHog (see item 6) a record of each page opened, with an
           anonymous identifier kept in your browser. This identifier has no name or email, but PostHog receives the IP address and technical
           browser data together with these records.
         </p>

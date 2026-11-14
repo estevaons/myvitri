@@ -6,7 +6,7 @@ import { BRAND } from "@/lib/brand";
 import { pageMeta } from "@/lib/seo";
 
 /** Data da versão em vigor (a mesma nos dois idiomas). */
-const UPDATED = "2026-11-10";
+const UPDATED = "2026-11-13";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("legal");

@@ -203,6 +203,7 @@ erDiagram
 | 22 | `20261110030200_session_recording_consent.sql` | Consentimento de gravação de sessão: adiciona `profiles.recording_opt_in` (`boolean`, default `false`) e `profiles.recording_opt_in_at` (`timestamptz`) e recria `analytics.account_activation` com `recording_opt_in` no fim. Aplicada no Supabase remoto em 10/11/2026. Num banco sem ela, gravar o onboarding falha e a leitura do consentimento vira "não consentiu". |
 | 23 | `20261110040000_storage_quota.sql` | Cria `storage_upload_allowed()` e recria as policies de insert "dono envia logos" e "dono envia fotos" em `storage.objects` com a cota por pessoa (500 arquivos, 100 MiB, 40 envios em 10 minutos). Aplicada no Supabase do projeto `vitri` em 10/11/2026; num banco sem ela não há cota. |
 | 24 | `20261113000000_product_favorite.sql` | Adiciona `products.favorite boolean not null default false` (produto favorito da creator, mostrado na seção "Favoritos" da vitrine) e recria `publish_vitrine()` (versão **atual**) gravando também `favorite = coalesce((p->>'favorite')::boolean, false)` em cada produto; o resto é igual à de `20261110020000_vitrine_socials.sql`. Aplicada no Supabase remoto em 13/11/2026. Não tem relação com a tabela `favorites` (quem segue cada vitrine). |
+| 25 | `20261113000100_view_once_per_day.sql` | Cria o índice único parcial `events_view_once` em `events (vitrine_id, visitor) where kind = 'view' and visitor is not null`: uma visita por pessoa por dia. |
 | — | `supabase/seed.sql` | Vitrine de demonstração `/marinacosta`. Insere em `kits` pelas colunas antigas `tab`/`title`. |
 
 ## Tabelas
@@ -332,15 +333,15 @@ Eventos anônimos da vitrine pública (métricas). `20261102000700_creator_tools
 | `kind` | `text` | não | — | `CHECK kind in ('view','buy','copy','kit','video','post')` (`'post'` desde `20261110000000_posts.sql`; `'kit'` só para eventos antigos) |
 | `item_id` | `uuid` | sim | — | ID do cupom/produto/post clicado. **Sem FK** (o item pode ter sido apagado). |
 | `created_at` | `timestamptz` | não | `now()` | A policy de insert exige `now() ± 1 minuto`. |
-| `visitor` | `text` | sim | — | `CHECK visitor is null or visitor ~ '^[0-9a-f]{16}$'`: hash diário anônimo do visitante (sem IP guardado), pensado para deduplicar cliques em `top_creators_today()`. Eventos sem `visitor` contam um a um. O código de `/api/t` ainda não preenche o campo. |
+| `visitor` | `text` | sim | — | `CHECK visitor is null or visitor ~ '^[0-9a-f]{16}$'`: hash diário anônimo do visitante (sem IP guardado), preenchido por `/api/t` com HMAC de `TRACK_SALT` + dia + vitrine + IP + user-agent (muda todo dia e por vitrine), deduplica cliques em `top_creators_today()` e visitas pelo índice `events_view_once`. Eventos sem `visitor` (anteriores, ou sem `TRACK_SALT`) contam um a um. |
 
-**Índices:** `events_vitrine_idx (vitrine_id, created_at desc)`, `events_day_idx (created_at desc) where kind <> 'view'` (parcial, para o ranking do dia).
+**Índices:** `events_vitrine_idx (vitrine_id, created_at desc)`, `events_day_idx (created_at desc) where kind <> 'view'` (parcial, para o ranking do dia), `events_view_once (vitrine_id, visitor) where kind = 'view' and visitor is not null` (único: um `view` por visitante por dia; o segundo é rejeitado no insert, então `vitrine_stats`, `/inicio`, `/metricas`, o funil e o ranking seguem contando linhas).
 
 Significado de `kind`:
 
 | `kind` | Disparado por | `item_id` |
 |---|---|---|
-| `view` | Abrir a vitrine (1x por aba, via `sessionStorage`) | `null` |
+| `view` | Abrir a vitrine (1x por aba, via `sessionStorage`, só depois de `/api/eu` e nunca da dona; 1x por pessoa por dia, pelo índice `events_view_once`) | `null` |
 | `buy` | Botão/foto de compra de um produto | id do produto |
 | `copy` | Botão "Copiar" de um cupom | id do cupom |
 | `post` | Clique numa peça de um post (dispara também o `buy` do produto) | id do post |
