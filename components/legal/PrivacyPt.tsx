@@ -43,8 +43,11 @@ export function PrivacyPt({ updated }: { updated: string }) {
         </p>
         <p>
           <strong>Quem visita uma vitrine.</strong> Contamos visitas e cliques (por exemplo, “cupom copiado” ou “clique para ir à loja”)
-          para mostrar métricas a quem é dono da vitrine. Cada registro guarda só o tipo do evento, o item clicado e a data e hora. Nesses
-          registros não guardamos nome, e-mail nem endereço IP. Além disso, o site envia ao PostHog (veja o item 6) um registro de cada
+          para mostrar métricas a quem é dono da vitrine. Cada registro guarda só o tipo do evento, o item clicado, a data e hora e um
+          código anônimo do dia. Esse código é calculado a partir do endereço IP e do navegador, muda todo dia e é diferente em cada
+          vitrine. Ele serve para a mesma pessoa abrindo a vitrine várias vezes no mesmo dia contar uma visita só, e não permite
+          descobrir o endereço IP nem acompanhar alguém entre dias ou entre vitrines. Nesses registros não guardamos nome, e-mail nem
+          endereço IP. Além disso, o site envia ao PostHog (veja o item 6) um registro de cada
           página aberta, com um identificador anônimo guardado no seu navegador. Esse identificador não tem nome nem e-mail, mas o PostHog
           recebe o endereço IP e dados técnicos do navegador junto com esses registros.
         </p>

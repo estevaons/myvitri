@@ -256,9 +256,9 @@ export function Editor({
             <Link
               href={vitrineHref(published.handle)}
               onClick={(e) => confirmLeave(e, () => router.push({ pathname: "/[handle]", params: { handle: `@${published.handle}` } }))}
-              className="flex min-h-11 flex-none items-center gap-2 rounded-full border border-ink px-5 text-sm font-bold text-ink no-underline transition-colors hover:bg-ink hover:text-white max-sm:min-h-10 max-sm:px-4"
+              className="flex min-h-10 flex-none items-center gap-2 border border-ink px-4 text-[12px] font-medium tracking-[0.18em] text-ink uppercase no-underline transition-colors hover:bg-ink hover:text-white"
             >
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
