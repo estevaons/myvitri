@@ -6,7 +6,7 @@ import { Link } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
-import { productHref } from "@/lib/vitrine/links";
+import { productHref, safeUrl } from "@/lib/vitrine/links";
 import { couponOff } from "@/lib/vitrine/pricing";
 import type { CommentList, Viewer } from "@/lib/vitrine/social";
 import { SOCIAL_LABELS, socialLinks, type SocialNetwork } from "@/lib/vitrine/socials";
@@ -64,8 +64,10 @@ async function copyLater(text: string): Promise<boolean> {
   }
 }
 
+/** O React bloqueia `javascript:` no href, mas não no window.open: só abre http(s). */
 function openStore(url: string) {
-  if (url) window.open(url, "_blank", "noopener,noreferrer");
+  const safe = safeUrl(url);
+  if (safe) window.open(safe, "_blank", "noopener,noreferrer");
 }
 
 /** Métrica anônima da vitrine pública; nunca bloqueia nem falha visivelmente. */
