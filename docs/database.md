@@ -9,6 +9,7 @@ Pense no banco como um **arquivo de pastas de uma loja de departamento**:
 - Cada **creator** (influenciadora, criadora de conteúdo) tem **uma pasta**: a **vitrine**. Na capa da pasta está o nome dela, o endereço (`myvitri.com/marinacosta`), a foto, as frases de destaque e os links das redes sociais (Instagram, TikTok, YouTube, X).
 - Dentro da pasta há três gavetas: **cupons** (os códigos de desconto de cada marca), **produtos** (o que ela indica: foto, nome e link) e **posts** (na interface chamados de **Outfits**: uma foto dela usando um conjunto e a lista das peças, que são produtos da vitrine). A antiga gaveta de **kits** não é mais usada pelo app: a tabela segue no banco, parada.
 - Quem entra com e-mail e senha ou com o Google (mesmo sem ter vitrine) pode **seguir** vitrines (na interface "Seguir/Seguindo"; no código e no banco segue o nome antigo, favorito), numa lista privada (`favorites`), e **comentar** nelas (`comments`, com respostas em um nível): o comentário é público, e apaga quem escreveu ou a dona da vitrine.
+- Um **quadro de avisos** (`notifications`, migração `20261115000000`, aplicada no Supabase do projeto) avisa a dona da vitrine quando alguém a segue ou comenta nela (ou responde um comentário). Quem põe o aviso é o próprio banco, ao detectar o seguir ou o comentário; ninguém escreve ali pelo app. A dona só lê os seus e marca como lidos. O aviso guarda o nome e a foto de quem agiu, e some se a pessoa deixa de seguir ou se o comentário é apagado.
 - Ao lado da pasta oficial existe um **rascunho**: enquanto a creator edita, tudo vai para o rascunho. Só quando ela clica em **Publicar** o conteúdo do rascunho substitui o que está na pasta oficial.
 - Existe ainda um **caderno de visitas** (`events`): toda vez que alguém abre a vitrine ou clica no produto ou em "copiar cupom", uma linha anônima é anotada ali. É daí que saem os gráficos de métricas.
 - Cada conta tem ainda uma **ficha de boas-vindas** (`profiles`): as poucas perguntas que a pessoa responde logo depois de criar a conta (se divulga ou só procura cupons, em quais redes, o tamanho do público, como conheceu o MyVitri) e de onde ela veio (um "primeiro toque" de atribuição, sem IP). Quem pulou também ganha uma ficha, só marcada como pulada, para não ser perguntada de novo.
@@ -21,7 +22,7 @@ Quem cuida da segurança é o próprio banco: regras chamadas **RLS** (Row Level
 
 - **SGBD:** PostgreSQL gerenciado pelo [Supabase](https://supabase.com) (PostgREST 14.18, segundo `database.types.ts:12`).
 - **Schemas usados:** `public` (tabelas do app), `analytics` (views de análise, fora da API), `auth` (usuários, gerenciado pelo Supabase Auth), `storage` (buckets e objetos) e `extensions` (`unaccent` e `pg_trgm`, usadas na busca, e `pgcrypto`, para o HMAC de `track_event()`) e `vault` (o segredo `track_salt`, lido só por `track_event()`).
-- **Acesso:** sempre via `@supabase/supabase-js` com a **chave publicável** (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Não existe `service_role` no código. Toda autorização é RLS + funções `security invoker`, com quatro exceções `security definer` (`delete_my_account`; `top_creators_today`, que só devolve a ordem do ranking; `take_rate_limit`, o contador de ritmo por conta; e `track_event`, que grava o evento da vitrine pública só com o visitante assinado). Há ainda triggers `security invoker`: `comments_stamp` (`stamp_comment()`), `vitrines_stamp` (`stamp_vitrine()`), `posts_stamp` (`stamp_post()`) e os de limite de itens (`enforce_item_limit()`); veja [Limites de segurança dos dados](#limites-de-segurança-dos-dados).
+- **Acesso:** sempre via `@supabase/supabase-js` com a **chave publicável** (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Não existe `service_role` no código. Toda autorização é RLS + funções `security invoker`, com oito exceções `security definer`: cinco funções chamadas pelo app (`delete_my_account`; `top_creators_today`, que só devolve a ordem do ranking; `favorite_count`, que só devolve o número de seguidores; `take_rate_limit`, o contador de ritmo por conta; e `track_event`, que grava o evento da vitrine pública só com o visitante assinado) e três funções de gatilho das notificações (`notify_follow()`, `unnotify_follow()` e `notify_comment()`, sem `execute` para ninguém; migração `20261115000000`, aplicada). Há ainda triggers `security invoker`: `comments_stamp` (`stamp_comment()`), `vitrines_stamp` (`stamp_vitrine()`), `posts_stamp` (`stamp_post()`) e os de limite de itens (`enforce_item_limit()`); veja [Limites de segurança dos dados](#limites-de-segurança-dos-dados).
 - **IDs dos itens** (`coupons.id`, `products.id`, `posts.id`) **não têm default**: são UUIDs gerados no navegador (`crypto.randomUUID()` em `components/editor/ui.tsx:14`) e enviados na publicação. Isso mantém o ID estável entre publicações, o que permite que as métricas (`events.item_id`) continuem apontando para o item certo.
 - **Dinheiro em centavos** (`int`): `coupons.value` quando `kind = 'fixed'` e a coluna legado `products.price`.
 
@@ -48,6 +49,10 @@ erDiagram
     COMMENTS ||--o{ COMMENTS : "parent_id (cascade)"
     COMMENTS |o--o{ COMMENTS : "reply_to_id (set null)"
     AUTH_USERS ||--o| PROFILES : "user_id (cascade)"
+    AUTH_USERS ||--o{ NOTIFICATIONS : "recipient_id (cascade)"
+    AUTH_USERS ||--o{ NOTIFICATIONS : "actor_id (cascade)"
+    VITRINES ||--o{ NOTIFICATIONS : "vitrine_id (cascade)"
+    COMMENTS |o--o{ NOTIFICATIONS : "comment_id (cascade)"
 
     AUTH_USERS {
         uuid id PK
@@ -143,6 +148,18 @@ erDiagram
         text body "1 a 500 chars apos trim"
         timestamptz created_at "preenchido pelo trigger"
     }
+    NOTIFICATIONS {
+        uuid id PK
+        uuid recipient_id FK "a dona da vitrine"
+        text kind "follow ou comment"
+        uuid actor_id FK "quem seguiu ou comentou"
+        text actor_name "copia do nome, 1 a 80"
+        text actor_avatar_url "vazio ou https"
+        uuid vitrine_id FK
+        uuid comment_id FK "so em comment"
+        timestamptz created_at
+        timestamptz read_at "nulo = nao lida"
+    }
     PROFILES {
         uuid user_id PK,FK "default auth.uid"
         text persona "creator ou shopper, nulo se pulou"
@@ -213,6 +230,7 @@ erDiagram
 | 26 | `20261113010000_security_hardening.sql` | Endurecimento de segurança. Cria `is_http_url()` e `CHECK`s `NOT VALID` de link e de tamanho; triggers de limite de itens (`enforce_item_limit()`), `vitrines_stamp` e `posts_stamp`; remove as policies de insert e update de `kits`; cria `rate_hits` e `take_rate_limit()`. Aplicada no Supabase de produção em 14/11/2026 (registrada como versão `20261114001259`, nome `security_hardening`). Sem passo manual e sem dependência do app. O insert anônimo em `events` não muda nela (veja as duas migrações seguintes). Detalhes em [Limites de segurança dos dados](#limites-de-segurança-dos-dados). |
 | 27 | `20261114000000_track_event.sql` | Passo 1 do fechamento do insert anônimo em `events` (aditiva). `create extension if not exists pgcrypto with schema extensions`; índice parcial `events_visitor_idx (visitor, created_at desc) where visitor is not null`; função `track_event()` (`security definer`, `anon` e `authenticated`). Aplicada no Supabase de produção em 14/11/2026 (registrada como versão `20261114002553`, nome `track_event`). Precisa do segredo `track_salt` no Vault (senão `track_event()` dá `VT500`). Não muda nada para o `/api/t` antigo. Veja [Pendência conhecida](#pendência-conhecida-insert-anônimo-em-events). |
 | 28 | `20261114000100_events_lockdown.sql` | Passo 2. Remove a policy "visitante registra evento" de `events` e recria `top_creators_today()` contando só eventos com `visitor` não nulo. **Ainda não aplicada**; só depois do deploy do app novo e com o segredo no Vault. |
+| 29 | `20261115000000_notifications.sql` | Cria `notifications` (avisos da dona da vitrine), seus cinco índices, as policies de leitura e de marcar como lida, os grants (`select` e `update (read_at)` para `authenticated`) e três funções de gatilho `security definer`: `notify_follow()` (`favorites_notify`, `after insert` em `favorites`), `unnotify_follow()` (`favorites_unnotify`, `after delete` em `favorites`) e `notify_comment()` (`comments_notify`, `after insert` em `comments`). Aplicada no Supabase do projeto `vitri` em 13/11/2026 (registrada como `notifications`). Sem ela, o app segue funcionando: o contador e a lista de notificações toleram a tabela ausente (o sino aparece sem contador e o painel abre vazio). |
 | — | `supabase/seed.sql` | Vitrine de demonstração `/marinacosta`. Insere em `kits` pelas colunas antigas `tab`/`title`. |
 
 ## Tabelas
@@ -392,6 +410,39 @@ Comentários na vitrine pública. `20261105010100_comments.sql`. Sem edição: p
 
 **Trigger `comments_stamp`** (`before insert`, `for each row`, função `stamp_comment()`; veja [Funções (RPC)](#funções-rpc)): como a chave publicável é pública e dá para chamar a API sem passar pelo app, nada que identifica o comentário vem do cliente. O trigger preenche autor, nome, foto e `created_at` a partir da sessão, faz o `trim` do corpo e limita a 5 comentários por minuto por pessoa. Numa resposta, também resolve o original (se `parent_id` já é uma resposta, usa o `parent_id` dela), copia a `vitrine_id` dele (a resposta nunca fica em outra vitrine) e levanta `VT404` se o comentário não existe. Se o `parent_id` enviado já era uma resposta, grava esse id em `reply_to_id` (o `reply_to_id` vindo do cliente é sempre descartado).
 
+### `public.notifications`
+
+Avisos para a dona da vitrine: alguém passou a seguir (`follow`) ou comentou/respondeu (`comment`). `20261115000000_notifications.sql` (aplicada em 13/11/2026). Ninguém insere pela API: quem grava são os gatilhos de `favorites` e `comments`.
+
+| Coluna | Tipo | Nulo? | Default | Restrições / observações |
+|---|---|---|---|---|
+| `id` | `uuid` | não | `gen_random_uuid()` | PK |
+| `recipient_id` | `uuid` | não | — | FK → `auth.users(id)` **on delete cascade**. A dona da vitrine, quem lê o aviso |
+| `kind` | `text` | não | — | `CHECK (kind in ('follow', 'comment'))` |
+| `actor_id` | `uuid` | não | — | FK → `auth.users(id)` **on delete cascade**. Quem seguiu ou comentou |
+| `actor_name` | `text` | não | — | `CHECK (char_length between 1 and 80)`. Cópia da hora do evento (o app não lê `auth.users`) |
+| `actor_avatar_url` | `text` | não | `''` | `CHECK (= '' or like 'https://%')`. Cópia da hora do evento |
+| `vitrine_id` | `uuid` | não | — | FK → `vitrines(id)` **on delete cascade** |
+| `comment_id` | `uuid` | sim | — | FK → `comments(id)` **on delete cascade** (apagar o comentário apaga o aviso dele). Só em `comment` |
+| `created_at` | `timestamptz` | não | `now()` | Ordem da lista, da mais recente para a mais antiga |
+| `read_at` | `timestamptz` | sim | — | `null` = não lida. Única coluna que a dona pode alterar |
+
+`CHECK ((kind = 'comment') = (comment_id is not null))`: o comentário só existe nos avisos de comentário.
+
+**Índices:** `notifications_recipient_idx (recipient_id, created_at desc)` (a lista), `notifications_unread_idx (recipient_id) where read_at is null` (parcial, o contador de não lidas), `notifications_follow_key (vitrine_id, actor_id) where kind = 'follow'` (**único** parcial: seguir, deixar de seguir e seguir de novo não empilha avisos), `notifications_actor_idx (actor_id)` e `notifications_comment_idx (comment_id) where comment_id is not null` (servem às cascatas).
+
+**Acesso:** RLS ligado, `revoke all` de `anon` e `authenticated`, `grant select` e `grant update (read_at)` a `authenticated`. Não há policy nem grant de insert ou delete.
+
+**Gatilhos** (todos `security definer`, `search_path = ''`, `execute` revogado de `public`, `anon` e `authenticated`; veja [Funções (RPC)](#funções-rpc)):
+
+| Gatilho | Tabela e momento | Função | O que faz |
+|---|---|---|---|
+| `favorites_notify` | `favorites`, `after insert` | `notify_follow()` | Cria o aviso `follow` para o dono da vitrine seguida. Nome e foto vêm do JWT (as mesmas regras de `stamp_comment()`). Seguir a própria vitrine não avisa. `on conflict do nothing` no índice único de seguidor |
+| `favorites_unnotify` | `favorites`, `after delete` | `unnotify_follow()` | Apaga o aviso `follow` daquela pessoa naquela vitrine |
+| `comments_notify` | `comments`, `after insert` | `notify_comment()` | Cria o aviso `comment` (comentário ou resposta) para o dono da vitrine, copiando autor, nome e foto já preenchidos por `comments_stamp`. A dona comentando na própria vitrine não avisa |
+
+Como o app lê: `lib/vitrine/notifications.ts` (`unreadCount`, `listNotifications`, `markAllRead`). A lista junta, pelo `owner_id`, a vitrine de quem agiu: nome, foto e link dela valem mais que as cópias do aviso.
+
 ### `public.profiles`
 
 Ficha de onboarding de cada conta, uma linha por usuário. `20261109000200_profiles_onboarding.sql`. Quem não tem linha ainda não passou pelo onboarding: `/inicio` e `/editor` mandam essa pessoa para `/boas-vindas` (`needsOnboarding`, `lib/onboarding/store.ts`). Quem pulou também tem linha (só `skipped_at` preenchido). Não confundir com `events`: `events` continua sendo só a métrica anônima das vitrines das creators; `profiles` é dado da conta e alimenta a análise de ativação.
@@ -486,7 +537,7 @@ O índice único parcial `events_view_once` (`20261113000100_view_once_per_day.s
 | `brand-logos` | sim | 1 MiB (`1048576`) | `image/webp`, `image/png` | Logo de marca no cupom | `20261103000000_brand_logos.sql` |
 | `vitrine-photos` | sim | 2 MiB (`2097152`) | `image/webp`, `image/jpeg` | Foto de capa, de perfil, do produto e do post | `20261103000100_vitrine_photos.sql` |
 
-Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:628`). As policies de `storage.objects` (insert, select, delete) só deixam o usuário mexer na pasta cujo primeiro segmento é o próprio `uid` (`storage.foldername(name)[1] = auth.uid()::text`). Leitura pública é pela URL do bucket público, sem policy.
+Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:648`). As policies de `storage.objects` (insert, select, delete) só deixam o usuário mexer na pasta cujo primeiro segmento é o próprio `uid` (`storage.foldername(name)[1] = auth.uid()::text`). Leitura pública é pela URL do bucket público, sem policy.
 
 **Cota por pessoa** (`20261110040000_storage_quota.sql`): as policies de insert ("dono envia logos" e "dono envia fotos") exigem também `storage_upload_allowed()`, que soma os dois buckets na pasta da pessoa e só devolve `true` com menos de 500 arquivos, menos de 100 MiB (soma de `metadata.size`) e menos de 40 envios nos últimos 10 minutos. A checagem roda antes do arquivo entrar, então o envio que passa do limite de tamanho é o último aceito. Vale também para quem chama a API do Storage direto, sem passar pelo app. Antes dessa migração não havia limite. Quando a policy recusa, o Storage responde `403` e `uploadImageAction` mostra `errors.uploadLimit`.
 
@@ -504,7 +555,10 @@ Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:628`). As pol
 | `take_rate_limit(p_bucket text) → boolean` | plpgsql, **`security definer`**, `search_path = ''` | `authenticated` (revogada de `public` e `anon`) | Limite por conta (`auth.uid()`): `import` e `logo` valem 30 usos por 10 minutos cada; outro `p_bucket` dá erro `22023`. Apaga os registros vencidos da conta em `rate_hits`, devolve `false` sem conta ou com o limite estourado e, senão, registra o uso e devolve `true`. | `importProductAction`, `findLogoAction` (`withinRate`, `app/actions.ts`) |
 | `stamp_vitrine() → trigger`, `stamp_post() → trigger`, `enforce_item_limit() → trigger` | plpgsql, `security invoker`, `search_path = ''` | `execute` revogado de `public`, `anon` e `authenticated` (só os triggers chamam) | Funções dos triggers de [Limites de segurança dos dados](#limites-de-segurança-dos-dados). | Triggers |
 | `track_event(p_vitrine uuid, p_kind text, p_item uuid, p_visitor text, p_sig text) → void` | plpgsql, **`security definer`**, `search_path = ''` | `anon`, `authenticated` (revogada de `public`) | Grava um evento da vitrine pública. Lê o segredo `track_salt` de `vault.decrypted_secrets` (ausente: erro `VT500`); exige `p_visitor ~ '^[0-9a-f]{16}$'` e `p_sig` = hex(HMAC-SHA256(`p_visitor`, segredo)), senão erro `42501`. Ignora sem erro `p_kind` inválido, vitrine inexistente, visitante com 60 eventos ou mais nos últimos 10 minutos e a segunda visita do dia (`unique_violation` de `events_view_once`). Migração `20261114000000_track_event.sql`, aplicada em produção. | `app/api/t/route.ts` (`rpc("track_event")`) |
-| `delete_my_account() → void` | plpgsql, **`security definer`** | `authenticated` | Apaga `auth.users` do próprio usuário; o resto sai em cascata. | `app/actions.ts:392` |
+| `notify_follow() → trigger` | plpgsql, **`security definer`**, `search_path = ''` | `execute` revogado de `public`, `anon` e `authenticated` | Função do trigger `favorites_notify`. Descobre o dono da vitrine seguida; sem dono ou se é quem segue, não faz nada. Senão insere o aviso `follow`, com nome (`name`, senão `full_name`, senão `Visitante`, até 80) e foto (`avatar_url` se começar com `https://`) lidos de `auth.jwt() -> 'user_metadata'`, ignorando duplicata. Migração `20261115000000_notifications.sql` (aplicada). | Trigger em `favorites` (`setFavorite`, `lib/vitrine/store.ts`) |
+| `unnotify_follow() → trigger` | plpgsql, **`security definer`**, `search_path = ''` | idem | Função do trigger `favorites_unnotify`: apaga o aviso `follow` de `(vitrine_id, user_id)` da linha removida. | Trigger em `favorites` |
+| `notify_comment() → trigger` | plpgsql, **`security definer`**, `search_path = ''` | idem | Função do trigger `comments_notify`: insere o aviso `comment` para o dono da vitrine (com `comment_id`), exceto quando o autor é o próprio dono. | Trigger em `comments` (`addComment`) |
+| `delete_my_account() → void` | plpgsql, **`security definer`** | `authenticated` | Apaga `auth.users` do próprio usuário; o resto sai em cascata. | `app/actions.ts:393` |
 | `fold(t text) → text` | SQL, `immutable`, `parallel safe`, `search_path = ''` | padrão | Minúsculas e sem acento (`unaccent` com dicionário explícito, para poder entrar em índice). Base dos índices trigram e da busca. | Índices e `search_catalog()` |
 | `top_creators_today(lim int default 12) → table(handle text)` | SQL, `stable`, **`security definer`** | `anon`, `authenticated` | Handles das vitrines (com ao menos um cupom ou produto) ordenados pelos cliques do dia no fuso `America/Sao_Paulo` (`buy`, `copy`, `kit`, `video`; a migração dos posts não alterou a função, então `post` não entra), deduplicando visitante + tipo + item; desempate por `vitrines.updated_at`. Com `20261114000100` (ainda não aplicada) conta só eventos com `visitor` não nulo. Devolve só a ordem, nunca contagens (a RLS de `events` segue só para o dono). `lim` limitado a 1–50. | `topCreatorsToday` (`lib/vitrine/store.ts:159`), via `getTopCreators()` (e `getDailyCreators()`, as Vitrines do dia de `/inicio`), `getTrendingHandles()` (ordem "Em alta hoje" da aba Vitrines) e `loadPosition` em `/metricas` (lim 50). |
 | `search_catalog(q text, lim int default 5) → jsonb` | SQL, `stable`, `security invoker` | `anon`, `authenticated` | Busca sem acento (mínimo 2 caracteres) em creators (nome/handle), cupons (marca) e produtos (nome). Retorna `{ creators, coupons, products }`; ordena por igual, começa com, contém e depois por semelhança. Lê só o que a RLS já torna público. `lim` limitado a 1–20 (cupons e produtos: até 6x). Cada produto vem com o cupom ligado a ele (`coupon`, que o app ignora) e cada cupom/produto com `handle` e `creator` de quem indica. | `searchCatalog` (`lib/vitrine/store.ts:179`), via `searchHome()` e `GET /api/busca` |
@@ -577,6 +631,8 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
 | `comments` | select | `anon`, `authenticated` | `true` (pública) |
 | `comments` | insert | `authenticated` | `author_id = auth.uid()` (o trigger já força esse valor) |
 | `comments` | delete | `authenticated` | `author_id = auth.uid()` **ou** `owns_vitrine(vitrine_id)` (quem escreveu ou a dona da vitrine). Sem update. Apagar o original apaga as respostas em cascata |
+| `notifications` | select | `authenticated` | `recipient_id = (select auth.uid())` |
+| `notifications` | update | `authenticated` | `recipient_id = (select auth.uid())` (`using` e `with check`); o grant cobre só a coluna `read_at`. Sem insert (só os gatilhos `security definer`) e sem delete (saem por cascata ou por `unnotify_follow()`) |
 | `profiles` | select / insert / update | `authenticated` | `user_id = (select auth.uid())` (insert: `with check`; update: `using` e `with check`). **Sem delete**: a linha sai pela cascata de `delete_my_account()` |
 | `rate_hits` | — | nenhum | RLS ligado **sem policies** e sem grants; só `take_rate_limit()` (`security definer`) acessa |
 | `analytics.*` | — | nenhum | Sem grants para `anon` e `authenticated`; o schema não é exposto pela API |
@@ -601,14 +657,18 @@ graph TD
     U -->|cascade| RH[rate_hits]
     U -->|cascade| M[comments]
     V -->|cascade| M
+    U -->|cascade| N[notifications]
+    V -->|cascade| N
+    M -->|cascade| N
     C -->|set null em products.coupon_id| P
     S["storage.objects (fotos e logos)"] -.->|"NÃO cascateia: apagado à mão em deleteAccountAction"| X((app))
 ```
 
 - `favorites` e `comments` caem por **duas** cascatas: ao apagar a conta de quem favoritou/comentou, e ao apagar a vitrine favoritada/comentada. Por isso `deleteAccountAction` lê antes (`listCommentedHandles`) as vitrines em que a pessoa comentou e invalida o cache `comentarios:{handle}` de cada uma depois da exclusão.
+- `notifications` cai por **quatro** cascatas: a conta da dona (`recipient_id`), a conta de quem agiu (`actor_id`), a vitrine e o comentário. Deixar de seguir apaga o aviso de seguidor pelo gatilho `unnotify_follow()`.
 - Apagar um **cupom** no editor também limpa o `couponId` dos produtos no próprio rascunho (`remove` em `components/editor/Editor.tsx`); no banco, o `on delete set null` faria o mesmo.
 - Apagar um **produto** no editor remove o ID dos posts no rascunho (`remove` em `components/editor/Editor.tsx`). No banco não há FK no array, então um post pode guardar IDs órfãos se alguém gravar direto; a vitrine ignora IDs que não encontra (`postItems`, `lib/vitrine/types.ts`).
-- **Arquivos do Storage não somem com a conta**: `deleteAccountAction` lista e apaga até 1000 arquivos de cada bucket antes de chamar a RPC (`app/actions.ts:388`). Já a troca de foto de perfil ou de capa apaga a foto antiga de `vitrine-photos` na hora (`saveProfile`, `app/actions.ts:522`); fotos de produto e de outfit ficam órfãs até a exclusão da conta.
+- **Arquivos do Storage não somem com a conta**: `deleteAccountAction` lista e apaga até 1000 arquivos de cada bucket antes de chamar a RPC (`app/actions.ts:388`). Já a troca de foto de perfil ou de capa apaga a foto antiga de `vitrine-photos` na hora (`saveProfile`, `app/actions.ts:543`); fotos de produto e de outfit ficam órfãs até a exclusão da conta.
 
 ## Mapeamento banco ↔ app
 
@@ -623,6 +683,7 @@ O app trabalha em `camelCase` (`VitrineContent`), o banco em `snake_case`. A con
 | nome, link, foto e capa → banco | `updateProfile`: `UPDATE` direto em `vitrines` (`handle`, `name`, `avatar_url`, `look`, `updated_at`), sem a RPC e sem o rascunho; vem de `updateProfileAction`, `updateAvatarAction` e `updateCoverAction`, validados por `vitrineProfileSchema` (`lib/vitrine/types.ts`) | `lib/vitrine/store.ts:277` |
 | rascunho → `VitrineContent` | `findDraft` (completa campos novos como `posts`, descarta os `kits` de rascunhos antigos e remove legados e sempre usa nome, link, foto e capa da linha publicada em `vitrines`, nunca os do rascunho, via `pickProfile`) | `lib/vitrine/store.ts:229` |
 | linha → `Post` | `toPost` | `lib/vitrine/store.ts:67` |
+| `notifications` → `Notification` | `listNotifications` (junta a vitrine de quem agiu pelo `owner_id`), `unreadCount` e `markAllRead` | `lib/vitrine/notifications.ts` |
 | respostas do onboarding → `profiles` | `saveOnboardingProfile`: `upsert` por `user_id` (`answers` nulo = pulou). Leitura de "já passou?" em `needsOnboarding` | `lib/onboarding/store.ts` |
 
 `toCoupon`, `toProduct` e `toPost` são exportados e também usados pelos catálogos das abas de `/inicio` (`lib/vitrine/catalog/*`), que leem `vitrines`, `coupons`, `products` e `posts` com o cliente público (sem cookies), pela mesma RLS de leitura aberta.

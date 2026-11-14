@@ -11,6 +11,7 @@ import type { Stats } from "@/components/metrics/stats";
 import { redirect } from "@/lib/i18n/navigation";
 import { needsOnboarding, recordingConsent } from "@/lib/onboarding/store";
 import { accountOf } from "@/lib/vitrine/account";
+import { unreadCount } from "@/lib/vitrine/notifications";
 import { findMineSummary, listFavoriteHandles, type Db } from "@/lib/vitrine/store";
 import { getUser } from "@/lib/supabase/server";
 
@@ -50,7 +51,7 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, 
   if (await needsOnboarding(supabase, user.id)) return redirect({ href: { pathname: "/boas-vindas", query: { next: "/inicio" } }, locale: await getLocale() });
 
   // só as abas com o coração precisam saber as favoritas; os números só aparecem para quem tem vitrine
-  const [recording, vitrine, favorites, week] = await Promise.all([
+  const [recording, vitrine, favorites, week, unread] = await Promise.all([
     recordingConsent(supabase, user.id),
     findMineSummary(supabase, user.id),
     tab === "saved" || tab === "storefronts"
@@ -60,12 +61,13 @@ async function HomeLoader({ searchParams }: Pick<PageProps<"/[locale]/inicio">, 
         })
       : [],
     loadWeek(supabase),
+    unreadCount(supabase, user.id),
   ]);
 
   return (
     <>
       <IdentifyUser id={user.id} recording={recording} />
-      <HomeView account={accountOf(user, vitrine)} stats={vitrine ? week : null} tab={tab} params={params} favorites={favorites} />
+      <HomeView account={accountOf(user, vitrine)} stats={vitrine ? week : null} tab={tab} params={params} favorites={favorites} unread={unread} />
     </>
   );
 }

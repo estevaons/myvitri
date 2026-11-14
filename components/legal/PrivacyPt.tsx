@@ -70,7 +70,7 @@ export function PrivacyPt({ updated }: { updated: string }) {
           quem visita: a Vercel diferencia as visitas por um código temporário, descartado a cada dia.
         </p>
         <p>
-          <strong>Quem segue vitrines ou comenta.</strong> Os mesmos dados do login. A lista das vitrines que você segue é privada. Comentários
+          <strong>Quem segue vitrines ou comenta.</strong> Os mesmos dados do login. A lista das vitrines que você segue é privada para as outras pessoas, mas, ao seguir uma vitrine, quem é dono dela recebe uma notificação com o seu nome e, se você entrar com o Google, a sua foto de perfil (se você deixar de seguir, a notificação some). Ao comentar, quem é dono da vitrine também é notificado. Comentários
           e respostas são públicos: o texto aparece na vitrine com a data, o seu nome e, se você entrar com o Google, a sua foto de perfil, para qualquer pessoa
           que abrir a página. Você pode apagar seus comentários a qualquer momento, e quem é dono da vitrine também pode apagar os que
           estão nela. Apagar um comentário apaga também as respostas dele.

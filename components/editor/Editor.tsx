@@ -7,6 +7,7 @@ import { BackLink } from "@/components/brand/BackLink";
 import { useConfirm } from "@/components/brand/ConfirmDialog";
 import { Wordmark } from "@/components/brand/Logo";
 import { AccountMenu, type Account, type LeaveGuard } from "@/components/home/AccountMenu";
+import { NotificationBell } from "@/components/home/NotificationBell";
 import { Link, useRouter, vitrineHref } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 import { Storefront, type StorefrontEdit } from "@/components/storefront/Storefront";
@@ -50,11 +51,14 @@ export function Editor({
   published: initialPublished,
   draft: initialDraft,
   account,
+  unread,
   initialTab,
 }: {
   published: VitrineContent;
   draft: VitrineContent | null;
   account: Account;
+  /** notificações ainda não vistas, para o sino */
+  unread: number;
   /** valor de ?tab= na URL: a seção para onde rolar ao abrir */
   initialTab?: string;
 }) {
@@ -265,6 +269,7 @@ export function Editor({
               {t("viewVitrine")}
             </Link>
           )}
+          <NotificationBell count={unread} onLeave={confirmLeave} />
           <AccountMenu account={account} onLeave={confirmLeave} />
         </div>
         {(error || photoError) && (

@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import { AccountMenu, type Account } from "./AccountMenu";
 import { pad, SiteFooter, SiteHeader } from "./chrome";
 import { HomeSearch } from "./HomeSearch";
+import { NotificationBell } from "./NotificationBell";
 import { ProfileHeader, type WeekStats } from "./ProfileHeader";
 import type { TabId, TabParams } from "./catalog/params";
 import { NavPending } from "./catalog/NavPending";
@@ -26,6 +27,16 @@ function ExploreHead() {
   );
 }
 
+/** Canto direito do cabeçalho de quem entrou: o sino (só com vitrine, que é quem recebe notificações) e o menu da conta. */
+function HeaderActions({ account, unread }: { account: Account; unread: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      {account.vitrine && <NotificationBell count={unread} />}
+      <AccountMenu account={account} />
+    </div>
+  );
+}
+
 /**
  * Home de quem entrou, como um perfil do Instagram: em cima o perfil (foto, nome, endereço, métricas da semana e os
  * atalhos da vitrine, ou o convite para criar uma); embaixo o feed, com a busca e as abas presas no topo ao rolar.
@@ -37,6 +48,7 @@ export function HomeView({
   tab,
   params,
   favorites = [],
+  unread = 0,
 }: {
   /** quem entrou: o topo e o menu da conta saem daqui */
   account: Account;
@@ -46,11 +58,13 @@ export function HomeView({
   params: TabParams;
   /** endereços das favoritas; só vêm nas abas que mostram o coração */
   favorites?: string[];
+  /** notificações ainda não vistas; o sino só aparece para quem tem vitrine */
+  unread?: number;
 }) {
   return (
     // clip, e não hidden: hidden faz desta div a área de rolagem e a barra para de ficar presa no topo
     <div className="overflow-x-clip bg-white text-ink">
-      <SiteHeader links={[]} home="/inicio" action={<AccountMenu account={account} />} />
+      <SiteHeader links={[]} home="/inicio" action={<HeaderActions account={account} unread={unread} />} />
       <ProfileHeader account={account} stats={stats} />
       <ExploreHead />
 

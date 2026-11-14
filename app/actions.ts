@@ -17,6 +17,7 @@ import { createPublicSupabase, getUser } from "@/lib/supabase/server";
 import { commentsTag, favoritesTag, HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
 import { googlePhoto, saveClaim, starterContent } from "@/lib/vitrine/claim";
 import { findStoreLogos, importProductFromUrl, type ImportedProduct } from "@/lib/vitrine/import-link";
+import { listNotifications, markAllRead, type Notification } from "@/lib/vitrine/notifications";
 import { COMMENT_MAX, type SocialResult } from "@/lib/vitrine/social";
 import {
   addComment,
@@ -454,6 +455,26 @@ export async function deleteCommentAction(id: string): Promise<SocialResult> {
   } catch (e) {
     console.error("deleteComment", e);
     return { ok: false, error: t("commentDeleteFailed") };
+  }
+}
+
+/** Quantas notificações o painel do sino mostra: as mais recentes. As antigas continuam no banco, só não aparecem. */
+const NOTIFICATIONS_SHOWN = 30;
+
+/**
+ * Abre o painel do sino: devolve as notificações mais recentes (com as não lidas ainda marcadas como novas) e marca
+ * todas como lidas. É chamada ao clicar no sino, e não na renderização, para que só a pessoa abrindo o painel zere o contador.
+ */
+export async function openNotificationsAction(): Promise<{ ok: true; items: Notification[] } | { ok: false }> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false };
+  try {
+    const items = await listNotifications(supabase, user.id, NOTIFICATIONS_SHOWN);
+    if (items.some((n) => !n.read)) await markAllRead(supabase, user.id);
+    return { ok: true, items };
+  } catch (e) {
+    console.error("openNotifications", e);
+    return { ok: false };
   }
 }
 

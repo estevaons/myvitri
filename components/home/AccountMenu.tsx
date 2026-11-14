@@ -26,7 +26,7 @@ const initials = (text: string) =>
     .join("");
 
 /** A foto de quem entrou; sem foto, ou se ela não carregar (a do Google pode sair do ar), as iniciais. */
-function Avatar({ url, label, className }: { url: string; label: string; className: string }) {
+export function Avatar({ url, label, className }: { url: string; label: string; className: string }) {
   const [broken, setBroken] = useState(false);
   return url && !broken ? (
     // eslint-disable-next-line @next/next/no-img-element -- foto vem de URL arbitrária (Storage ou Google)

@@ -306,6 +306,60 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_avatar_url: string
+          actor_id: string
+          actor_name: string
+          comment_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          read_at: string | null
+          recipient_id: string
+          vitrine_id: string
+        }
+        Insert: {
+          actor_avatar_url?: string
+          actor_id: string
+          actor_name: string
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          read_at?: string | null
+          recipient_id: string
+          vitrine_id: string
+        }
+        Update: {
+          actor_avatar_url?: string
+          actor_id?: string
+          actor_name?: string
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          read_at?: string | null
+          recipient_id?: string
+          vitrine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_vitrine_id_fkey"
+            columns: ["vitrine_id"]
+            isOneToOne: false
+            referencedRelation: "vitrines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           caption: string

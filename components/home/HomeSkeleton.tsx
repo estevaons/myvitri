@@ -10,7 +10,17 @@ import { pad, SiteHeader } from "./chrome";
 export function HomeSkeleton() {
   return (
     <LoadingScreen className="overflow-x-clip bg-white text-ink">
-      <SiteHeader links={[]} home="/inicio" action={<Bone className="size-11 rounded-full" />} />
+      <SiteHeader
+        links={[]}
+        home="/inicio"
+        action={
+          // o sino de notificações e o menu da conta
+          <div className="flex items-center gap-2">
+            <Bone className="size-11 rounded-full" />
+            <Bone className="size-11 rounded-full" />
+          </div>
+        }
+      />
 
       <section className={`mx-auto flex max-w-[52rem] flex-col items-center gap-5 pt-10 pb-10 md:pt-14 ${pad}`}>
         <Bone className="size-28 rounded-full md:size-34" />

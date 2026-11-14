@@ -8,6 +8,7 @@ import { EditorSkeleton } from "@/components/editor/EditorSkeleton";
 import { IdentifyUser } from "@/components/analytics/IdentifyUser";
 import { needsOnboarding, recordingConsent } from "@/lib/onboarding/store";
 import { accountOf } from "@/lib/vitrine/account";
+import { unreadCount } from "@/lib/vitrine/notifications";
 import { findDraft, findMine } from "@/lib/vitrine/store";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,12 +28,11 @@ async function EditorLoader({ searchParams }: Pick<PageProps<"/[locale]/editor">
   if (await needsOnboarding(supabase, user.id)) return redirect({ href: { pathname: "/boas-vindas", query: { next: "/editor" } }, locale });
   // sem vitrine, a pessoa escolhe o link em /editor/criar (que tem a própria tela de espera, no formato do formulário)
   if (!vitrine) return redirect({ href: "/editor/criar", locale });
-  const recording = await recordingConsent(supabase, user.id);
-  const draft = await findDraft(supabase, user.id, vitrine);
+  const [recording, draft, unread] = await Promise.all([recordingConsent(supabase, user.id), findDraft(supabase, user.id, vitrine), unreadCount(supabase, user.id)]);
   return (
     <>
       <IdentifyUser id={user.id} recording={recording} />
-      <Editor published={vitrine} draft={draft} account={accountOf(user, vitrine)} initialTab={typeof tab === "string" ? tab : undefined} />
+      <Editor published={vitrine} draft={draft} account={accountOf(user, vitrine)} unread={unread} initialTab={typeof tab === "string" ? tab : undefined} />
     </>
   );
 }

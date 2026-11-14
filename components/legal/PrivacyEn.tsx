@@ -80,7 +80,7 @@ export function PrivacyEn({ updated }: { updated: string }) {
           with a temporary code that is discarded every day.
         </p>
         <p>
-          <strong>People who follow storefronts or comment.</strong> The same sign-in data. The list of storefronts you follow is private. Comments
+          <strong>People who follow storefronts or comment.</strong> The same sign-in data. The list of storefronts you follow is private to other people, but when you follow a storefront its owner gets a notification with your name and, if you sign in with Google, your profile photo (if you unfollow, the notification goes away). When you comment, the storefront owner is notified too. Comments
           and replies are public: the text appears on the storefront with the date, your name and, if you sign in with Google, your profile photo, to anyone
           who opens the page. You can delete your comments at any time, and the storefront owner can also delete the ones on it. Deleting a comment also deletes its replies.
         </p>
