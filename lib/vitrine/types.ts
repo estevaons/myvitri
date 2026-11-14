@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { withHttps } from "./links";
 import { SOCIALS, socialUrl, type SocialNetwork } from "./socials";
+import { parseVideo } from "./video";
 
 export const ICONS = ["Bikini", "Glasses", "Jar", "Bottle", "Shoe", "Hat", "Nuts", "Bag"] as const;
 export const SECTION_IDS = ["ticker", "products", "coupons", "kits", "cta"] as const;
@@ -77,14 +78,30 @@ export const productSchema = z.object({
 
 /** Quantos produtos um post pode marcar. */
 export const POST_MAX_ITEMS = 8;
+/** Quantas fotos e vídeos um post pode ter. */
+export const POST_MAX_MEDIA = 10;
 
 /**
- * Foto da creator usando um conjunto, com as peças (produtos da vitrine) listadas embaixo, na ordem escolhida.
- * Substituiu os kits: o kit era a lista sem a foto.
+ * Uma foto do look ou um vídeo já postado (Reels, TikTok, YouTube: lib/vitrine/video.ts). No vídeo, `photoUrl` é a
+ * capa, que a vitrine mostra até tocarem no play; `videoUrl` vazio = foto.
+ */
+export const postMediaSchema = z.object({
+  id: z.uuid(),
+  photoUrl: link("postPhoto"),
+  videoUrl: z
+    .string()
+    .trim()
+    .max(2000)
+    .refine((v) => v === "" || parseVideo(v) !== null, "postVideo"),
+});
+
+/**
+ * As fotos e vídeos da creator usando um conjunto, com as peças (produtos da vitrine) listadas embaixo, na ordem
+ * escolhida. A primeira mídia é a capa do post (cards da home, métricas). Substituiu os kits: o kit era a lista sem a foto.
  */
 export const postSchema = z.object({
   id: z.uuid(),
-  photoUrl: link("postPhoto"),
+  media: z.array(postMediaSchema).min(1, "postPhoto").max(POST_MAX_MEDIA),
   caption: text(300),
   productIds: z
     .array(z.uuid())
@@ -133,6 +150,31 @@ export const PRODUCT_EXTRA = { affiliateUrl: "", videoUrl: "", soldOut: false, f
 export type Coupon = z.infer<typeof couponSchema>;
 export type Product = z.infer<typeof productSchema>;
 export type Post = z.infer<typeof postSchema>;
+export type PostMedia = z.infer<typeof postMediaSchema>;
+
+/** A capa do post: a foto (ou a capa do vídeo) da primeira mídia. */
+export const postCover = (post: Pick<Post, "media">) => post.media[0]?.photoUrl ?? "";
+/**
+ * As mídias de um post vindo do banco ou de um rascunho, que podem ser de antes da galeria (só `photoUrl`, e no
+ * rascunho talvez `videoUrl`). Descarta o que não é objeto, link que não seja http(s) e vídeo que não seja das três
+ * redes; `fallbackId` é o id da mídia montada a partir dos campos antigos.
+ */
+export function readPostMedia(raw: unknown, legacy: { photoUrl?: unknown; videoUrl?: unknown }, fallbackId: string): PostMedia[] {
+  const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const http = (v: unknown) => (/^https?:\/\//i.test(str(v)) ? str(v) : "");
+  const video = (v: unknown) => (parseVideo(str(v)) ? str(v) : "");
+  if (Array.isArray(raw) && raw.length)
+    return raw
+      .filter((m): m is Record<string, unknown> => !!m && typeof m === "object" && typeof (m as { id?: unknown }).id === "string")
+      .slice(0, POST_MAX_MEDIA)
+      .map((m) => ({ id: m.id as string, photoUrl: http(m.photoUrl), videoUrl: video(m.videoUrl) }));
+  const photoUrl = http(legacy.photoUrl);
+  const videoUrl = video(legacy.videoUrl);
+  return photoUrl || videoUrl ? [{ id: fallbackId, photoUrl, videoUrl }] : [];
+}
+
+/** O post tem algum vídeo (os cards mostram o play). */
+export const postHasVideo = (post: Pick<Post, "media">) => post.media.some((m) => m.videoUrl);
 export type VitrineContent = z.infer<typeof vitrineContentSchema>;
 
 /** As peças do post na ordem dele; id sem produto (removido, esgotado fora da lista) fica de fora. */

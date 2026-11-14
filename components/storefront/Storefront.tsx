@@ -10,7 +10,8 @@ import { productHref, safeUrl } from "@/lib/vitrine/links";
 import { couponOff } from "@/lib/vitrine/pricing";
 import type { CommentList, Viewer } from "@/lib/vitrine/social";
 import { SOCIAL_LABELS, socialLinks, type SocialNetwork } from "@/lib/vitrine/socials";
-import { postItems, type Post, type Product, type VitrineContent } from "@/lib/vitrine/types";
+import { postItems, type Post, type PostMedia, type Product, type VitrineContent } from "@/lib/vitrine/types";
+import { parseVideo, VIDEO_LABELS, videoEmbedUrl } from "@/lib/vitrine/video";
 import { Comments } from "./Comments";
 import { CoverLetter } from "@/components/home/CreatorCard";
 import { FavoriteButton } from "./FavoriteButton";
@@ -717,8 +718,12 @@ export function Storefront({
   // post sem foto ou sem nenhum produto que ainda exista não aparece (no modo de edição aparece, para completar)
   // favoritos da creator (esgotados ficam só na lista de produtos), na ordem dos produtos
   const favoriteProducts = useMemo(() => products.filter((p) => p.favorite && !p.soldOut), [products]);
-  const allPosts = useMemo(() => content.posts.map((p) => ({ post: p, items: postItems(p, products) })), [content.posts, products]);
-  const posts = useMemo(() => allPosts.filter((p) => p.post.photoUrl && p.items.length > 0), [allPosts]);
+  // vídeo sem capa fica fora da galeria (não tem o que mostrar antes do play)
+  const allPosts = useMemo(
+    () => content.posts.map((p) => ({ post: p, items: postItems(p, products), media: p.media.filter((m) => m.photoUrl) })),
+    [content.posts, products],
+  );
+  const posts = useMemo(() => allPosts.filter((p) => p.media.length > 0 && p.items.length > 0), [allPosts]);
 
   const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))], [products]);
   // "" é "todas as categorias": nenhuma categoria de produto tem nome vazio
@@ -960,7 +965,7 @@ export function Storefront({
       ) : (
         posts.length > 0 && (
           <section id="outfits" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
-            <OutfitCarousel outfits={posts} firstName={firstName} link={linkProps} />
+            <OutfitCarousel outfits={posts} firstName={firstName} link={linkProps} onPlay={(postId) => send("video", postId)} />
           </section>
         )
       )}
@@ -1205,29 +1210,37 @@ export function Storefront({
   );
 }
 
-/** Tempo de cada outfit na tela antes de passar sozinho para o próximo. */
+/** Tempo de cada outfit de uma mídia só na tela antes de passar sozinho para o próximo. */
 const OUTFIT_MS = 6000;
+/** Tempo de cada foto ou vídeo na galeria de um outfit com várias mídias: o outfit dura isso vezes o número delas. */
+const MEDIA_MS = 5000;
+/** quanto o outfit fica na tela na troca automática */
+const outfitMs = (o: Outfit | undefined) => ((o?.media.length ?? 1) > 1 ? o!.media.length * MEDIA_MS : OUTFIT_MS);
 
-type Outfit = { post: Post; items: Product[] };
+type Outfit = { post: Post; items: Product[]; media: PostMedia[] };
 type ProductLinkProps = { href: string; onOpen: (e: MouseEvent) => void; onView?: () => void };
 type LinkFor = (p: Product, postId: string) => ProductLinkProps;
 
 /**
  * Outfits (no código, posts): um por vez, na largura toda da seção, sem o próximo cortado na borda. A troca é um
- * crossfade com a foto aproximando devagar, e passa sozinha a cada `OUTFIT_MS`, com a barra de progresso mostrando
- * quanto falta. Para quando o mouse está em cima, quando algo dentro tem o foco, com o botão de pausa e para quem
- * pede menos movimento (aí também não há animação). No celular, arrastar para o lado troca de outfit.
+ * crossfade com a foto aproximando devagar, e passa sozinha: outfit de uma mídia a cada `OUTFIT_MS`; com várias, a
+ * galeria passa as mídias a cada `MEDIA_MS` e, depois da última, vem o próximo outfit (sendo o único, volta à primeira
+ * mídia). A barra de progresso mostra quanto falta. Para quando o mouse está em cima, quando algo dentro tem o foco e
+ * para quem pede menos movimento (aí também não há animação); não há botão de pausa. No celular, arrastar para o lado troca de outfit.
  */
-function OutfitCarousel({ outfits, firstName, link }: { outfits: Outfit[]; firstName: string; link: LinkFor }) {
+function OutfitCarousel({ outfits, firstName, link, onPlay }: { outfits: Outfit[]; firstName: string; link: LinkFor; onPlay: (postId: string) => void }) {
   const t = useTranslations("storefront");
   const tCommon = useTranslations("common");
   const total = outfits.length;
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [hovering, setHovering] = useState(false);
   const [focused, setFocused] = useState(false);
   const [reduced, setReduced] = useState(false);
   const touchX = useRef<number | null>(null);
+  // o vídeo (id da mídia) que está tocando: a troca automática para, e trocar de outfit fecha o player
+  const [playing, setPlaying] = useState<string | null>(null);
+  // a visitante passou as fotos de um outfit: a troca automática para até ela mudar de outfit
+  const [browsing, setBrowsing] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -1238,15 +1251,25 @@ function OutfitCarousel({ outfits, firstName, link }: { outfits: Outfit[]; first
   }, []);
 
   const current = Math.min(index, total - 1);
-  const running = total > 1 && !paused && !hovering && !focused && !reduced;
-  const go = (to: number) => setIndex(((to % total) + total) % total);
+  // a troca automática: de mídia em mídia dentro do outfit e de outfit em outfit
+  const auto = !hovering && !focused && !reduced && !playing && !browsing;
+  const running = total > 1 && auto;
+  // há o que passar sozinho: mais de um outfit ou um outfit com várias mídias
+  const moves = total > 1 || outfits.some((o) => o.media.length > 1);
+  const steps = outfits[current]?.media.length ?? 1;
+  const go = (to: number) => {
+    setPlaying(null);
+    setBrowsing(false);
+    setIndex(((to % total) + total) % total);
+  };
 
-  // o tempo recomeça a cada troca (manual ou automática) e quando a pausa termina
+  // o tempo recomeça a cada troca (manual ou automática) e quando a pausa termina. Outfit com várias mídias não usa
+  // este relógio: a galeria passa as mídias e, depois da última, chama `onEnd`
   useEffect(() => {
-    if (!running) return;
+    if (!running || steps > 1) return;
     const id = setTimeout(() => setIndex((i) => (i + 1) % total), OUTFIT_MS);
     return () => clearTimeout(id);
-  }, [running, current, total]);
+  }, [running, current, total, steps]);
 
   const arrow = "flex size-12 items-center justify-center border border-sand bg-transparent text-ink hover:border-ink";
 
@@ -1256,20 +1279,6 @@ function OutfitCarousel({ outfits, firstName, link }: { outfits: Outfit[]; first
         <SectionTitle>{t("postsTitle")}</SectionTitle>
         {total > 1 && (
           <div className="flex gap-3">
-            {/* sem a troca automática (menos movimento), não há o que pausar */}
-            {!reduced && (
-              <button type="button" aria-label={paused ? t("outfitsPlay") : t("outfitsPause")} onClick={() => setPaused(!paused)} className={`${arrow} @max-2xl:size-10`}>
-                {paused ? (
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7 4.5v15l13-7.5z" />
-                </svg>
-              ) : (
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
-                </svg>
-              )}
-              </button>
-            )}
             <button type="button" aria-label={tCommon("previous")} onClick={() => go(current - 1)} className={`${arrow} @max-2xl:hidden`}>
               <Chevron left />
             </button>
@@ -1301,17 +1310,27 @@ function OutfitCarousel({ outfits, firstName, link }: { outfits: Outfit[]; first
         className={`mt-6 @3xl:mt-8 ${pad}`}
       >
         {/* os slides ficam empilhados na mesma célula: a altura é a do maior, e a troca não mexe no resto da página */}
-        <div aria-live={running ? "off" : "polite"} className="grid">
-          {outfits.map(({ post, items }, i) => (
+        <div aria-live={moves && auto ? "off" : "polite"} className="grid">
+          {outfits.map(({ post, items, media }, i) => (
             <OutfitSlide
               key={post.id}
               post={post}
               items={items}
+              media={media}
               active={i === current}
               n={i + 1}
               total={total}
               alt={t("postAlt", { name: firstName })}
               link={(p) => link(p, post.id)}
+              playing={playing}
+              onPlay={(mediaId) => {
+                setPlaying(mediaId);
+                if (mediaId) onPlay(post.id);
+              }}
+              onBrowse={() => setBrowsing(true)}
+              autoplay={auto && i === current}
+              loop={total === 1}
+              onEnd={() => setIndex((x) => (x + 1) % total)}
             />
           ))}
         </div>
@@ -1331,6 +1350,7 @@ function OutfitCarousel({ outfits, firstName, link }: { outfits: Outfit[]; first
                   {/* a barra do outfit atual enche no ritmo da troca (parada, fica cheia); as anteriores ficam cheias */}
                   <span
                     key={i === current ? `${current}-${running}` : "idle"}
+                    style={i === current && running ? { animationDuration: `${outfitMs(outfits[i])}ms` } : undefined}
                     className={`absolute inset-y-0 left-0 w-full origin-left bg-ink ${i > current ? "scale-x-0" : i === current && running ? "animate-outfit-progress" : ""}`}
                   />
                 </span>
@@ -1350,19 +1370,37 @@ function OutfitCarousel({ outfits, firstName, link }: { outfits: Outfit[]; first
 function OutfitSlide({
   post,
   items,
+  media,
   active,
   n,
   total,
   alt,
   link,
+  playing,
+  onPlay,
+  onBrowse,
+  autoplay,
+  loop,
+  onEnd,
 }: {
   post: Post;
   items: Product[];
+  /** as fotos e vídeos com capa, na ordem da galeria */
+  media: PostMedia[];
   active: boolean;
   n: number;
   total: number;
   alt: string;
   link: (p: Product) => ProductLinkProps;
+  /** o vídeo tocando no carrossel (id da mídia) */
+  playing: string | null;
+  onPlay: (mediaId: string | null) => void;
+  onBrowse: () => void;
+  /** a galeria passa sozinha (outfit atual e troca automática ligada) */
+  autoplay: boolean;
+  /** depois da última mídia, volta à primeira (é o único outfit) em vez de chamar `onEnd` */
+  loop: boolean;
+  onEnd: () => void;
 }) {
   const t = useTranslations("storefront");
   const two = (x: number) => String(x).padStart(2, "0");
@@ -1376,15 +1414,7 @@ function OutfitSlide({
         active ? "z-10 opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-sand">
-        {/* eslint-disable-next-line @next/next/no-img-element -- foto enviada pela creator para o bucket */}
-        <img
-          src={post.photoUrl}
-          alt={alt}
-          loading={n === 1 ? "eager" : "lazy"}
-          className={`absolute inset-0 size-full object-cover ease-out motion-reduce:transition-none ${active ? "scale-100 transition-transform duration-[7000ms]" : "scale-[1.08] transition-none"}`}
-        />
-      </div>
+      <OutfitGallery media={media} active={active} eager={n === 1} alt={alt} playing={playing} onPlay={onPlay} onBrowse={onBrowse} autoplay={autoplay} loop={loop} onEnd={onEnd} />
       <div className="flex min-w-0 flex-col gap-6 p-5 @3xl:justify-between @3xl:p-12 @6xl:p-16">
         <div className="flex flex-col gap-4">
           {/* a legenda da creator: a voz dela sobre o look, antes das peças */}
@@ -1434,6 +1464,245 @@ function OutfitSlide({
         )}
       </div>
     </article>
+  );
+}
+
+/**
+ * As fotos e vídeos de um outfit no recorte 4:5, uma por vez, como um post de rede social: setas nas laterais (no
+ * computador), pontos embaixo e, no celular, deslizar. Deslizar além da primeira ou da última passa para o outfit
+ * vizinho (o toque sobe para o carrossel). Vídeo mostra a capa com o play; tocar abre o player oficial da rede ali
+ * mesmo, ao lado das peças.
+ */
+/** Altura do cabeçalho do player do Instagram (`/embed/`), em px: fixa, não muda com a largura. */
+const IG_EMBED_HEADER = 54;
+
+/** O play redondo e o rótulo "Assistir · Rede" sobre a capa de um vídeo. */
+function PlayMark({ label, raised }: { label: string; raised: boolean }) {
+  return (
+    <>
+      <span aria-hidden="true" className={`flex size-20 items-center justify-center rounded-full bg-white/90 pl-1.5 text-ink shadow-[0_8px_28px_rgba(17,17,17,0.28)] backdrop-blur-sm transition-transform group-hover/play:scale-105 @max-3xl:size-16`}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M7 4.5v15l13-7.5z" />
+        </svg>
+      </span>
+      <span className={`absolute left-5 text-[12px] font-semibold tracking-[0.18em] text-white uppercase [text-shadow:0_1px_8px_rgba(0,0,0,0.4)] ${raised ? "bottom-10" : "bottom-5"}`}>{label}</span>
+    </>
+  );
+}
+
+/**
+ * O player do Instagram, por baixo da capa até o vídeo começar. O player é o cabeçalho (perfil e "View profile") e,
+ * abaixo dele, o vídeo num quadro 4:5 do tamanho do nosso: o cabeçalho sobe para fora do quadro e o vídeo encaixa
+ * alinhado ao painel das peças, com o play dele no centro, debaixo do nosso.
+ */
+function InstagramFrame({ mediaId, src, title, focusable }: { mediaId: string; src: string; title: string; focusable: boolean }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <iframe
+      data-media={mediaId}
+      src={src}
+      title={title}
+      tabIndex={focusable ? undefined : -1}
+      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+      allowFullScreen
+      scrolling="no"
+      referrerPolicy="strict-origin-when-cross-origin"
+      onLoad={() => setLoaded(true)}
+      style={{ top: -IG_EMBED_HEADER, height: `calc(100% + ${IG_EMBED_HEADER}px)` }}
+      className={`absolute inset-x-0 w-full border-0 transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+    />
+  );
+}
+
+function OutfitGallery({
+  media,
+  active,
+  eager,
+  alt,
+  playing,
+  onPlay,
+  onBrowse,
+  autoplay,
+  loop,
+  onEnd,
+}: {
+  media: PostMedia[];
+  active: boolean;
+  eager: boolean;
+  alt: string;
+  playing: string | null;
+  onPlay: (mediaId: string | null) => void;
+  onBrowse: () => void;
+  autoplay: boolean;
+  loop: boolean;
+  onEnd: () => void;
+}) {
+  const t = useTranslations("storefront");
+  const [at, setAt] = useState(0);
+  // a cada vez que a visitante sai de um vídeo do Instagram tocando, o player dele é recriado: é o jeito de parar o som
+  const [stops, setStops] = useState<Record<string, number>>({});
+  const touchX = useRef<number | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const latest = useRef({ onPlay, playing, onEnd });
+  useEffect(() => {
+    latest.current = { onPlay, playing, onEnd };
+  });
+  // O player do Instagram fica por baixo da capa, que é só enfeite (ele não aceita autoplay: com um play nosso que
+  // abrisse o player, a visitante tocaria duas vezes). O toque nele não chega à página; o que chega é o foco indo para
+  // o iframe, e é isso que conta o play (métrica), tira o enfeite e segura o carrossel de outfits.
+  useEffect(() => {
+    const onBlur = () =>
+      setTimeout(() => {
+        const el = document.activeElement;
+        const id = el instanceof HTMLIFrameElement && root.current?.contains(el) ? el.dataset.media : undefined;
+        if (id && latest.current.playing !== id) latest.current.onPlay(id);
+      });
+    window.addEventListener("blur", onBlur);
+    return () => window.removeEventListener("blur", onBlur);
+  }, []);
+  const total = media.length;
+  const current = Math.min(at, total - 1);
+
+  // a troca automática das mídias: a próxima a cada MEDIA_MS; depois da última, a primeira (único outfit) ou o próximo
+  // outfit. O tempo recomeça a cada troca e quando a pausa termina.
+  useEffect(() => {
+    if (!autoplay || total < 2) return;
+    const id = setTimeout(() => {
+      if (current < total - 1) setAt(current + 1);
+      else if (loop) setAt(0);
+      else latest.current.onEnd();
+    }, MEDIA_MS);
+    return () => clearTimeout(id);
+  }, [autoplay, current, total, loop]);
+
+  // o outfit saiu da tela: depois do fade, volta à primeira mídia, para recomeçar dela quando voltar
+  useEffect(() => {
+    if (active) return;
+    const id = setTimeout(() => setAt(0), 800);
+    return () => clearTimeout(id);
+  }, [active]);
+
+  const show = (to: number) => {
+    setAt(to);
+    onBrowse();
+    if (playing) {
+      setStops((s) => ({ ...s, [playing]: (s[playing] ?? 0) + 1 }));
+      onPlay(null);
+    }
+  };
+  const arrow =
+    "absolute top-1/2 z-10 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-0 bg-white/90 p-0 text-ink shadow-[0_2px_10px_rgba(17,17,17,0.18)] transition-opacity hover:bg-white @max-2xl:hidden";
+
+  return (
+    <div
+      ref={root}
+      className={`group/gallery relative aspect-[4/5] overflow-clip ${playing && media.some((m) => m.id === playing) ? "bg-ink" : "bg-sand"}`}
+      onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+      onTouchEnd={(e) => {
+        const start = touchX.current;
+        touchX.current = null;
+        if (start === null || total < 2) return;
+        const dx = e.changedTouches[0].clientX - start;
+        if (Math.abs(dx) <= 40) return;
+        const to = current + (dx < 0 ? 1 : -1);
+        if (to < 0 || to >= total) return;
+        // dentro da galeria, o deslize troca a foto, não o outfit
+        e.stopPropagation();
+        show(to);
+      }}
+    >
+      {media.map((m, i) => {
+        const on = i === current;
+        const video = m.videoUrl ? parseVideo(m.videoUrl) : null;
+        const instagram = video?.network === "instagram";
+        if (video && !instagram && playing === m.id && on)
+          return (
+            // o player oficial da rede, ali mesmo: a visitante assiste sem sair da vitrine, com as peças ao lado
+            <iframe
+              key={m.id}
+              src={videoEmbedUrl(video)}
+              title={t("videoTitle", { network: VIDEO_LABELS[video.network] })}
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
+              className="absolute inset-0 size-full border-0"
+            />
+          );
+        return (
+          <div key={m.id} aria-hidden={!on} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out motion-reduce:transition-none ${on ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+            {video && instagram && active && (Math.abs(i - current) <= 1 || playing === m.id) && (
+              <>
+                {/* fica por baixo da capa e já carrega quando a mídia é a vizinha: ao chegar nela, nada pisca */}
+                <InstagramFrame
+                  key={`${m.id}:${stops[m.id] ?? 0}`}
+                  mediaId={m.id}
+                  src={videoEmbedUrl(video)}
+                  title={t("videoTitle", { network: VIDEO_LABELS[video.network] })}
+                  focusable={on}
+                />
+                {/* faixas nas bordas (o fundo preto do player): o deslize no celular continua trocando a mídia */}
+                {total > 1 && (
+                  <>
+                    <span aria-hidden="true" className="absolute inset-y-12 left-0 w-8" />
+                    <span aria-hidden="true" className="absolute inset-y-12 right-0 w-8" />
+                  </>
+                )}
+              </>
+            )}
+            {/* eslint-disable-next-line @next/next/no-img-element -- foto enviada pela creator para o bucket */}
+            <img
+              src={m.photoUrl}
+              alt={alt}
+              loading={eager && i === 0 ? "eager" : "lazy"}
+              className={`absolute inset-0 size-full object-cover ease-out motion-reduce:transition-none ${active && on ? "scale-100 transition-[scale,opacity] duration-[7000ms,300ms]" : "scale-[1.08] transition-[scale] delay-1000 duration-0"} ${instagram ? "pointer-events-none" : ""} ${instagram && playing === m.id ? "opacity-0" : ""}`}
+            />
+            {video && instagram && playing !== m.id && (
+              // a capa, o nosso play e o rótulo cobrem o player do Instagram inteiro (o play dele cresce com o quadro e
+              // escaparia de um círculo nosso); são só enfeite: o toque atravessa e cai no play dele, bem no centro
+              <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center bg-gradient-to-t from-ink/35 via-transparent to-transparent">
+                <PlayMark label={t("videoBadge", { network: VIDEO_LABELS[video.network] })} raised={total > 1} />
+              </span>
+            )}
+            {video && !instagram && (
+              <button
+                type="button"
+                tabIndex={on ? undefined : -1}
+                onClick={() => onPlay(m.id)}
+                aria-label={t("videoPlay", { network: VIDEO_LABELS[video.network] })}
+                className="group/play absolute inset-0 flex cursor-pointer items-center justify-center border-0 bg-gradient-to-t from-ink/35 via-transparent to-transparent p-0"
+              >
+                <PlayMark label={t("videoBadge", { network: VIDEO_LABELS[video.network] })} raised={total > 1} />
+              </button>
+            )}
+          </div>
+        );
+      })}
+
+      {total > 1 && (
+        <>
+          <button type="button" aria-label={t("mediaPrev")} disabled={current === 0} onClick={() => show(current - 1)} className={`${arrow} left-4 opacity-0 group-hover/gallery:opacity-100 focus-visible:opacity-100 disabled:hidden`}>
+            <Chevron left />
+          </button>
+          <button type="button" aria-label={t("mediaNext")} disabled={current === total - 1} onClick={() => show(current + 1)} className={`${arrow} right-4 opacity-0 group-hover/gallery:opacity-100 focus-visible:opacity-100 disabled:hidden`}>
+            <Chevron />
+          </button>
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center gap-1.5">
+            {media.map((m, i) => (
+              <button
+                key={m.id}
+                type="button"
+                aria-label={t("mediaGo", { n: i + 1, total })}
+                aria-current={i === current ? "true" : undefined}
+                onClick={() => show(i)}
+                className="pointer-events-auto flex h-5 cursor-pointer items-center border-0 bg-transparent p-0"
+              >
+                <span className={`block h-1.5 rounded-full shadow-[0_0_4px_rgba(0,0,0,0.35)] transition-all ${i === current ? "w-4 bg-white" : "w-1.5 bg-white/60"}`} />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

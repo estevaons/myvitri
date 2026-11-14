@@ -60,8 +60,12 @@
     "postsLabel": "Outfits de {name}",
     "postAlt": "Foto de {name} usando as peças do outfit",
     "outfitPieces": "{count, plural, one {# peça neste look} other {# peças neste look}}",
-    "outfitsPause": "Pausar a troca dos outfits",
-    "outfitsPlay": "Voltar a trocar os outfits sozinho",
+    "videoPlay": "Assistir ao vídeo do look ({network})",
+    "videoBadge": "Assistir · {network}",
+    "videoTitle": "Vídeo do look no {network}",
+    "mediaPrev": "Foto anterior",
+    "mediaNext": "Próxima foto",
+    "mediaGo": "Ver {n} de {total}",
     "outfitGo": "Ver o outfit {n} de {total}",
     "socialLink": "{name} no {network}",
     "cta": {
@@ -354,6 +358,7 @@
     "importFailed": "Não conseguimos ler esse link. Preencha os dados à mão.",
     "logoFailed": "Não conseguimos abrir o site da loja. Confira o link.",
     "rateLimited": "Muitas buscas em pouco tempo. Espere alguns minutos e tente de novo, ou preencha os dados à mão.",
+    "videoLink": "Esse link não é de um vídeo do Instagram, TikTok ou YouTube. Copie o link pelo botão Compartilhar do vídeo.",
     "imageType": "Use uma imagem PNG, JPG, SVG ou WebP.",
     "uploadFailed": "Não deu para enviar a imagem. Tente de novo.",
     "uploadLimit": "Você chegou ao limite de imagens enviadas. Espere alguns minutos e tente de novo; se continuar, escreva para contato@myvitri.com.",
@@ -370,7 +375,8 @@
       "postItems": "Escolha ao menos uma peça do outfit",
       "handleRule": "Use de 3 a 30 letras minúsculas, números, ponto ou _",
       "handleReserved": "Esse nome é reservado",
-      "nameRequired": "Informe seu nome"
+      "nameRequired": "Informe seu nome",
+      "postVideo": "Cole o link de um vídeo do Instagram, TikTok ou YouTube"
     },
     "imageUnreadable": "Não conseguimos abrir essa imagem. Tente outra.",
     "replyGone": "Esse comentário foi excluído e não aceita mais respostas."
@@ -471,7 +477,9 @@
     },
     "post": {
       "items": "{count, plural, one {# peça} other {# peças}}",
-      "by": "Postado por <strong>{name}</strong>"
+      "by": "Postado por <strong>{name}</strong>",
+      "video": "Outfit com vídeo",
+      "media": "{count} fotos e vídeos"
     }
   },
   "catalog": {
@@ -579,7 +587,8 @@
       "avatar": "Deixe o rosto no centro do círculo.",
       "cover": "No celular aparece o quadro todo; no computador, só a faixa marcada.",
       "product": "Afaste para mostrar a peça inteira ou aproxime para destacar um detalhe.",
-      "post": "É o formato do card do outfit na vitrine (4:5)."
+      "post": "É o formato do card do outfit na vitrine (4:5).",
+      "postVideo": "Vídeo deitado aparece inteiro, com faixas pretas como no player. Aproxime para preencher o quadro."
     },
     "hintMouse": "Arraste para enquadrar e use a rodinha ou o controle para aproximar.",
     "hintTouch": "Arraste para enquadrar e use dois dedos ou o controle para aproximar."
@@ -857,7 +866,7 @@
       "newOutfit": "Novo outfit",
       "missingPhoto": "Falta a foto para este outfit aparecer na vitrine.",
       "missingPieces": "Marque pelo menos uma peça para este outfit aparecer na vitrine.",
-      "photoHint": "Uma foto sua usando as peças. Vertical fica melhor: a vitrine mostra no formato 4:5.",
+      "photoHint": "Fotos suas usando as peças (pode escolher várias). Vertical fica melhor: a vitrine mostra no formato 4:5.",
       "untag": "Tirar {name} do outfit",
       "unnamed": "Produto sem nome",
       "remove": "Excluir outfit",
@@ -876,7 +885,28 @@
       "addAnyway": "Adicionar só com o link",
       "full": "Esse look já tem {max} peças, o máximo.",
       "fromProducts": "Escolher dos meus produtos ({count})",
-      "removeTitle": "Excluir este outfit?"
+      "removeTitle": "Excluir este outfit?",
+      "missingCover": "Falta a capa do vídeo para este outfit aparecer na vitrine.",
+      "pickCover": "Escolher a capa do vídeo",
+      "coverHint": "Não conseguimos puxar a capa desse vídeo. Envie uma foto do look ou um print do vídeo.",
+      "changeCover": "Trocar capa",
+      "videoOr": "ou use um vídeo já postado",
+      "videoLabel": "Link do vídeo do look",
+      "videoPlaceholder": "Cole o link do Reels, TikTok ou YouTube",
+      "videoUse": "Usar",
+      "videoBusy": "Buscando…",
+      "videoOn": "Vídeo do {network}",
+      "pickMore": "Adicionar fotos do look",
+      "media": "Fotos e vídeos ({n}/{max})",
+      "mediaList": "Fotos e vídeos do outfit",
+      "photoN": "Foto {n}",
+      "videoN": "Vídeo {n}",
+      "addMedia": "Adicionar foto ou vídeo",
+      "makeCover": "Usar como capa",
+      "cover": "Capa",
+      "removePhoto": "Tirar esta foto",
+      "removeVideo": "Tirar este vídeo",
+      "mediaFull": "Um outfit tem até {max} fotos e vídeos."
     },
     "delete": {
       "open": "Excluir minha conta",

@@ -16,19 +16,34 @@ export function UploadIcon({ size = 16 }: { size?: number }) {
 }
 
 /** Botão que abre o seletor de arquivo (um <label> com o input escondido dentro). */
-export function FilePick({ onFile, disabled, className, children }: { onFile: (f: File) => void; disabled: boolean; className: string; children: ReactNode }) {
+export function FilePick({
+  onFile,
+  onFiles,
+  disabled,
+  className,
+  children,
+}: {
+  onFile?: (f: File) => void;
+  /** com ele, dá para escolher várias de uma vez (a galeria do outfit) */
+  onFiles?: (fs: File[]) => void;
+  disabled: boolean;
+  className: string;
+  children: ReactNode;
+}) {
   return (
     <label className={`${className} ${disabled ? "pointer-events-none opacity-50" : ""}`}>
       {children}
       <input
         type="file"
         accept={IMAGE_ACCEPT}
+        multiple={Boolean(onFiles)}
         disabled={disabled}
         className="sr-only"
         onChange={(e) => {
-          const file = e.target.files?.[0];
+          const files = [...(e.target.files ?? [])];
           e.target.value = "";
-          if (file) onFile(file);
+          if (onFiles && files.length) onFiles(files);
+          else if (files[0]) onFile?.(files[0]);
         }}
       />
     </label>

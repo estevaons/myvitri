@@ -60,8 +60,12 @@
     "postsLabel": "{name}'s outfits",
     "postAlt": "Photo of {name} wearing the outfit's pieces",
     "outfitPieces": "{count, plural, one {# piece in this look} other {# pieces in this look}}",
-    "outfitsPause": "Pause the outfits",
-    "outfitsPlay": "Resume the outfits",
+    "videoPlay": "Watch the look's video ({network})",
+    "videoBadge": "Watch · {network}",
+    "videoTitle": "The look's video on {network}",
+    "mediaPrev": "Previous photo",
+    "mediaNext": "Next photo",
+    "mediaGo": "Show {n} of {total}",
     "outfitGo": "Show outfit {n} of {total}",
     "socialLink": "{name} on {network}",
     "cta": {
@@ -354,6 +358,7 @@
     "importFailed": "We couldn't read that link. Fill in the details by hand.",
     "logoFailed": "We couldn't open the store's website. Check the link.",
     "rateLimited": "Too many lookups in a short time. Wait a few minutes and try again, or fill in the details by hand.",
+    "videoLink": "That link isn't an Instagram, TikTok or YouTube video. Copy it from the video's Share button.",
     "imageType": "Use a PNG, JPG, SVG or WebP image.",
     "uploadFailed": "We couldn't upload the image. Try again.",
     "uploadLimit": "You've reached the image upload limit. Wait a few minutes and try again; if it persists, email contato@myvitri.com.",
@@ -370,7 +375,8 @@
       "postItems": "Choose at least one piece for the outfit",
       "handleRule": "Use 3 to 30 lowercase letters, numbers, dots or _",
       "handleReserved": "That name is reserved",
-      "nameRequired": "Enter your name"
+      "nameRequired": "Enter your name",
+      "postVideo": "Paste the link to an Instagram, TikTok or YouTube video"
     },
     "imageUnreadable": "We couldn't open that image. Try another one.",
     "replyGone": "This comment was deleted and no longer takes replies."
@@ -471,7 +477,9 @@
     },
     "post": {
       "items": "{count, plural, one {# piece} other {# pieces}}",
-      "by": "Posted by <strong>{name}</strong>"
+      "by": "Posted by <strong>{name}</strong>",
+      "video": "Outfit with video",
+      "media": "{count} photos and videos"
     }
   },
   "catalog": {
@@ -579,7 +587,8 @@
       "avatar": "Keep the face in the center of the circle.",
       "cover": "Phones show the whole frame; desktop shows only the marked band.",
       "product": "Zoom out to show the whole item or zoom in to highlight a detail.",
-      "post": "This is the outfit card format on the storefront (4:5)."
+      "post": "This is the outfit card format on the storefront (4:5).",
+      "postVideo": "A landscape video shows in full, with black bars like in the player. Zoom in to fill the frame."
     },
     "hintMouse": "Drag to frame it and use the scroll wheel or the slider to zoom.",
     "hintTouch": "Drag to frame it and pinch or use the slider to zoom."
@@ -857,7 +866,7 @@
       "newOutfit": "New outfit",
       "missingPhoto": "Add a photo so this outfit shows on your vitrine.",
       "missingPieces": "Tag at least one piece so this outfit shows on your vitrine.",
-      "photoHint": "A photo of you wearing the pieces. Portrait works best: your storefront shows it at 4:5.",
+      "photoHint": "Photos of you wearing the pieces (you can pick several). Portrait works best: your vitrine shows them in 4:5.",
       "untag": "Remove {name} from the outfit",
       "unnamed": "Unnamed product",
       "remove": "Delete outfit",
@@ -876,7 +885,28 @@
       "addAnyway": "Add with just the link",
       "full": "This look already has {max} pieces, the maximum.",
       "fromProducts": "Choose from my products ({count})",
-      "removeTitle": "Delete this outfit?"
+      "removeTitle": "Delete this outfit?",
+      "missingCover": "This outfit needs a video cover to show on your vitrine.",
+      "pickCover": "Choose the video cover",
+      "coverHint": "We couldn't fetch this video's cover. Upload a photo of the look or a screenshot of the video.",
+      "changeCover": "Change cover",
+      "videoOr": "or use a posted video",
+      "videoLabel": "Link to the look's video",
+      "videoPlaceholder": "Paste a Reels, TikTok or YouTube link",
+      "videoUse": "Use",
+      "videoBusy": "Fetching…",
+      "videoOn": "{network} video",
+      "pickMore": "Add photos of the look",
+      "media": "Photos and videos ({n}/{max})",
+      "mediaList": "The outfit's photos and videos",
+      "photoN": "Photo {n}",
+      "videoN": "Video {n}",
+      "addMedia": "Add a photo or video",
+      "makeCover": "Use as cover",
+      "cover": "Cover",
+      "removePhoto": "Remove this photo",
+      "removeVideo": "Remove this video",
+      "mediaFull": "An outfit can have up to {max} photos and videos."
     },
     "delete": {
       "open": "Delete my account",

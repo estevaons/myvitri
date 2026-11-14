@@ -2,9 +2,13 @@ import { uploadImageAction, type ImageKind } from "@/app/actions";
 
 /**
  * Maior lado depois de reduzir: a capa ocupa a largura da vitrine; logo e perfil aparecem pequenos; o produto fica no meio;
- * a foto do post é vertical e abre grande, mas precisa caber nos 2 MiB do bucket.
+ * a foto do post é vertical e abre grande (o quadro 4:5 chega a ~720×900 px de tela, o dobro em tela retina), mas precisa
+ * caber nos 2 MiB do bucket: se passar, o envio baixa a qualidade (`MAX_BYTES`).
  */
-export const MAX_SIDE: Record<ImageKind, number> = { logo: 512, cover: 1600, avatar: 512, product: 1000, post: 1440 };
+export const MAX_SIDE: Record<ImageKind, number> = { logo: 512, cover: 1600, avatar: 512, product: 1000, post: 1800 };
+
+/** O limite do bucket `vitrine-photos` (2 MiB) com folga: acima disso o envio tenta de novo com menos qualidade. */
+const MAX_BYTES = 2_000_000;
 
 const encode = (canvas: HTMLCanvasElement, type: string, quality: number) =>
   new Promise<Blob | null>((done) => canvas.toBlob(done, type, quality));
@@ -34,7 +38,13 @@ async function shrinkImage(file: File, kind: ImageKind): Promise<Blob> {
     }
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     let blob = await encode(canvas, "image/webp", kind === "logo" ? 0.9 : 0.85);
-    if (blob && blob.type !== "image/webp" && kind !== "logo") blob = await encode(canvas, "image/jpeg", 0.85);
+    const type = blob && blob.type !== "image/webp" && kind !== "logo" ? "image/jpeg" : blob?.type;
+    if (type === "image/jpeg") blob = await encode(canvas, "image/jpeg", 0.85);
+    // foto muito detalhada no tamanho cheio pode passar do limite: a mesma foto, com menos qualidade, até caber
+    for (const q of [0.75, 0.65, 0.55]) {
+      if (!blob || kind === "logo" || blob.size <= MAX_BYTES) break;
+      blob = await encode(canvas, type ?? "image/webp", q);
+    }
     if (!blob) throw new Error("imagem inválida");
     return blob;
   } finally {

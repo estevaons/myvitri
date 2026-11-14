@@ -47,6 +47,10 @@ type ListKey = "coupons" | "products" | "posts";
  * edição dela, e cada seção tem o card "+" para adicionar. As mudanças vão para o rascunho (salvo sozinho no servidor) e
  * só chegam à vitrine pública ao Publicar, que só aparece quando há o que publicar.
  */
+/** JSON com as chaves dos objetos em ordem alfabética, para comparar conteúdos montados por caminhos diferentes. */
+const sortedJson = (v: unknown) =>
+  JSON.stringify(v, (_, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : 1))) : x));
+
 export function Editor({
   published: initialPublished,
   draft: initialDraft,
@@ -97,7 +101,8 @@ export function Editor({
   }
 
   const draftJson = JSON.stringify(draft);
-  const dirty = draftJson !== JSON.stringify(published);
+  // a ordem das chaves não conta: o rascunho volta do banco (jsonb) com elas em outra ordem que a da versão publicada
+  const dirty = sortedJson(draft) !== sortedJson(published);
   const unsaved = draftJson !== savedJson;
   const update: Update = (fn) => setDraft((d) => fn(d));
 

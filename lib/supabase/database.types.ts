@@ -368,6 +368,7 @@ export type Database = {
           photo_url: string
           position: number
           published_at: string
+          media: Json
           vitrine_id: string
         }
         Insert: {
@@ -377,6 +378,7 @@ export type Database = {
           photo_url: string
           position: number
           published_at?: string
+          media?: Json
           vitrine_id: string
         }
         Update: {
@@ -386,6 +388,7 @@ export type Database = {
           photo_url?: string
           position?: number
           published_at?: string
+          media?: Json
           vitrine_id?: string
         }
         Relationships: [

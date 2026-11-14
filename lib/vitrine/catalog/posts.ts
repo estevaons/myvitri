@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
 import { HOME_TAG, type HomePost } from "../data";
 import { isMissingTable, toPost, toProduct, type Db } from "../store";
-import { postItems } from "../types";
+import { postCover, postHasVideo, postItems } from "../types";
 
 /** Post do catálogo da aba Posts: o do carrossel mais a data e as categorias das peças. */
 export type CatalogPost = HomePost & { publishedAt: string; cats: string[] };
@@ -85,7 +85,9 @@ export async function getPostCatalog(): Promise<PostCatalog> {
         handle: v.handle,
         creator: v.name,
         id: post.id,
-        photoUrl: post.photoUrl,
+        photoUrl: postCover(post),
+        video: postHasVideo(post),
+        media: post.media.length,
         caption: post.caption,
         items,
         publishedAt: row.published_at,
