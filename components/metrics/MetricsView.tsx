@@ -7,7 +7,7 @@ import { ProductArt } from "@/components/storefront/ProductIcon";
 import { HOST } from "@/lib/brand";
 import { vitrineAddress } from "@/lib/vitrine/links";
 import { couponOff } from "@/lib/vitrine/pricing";
-import { postItems, type Coupon, type Post, type Product, type VitrineContent } from "@/lib/vitrine/types";
+import { postCover, postItems, type Coupon, type Post, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import { DailyChart } from "./DailyChart";
 import { PERIODS, type EventKind, type Period, type Stats } from "./stats";
 
@@ -304,7 +304,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
     return {
       id,
       n,
-      thumb: p ? <PostThumb url={p.photoUrl} /> : <Thumb />,
+      thumb: p ? <PostThumb url={postCover(p)} /> : <Thumb />,
       title: p ? t("postN", { n: vitrine.posts.indexOf(p) + 1 }) : t("removed"),
       sub: p ? t("items", { count: items.length }) : t("gone"),
     };

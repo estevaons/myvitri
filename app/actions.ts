@@ -18,6 +18,7 @@ import { commentsTag, favoritesTag, HOME_TAG, vitrineTag } from "@/lib/vitrine/d
 import { googlePhoto, saveClaim, starterContent } from "@/lib/vitrine/claim";
 import { findStoreLogos, importProductFromUrl, type ImportedProduct } from "@/lib/vitrine/import-link";
 import { listNotifications, markAllRead, type Notification } from "@/lib/vitrine/notifications";
+import { importVideoFromUrl, NotAVideoError, type ImportedVideo } from "@/lib/vitrine/video-import";
 import { COMMENT_MAX, type SocialResult } from "@/lib/vitrine/social";
 import {
   addComment,
@@ -609,6 +610,24 @@ export async function importProductAction(url: string): Promise<ImportResult> {
     return { ok: true, product: await importProductFromUrl(url) };
   } catch {
     return { ok: false, error: t("importFailed") };
+  }
+}
+
+/**
+ * Outfit com vídeo: o link do Reels, TikTok ou YouTube vira o link limpo, a sugestão de legenda e a capa (data URL, que
+ * o editor recorta em 4:5 e envia como a foto do post). Usa o mesmo ritmo do importar produto.
+ */
+export async function importVideoAction(url: string): Promise<{ ok: true; video: ImportedVideo } | { ok: false; error: string }> {
+  const t = await errors();
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: t("sessionExpired") };
+  if (typeof url !== "string" || url.length > 2000) return { ok: false, error: t("videoLink") };
+  if (!(await withinRate(supabase, "import"))) return { ok: false, error: t("rateLimited") };
+  try {
+    return { ok: true, video: await importVideoFromUrl(url) };
+  } catch (e) {
+    if (!(e instanceof NotAVideoError)) console.error("importVideo", e);
+    return { ok: false, error: t("videoLink") };
   }
 }
 

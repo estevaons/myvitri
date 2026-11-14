@@ -1,10 +1,10 @@
 import { getTranslations } from "next-intl/server";
 import { queryProducts } from "@/lib/vitrine/catalog/products";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
-import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore, ToggleChip } from "../catalog/ui";
+import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore } from "../catalog/ui";
 import { ProductCard } from "./produtos/ProductCard";
 
-const FILTERS = ["category", "brand", "video"] as const;
+const FILTERS = ["category", "brand"] as const;
 
 /** Aba "Produtos" do /inicio: o catálogo completo das vitrines, com filtros na URL. */
 export async function ProdutosTab({ params }: { params: TabParams }) {
@@ -21,7 +21,6 @@ export async function ProdutosTab({ params }: { params: TabParams }) {
         <>
           <FilterChips label={t("filters.category")} param="category" options={filters.categories} params={params} />
           <FilterChips label={t("filters.brand")} param="brand" options={filters.brands} params={params} />
-          {filters.video && <ToggleChip label={t("filters.withVideo")} param="video" params={params} />}
         </>
       }
       count={tCount("products", { count: items.length })}

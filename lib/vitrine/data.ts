@@ -209,7 +209,8 @@ export async function getDailyCreators(): Promise<{ ranked: boolean; creators: H
 }
 
 /** Outfit no formato do card da home (aba Outfits): a foto, as peças à venda e quem postou. */
-export type HomePost = By & { id: string; photoUrl: string; caption: string; items: Product[] };
+/** `photoUrl`: a capa (primeira mídia); `video`: a galeria tem vídeo e o card mostra o play; `media`: quantas fotos e vídeos. */
+export type HomePost = By & { id: string; photoUrl: string; video: boolean; media: number; caption: string; items: Product[] };
 
 export type SearchCreator = { handle: string; name: string; avatarUrl: string };
 export type SearchResults = { creators: SearchCreator[]; brands: HomeBrand[]; products: HomeProduct[] };

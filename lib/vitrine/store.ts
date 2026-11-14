@@ -4,7 +4,7 @@ import type { Database, Json } from "@/lib/supabase/database.types";
 import { getUser } from "@/lib/supabase/server";
 import { safeUrl } from "./links";
 import { pickSocials } from "./socials";
-import { COUPON_EXTRA, emptyContent, pickProfile, PRODUCT_EXTRA, type Coupon, type IconId, type Post, type Product, type VitrineContent, type VitrineProfile } from "./types";
+import { COUPON_EXTRA, emptyContent, pickProfile, postCover, PRODUCT_EXTRA, readPostMedia, type Coupon, type IconId, type Post, type Product, type VitrineContent, type VitrineProfile } from "./types";
 
 /**
  * Persistência das vitrines no Supabase. Toda leitura/escrita passa por aqui;
@@ -66,7 +66,9 @@ export const toProduct = (p: Fields<ProductRow>): Product => ({
 
 export const toPost = (p: Tables["posts"]["Row"]): Post => ({
   id: p.id,
-  photoUrl: safeUrl(p.photo_url),
+  // antes da migração 20261116000000_post_media a coluna não existe, e posts de antes dela têm a lista vazia: a mídia
+  // é a foto de `photo_url`
+  media: readPostMedia(p.media, { photoUrl: safeUrl(p.photo_url) }, p.id),
   caption: p.caption,
   productIds: p.product_ids,
 });
@@ -226,6 +228,12 @@ export async function findMineSummary(db: Db, ownerId: string): Promise<MineSumm
  * (por isso não passa pelo schema da publicação); só conferimos o formato antes de usar.
  * Nome, link, foto e capa não têm rascunho: valem os do banco, que mudam nas configurações (nome, link, foto) e no editor (capa).
  */
+/** Post do rascunho no formato atual: `media` no lugar da foto única (e do vídeo, que existiu só em rascunhos). */
+function draftPost(p: Post & { photoUrl?: unknown; videoUrl?: unknown }): Post {
+  const { photoUrl, videoUrl, ...rest } = p;
+  return { ...rest, media: readPostMedia(p.media, { photoUrl, videoUrl }, p.id) };
+}
+
 export async function findDraft(db: Db, ownerId: string, published: VitrineContent): Promise<VitrineContent | null> {
   const { data, error } = await db.from("vitrine_drafts").select("content").eq("owner_id", ownerId).maybeSingle();
   if (error) throw error;
@@ -238,8 +246,8 @@ export async function findDraft(db: Db, ownerId: string, published: VitrineConte
     ...pickProfile(published),
     coupons: d.coupons!.map((c) => ({ ...COUPON_EXTRA, ...without(c, "color") })),
     products: d.products!.map((p) => ({ ...PRODUCT_EXTRA, ...p })),
-    // rascunho salvo antes de existirem os posts
-    posts: Array.isArray(d.posts) ? d.posts : published.posts,
+    // rascunho salvo antes de existirem os posts; e posts de antes da galeria (só `photoUrl`) viram uma mídia
+    posts: Array.isArray(d.posts) ? d.posts.map(draftPost) : published.posts,
     show: { ...published.show, ...d.show },
     // rascunho salvo antes de existirem as redes
     socials: d.socials ? pickSocials(d.socials) : published.socials,
@@ -284,7 +292,9 @@ export async function updateProfile(db: Db, ownerId: string, { handle, name, ava
 export async function publishVitrine(db: Db, ownerId: string, content: VitrineContent) {
   const { data: prev, error: prevError } = await db.from("vitrines").select("handle").eq("owner_id", ownerId).single();
   if (prevError) throw prevError;
-  const { data, error } = await db.rpc("publish_vitrine", { content: content as unknown as Json });
+  // `photoUrl` (a capa) vai junto: a publish_vitrine de antes da migração 20261116000000_post_media só lê esse campo
+  const payload = { ...content, posts: content.posts.map((p) => ({ ...p, photoUrl: postCover(p) })) };
+  const { data, error } = await db.rpc("publish_vitrine", { content: payload as unknown as Json });
   if (isUniqueViolation(error)) throw new HandleTakenError();
   if (error) throw error;
   return { prevHandle: prev.handle, updatedAt: data };

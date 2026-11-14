@@ -6,19 +6,25 @@ import { createPortal } from "react-dom";
 import { MAX_SIDE } from "./upload";
 
 /** As fotos que passam pelo recorte antes de subir (o logo da marca não: é transparente e de qualquer formato). */
-export type CropKind = "avatar" | "cover" | "product" | "post";
+export type CropKind = "avatar" | "cover" | "product" | "post" | "postVideo";
 
 /**
  * O formato de cada lugar. Perfil: quadrado, mostrado redondo. Capa: 4:3, como no celular e na janela da capa (no computador
  * a vitrine mostra só a faixa 21:9 do meio, marcada no recorte). Produto: quadrado e pode afastar até caber inteiro, com
  * fundo branco, porque a vitrine mostra a foto da loja inteira. Outfit: 4:5, o card da vitrine.
  */
-const SHAPE: Record<CropKind, { aspect: number; round?: boolean; fit?: boolean }> = {
+/** `fill`: a cor da sobra quando a foto é afastada (padrão: branco). */
+const SHAPE: Record<CropKind, { aspect: number; round?: boolean; fit?: boolean; fill?: string }> = {
   avatar: { aspect: 1, round: true },
   cover: { aspect: 4 / 3 },
   product: { aspect: 1, fit: true },
   post: { aspect: 4 / 5 },
+  // capa de vídeo: vídeo deitado (YouTube) começa inteiro, com faixas pretas como no player, sem jogar fora a largura;
+  // vídeo em pé (Reels, TikTok) começa preenchendo o quadro
+  postVideo: { aspect: 4 / 5, fit: true, fill: "#000" },
 };
+/** o tamanho máximo do envio de cada formato (a capa do vídeo sobe como foto do outfit) */
+const maxSide = (kind: CropKind) => MAX_SIDE[kind === "postVideo" ? "post" : kind];
 /** a faixa da capa que aparece na vitrine no computador (`aspect-[21/9]` em Storefront) */
 const DESKTOP_BAND = 21 / 9;
 /** aproxima até 4× além de cobrir o quadro */
@@ -50,21 +56,21 @@ function geometry(p: Photo, aspect: number, fit: boolean) {
 }
 
 /** Desenha o recorte no tamanho em que a foto vai subir (sem ampliar) e devolve um PNG, que o envio converte para webp. */
-async function render(p: Photo, v: View, aspect: number, base: number, kind: CropKind): Promise<File> {
+async function render(p: Photo, v: View, aspect: number, base: number, kind: CropKind, fill: string): Promise<File> {
   const s = base * v.z;
   const aw = 1 / s;
   const ah = 1 / aspect / s;
   const x0 = v.cx - aw / 2;
   const y0 = v.cy - ah / 2;
-  const long = Math.max(1, Math.min(MAX_SIDE[kind], Math.round(Math.max(aw, ah))));
+  const long = Math.max(1, Math.min(maxSide(kind), Math.round(Math.max(aw, ah))));
   const outW = aspect >= 1 ? long : Math.max(1, Math.round(long * aspect));
   const outH = aspect >= 1 ? Math.max(1, Math.round(long / aspect)) : long;
   const canvas = document.createElement("canvas");
   canvas.width = outW;
   canvas.height = outH;
   const ctx = canvas.getContext("2d")!;
-  // o produto afastado deixa sobra: branco, como o fundo das fotos de loja
-  ctx.fillStyle = "#fff";
+  // o produto afastado deixa sobra: branco, como o fundo das fotos de loja (a capa de vídeo, preto, como o player)
+  ctx.fillStyle = fill;
   ctx.fillRect(0, 0, outW, outH);
   ctx.imageSmoothingQuality = "high";
   // a foto inteira com a transformação do recorte (recortar pela origem com coordenadas negativas falha em alguns navegadores)
@@ -109,6 +115,7 @@ function CropDialog({ file, kind, onDone }: { file: File; kind: CropKind; onDone
   const frame = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [photo, setPhoto] = useState<Photo | null>(null);
+  const fill = SHAPE[kind].fill ?? "#fff";
   const [view, setView] = useState<View | null>(null);
   const [fw, setFw] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -151,10 +158,13 @@ function CropDialog({ file, kind, onDone }: { file: File; kind: CropKind; onDone
       () => {
         if (!alive) return;
         // SVG sem width/height vem com 0: trata como o tamanho máximo
-        const w = el.naturalWidth || MAX_SIDE[kind];
-        const h = el.naturalHeight || MAX_SIDE[kind];
+        const w = el.naturalWidth || maxSide(kind);
+        const h = el.naturalHeight || maxSide(kind);
         setPhoto({ el, w, h, src });
-        setView({ cx: w / 2, cy: h / 2, z: 1 });
+        // capa de vídeo em pé: começa preenchendo o quadro (o zoom em que a foto cobre); deitado, inteiro (z = 1)
+        const g = geometry({ el, w, h, src }, aspect, fit);
+        const cover = kind === "postVideo" && h >= w ? Math.max(1 / w, 1 / aspect / h) / g.base : 1;
+        setView({ cx: w / 2, cy: h / 2, z: cover });
       },
       () => alive && done.current(file),
     );
@@ -162,7 +172,7 @@ function CropDialog({ file, kind, onDone }: { file: File; kind: CropKind; onDone
       alive = false;
       URL.revokeObjectURL(src);
     };
-  }, [file, kind]);
+  }, [file, kind, aspect, fit]);
 
   // a largura do quadro na tela, para converter o arrasto em pixels da foto
   useEffect(() => {
@@ -255,7 +265,7 @@ function CropDialog({ file, kind, onDone }: { file: File; kind: CropKind; onDone
     if (!photo || !view || !geo) return;
     setSaving(true);
     try {
-      done.current(await render(photo, view, aspect, geo.base, kind));
+      done.current(await render(photo, view, aspect, geo.base, kind, fill));
     } catch {
       // sem recorte, sobe a foto como veio (o envio reduz e mostra o erro, se houver)
       done.current(file);
@@ -303,7 +313,7 @@ function CropDialog({ file, kind, onDone }: { file: File; kind: CropKind; onDone
         >
           <div ref={frame} className="relative" style={{ width: `min(100%, calc(min(56dvh, 480px) * ${aspect}))`, aspectRatio: aspect }}>
             {/* o produto afastado: o branco do quadro é o fundo que sobe junto */}
-            {fit && photo && <span aria-hidden="true" className="absolute inset-0 bg-white" />}
+            {fit && photo && <span aria-hidden="true" className="absolute inset-0" style={{ background: fill }} />}
             {photo && view && px > 0 ? (
               // eslint-disable-next-line @next/next/no-img-element -- foto do aparelho, ainda sem subir
               <img
@@ -311,7 +321,7 @@ function CropDialog({ file, kind, onDone }: { file: File; kind: CropKind; onDone
                 alt=""
                 draggable={false}
                 className="pointer-events-none absolute max-w-none"
-                style={{ width: photo.w * px, height: photo.h * px, left: fw / 2 - view.cx * px, top: fh / 2 - view.cy * px, background: fit ? "#fff" : undefined }}
+                style={{ width: photo.w * px, height: photo.h * px, left: fw / 2 - view.cx * px, top: fh / 2 - view.cy * px, background: fit ? fill : undefined }}
               />
             ) : (
               <span className="absolute inset-0 flex items-center justify-center text-[13px] text-white/70">{t("loading")}</span>
