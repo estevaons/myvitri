@@ -63,15 +63,15 @@ npx supabase db push
    - `20261110040000_storage_quota.sql`: função `storage_upload_allowed()` e as policies de envio do Storage (`brand-logos` e `vitrine-photos`), que passam a limitar cada pessoa a 500 arquivos, 100 MiB e 40 envios a cada 10 minutos. Aplicada no Supabase do projeto `vitri` em 10/11/2026. Num banco sem ela, não há cota e o app funciona como antes (o envio só é limitado pelo tamanho e tipo do bucket).
    - `20261113010000_security_hardening.sql`: endurecimento de segurança do banco. `CHECK`s de link (só http/https) e de tamanho nos textos das vitrines, cupons, produtos e posts; limite de itens por vitrine (100 cupons, 200 produtos, 30 posts); datas e links reservados carimbados no banco; remove os `insert`/`update` dos kits; cria a tabela `rate_hits` e a função `take_rate_limit()` (limite de importações e buscas de logo por conta). Já aplicada no Supabase de produção em 14/11/2026 (versão `20261114001259`). Sem passo manual e sem dependência do app. Num banco sem ela, as importações seguem sem limite. O insert anônimo em `events` não muda nela (veja as duas migrações seguintes).
    - `20261114000000_track_event.sql` (passo 1, aditiva): extensão `pgcrypto`, índice `events_visitor_idx` e a função `track_event()`, que grava o evento da vitrine só se o visitante vier assinado com o segredo `track_salt` do Vault e limita 60 eventos por visitante a cada 10 minutos. Já aplicada no Supabase de produção em 14/11/2026 (registrada como versão `20261114002553`, nome `track_event`). O `/api/t` novo, se não achar a função, grava direto como antes. Exige o segredo no Vault (ordem abaixo).
-   - `20261114000100_events_lockdown.sql` (passo 2): remove a policy "visitante registra evento" (fim do insert anônimo direto em `events`) e recria `top_creators_today()` contando só eventos com `visitor`. **Ainda não aplicada.** Só depois do deploy do app novo e com o segredo no Vault: o `/api/t` antigo pararia de registrar.
+   - `20261114000100_events_lockdown.sql` (passo 2): remove a policy "visitante registra evento" (fim do insert anônimo direto em `events`) e recria `top_creators_today()` contando só eventos com `visitor`. Já aplicada no Supabase de produção em 14/11/2026 (registrada como versão `20261114003551`, nome `events_lockdown`), depois do deploy do app novo e com o segredo no Vault.
    - `20261115000000_notifications.sql`: tabela `notifications` (o sino de notificações da dona da vitrine: novo seguidor e novo comentário ou resposta), suas policies e os gatilhos `notify_follow()`, `unnotify_follow()` e `notify_comment()` em `favorites` e `comments`. Aplicada no Supabase do projeto `vitri` em 13/11/2026. Sem ela o app funciona: o sino aparece sem contador e o painel abre vazio.
 
-   **Ordem para fechar o insert anônimo em `events`** (detalhes em [Pendência conhecida](docs/database.md#pendência-conhecida-insert-anônimo-em-events)):
+   **Ordem para fechar o insert anônimo em `events`** (detalhes em [Como os eventos entram](docs/database.md#como-os-eventos-entram)). O valor do Vault precisa ser **idêntico** ao `TRACK_SALT` da Vercel: com valores diferentes, `track_event()` recusa todo evento (`42501`, "visitante sem assinatura válida") e as métricas param. Para trocar o valor: `select vault.update_secret((select id from vault.secrets where name = 'track_salt'), '<valor>');`.
 
    1. (feito em produção) Grave o segredo no Vault (SQL Editor), com o **mesmo valor** de `TRACK_SALT` da Vercel: `select vault.create_secret('<valor de TRACK_SALT>', 'track_salt');`
    2. (feito em produção, 14/11/2026) Aplique `20261114000000_track_event.sql` (pode ser antes do deploy).
-   3. Faça o deploy do app.
-   4. Aplique `20261114000100_events_lockdown.sql`.
+   3. (feito em produção) Faça o deploy do app.
+   4. (feito em produção, 14/11/2026) Aplique `20261114000100_events_lockdown.sql`.
 
 3. (Opcional) Crie a vitrine de demonstração `/marinacosta`. O `supabase/seed.sql` atual usa as colunas antigas `tab`/`title` de `kits` e precisa ser ajustado para `name` antes de rodar (os kits não são mais usados pelo app).
 
@@ -125,7 +125,7 @@ cp .env.example .env.local
 | `BRAVE_SEARCH_API_KEY` | não | brave.com/search/api | Fallback quando a loja bloqueia a leitura da página do produto |
 | `NEXT_PUBLIC_POSTHOG_KEY` | não | PostHog → Project Settings (chave do projeto, pública) | Liga o PostHog (funis e retenção, navegador e servidor). Sem ela, nada é enviado: dev e preview funcionam sem a conta |
 | `NEXT_PUBLIC_POSTHOG_HOST` | não | Região do projeto no PostHog | Endereço do PostHog. Padrão `https://us.i.posthog.com` (EUA); para a UE, `https://eu.i.posthog.com` |
-| `TRACK_SALT` | sim, para registrar métricas (também em dev) | string aleatória longa, só do servidor | Segredo do código anônimo diário de visitante que `/api/t` grava em `events.visitor` (HMAC-SHA256) e da assinatura que a função `track_event()` confere. Sem ela, `/api/t` descarta o evento e loga "TRACK_SALT ausente". O mesmo valor vai para o Vault do Supabase (secret `track_salt`, veja a ordem na etapa de migrações). |
+| `TRACK_SALT` | só em produção; em localhost fica vazia (o localhost não gera métrica) | string aleatória longa, só do servidor | Segredo do código anônimo diário de visitante que `/api/t` grava em `events.visitor` (HMAC-SHA256) e da assinatura que a função `track_event()` confere. Sem ela, `/api/t` descarta o evento e loga "TRACK_SALT ausente". O mesmo valor vai para o Vault do Supabase (secret `track_salt`, veja a ordem na etapa de migrações). |
 
 ### 5. Instalar e subir o servidor
 
