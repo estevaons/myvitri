@@ -550,7 +550,7 @@
   },
   "search": {
     "label": "Buscar vitrines, marcas e produtos",
-    "placeholder": "Nike, protetor solar, @marina",
+    "placeholder": "Vitrines, marcas ou produtos",
     "clear": "Limpar",
     "searching": "Buscando…",
     "error": "Não deu para buscar agora. Tente de novo em instantes.",

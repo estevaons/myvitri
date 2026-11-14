@@ -550,7 +550,7 @@
   },
   "search": {
     "label": "Search storefronts, brands and products",
-    "placeholder": "Nike, sunscreen, @marina",
+    "placeholder": "Storefronts, brands or products",
     "clear": "Clear",
     "searching": "Searching…",
     "error": "Search isn't working right now. Try again in a moment.",

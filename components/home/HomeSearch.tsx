@@ -37,7 +37,8 @@ export function HomeSearch() {
   const inFlight = useRef<AbortController>(undefined);
   const id = useId();
   const term = q.trim();
-  const active = term.length >= MIN;
+  // o "@" do começo não conta para o mínimo: a API o tira antes de buscar, e "@b" sozinho voltaria vazio
+  const active = term.replace(/^@+/, "").trim().length >= MIN;
 
   useEffect(() => {
     const outside = (e: PointerEvent) => {

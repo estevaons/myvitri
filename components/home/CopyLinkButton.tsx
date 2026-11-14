@@ -71,27 +71,41 @@ export function CopyLinkButton({ handle }: { handle: string }) {
 }
 
 /**
- * O endereço da vitrine numa linha discreta, embaixo do nome no topo da home: "myvitri.com/@fulana · Copiar link".
- * O endereço é só texto (abrir a vitrine é o botão "Ver minha vitrine"); o link ao lado copia e vira "Link copiado"
- * por 2 segundos. Sem área de transferência, a linha vira o campo com o endereço já selecionado.
+ * O endereço da vitrine num botão discreto de borda areia, embaixo do nome no topo da home:
+ * "myvitri.com/@fulana | ⧉ COPIAR LINK". O botão todo copia (abrir a vitrine é o botão "Ver minha vitrine"); o ícone
+ * vira um ✓ e o rótulo "Link copiado" por 2 segundos. Sem área de transferência, vira o campo com o endereço já selecionado.
  */
 export function VitrineLinkLine({ handle }: { handle: string }) {
   const t = useTranslations("linkBar");
   const { state, url, copy, manualField, announce } = useCopyLink(handle);
-  if (state === "manual") return manualField("min-h-11 w-full max-w-[26rem] border border-ink bg-white px-4 text-center text-[15px]");
+  if (state === "manual") return manualField("mt-2 min-h-10 w-full max-w-[26rem] border border-ink bg-white px-4 text-center text-[14px]");
+  const copied = state === "copied";
   return (
-    <p className="m-0 flex flex-wrap items-center justify-center gap-x-2 text-[15px] text-mute">
-      <span className="break-all">{vitrineAddress(handle)}</span>
-      <span aria-hidden="true">·</span>
+    <>
       <button
         type="button"
         onClick={copy}
         disabled={!url}
-        className="min-h-11 cursor-pointer border-0 bg-transparent p-0 text-[15px] text-ink underline-offset-4 hover:underline disabled:opacity-60"
+        className="group mt-2 inline-flex min-h-10 max-w-full cursor-pointer items-center gap-3 border border-sand bg-white py-1.5 pr-3 pl-4 text-[14px] text-mute transition-colors hover:border-ink/25 hover:text-ink disabled:cursor-default disabled:opacity-60"
       >
-        {state === "copied" ? t("copiedLink") : t("copyLink")}
+        <span className="min-w-0 break-all">{vitrineAddress(handle)}</span>
+        <span aria-hidden="true" className="h-4 w-px shrink-0 bg-sand" />
+        <span className={`flex shrink-0 items-center gap-1.5 text-[11px] font-medium tracking-[0.16em] whitespace-nowrap uppercase ${copied ? "text-gold" : "text-ink"}`}>
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            {copied ? (
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            ) : (
+              <>
+                <rect x="8.5" y="8.5" width="11" height="11" rx="1.5" />
+                <path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5" />
+              </>
+            )}
+          </svg>
+          {/* no celular só o ícone, para o endereço caber numa linha; o nome do botão continua sendo o rótulo */}
+          <span className="max-sm:sr-only">{copied ? t("copiedLink") : t("copyLink")}</span>
+        </span>
       </button>
       {announce}
-    </p>
+    </>
   );
 }
