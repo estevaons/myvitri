@@ -302,7 +302,7 @@ Produtos indicados. `20261102000000_vitrines.sql:32-46` + colunas de `000700`.
 | `image_url` | `text` | não | `''` | Foto: URL externa da loja (*hotlink*, vinda da importação ou colada) ou foto enviada pelo editor para o bucket `vitrine-photos` |
 | `icon` | `text` | não | `'Bag'` | Ilustração mostrada (`ProductArt`) quando não há foto. O editor não tem seletor: produtos existentes mantêm o ícone que têm e os novos nascem com `Bag`. Zod restringe a `ICONS` (`lib/vitrine/types.ts:3`): `Bikini, Glasses, Jar, Bottle, Shoe, Hat, Nuts, Bag`. O banco não tem `CHECK`. |
 | `affiliate_url` | `text` | não | `''` | **Legado:** o editor tem um único campo de link (grava em `url` e zera este). Só tem valor em produtos antigos, de quando eram dois campos, e vale até o produto ser editado: `productHref` devolve `affiliate_url || url`, sem UTM. Sem migração |
-| `video_url` | `text` | não | `''` | Review em vídeo (Reels/TikTok/YouTube) |
+| `video_url` | `text` | não | `''` | Link de review em vídeo (Reels/TikTok/YouTube). Campo sem uso nas telas (o editor e a vitrine não o mostram mais); os dados antigos ficam guardados e `productSchema.videoUrl` continua |
 | `sold_out` | `boolean` | não | `false` | Esgotado: fica no fim da lista, não é clicável (mostra "Esgotado"). Hoje só é definido pela importação por link (o editor não tem mais switch) |
 | `favorite` | `boolean` | não | `false` | Favorito da creator (`20261113000000_product_favorite.sql`): aparece na seção "Favoritos de {nome}" da vitrine e ganha selo de coração na grade. Conteúdo antigo sem o campo entra como `false` |
 | `price_checked_at` | `timestamptz` | sim | — | **Legado.** A importação por link não lê mais preço. Nada no app lê esse campo |
@@ -378,7 +378,7 @@ Significado de `kind`:
 | `copy` | Botão "Copiar" de um cupom | id do cupom |
 | `post` | Clique numa peça de um post (dispara também o `buy` do produto) | id do post |
 | `kit` | **Legado.** Era o botão de compra de um item do kit; o app não grava mais | id do kit |
-| `video` | Link "Ver meu review" | id do produto |
+| `video` | Toque num vídeo da galeria de um outfit | id do post (antes, o link "Ver meu review" de um produto, que saiu das telas) |
 
 
 ### `public.favorites`

@@ -88,8 +88,7 @@ export async function getProductCatalog(): Promise<ProductCatalog> {
   // intercala as vitrines, como a home, para uma creator não tomar o começo da grade
   const flat = interleave(await listAll(createPublicSupabase()));
 
-  // agrupa por nome + marca; fica o primeiro visto, ou o primeiro com review em vídeo, na posição
-  // do primeiro visto (o Map guarda a ordem de entrada)
+  // agrupa por nome + marca; fica o primeiro visto, na posição dele (o Map guarda a ordem de entrada)
   const groups = new Map<string, { best: HomeProduct; creators: Set<string> }>();
   for (const p of flat) {
     const key = `${norm(p.name)}|${norm(p.brand)}`;
@@ -99,7 +98,6 @@ export async function getProductCatalog(): Promise<ProductCatalog> {
       continue;
     }
     g.creators.add(p.handle);
-    if (p.videoUrl && !g.best.videoUrl) g.best = p;
   }
 
   const products = [...groups.values()].map(({ best: p, creators }): CatalogProduct => ({
@@ -122,8 +120,7 @@ export async function queryProducts(params: Record<string, string>) {
   const items = products.filter(
     (p) =>
       (!params.category || p.catKey === params.category) &&
-      (!params.brand || p.brandKey === params.brand) &&
-      (params.video !== "1" || !!p.videoUrl),
+      (!params.brand || p.brandKey === params.brand),
   );
 
   const brandChips = brands.slice(0, BRAND_CHIPS);
@@ -135,7 +132,6 @@ export async function queryProducts(params: Record<string, string>) {
     filters: {
       categories: categories.map(([key, label]): [string, string] => [key, label]),
       brands: brandChips.map(([key, label]): [string, string] => [key, label]),
-      video: products.some((p) => p.videoUrl),
     },
   };
 }

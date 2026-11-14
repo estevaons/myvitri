@@ -105,17 +105,6 @@ export function FilterChips({ label, param, options, params }: { label: string; 
   );
 }
 
-/** Filtro liga/desliga (`?param=1`), na mesma linha dos menus. */
-export function ToggleChip({ label, param, params }: { label: string; param: string; params: TabParams }) {
-  const on = params[param] === "1";
-  return (
-    <Link href={hrefWith(params, { [param]: on ? null : "1" })} scroll={false} aria-current={on ? "true" : undefined} className={on ? chipOn : chipOff}>
-      {label}
-      {on && <span aria-hidden="true">×</span>}
-    </Link>
-  );
-}
-
 /** Ordenação num menu, com a atual à vista; a primeira opção é a padrão (não vai para a URL). */
 export function SortMenu({ options, params, param = "sort" }: { options: [value: string, label: string][]; params: TabParams; param?: string }) {
   const t = useTranslations("catalog");

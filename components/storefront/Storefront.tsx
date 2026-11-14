@@ -983,7 +983,6 @@ export function Storefront({
                   <h3 className="m-0 pt-3 text-[15px] leading-snug font-medium underline-offset-2 [a:hover_&]:underline @max-2xl:text-sm">{p.name}</h3>
                 </ProductLink>
                 {p.brand && <span className="pt-0.5 text-[13px] text-mute">{p.brand}</span>}
-                {p.videoUrl && <ReviewLink href={p.videoUrl} onClick={() => send("video", p.id)} />}
               </article>
             ))}
           </Carousel>
@@ -1067,7 +1066,6 @@ export function Storefront({
                   <h3 className="m-0 pt-3 text-[15px] leading-snug font-medium underline-offset-2 [a:hover_&]:underline @max-2xl:text-sm">{p.name}</h3>
                 </ProductLink>
                 {p.soldOut && <span className="pt-0.5 text-[13px] text-mute">{t("soldOut")}</span>}
-                {p.videoUrl && <ReviewLink href={p.videoUrl} onClick={() => send("video", p.id)} />}
               </article>
             ))}
             {edit && <ProductGhost onClick={() => edit.product(null)} />}
@@ -1202,7 +1200,6 @@ export function Storefront({
             // o clique também conta para o post de onde veio
             if (viewing.postId) send("post", viewing.postId);
           }}
-          onVideo={() => send("video", viewing.product.id)}
           onClose={() => setViewing(null)}
         />
       )}
@@ -1723,20 +1720,3 @@ function ProductLink({ href, onOpen, onView, className, children }: ProductLinkP
   );
 }
 
-function ReviewLink({ href, onClick }: { href: string; onClick: () => void }) {
-  const t = useTranslations("storefront");
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={onClick}
-      className="mt-1 flex min-h-8 items-center gap-1.5 text-[13px] font-medium text-inherit underline underline-offset-2"
-    >
-      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M7 4.5v15l13-7.5z" />
-      </svg>
-      {t("review")}
-    </a>
-  );
-}

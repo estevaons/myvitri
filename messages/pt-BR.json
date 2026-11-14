@@ -76,7 +76,6 @@
       "button": "Criar minha vitrine"
     },
     "footer": "Cupons podem mudar na loja da marca.",
-    "review": "Ver meu review",
     "seeOutfits": "Ver outfits"
   },
   "seo": {
@@ -501,8 +500,7 @@
       "category": "Categoria",
       "brand": "Marca",
       "vitrine": "Vitrine",
-      "letter": "Letra",
-      "withVideo": "Com review em vídeo"
+      "letter": "Letra"
     },
     "favorites": {
       "title": "Seguindo",
@@ -540,8 +538,7 @@
       "title": "Produtos",
       "emptyTitle": "Nada por aqui",
       "filteredText": "Nenhum produto com esses filtros. Tire algum para ver mais achados.",
-      "emptyText": "As vitrines ainda não têm produtos à venda. Volte daqui a pouco.",
-      "hasVideo": "Tem review em vídeo."
+      "emptyText": "As vitrines ainda não têm produtos à venda. Volte daqui a pouco."
     },
     "vitrines": {
       "title": "Vitrines",
@@ -844,9 +841,6 @@
       "soldOutHint": "A loja estava sem estoque quando buscamos o produto. Ele continua na vitrine, sem link e no fim da lista.",
       "link": "Link do produto",
       "linkHint": "Cole seu link de afiliado ou o link da loja. É para onde a pessoa vai ao clicar.",
-      "video": "Review em vídeo (opcional)",
-      "videoHint": "Link do seu Reels, TikTok ou YouTube sobre o produto.",
-      "addVideo": "+ Review em vídeo",
       "remove": "Excluir produto",
       "linkPlaceholder": "https://loja.com/produto",
       "linkLabel": "Link do produto",

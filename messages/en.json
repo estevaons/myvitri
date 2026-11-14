@@ -76,7 +76,6 @@
       "button": "Create my storefront"
     },
     "footer": "Coupons may change at the brand's store.",
-    "review": "Watch my review",
     "seeOutfits": "See outfits"
   },
   "auth": {
@@ -501,8 +500,7 @@
       "category": "Category",
       "brand": "Brand",
       "vitrine": "Storefront",
-      "letter": "Letter",
-      "withVideo": "With video review"
+      "letter": "Letter"
     },
     "favorites": {
       "title": "Following",
@@ -540,8 +538,7 @@
       "title": "Products",
       "emptyTitle": "Nothing here",
       "filteredText": "No products with these filters. Remove one to see more finds.",
-      "emptyText": "The storefronts don't have products for sale yet. Check back soon.",
-      "hasVideo": "Has a video review."
+      "emptyText": "The storefronts don't have products for sale yet. Check back soon."
     },
     "vitrines": {
       "title": "Storefronts",
@@ -844,9 +841,6 @@
       "soldOutHint": "The store was out of stock when we fetched the product. It stays on your storefront, without a link and at the end of the list.",
       "link": "Product link",
       "linkHint": "Paste your affiliate link or the store link. It's where people go when they click.",
-      "video": "Video review (optional)",
-      "videoHint": "Link to your Reels, TikTok or YouTube video about the product.",
-      "addVideo": "+ Video review",
       "remove": "Delete product",
       "linkPlaceholder": "https://store.com/product",
       "linkLabel": "Product link",

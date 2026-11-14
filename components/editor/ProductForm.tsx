@@ -109,8 +109,6 @@ export function ProductForm({
   onChange: (patch: Partial<Product>) => void;
 }) {
   const t = useTranslations("editor.products");
-  // o vídeo fica escondido até a pessoa pedir (ou até estar preenchido)
-  const [video, setVideo] = useState(false);
   return (
     <>
       {notice && (
@@ -154,19 +152,6 @@ export function ProductForm({
             {/* produtos antigos podem ter os dois links: vale o de afiliado, e editar deixa só o que foi colado */}
             <UrlInput value={p.affiliateUrl || p.url} onChange={(url) => onChange({ url, affiliateUrl: "" })} />
           </Field>
-          {video || p.videoUrl ? (
-            <Field label={t("video")} hint={t("videoHint")}>
-              <UrlInput value={p.videoUrl} onChange={(videoUrl) => onChange({ videoUrl })} autoFocus={video && !p.videoUrl} />
-            </Field>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setVideo(true)}
-              className="-my-1 min-h-10 self-start border-0 bg-transparent p-0 text-[13px] font-medium text-[#5E5A52] underline-offset-4 hover:text-ink hover:underline"
-            >
-              {t("addVideo")}
-            </button>
-          )}
         </div>
       </div>
     </>
