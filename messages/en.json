@@ -621,6 +621,18 @@
     "terms": "Terms of Use",
     "privacy": "Privacy Policy"
   },
+  "notifications": {
+    "bell": "Notifications",
+    "bellUnread": "{count, plural, one {Notifications: # new} other {Notifications: # new}}",
+    "title": "Notifications",
+    "follow": "<b>{name}</b> started following your storefront.",
+    "comment": "<b>{name}</b> commented on your storefront:",
+    "reply": "<b>{name}</b> replied to a comment on your storefront:",
+    "new": "New",
+    "empty": "No notifications yet. When someone follows or comments on your storefront, it shows up here.",
+    "failed": "Couldn't load notifications. Please try again.",
+    "retry": "Try again"
+  },
   "metrics": {
     "vsPrevious": "vs. previous {period} days",
     "same": "= same as the previous {period} days",

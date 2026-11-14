@@ -621,6 +621,18 @@
     "terms": "Termos de Uso",
     "privacy": "Política de Privacidade"
   },
+  "notifications": {
+    "bell": "Notificações",
+    "bellUnread": "{count, plural, one {Notificações: # nova} other {Notificações: # novas}}",
+    "title": "Notificações",
+    "follow": "<b>{name}</b> começou a seguir sua vitrine.",
+    "comment": "<b>{name}</b> comentou na sua vitrine:",
+    "reply": "<b>{name}</b> respondeu um comentário na sua vitrine:",
+    "new": "Nova",
+    "empty": "Nenhuma notificação por enquanto. Quando alguém seguir sua vitrine ou comentar nela, aparece aqui.",
+    "failed": "Não deu para carregar as notificações. Tente de novo.",
+    "retry": "Tentar de novo"
+  },
   "metrics": {
     "vsPrevious": "vs. {period} dias anteriores",
     "same": "= igual aos {period} dias anteriores",

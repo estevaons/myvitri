@@ -25,6 +25,8 @@ export function EditorSkeleton() {
             <Wordmark label="" className="h-[17px] w-auto" />
           </Link>
           <div className="flex-1" />
+          {/* o sino de notificações e o menu da conta */}
+          <Bone className="size-11 rounded-full" />
           <Bone className="size-11 rounded-full" />
         </div>
       </header>
