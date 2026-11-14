@@ -29,6 +29,13 @@ export function withHttps(raw: string) {
 }
 
 /**
+ * O link só se for http(s); qualquer outro esquema (`javascript:`, `data:`…) vira vazio. O schema da publicação e o
+ * banco já recusam esses links, mas quem chama a API do Supabase direto pode ter gravado linhas antes das regras do
+ * banco: vale para tudo o que sai do banco e para o que a vitrine abre com `window.open`.
+ */
+export const safeUrl = (url: string | null | undefined) => (url && /^https?:\/\//i.test(url.trim()) ? url : "");
+
+/**
  * Para onde o clique no produto leva: exatamente o link que a pessoa colou. Não dá para saber se ele é de afiliado, e
  * redirecionadores quebram com parâmetros extras, então ele sai intacto. `affiliateUrl` só existe em produtos antigos, de quando eram dois campos.
  */

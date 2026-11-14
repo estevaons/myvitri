@@ -1,6 +1,10 @@
 import "server-only";
+import { lookup as dnsLookup, type LookupAddress, type LookupOptions } from "node:dns";
 import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
+import { request as httpRequest, type IncomingMessage } from "node:http";
+import { request as httpsRequest } from "node:https";
+import { BlockList, isIP } from "node:net";
+import { createBrotliDecompress, createGunzip, createInflate } from "node:zlib";
 
 export type ImportedProduct = {
   name: string;
@@ -15,20 +19,52 @@ export type ImportedProduct = {
 const MAX_BYTES = 1_500_000;
 const MAX_REDIRECTS = 3;
 
+/**
+ * Endereços que não são internet pública. No IPv6, as faixas que embutem um IPv4 (NAT64, 6to4, Teredo) ficam
+ * bloqueadas inteiras: nenhuma loja depende delas, e cada uma é um jeito de chegar a um IPv4 interno. O IPv4 mapeado
+ * (`::ffff:a.b.c.d`) o próprio BlockList confere contra as regras de IPv4. `::/96` não entra na lista porque o BlockList
+ * compara todo IPv4 com essa faixa (bloquearia a internet inteira): o IPv4 "compatível" (`::a.b.c.d`) é barrado à parte.
+ */
+const BLOCKED = new BlockList();
+for (const [net, prefix] of [
+  ["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8], ["169.254.0.0", 16], ["172.16.0.0", 12],
+  ["192.0.0.0", 24], ["192.0.2.0", 24], ["192.168.0.0", 16], ["198.18.0.0", 15], ["198.51.100.0", 24],
+  ["203.0.113.0", 24], ["224.0.0.0", 3],
+] as const) BLOCKED.addSubnet(net, prefix, "ipv4");
+for (const [net, prefix] of [
+  ["::", 128], ["::1", 128], ["64:ff9b::", 96], ["64:ff9b:1::", 48], ["100::", 64], ["2001::", 32],
+  ["2001:db8::", 32], ["2002::", 16], ["fc00::", 7], ["fe80::", 10], ["fec0::", 10], ["ff00::", 8],
+] as const) BLOCKED.addSubnet(net, prefix, "ipv6");
+
 function isPrivateAddress(ip: string) {
-  if (isIP(ip) === 6) {
-    const v = ip.toLowerCase();
-    if (v.startsWith("::ffff:")) return isPrivateAddress(v.slice(7));
-    return v === "::1" || v === "::" || v.startsWith("fc") || v.startsWith("fd") || v.startsWith("fe80");
+  const version = isIP(ip);
+  if (!version) return true;
+  // ::/8 é reservado; tirando o IPv4 mapeado (::ffff:…), nada aí é público
+  if (version === 6 && /^::(?!ffff:)/i.test(ip)) return true;
+  try {
+    return BLOCKED.check(ip, version === 6 ? "ipv6" : "ipv4");
+  } catch {
+    return true;
   }
-  const [a, b] = ip.split(".").map(Number);
-  return (
-    a === 0 || a === 10 || a === 127 || a >= 224 ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168)
-  );
+}
+
+/**
+ * `lookup` da conexão: confere os IPs na mesma resolução que a conexão usa. Checar antes e deixar o fetch resolver de
+ * novo abriria espaço para DNS rebinding (o nome responde um IP público na checagem e um interno na conexão).
+ */
+function pinnedLookup(
+  hostname: string,
+  options: LookupOptions,
+  callback: (err: NodeJS.ErrnoException | null, address: string | LookupAddress[], family?: number) => void,
+) {
+  dnsLookup(hostname, { family: options.family, hints: options.hints, all: true }, (err, addresses) => {
+    if (err) return callback(err, "");
+    if (!addresses.length || addresses.some((a) => isPrivateAddress(a.address))) {
+      return callback(Object.assign(new Error("Link inválido"), { code: "EBLOCKED" }), "");
+    }
+    if (options.all) callback(null, addresses);
+    else callback(null, addresses[0].address, addresses[0].family);
+  });
 }
 
 /** A loja recusou a página; `url` é onde os redirecionamentos pararam, ainda útil para ler o endereço do produto. */
@@ -38,45 +74,88 @@ class StoreRefused extends Error {
   }
 }
 
-/** Bloqueia SSRF: só http(s) público, checando o IP resolvido. */
+/**
+ * Bloqueia SSRF: só http(s) público. Recusa cedo (antes de baixar ou buscar qualquer coisa) o link que já resolve
+ * para a rede interna; quem garante na hora da conexão é o `pinnedLookup`. IP literal não passa pelo lookup da
+ * conexão, então é conferido aqui.
+ */
 async function assertPublicUrl(raw: string) {
   const url = new URL(raw);
   if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Link inválido");
-  const addrs = await lookup(url.hostname, { all: true });
+  const host = url.hostname.replace(/^\[|\]$/g, "");
+  if (isIP(host)) {
+    if (isPrivateAddress(host)) throw new Error("Link inválido");
+    return url;
+  }
+  const addrs = await lookup(host, { all: true });
   if (!addrs.length || addrs.some((a) => isPrivateAddress(a.address))) throw new Error("Link inválido");
   return url;
+}
+
+/** Um GET sem seguir redirecionamentos, com o DNS conferido na conexão. */
+function get(url: URL, accept: string, signal: AbortSignal) {
+  return new Promise<IncomingMessage>((resolve, reject) => {
+    const send = url.protocol === "https:" ? httpsRequest : httpRequest;
+    const req = send(
+      url,
+      {
+        method: "GET",
+        lookup: pinnedLookup,
+        signal,
+        headers: { "user-agent": "Mozilla/5.0 (compatible; VitriBot/1.0)", accept, "accept-encoding": "gzip, deflate, br" },
+      },
+      resolve,
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+/** Lê o corpo (descomprimido) até `maxBytes`; o limite vale depois da descompressão, contra arquivos-bomba. */
+async function readBody(res: IncomingMessage, maxBytes: number) {
+  const encoding = String(res.headers["content-encoding"] ?? "").toLowerCase();
+  const stream =
+    encoding === "gzip" || encoding === "x-gzip" ? res.pipe(createGunzip())
+    : encoding === "deflate" ? res.pipe(createInflate())
+    : encoding === "br" ? res.pipe(createBrotliDecompress())
+    : res;
+  const chunks: Buffer[] = [];
+  let size = 0;
+  let complete = true;
+  try {
+    for await (const chunk of stream) {
+      chunks.push(chunk as Buffer);
+      size += (chunk as Buffer).length;
+      if (size >= maxBytes) {
+        complete = false;
+        break;
+      }
+    }
+  } finally {
+    res.destroy();
+    if (stream !== res) stream.destroy();
+  }
+  return { bytes: Buffer.concat(chunks), complete };
 }
 
 /** Baixa uma URL pública (sem rede interna), seguindo redirects com a mesma checagem e lendo no máximo maxBytes. */
 export async function fetchPublic(raw: string, { accept, maxBytes, timeoutMs = 8000 }: { accept: string; maxBytes: number; timeoutMs?: number }) {
   let url = await assertPublicUrl(raw);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const res = await fetch(url, {
-      redirect: "manual",
-      signal: AbortSignal.timeout(timeoutMs),
-      headers: { "user-agent": "Mozilla/5.0 (compatible; VitriBot/1.0)", accept },
-    });
-    const next = res.headers.get("location");
-    if (res.status >= 300 && res.status < 400 && next) {
+    const res = await get(url, accept, AbortSignal.timeout(timeoutMs));
+    const status = res.statusCode ?? 0;
+    const next = res.headers.location;
+    if (status >= 300 && status < 400 && next) {
+      res.destroy();
       url = await assertPublicUrl(new URL(next, url).toString());
       continue;
     }
-    if (!res.ok || !res.body) throw new StoreRefused(url.toString());
-    const reader = res.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    let complete = false;
-    while (size < maxBytes) {
-      const { done, value } = await reader.read();
-      if (done) {
-        complete = true;
-        break;
-      }
-      chunks.push(value);
-      size += value.length;
+    if (status < 200 || status >= 300) {
+      res.destroy();
+      throw new StoreRefused(url.toString());
     }
-    reader.cancel().catch(() => {});
-    return { bytes: Buffer.concat(chunks), complete, url: url.toString() };
+    const { bytes, complete } = await readBody(res, maxBytes);
+    return { bytes, complete, url: url.toString() };
   }
   throw new Error("Redirecionamentos demais");
 }
