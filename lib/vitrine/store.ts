@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getUser } from "@/lib/supabase/server";
+import { safeUrl } from "./links";
 import { pickSocials } from "./socials";
 import { COUPON_EXTRA, emptyContent, pickProfile, PRODUCT_EXTRA, type Coupon, type IconId, type Post, type Product, type VitrineContent, type VitrineProfile } from "./types";
 
@@ -38,8 +39,9 @@ export const toCoupon = (c: Fields<CouponRow>): Coupon => ({
   value: c.value,
   condition: c.condition,
   expiresAt: c.expires_at,
-  storeUrl: c.store_url,
-  logoUrl: c.logo_url,
+  // só http(s): veja safeUrl
+  storeUrl: safeUrl(c.store_url),
+  logoUrl: safeUrl(c.logo_url),
   howTo: c.how_to,
   startsAt: c.starts_at,
 });
@@ -51,11 +53,11 @@ export const toProduct = (p: Fields<ProductRow>): Product => ({
   category: p.category,
   price: p.price,
   couponId: p.coupon_id,
-  url: p.url,
-  imageUrl: p.image_url,
+  url: safeUrl(p.url),
+  imageUrl: safeUrl(p.image_url),
   icon: p.icon as IconId,
-  affiliateUrl: p.affiliate_url,
-  videoUrl: p.video_url,
+  affiliateUrl: safeUrl(p.affiliate_url),
+  videoUrl: safeUrl(p.video_url),
   soldOut: p.sold_out,
   // antes da migração 20261113000000_product_favorite a coluna não existe
   favorite: p.favorite ?? false,
@@ -64,7 +66,7 @@ export const toProduct = (p: Fields<ProductRow>): Product => ({
 
 export const toPost = (p: Tables["posts"]["Row"]): Post => ({
   id: p.id,
-  photoUrl: p.photo_url,
+  photoUrl: safeUrl(p.photo_url),
   caption: p.caption,
   productIds: p.product_ids,
 });

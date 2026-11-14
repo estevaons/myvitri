@@ -353,6 +353,7 @@
     "publishFailed": "Erro ao salvar. Tente de novo.",
     "importFailed": "Não conseguimos ler esse link. Preencha os dados à mão.",
     "logoFailed": "Não conseguimos abrir o site da loja. Confira o link.",
+    "rateLimited": "Muitas buscas em pouco tempo. Espere alguns minutos e tente de novo, ou preencha os dados à mão.",
     "imageType": "Use uma imagem PNG, JPG, SVG ou WebP.",
     "uploadFailed": "Não deu para enviar a imagem. Tente de novo.",
     "uploadLimit": "Você chegou ao limite de imagens enviadas. Espere alguns minutos e tente de novo; se continuar, escreva para contato@myvitri.com.",

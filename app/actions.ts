@@ -565,10 +565,25 @@ export async function saveDraftAction(content: VitrineContent | null): Promise<{
 
 export type ImportResult = { ok: true; product: ImportedProduct } | { ok: false; error: string };
 
+/**
+ * Ritmo por conta das ações que acessam sites de fora a pedido de quem está logado (limites em take_rate_limit,
+ * no banco: em serverless não há memória compartilhada). Sem a migração aplicada, deixa passar.
+ */
+async function withinRate(supabase: Awaited<ReturnType<typeof getUser>>["supabase"], bucket: "import" | "logo") {
+  const { data, error } = await supabase.rpc("take_rate_limit", { p_bucket: bucket });
+  if (error) {
+    console.error("take_rate_limit", bucket, error);
+    // PGRST202: a função não existe (migração 20261113010000 ainda não aplicada)
+    return error.code === "PGRST202";
+  }
+  return data;
+}
+
 export async function importProductAction(url: string): Promise<ImportResult> {
   const t = await errors();
-  const { user } = await getUser();
+  const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: t("sessionExpired") };
+  if (!(await withinRate(supabase, "import"))) return { ok: false, error: t("rateLimited") };
   try {
     return { ok: true, product: await importProductFromUrl(url) };
   } catch {
@@ -579,8 +594,9 @@ export async function importProductAction(url: string): Promise<ImportResult> {
 /** Logos encontrados no site da loja do cupom, para a pessoa escolher. */
 export async function findLogoAction(url: string): Promise<{ ok: true; logos: string[] } | { ok: false; error: string }> {
   const t = await errors();
-  const { user } = await getUser();
+  const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: t("sessionExpired") };
+  if (!(await withinRate(supabase, "logo"))) return { ok: false, error: t("rateLimited") };
   try {
     return { ok: true, logos: await findStoreLogos(url) };
   } catch {

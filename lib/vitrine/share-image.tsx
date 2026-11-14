@@ -28,6 +28,12 @@ const GOLD = "#7A5F30";
 const PHOTO_TIMEOUT = 4000;
 
 /**
+ * As imagens baixam fotos de endereços escolhidos pela creator a cada geração, em rotas abertas a qualquer um:
+ * `s-maxage` deixa a CDN responder as repetições sem o servidor buscar as fotos de novo (no navegador, 10 minutos).
+ */
+const SHARE_CACHE = "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400";
+
+/**
  * Baixa a foto (só endereço público, como na importação de produtos), reduz e devolve um data URL jpeg.
  * Produto: inteiro no quadrado creme, com o fundo branco da foto se fundindo ao creme (o multiply da vitrine).
  * Perfil: recortado no quadrado. Qualquer falha vira null e a foto é pulada.
@@ -226,7 +232,7 @@ export async function shareImage(content: VitrineContent, url: string, format: k
 
   return new ImageResponse(
     <div style={{ display: "flex", width: "100%", height: "100%", background: "#FFFFFF", color: INK, fontFamily: "Body" }}>{body}</div>,
-    { ...SHARE_SIZES[format], fonts: await fonts(), headers: { "cache-control": "public, max-age=600" } },
+    { ...SHARE_SIZES[format], fonts: await fonts(), headers: { "cache-control": SHARE_CACHE } },
   );
 }
 
@@ -283,6 +289,6 @@ export async function productStoryImage(content: VitrineContent, product: Produc
         <Wordmark label="" ink={INK} height={logoHeight} width={Math.round(logoHeight * WORDMARK_RATIO)} />
       </div>
     </div>,
-    { width, height, fonts: await fonts(), headers: { "cache-control": "public, max-age=600" } },
+    { width, height, fonts: await fonts(), headers: { "cache-control": SHARE_CACHE } },
   );
 }

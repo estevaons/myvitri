@@ -492,8 +492,11 @@ export type Database = {
       fold: { Args: { t: string }; Returns: string }
       owns_vitrine: { Args: { v: string }; Returns: boolean }
       publish_vitrine: { Args: { content: Json }; Returns: string }
+      is_http_url: { Args: { u: string }; Returns: boolean }
       search_catalog: { Args: { lim?: number; q: string }; Returns: Json }
+      take_rate_limit: { Args: { p_bucket: string }; Returns: boolean }
       top_creators_today: { Args: { lim?: number }; Returns: { handle: string }[] }
+      track_event: { Args: { p_item: string | null; p_kind: string; p_sig: string; p_visitor: string; p_vitrine: string }; Returns: undefined }
       vitrine_stats: { Args: { days?: number }; Returns: Json }
     }
     Enums: {
