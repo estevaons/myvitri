@@ -53,7 +53,8 @@
       "outfitShare": "Criar imagem do look para os stories",
       "outfitShareHint": "Poste nos stories e adicione a figurinha de link com o link do look.",
       "outfitCopyLink": "Copiar link do look",
-      "outfitImageAlt": "Imagem para os stories divulgando o look de {name}"
+      "outfitImageAlt": "Imagem para os stories divulgando o look de {name}",
+      "zoom": "Ampliar a foto de {name}"
     },
     "search": "Buscar",
     "searchLabel": "Buscar produto ou marca",
