@@ -1529,22 +1529,27 @@ function OutfitSlide({
               </li>
             ))}
           </ul>
-          {onStory && (
-            <button
-              type="button"
-              onClick={onStory}
-              className="flex min-h-12 cursor-pointer items-center justify-center gap-2 border border-ink bg-transparent px-6 text-[12px] font-medium tracking-[0.18em] text-ink uppercase hover:bg-ink hover:text-white @3xl:self-start"
-            >
-              {storyIcon}
-              {t("product.outfitShare")}
-            </button>
-          )}
         </div>
-        {total > 1 && (
-          <span aria-hidden="true" className="font-display text-[clamp(28px,3.4cqw,52px)] leading-none lining-nums text-ink/80 @max-3xl:hidden">
-            {two(n)}
-            <span className="text-ink/30"> / {two(total)}</span>
-          </span>
+        {/* no rodapé do painel: o número do outfit e, para a dona, o botão da imagem de stories do look */}
+        {(total > 1 || onStory) && (
+          <div className="flex flex-col gap-4 @3xl:flex-row @3xl:items-end @3xl:justify-between">
+            {total > 1 && (
+              <span aria-hidden="true" className="font-display text-[clamp(28px,3.4cqw,52px)] leading-none lining-nums text-ink/80 @max-3xl:hidden">
+                {two(n)}
+                <span className="text-ink/30"> / {two(total)}</span>
+              </span>
+            )}
+            {onStory && (
+              <button
+                type="button"
+                onClick={onStory}
+                className="flex min-h-12 cursor-pointer items-center justify-center gap-2 border border-ink bg-transparent px-6 text-[12px] font-medium tracking-[0.18em] text-ink uppercase hover:bg-ink hover:text-white"
+              >
+                {storyIcon}
+                {t("product.outfitShare")}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </article>
