@@ -9,6 +9,7 @@ import { FilePick } from "@/components/editor/ImageField";
 import { useImageCrop } from "@/components/editor/ImageCrop";
 import { uploadImage } from "@/components/editor/upload";
 import { HOST } from "@/lib/brand";
+import { TOUR_EVENT, TOUR_PARAM } from "@/lib/onboarding/tours";
 import { kicker, pillDark, pillLight } from "./chrome";
 
 /**
@@ -58,12 +59,13 @@ const item =
 export type LeaveGuard = (e: MouseEvent, go: () => void) => void;
 
 /**
- * Canto direito do cabeçalho da home e do editor: um ícone de pessoa abre um menu (com a foto, o nome e o e-mail no topo) com Configurações e Sair. Fecha com Esc, com um
+ * Canto direito do cabeçalho da home e do editor: um ícone de pessoa abre um menu (com a foto, o nome e o e-mail no topo) com Configurações, o tour da plataforma e Sair. Fecha com Esc, com um
  * clique fora ou quando o foco sai dele. `onLeave` roda ao clicar no que tira a pessoa da página (veja `LeaveGuard`): o editor
  * pergunta numa janela se ainda há alterações sendo salvas.
  */
 export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: LeaveGuard }) {
   const t = useTranslations("account");
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -88,7 +90,7 @@ export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: 
   const label = account.vitrine?.name || account.name || account.email;
 
   return (
-    <div ref={box} className="relative" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpen(false)}>
+    <div ref={box} data-tour="account" className="relative" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpen(false)}>
       <button
         ref={trigger}
         type="button"
@@ -128,6 +130,18 @@ export function AccountMenu({ account, onLeave }: { account: Account; onLeave?: 
               }}
             >
               {t("settings")}
+            </button>
+            <button
+              type="button"
+              className={item}
+              onClick={() => {
+                setOpen(false);
+                // o tour da página (components/onboarding/Tour.tsx) atende o evento; numa página sem tour, abre o da home
+                const handled = !window.dispatchEvent(new Event(TOUR_EVENT, { cancelable: true }));
+                if (!handled) router.push({ pathname: "/inicio", query: { [TOUR_PARAM]: "1" } });
+              }}
+            >
+              {t("tour")}
             </button>
             <form action={signOutAction}>
               {/* confirmada a saída, o menu já fechou (a janela levou o foco): sai chamando a ação direto */}

@@ -12,7 +12,8 @@ import { PASSWORD_MIN } from "@/lib/auth/password";
 import { safePath, saveReturn } from "@/lib/auth/return-to";
 import { track } from "@/lib/analytics/server";
 import { onboardingSchema } from "@/lib/onboarding/options";
-import { saveOnboardingProfile, takeAttribution } from "@/lib/onboarding/store";
+import { markTourSeen, saveOnboardingProfile, takeAttribution } from "@/lib/onboarding/store";
+import { isTourId } from "@/lib/onboarding/tours";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
 import { commentsTag, favoritesTag, HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
 import { googlePhoto, saveClaim, starterContent } from "@/lib/vitrine/claim";
@@ -359,6 +360,27 @@ export async function skipOnboardingAction(form: FormData) {
   }
   await track(user.id, "onboarding_skipped");
   return go(next);
+}
+
+/**
+ * Fim do tour guiado (`components/onboarding/Tour.tsx`): grava em `profiles.tours` que a pessoa já viu este tour,
+ * para ele não abrir sozinho de novo, e manda `tour_completed` ou `tour_skipped` ao PostHog com o passo em que parou.
+ * `manual`: o tour foi reaberto pelo menu da conta (ou `?tour=1`) e já estava marcado; só registra o evento.
+ * Nunca lança nem redireciona: o tour fecha na tela de qualquer jeito.
+ */
+export async function finishTourAction(tour: unknown, outcome: unknown, step: unknown, total: unknown, manual: unknown) {
+  if (!isTourId(tour) || (outcome !== "done" && outcome !== "skipped")) return;
+  const { supabase, user } = await getUser();
+  if (!user) return;
+  const num = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 50 ? v : null);
+  if (manual !== true) {
+    try {
+      await markTourSeen(supabase, tour);
+    } catch (e) {
+      console.error("markTourSeen", e);
+    }
+  }
+  await track(user.id, outcome === "done" ? "tour_completed" : "tour_skipped", { tour, step: num(step), total: num(total), manual: manual === true });
 }
 
 export async function signOutAction() {

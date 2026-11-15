@@ -183,6 +183,7 @@ export type Database = {
           persona: string | null
           signup_source: Json
           skipped_at: string | null
+          tours: Json
           updated_at: string
           user_id: string
         }
@@ -203,6 +204,7 @@ export type Database = {
           persona?: string | null
           signup_source?: Json
           skipped_at?: string | null
+          tours?: Json
           updated_at?: string
           user_id?: string
         }
@@ -223,6 +225,7 @@ export type Database = {
           persona?: string | null
           signup_source?: Json
           skipped_at?: string | null
+          tours?: Json
           updated_at?: string
           user_id?: string
         }
@@ -550,6 +553,7 @@ export type Database = {
       owns_vitrine: { Args: { v: string }; Returns: boolean }
       publish_vitrine: { Args: { content: Json }; Returns: string }
       is_http_url: { Args: { u: string }; Returns: boolean }
+      mark_tour_seen: { Args: { tour: string }; Returns: undefined }
       search_catalog: { Args: { lim?: number; q: string }; Returns: Json }
       take_rate_limit: { Args: { p_bucket: string }; Returns: boolean }
       top_creators_today: { Args: { lim?: number }; Returns: { handle: string }[] }
