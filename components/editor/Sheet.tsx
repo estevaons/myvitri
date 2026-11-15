@@ -58,7 +58,7 @@ export function Sheet({
       tabIndex={-1}
       // clique no fundo escurecido (fora da caixa) fecha
       onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
-      className={`box-border flex max-h-[92dvh] outline-none w-full max-w-none flex-col overflow-hidden rounded-t-[20px] border-0 bg-white p-0 text-ink backdrop:bg-ink/45 max-sm:mt-auto max-sm:mb-0 motion-safe:animate-sheet-up sm:m-auto sm:max-h-[min(88dvh,820px)] sm:w-[calc(100%-32px)] ${wide ? "sm:max-w-[760px]" : "sm:max-w-[520px]"} sm:rounded-[20px] [&:not([open])]:hidden`}
+      className={`box-border flex max-h-[92dvh] outline-none w-full max-w-none flex-col overflow-hidden border-0 bg-white p-0 text-ink backdrop:bg-ink/45 max-sm:mt-auto max-sm:mb-0 motion-safe:animate-sheet-up sm:m-auto sm:max-h-[min(88dvh,820px)] sm:w-[calc(100%-32px)] ${wide ? "sm:max-w-[760px]" : "sm:max-w-[520px]"} [&:not([open])]:hidden`}
     >
       <header className="flex flex-none items-center justify-between gap-3 border-b border-[#EEEBE5] py-2 pr-2 pl-5">
         <h2 className="m-0 truncate text-[17px] font-semibold">{title}</h2>
@@ -108,7 +108,7 @@ export function SheetFooter({
           onClick={remove}
           aria-label={removeLabel}
           title={removeLabel}
-          className="-ml-2 flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1.5 rounded-full border-0 bg-transparent px-2.5 text-sm font-medium text-[#A3361B] hover:bg-[#FFF1EC]"
+          className="-ml-2 flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1.5 border-0 bg-transparent px-2.5 text-sm font-medium text-[#A3361B] hover:bg-[#FFF1EC]"
         >
           <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -118,7 +118,7 @@ export function SheetFooter({
           </span>
         </button>
       )}
-      <button type="button" onClick={onDone} className="ml-auto min-h-11 cursor-pointer rounded-full border-0 bg-ink px-7 text-sm font-semibold text-white hover:opacity-85">
+      <button type="button" onClick={onDone} className="ml-auto min-h-11 cursor-pointer border-0 bg-ink px-7 text-sm font-semibold text-white hover:opacity-85">
         {t("done")}
       </button>
     </div>

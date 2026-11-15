@@ -21,7 +21,7 @@ import { useDragReorder } from "./useDragReorder";
 
 /**
  * Vitrine pública com visual fixo, no espírito das lojas de esporte: branco, cinza claro atrás dos produtos,
- * títulos em caixa alta e botões em pílula. Quem é dono da vitrine só muda o conteúdo e a capa.
+ * títulos em caixa alta e botões de cantos retos (como o "Ver vitrine" do editor). Quem é dono da vitrine só muda o conteúdo e a capa.
  */
 
 const pad = "px-5 @3xl:px-12";
@@ -238,7 +238,7 @@ function SocialLinks({ socials, name, onEdit }: { socials: VitrineContent["socia
         onClick={onEdit}
         aria-label={te(empty ? "addSocials" : "socials")}
         title={te(empty ? "addSocials" : "socials")}
-        className="group -mt-1 flex cursor-pointer items-center gap-0.5 rounded-full border-0 bg-transparent py-0 pr-1 pl-0 text-ink hover:bg-cream @2xl:absolute @2xl:top-12 @2xl:-right-2 @2xl:mt-0"
+        className="group -mt-1 flex cursor-pointer items-center gap-0.5 border-0 bg-transparent py-0 pr-1 pl-0 text-ink hover:bg-cream @2xl:absolute @2xl:top-12 @2xl:-right-2 @2xl:mt-0"
       >
         {icons.map((n) => (
           <span key={n} aria-hidden="true" className={`flex size-8 items-center justify-center ${empty ? "opacity-30" : ""}`}>
@@ -401,7 +401,7 @@ export function PencilBadge({ className = "" }: { className?: string }) {
 }
 
 /**
- * A capa no modo de edição, toda clicável (abre o seletor de arquivo), com o lápis no canto: no mouse, o hover escurece de leve e mostra a pílula
+ * A capa no modo de edição, toda clicável (abre o seletor de arquivo), com o lápis no canto: no mouse, o hover escurece de leve e mostra o botão
  * "Trocar capa" no meio; no toque (sem hover), um tracejado claro por dentro da borda avisa que dá para tocar.
  */
 function CoverHit({ label, onClick, image, busy = false }: { label: string; onClick: () => void; image: boolean; busy?: boolean }) {
@@ -417,12 +417,12 @@ function CoverHit({ label, onClick, image, busy = false }: { label: string; onCl
       <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-ink/0 transition-colors duration-200 group-hover/cover:bg-ink/15 group-focus-visible/cover:bg-ink/15" />
       <span
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-3 hidden rounded-[10px] border border-dashed pointer-coarse:block ${image ? "border-white/70" : "border-ink/20"}`}
+        className={`pointer-events-none absolute inset-3 hidden border border-dashed pointer-coarse:block ${image ? "border-white/70" : "border-ink/20"}`}
       />
       <span
         aria-hidden="true"
-        // a pílula só aparece no hover, e branca para ler sobre qualquer capa (e sobre a letra, sem capa)
-        className="relative flex h-10 translate-y-1 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-semibold text-ink opacity-0 shadow-[0_2px_10px_rgba(17,17,17,0.18)] transition duration-200 group-hover/cover:translate-y-0 group-hover/cover:opacity-100 group-focus-visible/cover:translate-y-0 group-focus-visible/cover:opacity-100"
+        // o botão só aparece no hover, e branco para ler sobre qualquer capa (e sobre a letra, sem capa)
+        className="relative flex h-10 translate-y-1 items-center gap-2 bg-white px-4 text-[13px] font-semibold text-ink opacity-0 shadow-[0_2px_10px_rgba(17,17,17,0.18)] transition duration-200 group-hover/cover:translate-y-0 group-hover/cover:opacity-100 group-focus-visible/cover:translate-y-0 group-focus-visible/cover:opacity-100"
       >
         <CameraIcon size={16} />
         {label}
@@ -576,9 +576,9 @@ function InlineTexts({
         el?.focus();
         el?.setSelectionRange(el.value.length, el.value.length);
       }}
-      className="relative flex w-full cursor-text flex-col items-center gap-4 rounded-[12px] px-4 py-5 outline-2 outline-transparent outline-solid transition-[background-color,outline-color] hover:bg-ink/[0.035] has-focus:bg-transparent has-focus:outline-ink"
+      className="relative flex w-full cursor-text flex-col items-center gap-4 px-4 py-5 outline-2 outline-transparent outline-solid transition-[background-color,outline-color] hover:bg-ink/[0.035] has-focus:bg-transparent has-focus:outline-ink"
     >
-      {!focused && <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden rounded-[12px] border border-dashed border-ink/20 pointer-coarse:block" />}
+      {!focused && <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden border border-dashed border-ink/20 pointer-coarse:block" />}
       {/* o lápis fica meio para fora do bloco: o span em volta recebe o toque, para ele também começar a edição */}
       {!focused && (
         <span data-pencil className="absolute -top-3 -right-3">
@@ -622,7 +622,7 @@ function InlineTexts({
  */
 
 /** Uma linha de texto ainda por escrever. */
-const Bar = ({ className }: { className: string }) => <span aria-hidden="true" className={`block flex-none rounded-full bg-ink/[0.08] ${className}`} />;
+const Bar = ({ className }: { className: string }) => <span aria-hidden="true" className={`block flex-none bg-ink/[0.08] ${className}`} />;
 
 /** Tracejado por cima do esqueleto clicável; escurece no hover. */
 const Dashed = ({ className = "inset-0" }: { className?: string }) => (
@@ -711,7 +711,7 @@ function AddPill({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-10 flex-none cursor-pointer items-center gap-1.5 rounded-full border border-ink bg-white px-4 text-[12px] font-semibold tracking-[0.12em] text-ink uppercase hover:bg-ink hover:text-white"
+      className="flex min-h-10 flex-none cursor-pointer items-center gap-1.5 border border-ink bg-white px-4 text-[12px] font-semibold tracking-[0.12em] text-ink uppercase hover:bg-ink hover:text-white"
     >
       <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
         <path d="M12 5v14M5 12h14" />

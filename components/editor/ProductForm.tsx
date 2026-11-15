@@ -74,7 +74,7 @@ export function ProductImport({ onAdd }: { onAdd: (patch: Partial<Product>, erro
             {error}
           </span>
         )}
-        <button type="submit" disabled={importing} className="mt-1 min-h-12 cursor-pointer rounded-full border-0 bg-ink px-6 text-sm font-semibold text-white disabled:opacity-60">
+        <button type="submit" disabled={importing} className="mt-1 min-h-12 cursor-pointer border-0 bg-ink px-6 text-sm font-semibold text-white disabled:opacity-60">
           {importing ? t("searching") : t("search")}
         </button>
       </form>
@@ -86,7 +86,7 @@ export function ProductImport({ onAdd }: { onAdd: (patch: Partial<Product>, erro
       <button
         type="button"
         onClick={() => onAdd({})}
-        className="min-h-12 cursor-pointer rounded-full border border-[#D8D3C9] bg-white px-6 text-sm font-semibold text-ink hover:border-ink"
+        className="min-h-12 cursor-pointer border border-[#D8D3C9] bg-white px-6 text-sm font-semibold text-ink hover:border-ink"
       >
         {t("manual")}
       </button>
@@ -112,7 +112,7 @@ export function ProductForm({
   return (
     <>
       {notice && (
-        <p role="status" className="m-0 rounded-[12px] bg-[#FFF8E6] px-3.5 py-3 text-[13px] leading-snug text-[#6B4A00]">
+        <p role="status" className="m-0 bg-[#FFF8E6] px-3.5 py-3 text-[13px] leading-snug text-[#6B4A00]">
           {t("importFailed", { error: notice })}
         </p>
       )}

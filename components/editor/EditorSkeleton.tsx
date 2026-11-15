@@ -33,16 +33,16 @@ export function EditorSkeleton() {
 
       <main className="mx-auto box-border flex w-full max-w-[1440px] flex-1 flex-col items-center gap-4 px-5 py-6 md:px-12 max-sm:px-0 max-sm:pt-0 max-sm:pb-6">
         <p className="m-0 w-full text-[13px] leading-snug text-[#5E5A52] max-sm:px-4 max-sm:pt-3">{te("editHint")}</p>
-        <div className="w-full flex-none overflow-hidden bg-white sm:rounded-2xl sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]">
+        <div className="w-full flex-none overflow-hidden bg-white sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]">
           <div className="flex items-center justify-center border-b border-[#E8E5DF] bg-[#F7F6F3] px-3.5 py-2.5 max-sm:hidden">
-            <span className="flex items-center gap-1.5 rounded-full border border-[#E8E5DF] bg-white px-3.5 py-1.5 text-xs text-[#3A3A3A]">
+            <span className="flex items-center gap-1.5 border border-[#E8E5DF] bg-white px-3.5 py-1.5 text-xs text-[#3A3A3A]">
               <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="5" y="11" width="14" height="10" rx="2" />
                 <path d="M8 11V7a4 4 0 0 1 8 0v4" />
               </svg>
               {/* na altura da linha do endereço, para a moldura ter a mesma altura */}
               <span className="flex h-4 items-center">
-                <Bone className="h-3 w-44 rounded-full" />
+                <Bone className="h-3 w-44" />
               </span>
             </span>
           </div>
@@ -54,8 +54,8 @@ export function EditorSkeleton() {
               <div className="relative -mt-10 flex flex-col items-center gap-2.5">
                 <Bone className="size-20 rounded-full ring-4 ring-white" />
                 <div className="flex flex-col items-center gap-2 py-1">
-                  <Bone className="h-5 w-44 rounded-full" />
-                  <Bone className="h-3 w-32 rounded-full" />
+                  <Bone className="h-5 w-44" />
+                  <Bone className="h-3 w-32" />
                 </div>
                 <div className="flex gap-1.5 @2xl:absolute @2xl:top-12 @2xl:right-0">
                   <Bone className="size-6 rounded-full" />
@@ -65,12 +65,12 @@ export function EditorSkeleton() {
               </div>
               <div className="mx-auto flex max-w-[880px] flex-col items-center px-4 pt-12 pb-12 @3xl:pt-14">
                 <div className="flex w-full flex-col items-center gap-[clamp(10px,2cqw,22px)]">
-                  <Bone className="h-[clamp(34px,6.4cqw,76px)] w-[82%] rounded-lg" />
-                  <Bone className="h-[clamp(34px,6.4cqw,76px)] w-[66%] rounded-lg" />
+                  <Bone className="h-[clamp(34px,6.4cqw,76px)] w-[82%]" />
+                  <Bone className="h-[clamp(34px,6.4cqw,76px)] w-[66%]" />
                 </div>
                 <div className="mt-7 flex w-full max-w-[576px] flex-col items-center gap-2.5">
-                  <Bone className="h-3.5 w-[92%] rounded-full" />
-                  <Bone className="h-3.5 w-[58%] rounded-full" />
+                  <Bone className="h-3.5 w-[92%]" />
+                  <Bone className="h-3.5 w-[58%]" />
                 </div>
               </div>
             </section>
@@ -83,16 +83,16 @@ export function EditorSkeleton() {
                   <Bone className="aspect-[4/5] w-full" />
                   <div className="flex min-w-0 flex-col gap-7 p-5 pb-6 @3xl:p-12 @6xl:p-16">
                     <div className="flex flex-col gap-3">
-                      <Bone className="h-7 w-[85%] rounded-md" />
-                      <Bone className="h-7 w-[60%] rounded-md" />
+                      <Bone className="h-7 w-[85%]" />
+                      <Bone className="h-7 w-[60%]" />
                     </div>
                     <div className="flex flex-col gap-4">
                       {[0, 1, 2].map((i) => (
                         <div key={i} className="flex items-center gap-3.5">
                           <Bone className="size-16 flex-none" />
                           <div className="flex flex-1 flex-col gap-2">
-                            <Bone className="h-3 w-[70%] rounded-full" />
-                            <Bone className="h-3 w-[40%] rounded-full" />
+                            <Bone className="h-3 w-[70%]" />
+                            <Bone className="h-3 w-[40%]" />
                           </div>
                         </div>
                       ))}
@@ -109,7 +109,7 @@ export function EditorSkeleton() {
                 {[0, 1, 2].map((i) => (
                   <div key={i} className={`flex flex-col items-center gap-4 ${i === 2 ? "@max-3xl:hidden" : ""}`}>
                     <Bone className="aspect-square w-full" />
-                    <Bone className="h-3 w-2/3 rounded-full" />
+                    <Bone className="h-3 w-2/3" />
                   </div>
                 ))}
               </div>

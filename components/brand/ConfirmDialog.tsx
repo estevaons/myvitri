@@ -77,7 +77,7 @@ function ConfirmDialog({ title, text, confirm, danger = false, onDone }: Confirm
       aria-describedby={text ? "confirmar-texto" : undefined}
       // clique no fundo escurecido (fora da caixa) cancela
       onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
-      className="m-auto box-border w-[calc(100%-32px)] max-w-[400px] rounded-[20px] border-0 bg-white p-0 text-ink backdrop:bg-ink/45 motion-safe:animate-sheet-up"
+      className="m-auto box-border w-[calc(100%-32px)] max-w-[400px] border-0 bg-white p-0 text-ink backdrop:bg-ink/45 motion-safe:animate-sheet-up"
     >
       <div className="flex flex-col gap-2 px-6 pt-6 pb-5">
         <h2 id="confirmar-titulo" className="m-0 text-[17px] leading-snug font-semibold text-balance">
@@ -94,14 +94,14 @@ function ConfirmDialog({ title, text, confirm, danger = false, onDone }: Confirm
           ref={cancelBtn}
           type="button"
           onClick={() => done.current(false)}
-          className="min-h-11 cursor-pointer rounded-full border border-[#E6E2DA] bg-white px-5 text-sm font-semibold text-ink hover:border-[#B9B2A6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="min-h-11 cursor-pointer border border-[#E6E2DA] bg-white px-5 text-sm font-semibold text-ink hover:border-[#B9B2A6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
           {t("cancel")}
         </button>
         <button
           type="button"
           onClick={() => done.current(true)}
-          className={`min-h-11 cursor-pointer rounded-full border-0 px-6 text-sm font-semibold text-white hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${danger ? "bg-[#B42318]" : "bg-ink"}`}
+          className={`min-h-11 cursor-pointer border-0 px-6 text-sm font-semibold text-white hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${danger ? "bg-[#B42318]" : "bg-ink"}`}
         >
           {confirm}
         </button>

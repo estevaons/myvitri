@@ -77,7 +77,7 @@ export function CouponForm({ coupon: c, onChange }: { coupon: Coupon; onChange: 
         <LogoPicker storeUrl={c.storeUrl} logoUrl={c.logoUrl} onChange={(logoUrl) => onChange({ logoUrl })} />
         {/* "Como usar" fica recolhido; já abre se o cupom tiver os passos preenchidos. */}
         <details open={!!c.howTo} className="group flex flex-col">
-          <summary className="-mx-1 flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-lg px-1 text-[13px] font-medium text-[#5E5A52] hover:text-ink [&::-webkit-details-marker]:hidden">
+          <summary className="-mx-1 flex min-h-11 cursor-pointer list-none items-center gap-1.5 px-1 text-[13px] font-medium text-[#5E5A52] hover:text-ink [&::-webkit-details-marker]:hidden">
             <svg
               aria-hidden="true"
               width="14"
