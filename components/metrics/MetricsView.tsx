@@ -317,12 +317,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
         back="/inicio"
         home="/inicio"
         links={[]}
-        action={
-          <Link href="/editor" aria-label={t("editLabel")} className={`${pillDark} max-md:px-5`}>
-            {t("edit")}
-            <span className="max-md:hidden">&nbsp;{t("editRest")}</span>
-          </Link>
-        }
+        action={null}
       />
 
       <section className={`mx-auto flex max-w-[1440px] flex-col gap-10 pt-10 md:gap-14 md:pt-16 ${pad}`}>

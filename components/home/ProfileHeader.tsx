@@ -29,24 +29,40 @@ function Stat({ n, label }: { n: number; label: string }) {
   );
 }
 
+/** "Ver métricas" com a seta que anda para a direita quando o `group` em volta recebe o mouse. */
+function MetricsCue({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 text-[11px] font-medium tracking-[0.18em] text-ink uppercase">
+      {label}
+      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5">
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </svg>
+    </span>
+  );
+}
+
 /**
- * O atalho para o /metricas embaixo dos números: um botão baixo e reto, com a borda areia que preenche ao passar o
- * mouse, um ícone de gráfico e a seta que anda para a direita — menor que os botões de editar e ver, para não
- * disputar com eles.
+ * Os números da semana são a porta de entrada do /metricas: o bloco inteiro é um link só, com um rodapé fino
+ * ("Últimos 7 dias" à esquerda, "Ver métricas →" à direita) separado dos números por uma linha areia, e um fundo
+ * areia claro ao passar o mouse. Assim o atalho fica onde faz sentido sem virar um terceiro botão entre os números e
+ * os botões de editar e ver.
  */
-function MetricsLink({ label }: { label: string }) {
+function StatsCard({ stats }: { stats: WeekStats }) {
+  const t = useTranslations("home.profile");
   return (
     <Link
       href="/metricas"
-      className="group inline-flex min-h-9 items-center gap-2 border border-sand bg-white px-4 text-[11px] font-medium tracking-[0.18em] text-ink uppercase no-underline transition-colors hover:bg-sand focus-visible:bg-sand"
+      className="group block w-full border-y border-sand text-ink no-underline transition-colors hover:bg-sand/50 focus-visible:bg-sand/50"
     >
-      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-      </svg>
-      {label}
-      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5">
-        <path d="M5 12h14M13 6l6 6-6 6" />
-      </svg>
+      <dl className="m-0 grid grid-cols-3 divide-x divide-sand">
+        <Stat n={stats.views} label={t("views", { count: stats.views })} />
+        <Stat n={stats.clicks} label={t("clicks", { count: stats.clicks })} />
+        <Stat n={stats.copied} label={t("copied", { count: stats.copied })} />
+      </dl>
+      <div className="flex items-center justify-between gap-3 border-t border-sand px-3 py-2.5 md:px-4">
+        <span className="text-[12px] text-mute md:text-[13px]">{t("period", { days: WEEK })}</span>
+        <MetricsCue label={t("metrics")} />
+      </div>
     </Link>
   );
 }
@@ -74,19 +90,11 @@ export function ProfileHeader({ account, stats }: { account: Account; stats: Wee
       {v ? (
         <>
           {stats ? (
-            <div className="flex w-full flex-col items-center gap-3">
-              <dl className="m-0 grid w-full grid-cols-3 divide-x divide-sand border-y border-sand">
-                <Stat n={stats.views} label={t("views", { count: stats.views })} />
-                <Stat n={stats.clicks} label={t("clicks", { count: stats.clicks })} />
-                <Stat n={stats.copied} label={t("copied", { count: stats.copied })} />
-              </dl>
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-                <p className="m-0 text-[13px] text-mute">{t("period", { days: WEEK })}</p>
-                <MetricsLink label={t("metrics")} />
-              </div>
-            </div>
+            <StatsCard stats={stats} />
           ) : (
-            <MetricsLink label={t("metrics")} />
+            <Link href="/metricas" className="group no-underline">
+              <MetricsCue label={t("metrics")} />
+            </Link>
           )}
           <div className="grid w-full max-w-[34rem] grid-cols-2 gap-2">
             <Link href="/editor" className={pillSand}>
