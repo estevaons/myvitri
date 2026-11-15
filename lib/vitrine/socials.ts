@@ -2,27 +2,26 @@
  * Redes sociais da creator, mostradas discretas embaixo do nome na vitrine. No editor ela digita o @, o usuário
  * ou cola o link do perfil; aqui isso vira o link do perfil (ou null, se não der para entender).
  */
-export const SOCIAL_NETWORKS = ["instagram", "tiktok", "youtube", "x"] as const;
+/** O X saiu da lista: um `x` antigo no banco ou num rascunho é ignorado na leitura (`pickSocials`) e some ao publicar. */
+export const SOCIAL_NETWORKS = ["instagram", "tiktok", "youtube"] as const;
 export type SocialNetwork = (typeof SOCIAL_NETWORKS)[number];
 export type Socials = Record<SocialNetwork, string>;
 
-export const SOCIALS: Socials = { instagram: "", tiktok: "", youtube: "", x: "" };
+export const SOCIALS: Socials = { instagram: "", tiktok: "", youtube: "" };
 
 /** Nome de cada rede como a própria rede escreve: não muda com o idioma. */
-export const SOCIAL_LABELS: Record<SocialNetwork, string> = { instagram: "Instagram", tiktok: "TikTok", youtube: "YouTube", x: "X" };
+export const SOCIAL_LABELS: Record<SocialNetwork, string> = { instagram: "Instagram", tiktok: "TikTok", youtube: "YouTube" };
 
 const PROFILE: Record<SocialNetwork, string> = {
   instagram: "https://www.instagram.com/",
   tiktok: "https://www.tiktok.com/@",
   youtube: "https://www.youtube.com/@",
-  x: "https://x.com/",
 };
 
 const HOSTS: Record<SocialNetwork, RegExp> = {
   instagram: /(^|\.)instagram\.com$/,
   tiktok: /(^|\.)tiktok\.com$/,
   youtube: /(^|\.)(youtube\.com|youtu\.be)$/,
-  x: /(^|\.)(x\.com|twitter\.com)$/,
 };
 
 /** `@usuario`, `usuario`, `instagram.com/usuario` ou `https://…` → link do perfil; vazio ou de outro site → null. */

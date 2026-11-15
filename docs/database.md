@@ -6,7 +6,7 @@
 
 Pense no banco como um **arquivo de pastas de uma loja de departamento**:
 
-- Cada **creator** (influenciadora, criadora de conteúdo) tem **uma pasta**: a **vitrine**. Na capa da pasta está o nome dela, o endereço (`myvitri.com/marinacosta`), a foto, as frases de destaque e os links das redes sociais (Instagram, TikTok, YouTube, X).
+- Cada **creator** (influenciadora, criadora de conteúdo) tem **uma pasta**: a **vitrine**. Na capa da pasta está o nome dela, o endereço (`myvitri.com/marinacosta`), a foto, as frases de destaque e os links das redes sociais (Instagram, TikTok, YouTube).
 - Dentro da pasta há três gavetas: **cupons** (os códigos de desconto de cada marca), **produtos** (o que ela indica: foto, nome e link) e **posts** (na interface chamados de **Outfits**: uma galeria de até 10 fotos e vídeos já postados dela usando um conjunto e a lista das peças, que são produtos da vitrine). A antiga gaveta de **kits** não é mais usada pelo app: a tabela segue no banco, parada.
 - Quem entra com e-mail e senha ou com o Google (mesmo sem ter vitrine) pode **seguir** vitrines (na interface "Seguir/Seguindo"; no código e no banco segue o nome antigo, favorito), numa lista privada (`favorites`), e **comentar** nelas (`comments`, com respostas em um nível): o comentário é público, e apaga quem escreveu ou a dona da vitrine.
 - Um **quadro de avisos** (`notifications`, migração `20261115000000`, aplicada no Supabase do projeto) avisa a dona da vitrine quando alguém a segue ou comenta nela (ou responde um comentário). Quem põe o aviso é o próprio banco, ao detectar o seguir ou o comentário; ninguém escreve ali pelo app. A dona só lê os seus e marca como lidos. O aviso guarda o nome e a foto de quem agiu, e some se a pessoa deixa de seguir ou se o comentário é apagado.
@@ -69,7 +69,7 @@ erDiagram
         jsonb look "so bannerUrl e usado"
         jsonb show "legado"
         jsonb tracking "legado, nao usado pelo app"
-        jsonb socials "instagram, tiktok, youtube, x"
+        jsonb socials "instagram, tiktok, youtube"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -253,7 +253,7 @@ Uma linha por creator. É a "capa" pública da vitrine. Criada em `2026110200000
 | `look` | `jsonb` | não | `{"theme":"vibrante","accent":"#FF5A36","font":"moderna","radius":"arredondado","layout":"grade"}` | Hoje o app **só lê/grava `bannerUrl`** (foto de capa, opcional: vazia, a vitrine mostra a primeira letra do nome). As outras chaves são de um visual antigo e são descartadas por `pickLook` (`lib/vitrine/store.ts:27`). `CHECK` `vitrines_look_check`: precisa ser objeto, até 4000 bytes, com `look->>'bannerUrl'` vazio ou `http(s)`. |
 | `show` | `jsonb` | não | `{"ticker":true,"products":true,"coupons":true,"kits":true,"cta":true}` | **Legado.** É gravada na publicação, mas nenhum componente lê (`lib/vitrine/types.ts:91`). `CHECK` `vitrines_show_check`: objeto de até 1000 bytes. |
 | `tracking` | `jsonb` | não | `'{}'` | `CHECK pg_column_size(tracking) <= 2000`. **Legado:** o app não lê nem escreve mais esta coluna (a UTM saiu e o `tracking` saiu do `VitrineContent`). Sem migração, ela continua existindo e `publish_vitrine()` segue gravando `coalesce(content->'tracking', '{}')`, que agora resulta em `'{}'`. Valores antigos ficam como estão. |
-| `socials` | `jsonb` | não | `'{}'` | `CHECK jsonb_typeof(socials) = 'object' and pg_column_size(socials) <= 2000` (`20261110020000_vitrine_socials.sql`). Guarda o que a creator digitou em `{ instagram, tiktok, youtube, x }` (`@usuario`, `usuario` ou link); o app transforma em link do perfil com `socialUrl` (`lib/vitrine/socials.ts`) e `loadContent` lê com `pickSocials` (`lib/vitrine/store.ts:96`). Gravada por `publish_vitrine()` |
+| `socials` | `jsonb` | não | `'{}'` | `CHECK jsonb_typeof(socials) = 'object' and pg_column_size(socials) <= 2000` (`20261110020000_vitrine_socials.sql`). Guarda o que a creator digitou em `{ instagram, tiktok, youtube }` (`@usuario`, `usuario` ou link; a coluna é jsonb livre, então um `x` antigo, de quando o app tinha a rede X, pode continuar nas linhas: `pickSocials` ignora e some na próxima publicação); o app transforma em link do perfil com `socialUrl` (`lib/vitrine/socials.ts`) e `loadContent` lê com `pickSocials` (`lib/vitrine/store.ts:96`). Gravada por `publish_vitrine()` |
 | `created_at` | `timestamptz` | não | `now()` | Fixada pelo trigger `vitrines_stamp`: `now()` no insert e nunca muda depois. |
 | `updated_at` | `timestamptz` | não | `now()` | O trigger `vitrines_stamp` nunca deixa a data ficar no futuro (usa `least(valor, now())`). Atualizado por `publish_vitrine()` e por `updateProfile` (nome, link, foto e capa). A home ordena por ele (`lib/vitrine/store.ts:121`). |
 
@@ -598,7 +598,7 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
   "sub": "...",
   "look": { "bannerUrl": "" },
   "show": { "ticker": true, "products": true, "coupons": true, "kits": true, "cta": true },
-  "socials": { "instagram": "", "tiktok": "", "youtube": "", "x": "" },
+  "socials": { "instagram": "", "tiktok": "", "youtube": "" },
   "coupons": [{ "id": "uuid", "brand": "", "code": "", "kind": "percent", "value": 10, "condition": "", "expiresAt": null, "storeUrl": "", "logoUrl": "", "howTo": "", "startsAt": null }],
   "products": [{ "id": "uuid", "name": "", "brand": "", "category": "", "price": 0, "couponId": null, "url": "", "imageUrl": "", "icon": "Bag", "affiliateUrl": "", "videoUrl": "", "soldOut": false, "priceCheckedAt": null }],
   "posts": [{ "id": "uuid", "photoUrl": "", "media": [{ "id": "uuid", "photoUrl": "", "videoUrl": "" }], "caption": "", "productIds": [] }]

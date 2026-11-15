@@ -132,7 +132,7 @@ export const vitrineContentSchema = z.object({
   /** Não muda mais nada na vitrine (cada seção aparece quando tem conteúdo); segue aqui porque a publicação grava a coluna. */
   show: z.record(z.enum(SECTION_IDS), z.boolean()),
   /** redes sociais, discretas embaixo do nome (lib/vitrine/socials.ts) */
-  socials: z.object({ instagram: social("instagram"), tiktok: social("tiktok"), youtube: social("youtube"), x: social("x") }),
+  socials: z.object({ instagram: social("instagram"), tiktok: social("tiktok"), youtube: social("youtube") }),
   coupons: z.array(couponSchema).max(100),
   products: z.array(productSchema).max(200),
   posts: z.array(postSchema).max(30),
