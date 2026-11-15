@@ -853,6 +853,9 @@ export function Storefront({
     // o visitante vai direto para a loja (um clique só). Só a dona, na própria vitrine, abre o produto ampliado,
     // que é de onde sai a imagem de stories dele.
     onView: preview || !owner ? undefined : () => setViewing({ product: p, postId }),
+    // para o visitante, tocar na foto abre o produto ampliado (a foto grande, que no celular faz falta);
+    // o nome continua indo direto para a loja
+    onZoom: preview || owner ? undefined : () => setViewing({ product: p, postId }),
     onOpen: (e: MouseEvent) => {
       // na prévia do editor o clique não tira a pessoa da página
       if (preview) e.preventDefault();
@@ -1023,10 +1026,17 @@ export function Storefront({
             {favoriteProducts.map((p) => (
               <article key={p.id} className="relative flex w-[260px] flex-none snap-start flex-col items-center text-center @max-md:w-[62%]">
                 {edit && <EditHit label={te("product", { name: p.name || te("newProduct") })} onClick={() => edit.product(p.id)} pencil={false} />}
-                <ProductLink {...linkProps(p)} className="flex w-full min-w-0 flex-col text-ink no-underline">
-                  <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
-                    <ProductArt product={p} iconClassName="w-[52%]" />
-                  </div>
+                <ProductLink
+                  {...linkProps(p)}
+                  name={p.name}
+                  className="flex w-full min-w-0 flex-col text-ink"
+                  linkClassName="text-ink no-underline"
+                  photo={
+                    <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
+                      <ProductArt product={p} iconClassName="w-[52%]" />
+                    </div>
+                  }
+                >
                   <h3 className="m-0 pt-3 text-[15px] leading-snug font-medium underline-offset-2 [a:hover_&]:underline @max-2xl:text-sm">{p.name}</h3>
                 </ProductLink>
                 {p.brand && <span className="pt-0.5 text-[13px] text-mute">{p.brand}</span>}
@@ -1102,14 +1112,21 @@ export function Storefront({
                     </span>
                   )
                 )}
-                <ProductLink {...linkProps(p)} className="flex w-full min-w-0 flex-col text-ink no-underline">
-                  <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
-                    <ProductArt
-                      product={p}
-                      className={p.soldOut ? "size-full object-contain opacity-50 mix-blend-multiply grayscale" : undefined}
-                      iconClassName={`w-[52%] ${p.soldOut ? "opacity-40" : ""}`}
-                    />
-                  </div>
+                <ProductLink
+                  {...linkProps(p)}
+                  name={p.name}
+                  className="flex w-full min-w-0 flex-col text-ink"
+                  linkClassName="text-ink no-underline"
+                  photo={
+                    <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
+                      <ProductArt
+                        product={p}
+                        className={p.soldOut ? "size-full object-contain opacity-50 mix-blend-multiply grayscale" : undefined}
+                        iconClassName={`w-[52%] ${p.soldOut ? "opacity-40" : ""}`}
+                      />
+                    </div>
+                  }
+                >
                   <h3 className="m-0 pt-3 text-[15px] leading-snug font-medium underline-offset-2 [a:hover_&]:underline @max-2xl:text-sm">{p.name}</h3>
                 </ProductLink>
                 {p.soldOut && <span className="pt-0.5 text-[13px] text-mute">{t("soldOut")}</span>}
@@ -1265,7 +1282,7 @@ const SWIPE_MIN = 40;
 const outfitMs = (o: Outfit | undefined) => ((o?.media.length ?? 1) > 1 ? o!.media.length * MEDIA_MS : OUTFIT_MS);
 
 type Outfit = { post: Post; items: Product[]; media: PostMedia[] };
-type ProductLinkProps = { href: string; onOpen: (e: MouseEvent) => void; onView?: () => void };
+type ProductLinkProps = { href: string; onOpen: (e: MouseEvent) => void; onView?: () => void; onZoom?: () => void };
 type LinkFor = (p: Product, postId: string) => ProductLinkProps;
 
 /**
@@ -1514,10 +1531,17 @@ function OutfitSlide({
                 style={{ transitionDelay: active ? `${250 + i * 90}ms` : "0ms" }}
                 className={`border-b border-ink/10 transition-all duration-700 ease-out last:border-0 motion-reduce:transition-none ${active ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
               >
-                <ProductLink {...link(p)} className="group/piece flex items-center gap-4 py-3 text-ink no-underline @3xl:py-4">
-                  <div aria-hidden="true" className="relative flex size-16 flex-none items-center justify-center overflow-hidden bg-white @3xl:size-20">
-                    <ProductArt product={p} iconClassName="w-[64%]" strokeWidth={4} />
-                  </div>
+                <ProductLink
+                  {...link(p)}
+                  name={p.name}
+                  className="flex items-center gap-4 py-3 text-ink @3xl:py-4"
+                  linkClassName="group/piece flex min-w-0 flex-1 items-center gap-4 text-ink no-underline"
+                  photo={
+                    <div aria-hidden="true" className="relative flex size-16 flex-none items-center justify-center overflow-hidden bg-white @3xl:size-20">
+                      <ProductArt product={p} iconClassName="w-[64%]" strokeWidth={4} />
+                    </div>
+                  }
+                >
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     {p.brand && <span className="text-[11px] font-medium tracking-[0.18em] text-mute uppercase">{p.brand}</span>}
                     <span className="text-[15px] leading-snug font-medium underline-offset-2 group-hover/piece:underline @3xl:text-[17px]">{p.name}</span>
@@ -1869,20 +1893,54 @@ function OutfitGallery({
   );
 }
 
-/** O produto vira um link quando há para onde ir; sem link (ou esgotado), é só a foto e o nome. */
-function ProductLink({ href, onOpen, onView, className, children }: ProductLinkProps & { className: string; children: ReactNode }) {
+/**
+ * O produto: a foto (`photo`) e o resto (`children`, com o nome). Para o visitante, tocar na foto abre o produto
+ * ampliado (`onZoom`: a foto grande e o botão da loja) e tocar no nome vai direto para a loja, pelo link de afiliado
+ * ou da loja; sem link (esgotado), o nome não é clicável. Para a dona (`onView`), o card inteiro abre o produto ampliado.
+ * `className` é o layout do card; `linkClassName`, o do link do nome.
+ */
+function ProductLink({
+  href,
+  onOpen,
+  onView,
+  onZoom,
+  name,
+  photo,
+  className,
+  linkClassName,
+  children,
+}: ProductLinkProps & { name: string; photo: ReactNode; className: string; linkClassName: string; children: ReactNode }) {
+  const t = useTranslations("storefront.product");
   // a dona na própria vitrine: botão que abre o produto ampliado (inclusive esgotado, que não tem link)
   if (onView)
     return (
-      <button type="button" onClick={onView} className={`${className} cursor-pointer border-0 bg-transparent p-0 font-[inherit] [text-align:inherit]`}>
+      <button type="button" onClick={onView} className={`${className} ${linkClassName} cursor-pointer border-0 bg-transparent p-0 font-[inherit] [text-align:inherit]`}>
+        {photo}
         {children}
       </button>
     );
-  if (!href) return <div className={className}>{children}</div>;
   return (
-    <a href={href} target="_blank" rel="sponsored noopener noreferrer" onClick={onOpen} className={className}>
-      {children}
-    </a>
+    <div className={className}>
+      {onZoom ? (
+        <button
+          type="button"
+          onClick={onZoom}
+          aria-label={t("zoom", { name })}
+          className="block flex-none cursor-zoom-in border-0 bg-transparent p-0"
+        >
+          {photo}
+        </button>
+      ) : (
+        photo
+      )}
+      {href ? (
+        <a href={href} target="_blank" rel="sponsored noopener noreferrer" onClick={onOpen} className={linkClassName}>
+          {children}
+        </a>
+      ) : (
+        <div className={linkClassName}>{children}</div>
+      )}
+    </div>
   );
 }
 

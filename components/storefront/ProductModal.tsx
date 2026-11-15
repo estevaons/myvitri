@@ -259,7 +259,7 @@ export function ProductModal({
             <ProductArt
               product={p}
               // margem em volta da foto: a peça respira dentro do quadrado creme em vez de encostar nas bordas
-              className={`box-border size-full object-contain p-8 mix-blend-multiply md:p-12 ${p.soldOut ? "opacity-50 grayscale" : ""}`}
+              className={`box-border size-full object-contain p-4 mix-blend-multiply md:p-12 ${p.soldOut ? "opacity-50 grayscale" : ""}`}
               iconClassName={`w-[46%] ${p.soldOut ? "opacity-40" : ""}`}
             />
           </div>
