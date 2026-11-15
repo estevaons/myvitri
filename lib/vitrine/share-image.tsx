@@ -6,7 +6,7 @@ import { WORDMARK_RATIO, Wordmark } from "@/components/brand/Logo";
 import type { Locale } from "@/lib/i18n/routing";
 import { fetchPublic } from "./import-link";
 import { couponOff } from "./pricing";
-import type { Product, VitrineContent } from "./types";
+import { type Post, type Product, type VitrineContent, postCover } from "./types";
 
 /**
  * Imagens para divulgar a vitrine: "og" (prévia do link em WhatsApp, X etc.)
@@ -36,15 +36,16 @@ const SHARE_CACHE = "public, max-age=600, s-maxage=3600, stale-while-revalidate=
 /**
  * Baixa a foto (só endereço público, como na importação de produtos), reduz e devolve um data URL jpeg.
  * Produto: inteiro no quadrado creme, com o fundo branco da foto se fundindo ao creme (o multiply da vitrine).
- * Perfil: recortado no quadrado. Qualquer falha vira null e a foto é pulada.
+ * Perfil: recortado no quadrado. Foto (do outfit): recortada em `size`×`height`, sem distorcer.
+ * Qualquer falha vira null e a foto é pulada.
  */
-async function photo(raw: string, size: number, kind: "product" | "avatar") {
+async function photo(raw: string, size: number, kind: "product" | "avatar" | "cover", height = size) {
   if (!/^https:\/\//i.test(raw)) return null;
   try {
     const { bytes, complete } = await fetchPublic(raw, { accept: "image/*", maxBytes: 4_000_000, timeoutMs: PHOTO_TIMEOUT });
     if (!complete) return null;
     let img = sharp(bytes, { limitInputPixels: 40_000_000 });
-    if (kind === "avatar") img = img.resize(size, size, { fit: "cover" }).flatten({ background: "#ffffff" });
+    if (kind !== "product") img = img.resize(size, height, { fit: "cover" }).flatten({ background: "#ffffff" });
     else {
       const fitted = await img.resize(size, size, { fit: "contain", background: "#ffffff" }).flatten({ background: "#ffffff" }).toBuffer();
       img = sharp({ create: { width: size, height: size, channels: 3, background: CREAM } }).composite([{ input: fitted, blend: "multiply" }]);
@@ -236,6 +237,43 @@ export async function shareImage(content: VitrineContent, url: string, format: k
   );
 }
 
+/** Topo dos stories de produto e de outfit: a foto de perfil, quem indica (em dourado) e o @. */
+function storyHeader(content: VitrineContent, avatar: string | null, kicker: string) {
+  const avatarSize = 104;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 26 }}>
+      {avatar ? (
+        // eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img>
+        <img src={avatar} width={avatarSize} height={avatarSize} alt="" style={{ borderRadius: avatarSize }} />
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: avatarSize, height: avatarSize, borderRadius: avatarSize, background: SAND, fontSize: 44, fontWeight: 500, color: MUTE }}>
+          {(content.name || content.handle).slice(0, 1).toUpperCase()}
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={{ fontSize: 28, fontWeight: 500, letterSpacing: 4, textTransform: "uppercase", color: GOLD }}>{kicker}</span>
+        <span style={{ fontSize: 30, color: MUTE }}>@{content.handle}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Rodapé dos stories: o convite e o endereço da vitrine, com espaço livre para a figurinha de link, e a marca. */
+function storyFooter(cta: string, url: string) {
+  const logoHeight = 30;
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: "auto", borderTop: `2px solid ${SAND}`, paddingTop: 40 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <span style={{ fontSize: 40, fontWeight: 500 }}>{cta}</span>
+        <span style={{ fontSize: 30, color: MUTE }}>{url.replace(/^https?:\/\//, "")}</span>
+      </div>
+      <Wordmark label="" ink={INK} height={logoHeight} width={Math.round(logoHeight * WORDMARK_RATIO)} />
+    </div>
+  );
+}
+
+const storyPage = { display: "flex", flexDirection: "column", width: "100%", height: "100%", padding: "110px 96px", background: "#FFFFFF", color: INK, fontFamily: "Body" } as const;
+
 /**
  * Story 1080×1920 de um produto só, para divulgar: quem indica no topo, a foto grande no quadrado creme, marca e nome,
  * e embaixo o endereço com espaço livre para a figurinha de link (que leva ao produto aberto na vitrine).
@@ -249,26 +287,10 @@ export async function productStoryImage(content: VitrineContent, product: Produc
     product.imageUrl ? photo(product.imageUrl, side, "product") : null,
   ]);
   const firstName = content.name.split(" ")[0] || content.name;
-  const shortUrl = url.replace(/^https?:\/\//, "");
-  const logoHeight = 30;
-  const avatarSize = 104;
 
   return new ImageResponse(
-    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", padding: "110px 96px", gap: 44, background: "#FFFFFF", color: INK, fontFamily: "Body" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 26 }}>
-        {avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img>
-          <img src={avatar} width={avatarSize} height={avatarSize} alt="" style={{ borderRadius: avatarSize }} />
-        ) : (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: avatarSize, height: avatarSize, borderRadius: avatarSize, background: SAND, fontSize: 44, fontWeight: 500, color: MUTE }}>
-            {(content.name || content.handle).slice(0, 1).toUpperCase()}
-          </div>
-        )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span style={{ fontSize: 28, fontWeight: 500, letterSpacing: 4, textTransform: "uppercase", color: GOLD }}>{t("productPick", { name: firstName })}</span>
-          <span style={{ fontSize: 30, color: MUTE }}>@{content.handle}</span>
-        </div>
-      </div>
+    <div style={{ ...storyPage, gap: 44 }}>
+      {storyHeader(content, avatar, t("productPick", { name: firstName }))}
       {picture ? (
         // eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img>
         <img src={picture} width={side} height={side} alt="" />
@@ -281,13 +303,66 @@ export async function productStoryImage(content: VitrineContent, product: Produc
         {product.brand && <span style={{ fontSize: 30, fontWeight: 500, letterSpacing: 5, textTransform: "uppercase", color: MUTE }}>{product.brand}</span>}
         <span style={{ fontFamily: "Display", fontSize: product.name.length > 40 ? 64 : 80, fontWeight: 400, lineHeight: 1.05 }}>{product.name}</span>
       </div>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: "auto", borderTop: `2px solid ${SAND}`, paddingTop: 40 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <span style={{ fontSize: 40, fontWeight: 500 }}>{t("productCta")}</span>
-          <span style={{ fontSize: 30, color: MUTE }}>{shortUrl}</span>
-        </div>
-        <Wordmark label="" ink={INK} height={logoHeight} width={Math.round(logoHeight * WORDMARK_RATIO)} />
+      {storyFooter(t("productCta"), url)}
+    </div>,
+    { width, height, fonts: await fonts(), headers: { "cache-control": SHARE_CACHE } },
+  );
+}
+
+/** Quantas peças do outfit aparecem em miniatura no story (as primeiras, na ordem do post). */
+const OUTFIT_STORY_PIECES = 4;
+/** Legenda mais longa que isso é cortada com reticências, para caber em duas linhas. */
+const OUTFIT_STORY_CAPTION = 90;
+
+/**
+ * Story 1080×1920 de um outfit: quem indica no topo, a capa do post grande, a legenda e as primeiras peças em
+ * miniatura, e embaixo o endereço com espaço livre para a figurinha de link (que leva ao outfit aberto na vitrine).
+ */
+export async function outfitStoryImage(content: VitrineContent, post: Post, url: string, locale: Locale) {
+  const t = await getTranslations({ locale, namespace: "share" });
+  const { width, height } = SHARE_SIZES.story;
+  const side = width - 2 * 96;
+  const gap = 16;
+  const tile = Math.floor((side - gap * (OUTFIT_STORY_PIECES - 1)) / OUTFIT_STORY_PIECES);
+  const raw = post.caption.trim().replace(/\s+/g, " ");
+  const caption = raw.length > OUTFIT_STORY_CAPTION ? `${raw.slice(0, OUTFIT_STORY_CAPTION - 1).trimEnd()}…` : raw;
+  // sem legenda, a foto ganha o espaço dela
+  const coverHeight = caption ? 880 : 1020;
+  const pieces = post.productIds
+    .map((id) => content.products.find((p) => p.id === id))
+    .filter((p): p is Product => Boolean(p))
+    .slice(0, OUTFIT_STORY_PIECES);
+  const cover = postCover(post);
+  const [avatar, picture, ...thumbs] = await Promise.all([
+    content.avatarUrl ? photo(content.avatarUrl, 240, "avatar") : null,
+    cover ? photo(cover, side, "cover", coverHeight) : null,
+    ...pieces.map((p) => (p.imageUrl ? photo(p.imageUrl, tile * 2, "product") : null)),
+  ]);
+  const firstName = content.name.split(" ")[0] || content.name;
+
+  return new ImageResponse(
+    <div style={{ ...storyPage, gap: 40 }}>
+      {storyHeader(content, avatar, t("outfitPick", { name: firstName }))}
+      {picture ? (
+        // eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img>
+        <img src={picture} width={side} height={coverHeight} alt="" />
+      ) : (
+        <div style={{ display: "flex", width: side, height: coverHeight, background: CREAM }} />
+      )}
+      {caption && <span style={{ fontFamily: "Display", fontSize: 56, fontWeight: 400, lineHeight: 1.1 }}>{caption}</span>}
+      <div style={{ display: "flex", gap }}>
+        {pieces.map((p, i) =>
+          thumbs[i] ? (
+            // eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img>
+            <img key={p.id} src={thumbs[i]} width={tile} height={tile} alt="" />
+          ) : (
+            <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: tile, height: tile, background: CREAM, fontFamily: "Display", fontSize: 90, color: SAND }}>
+              {p.name.slice(0, 1).toUpperCase()}
+            </div>
+          ),
+        )}
       </div>
+      {storyFooter(t("outfitCta"), url)}
     </div>,
     { width, height, fonts: await fonts(), headers: { "cache-control": SHARE_CACHE } },
   );
