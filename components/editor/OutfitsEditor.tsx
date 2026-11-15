@@ -278,7 +278,7 @@ export function OutfitsEditor({ posts, products, update }: { posts: Post[]; prod
               maxLength={300}
               placeholder={t("captionPlaceholder")}
               label={t("caption")}
-              className="-mx-2 rounded-[10px] py-1 pr-12 pl-2 text-left font-display! text-[clamp(24px,2.6cqw,36px)] leading-[1.15] font-normal transition-colors hover:bg-ink/[0.035] focus:bg-white"
+              className="-mx-2 py-1 pr-12 pl-2 text-left font-display! text-[clamp(24px,2.6cqw,36px)] leading-[1.15] font-normal transition-colors hover:bg-ink/[0.035] focus:bg-white"
             />
             <PencilBadge className="absolute top-0.5 -right-1 group-has-focus/caption:opacity-0" />
           </div>
@@ -410,7 +410,7 @@ function MediaFrame({
     },
   };
   const pill =
-    "flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border-0 bg-white px-4 text-[13px] font-semibold text-ink shadow-[0_2px_10px_rgba(17,17,17,0.18)] focus-visible:ring-2 focus-visible:ring-ink";
+    "flex min-h-10 cursor-pointer items-center gap-1.5 border-0 bg-white px-4 text-[13px] font-semibold text-ink shadow-[0_2px_10px_rgba(17,17,17,0.18)] focus-visible:ring-2 focus-visible:ring-ink";
 
   return (
     <div {...drop} className={`group/photo relative aspect-[4/5] overflow-hidden bg-sand/60 ${dragging ? "ring-2 ring-ink ring-inset" : ""}`}>
@@ -445,7 +445,7 @@ function MediaFrame({
             </div>
           )}
           {first && many && !busy && (
-            <span className="absolute top-4 right-4 rounded-full bg-ink px-3 py-1 text-[11px] font-semibold tracking-[0.12em] text-white uppercase">{t("cover")}</span>
+            <span className="absolute top-4 right-4 bg-ink px-3 py-1 text-[11px] font-semibold tracking-[0.12em] text-white uppercase">{t("cover")}</span>
           )}
         </>
       ) : (
@@ -478,20 +478,20 @@ function MediaFrame({
             </div>
           )}
           {ref && (
-            <button type="button" onClick={onRemove} className="absolute right-4 bottom-4 min-h-10 cursor-pointer rounded-full border-0 bg-transparent px-3.5 text-[13px] font-medium text-[#A3361B] hover:bg-[#FFF1EC]">
+            <button type="button" onClick={onRemove} className="absolute right-4 bottom-4 min-h-10 cursor-pointer border-0 bg-transparent px-3.5 text-[13px] font-medium text-[#A3361B] hover:bg-[#FFF1EC]">
               {t("removeVideo")}
             </button>
           )}
         </>
       )}
       {ref && !busy && (
-        <span className="absolute top-4 left-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[12px] font-semibold text-ink shadow-[0_2px_10px_rgba(17,17,17,0.12)]">
+        <span className="absolute top-4 left-4 flex items-center gap-1.5 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink shadow-[0_2px_10px_rgba(17,17,17,0.12)]">
           <PlayIcon size={10} />
           {t("videoOn", { network: VIDEO_LABELS[ref.network] })}
         </span>
       )}
       {error && (
-        <span role="alert" className={`absolute inset-x-4 ${ref ? "top-16" : "top-4"} rounded-[10px] bg-white px-3 py-2 text-center text-xs font-medium text-[#A3361B] shadow-[0_2px_10px_rgba(17,17,17,0.12)]`}>
+        <span role="alert" className={`absolute inset-x-4 ${ref ? "top-16" : "top-4"} bg-white px-3 py-2 text-center text-xs font-medium text-[#A3361B] shadow-[0_2px_10px_rgba(17,17,17,0.12)]`}>
           {error}
         </span>
       )}
@@ -616,7 +616,7 @@ function VideoLink({ busy, onVideo, onType }: { busy: boolean; onVideo: (link: s
       <button
         type="submit"
         disabled={busy || !link.trim()}
-        className="flex min-h-11 flex-none cursor-pointer items-center gap-2 rounded-[10px] border-0 bg-ink px-4 text-sm font-semibold text-white disabled:cursor-default disabled:opacity-40"
+        className="flex min-h-11 flex-none cursor-pointer items-center gap-2 border-0 bg-ink px-4 text-sm font-semibold text-white disabled:cursor-default disabled:opacity-40"
       >
         {busy && <span aria-hidden="true" className="size-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
         {busy ? t("videoBusy") : t("videoUse")}
@@ -686,7 +686,7 @@ function PieceByLink({ full, onAdd }: { full: boolean; onAdd: (patch: Partial<Pr
         <button
           type="submit"
           disabled={busy || !link.trim()}
-          className="min-h-11 flex-none cursor-pointer rounded-[10px] border-0 bg-ink px-4 text-sm font-semibold text-white disabled:cursor-default disabled:opacity-40"
+          className="min-h-11 flex-none cursor-pointer border-0 bg-ink px-4 text-sm font-semibold text-white disabled:cursor-default disabled:opacity-40"
         >
           {busy ? t("adding") : t("addPiece")}
         </button>
@@ -811,7 +811,7 @@ function OutfitFooter({
           onClick={async () => {
             if (await ask({ title: t("removeTitle"), confirm: tSheet("remove"), danger: true })) onRemove();
           }}
-          className="min-h-10 cursor-pointer rounded-full border-0 bg-transparent px-3.5 text-[13px] font-medium text-[#A3361B] hover:bg-[#FFF1EC]"
+          className="min-h-10 cursor-pointer border-0 bg-transparent px-3.5 text-[13px] font-medium text-[#A3361B] hover:bg-[#FFF1EC]"
         >
           {t("remove")}
         </button>

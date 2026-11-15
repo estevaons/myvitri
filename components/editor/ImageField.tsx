@@ -112,11 +112,11 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
         // do produto), a foto grande em cima e o resto embaixo.
         <div
           {...drop}
-          className={`flex items-center gap-4 rounded-[14px] border p-3 transition-colors sm:flex-col sm:items-stretch sm:gap-3 ${dragging ? "border-dashed border-ink bg-[#F4F2EE]" : "border-[#EEEBE5] bg-[#FAF9F7]"}`}
+          className={`flex items-center gap-4 border p-3 transition-colors sm:flex-col sm:items-stretch sm:gap-3 ${dragging ? "border-dashed border-ink bg-[#F4F2EE]" : "border-[#EEEBE5] bg-[#FAF9F7]"}`}
         >
           <span
             aria-hidden="true"
-            className="relative flex size-24 flex-none items-center justify-center overflow-hidden rounded-[10px] bg-cream text-[#8F897E] sm:aspect-square sm:size-auto sm:w-full"
+            className="relative flex size-24 flex-none items-center justify-center overflow-hidden bg-cream text-[#8F897E] sm:aspect-square sm:size-auto sm:w-full"
           >
             {/* igual à vitrine, inteiro e com o fundo branco da foto se fundindo ao card */}
             {shown ? (
@@ -135,7 +135,7 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
               <FilePick
                 onFile={send}
                 disabled={uploading}
-                className="flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[#E6E2DA] bg-white px-3.5 text-[13px] font-semibold text-ink transition-colors hover:border-[#B9B2A6] has-focus-visible:ring-2 has-focus-visible:ring-ink sm:flex-1"
+                className="flex min-h-9 cursor-pointer items-center justify-center gap-1.5 border border-[#E6E2DA] bg-white px-3.5 text-[13px] font-semibold text-ink transition-colors hover:border-[#B9B2A6] has-focus-visible:ring-2 has-focus-visible:ring-ink sm:flex-1"
               >
                 <UploadIcon size={14} />
                 {t("change")}
@@ -146,7 +146,7 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
                 disabled={uploading}
                 aria-label={t("remove")}
                 title={t("remove")}
-                className="flex min-h-9 min-w-9 justify-center cursor-pointer items-center gap-1.5 rounded-full border-0 bg-transparent px-3 text-[13px] font-medium text-[#A3361B] transition-colors hover:bg-[#FFF1EC] focus-visible:outline-2 focus-visible:outline-ink disabled:pointer-events-none disabled:opacity-50"
+                className="flex min-h-9 min-w-9 justify-center cursor-pointer items-center gap-1.5 border-0 bg-transparent px-3 text-[13px] font-medium text-[#A3361B] transition-colors hover:bg-[#FFF1EC] focus-visible:outline-2 focus-visible:outline-ink disabled:pointer-events-none disabled:opacity-50"
               >
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -165,7 +165,7 @@ export function ImageField({ value, onChange }: { value: string; onChange: (url:
           <FilePick
             onFile={send}
             disabled={uploading}
-            className={`flex cursor-pointer flex-col items-center gap-1 rounded-[12px] border-[1.5px] border-dashed px-4 py-6 text-center transition-colors has-focus-visible:ring-2 has-focus-visible:ring-ink ${
+            className={`flex cursor-pointer flex-col items-center gap-1 border-[1.5px] border-dashed px-4 py-6 text-center transition-colors has-focus-visible:ring-2 has-focus-visible:ring-ink ${
               dragging ? "border-ink bg-[#F4F2EE]" : "border-[#DDD8CF] bg-[#FAF9F7] hover:border-ink"
             }`}
           >

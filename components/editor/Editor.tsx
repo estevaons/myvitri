@@ -255,7 +255,7 @@ export function Editor({
                 <span aria-hidden="true" className={`size-2 flex-none rounded-full ${saveFailed ? "bg-[#A3361B]" : "bg-[#E8590C]"}`} />
                 {saveFailed ? t("draftFailed") : t("unpublished")}
               </span>
-              <button type="button" onClick={publish} disabled={saving} className="min-h-11 flex-none cursor-pointer rounded-full border-0 bg-ink px-6 text-sm font-bold text-white transition-opacity hover:opacity-85 disabled:cursor-default disabled:opacity-60">
+              <button type="button" onClick={publish} disabled={saving} className="min-h-11 flex-none cursor-pointer border-0 bg-ink px-6 text-sm font-bold text-white transition-opacity hover:opacity-85 disabled:cursor-default disabled:opacity-60">
                 {saving ? t("publishing") : t("publish")}
               </button>
             </div>
@@ -300,10 +300,10 @@ export function Editor({
         <p className="m-0 w-full text-[13px] leading-snug text-[#5E5A52] max-sm:px-4 max-sm:pt-3">{t("editHint")}</p>
         {/* flex-none: a vitrine cresce com o conteúdo e quem rola é a página */}
         <div
-          className="w-full flex-none overflow-hidden bg-white sm:rounded-2xl sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]"
+          className="w-full flex-none overflow-hidden bg-white sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]"
         >
           <div className="flex items-center justify-center border-b border-[#E8E5DF] bg-[#F7F6F3] px-3.5 py-2.5 max-sm:hidden">
-            <span className="flex items-center gap-1.5 rounded-full border border-[#E8E5DF] bg-white px-3.5 py-1.5 text-xs text-[#3A3A3A]">
+            <span className="flex items-center gap-1.5 border border-[#E8E5DF] bg-white px-3.5 py-1.5 text-xs text-[#3A3A3A]">
               <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="5" y="11" width="14" height="10" rx="2" />
                 <path d="M8 11V7a4 4 0 0 1 8 0v4" />

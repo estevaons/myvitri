@@ -11,7 +11,7 @@ export type Update = (fn: (d: VitrineContent) => VitrineContent) => void;
 
 /** Borda e foco dos campos; também usado em caixas que embrulham um input (ex.: o link). */
 export const boxCls =
-  "rounded-[10px] border border-[#E6E2DA] bg-[#FAF9F7] transition-[border-color,background-color,box-shadow] hover:border-[#D6D0C5] focus:border-[#B9B2A6] focus:bg-white focus:shadow-[0_0_0_3px_rgba(17,17,17,0.06)] focus-within:border-[#B9B2A6] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(17,17,17,0.06)]";
+  " border border-[#E6E2DA] bg-[#FAF9F7] transition-[border-color,background-color,box-shadow] hover:border-[#D6D0C5] focus:border-[#B9B2A6] focus:bg-white focus:shadow-[0_0_0_3px_rgba(17,17,17,0.06)] focus-within:border-[#B9B2A6] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(17,17,17,0.06)]";
 
 export const inputCls = `h-11 w-full box-border px-3 text-[15px] font-normal text-ink outline-none placeholder:text-[#ADA79C] ${boxCls}`;
 
@@ -141,7 +141,7 @@ export function Segmented<T extends string>({
     <div
       role="group"
       aria-label={label}
-      className="grid gap-[3px] rounded-[10px] bg-[#F4F2EE] p-[3px]"
+      className="grid gap-[3px] bg-[#F4F2EE] p-[3px]"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map(([id, text]) => (
@@ -150,7 +150,7 @@ export function Segmented<T extends string>({
           type="button"
           aria-pressed={id === value}
           onClick={() => onChange(id)}
-          className={`min-h-[38px] rounded-[8px] border-0 text-[13px] transition-colors ${
+          className={`min-h-[38px] border-0 text-[13px] transition-colors ${
             id === value ? "bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(0,0,0,0.08)]" : "bg-transparent font-medium text-[#77726A] hover:text-ink"
           }`}
         >
@@ -178,5 +178,5 @@ const PILL_TONES = {
 
 /** Etiqueta curta de situação (vence em breve, agendado…). */
 export function Pill({ tone, children }: { tone: keyof typeof PILL_TONES; children: ReactNode }) {
-  return <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold whitespace-nowrap ${PILL_TONES[tone]}`}>{children}</span>;
+  return <span className={`inline-flex h-6 items-center px-2.5 text-[11px] font-semibold whitespace-nowrap ${PILL_TONES[tone]}`}>{children}</span>;
 }

@@ -280,7 +280,7 @@ function CropDialog({ file, kind, onDone }: { file: File; kind: CropKind; onDone
       ref={dialog}
       aria-label={t("title")}
       tabIndex={-1}
-      className="box-border flex max-h-[96dvh] w-full max-w-none flex-col overflow-hidden rounded-t-[20px] border-0 bg-white p-0 text-ink outline-none backdrop:bg-ink/60 max-sm:mt-auto max-sm:mb-0 motion-safe:animate-sheet-up sm:m-auto sm:w-[calc(100%-32px)] sm:max-w-[560px] sm:rounded-[20px] [&:not([open])]:hidden"
+      className="box-border flex max-h-[96dvh] w-full max-w-none flex-col overflow-hidden border-0 bg-white p-0 text-ink outline-none backdrop:bg-ink/60 max-sm:mt-auto max-sm:mb-0 motion-safe:animate-sheet-up sm:m-auto sm:w-[calc(100%-32px)] sm:max-w-[560px] [&:not([open])]:hidden"
     >
       <header className="flex flex-none items-center justify-between gap-3 border-b border-[#EEEBE5] py-2 pr-2 pl-5">
         <h2 className="m-0 truncate text-[17px] font-semibold">{t("title")}</h2>
@@ -337,7 +337,7 @@ function CropDialog({ file, kind, onDone }: { file: File; kind: CropKind; onDone
                 className="pointer-events-none absolute inset-x-0 border-y border-dashed border-white/80"
                 style={{ top: `${((1 - aspect / DESKTOP_BAND) / 2) * 100}%`, bottom: `${((1 - aspect / DESKTOP_BAND) / 2) * 100}%` }}
               >
-                <span className="absolute top-1.5 left-2 rounded bg-black/45 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
+                <span className="absolute top-1.5 left-2 bg-black/45 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
                   {t("desktop")}
                 </span>
               </span>
@@ -375,14 +375,14 @@ function CropDialog({ file, kind, onDone }: { file: File; kind: CropKind; onDone
       </div>
 
       <footer className="flex flex-none items-center justify-end gap-2 border-t border-[#EEEBE5] bg-white px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
-        <button type="button" onClick={() => done.current(null)} className="min-h-11 cursor-pointer rounded-full border-0 bg-transparent px-5 text-sm font-semibold text-ink hover:bg-[#F4F2EE]">
+        <button type="button" onClick={() => done.current(null)} className="min-h-11 cursor-pointer border-0 bg-transparent px-5 text-sm font-semibold text-ink hover:bg-[#F4F2EE]">
           {t("cancel")}
         </button>
         <button
           type="button"
           onClick={confirm}
           disabled={!photo || saving}
-          className="min-h-11 cursor-pointer rounded-full border-0 bg-ink px-7 text-sm font-semibold text-white hover:opacity-85 disabled:cursor-default disabled:opacity-40"
+          className="min-h-11 cursor-pointer border-0 bg-ink px-7 text-sm font-semibold text-white hover:opacity-85 disabled:cursor-default disabled:opacity-40"
         >
           {t("confirm")}
         </button>

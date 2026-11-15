@@ -137,9 +137,9 @@ export function LogoPicker({ storeUrl: typedStore, logoUrl, onChange }: { storeU
         )
       )}
       {pasting && (
-        <div className="flex flex-col gap-2 rounded-[12px] bg-[#FAF9F7] p-3">
+        <div className="flex flex-col gap-2 bg-[#FAF9F7] p-3">
           <label
-            className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-[10px] bg-ink text-sm font-semibold text-white transition-opacity has-focus-visible:ring-2 has-focus-visible:ring-ink has-focus-visible:ring-offset-2 ${uploading ? "pointer-events-none opacity-50" : ""}`}
+            className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 bg-ink text-sm font-semibold text-white transition-opacity has-focus-visible:ring-2 has-focus-visible:ring-ink has-focus-visible:ring-offset-2 ${uploading ? "pointer-events-none opacity-50" : ""}`}
           >
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 15V3M7 8l5-5 5 5" />
