@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormatter, useTranslations } from "next-intl";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type MouseEvent, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type MouseEvent, type ReactNode, type RefObject } from "react";
 import { Link } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 import { BackLink } from "@/components/brand/BackLink";
@@ -1211,6 +1211,8 @@ export function Storefront({
 const OUTFIT_MS = 6000;
 /** Tempo de cada foto ou vídeo na galeria de um outfit com várias mídias: o outfit dura isso vezes o número delas. */
 const MEDIA_MS = 5000;
+/** Quanto o dedo anda de lado (px) para o toque contar como deslize. */
+const SWIPE_MIN = 40;
 /** quanto o outfit fica na tela na troca automática */
 const outfitMs = (o: Outfit | undefined) => ((o?.media.length ?? 1) > 1 ? o!.media.length * MEDIA_MS : OUTFIT_MS);
 
@@ -1233,7 +1235,7 @@ function OutfitCarousel({ outfits, firstName, link, onPlay }: { outfits: Outfit[
   const [hovering, setHovering] = useState(false);
   const [focused, setFocused] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const touchX = useRef<number | null>(null);
+  const touch = useRef<{ x: number; y: number } | null>(null);
   // o vídeo (id da mídia) que está tocando: a troca automática para, e trocar de outfit fecha o player
   const [playing, setPlaying] = useState<string | null>(null);
   // a visitante passou as fotos de um outfit: a troca automática para até ela mudar de outfit
@@ -1296,13 +1298,15 @@ function OutfitCarousel({ outfits, firstName, link, onPlay }: { outfits: Outfit[
         onBlur={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
         }}
-        onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+        onTouchStart={(e) => (touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY })}
         onTouchEnd={(e) => {
-          const start = touchX.current;
-          touchX.current = null;
-          if (start === null) return;
-          const dx = e.changedTouches[0].clientX - start;
-          if (Math.abs(dx) > 40) go(current + (dx < 0 ? 1 : -1));
+          const start = touch.current;
+          touch.current = null;
+          if (!start || total < 2) return;
+          const dx = e.changedTouches[0].clientX - start.x;
+          const dy = e.changedTouches[0].clientY - start.y;
+          // só o gesto de lado troca de outfit: rolar a página na diagonal, lendo as peças, não
+          if (Math.abs(dx) > SWIPE_MIN && Math.abs(dx) >= Math.abs(dy) * 1.5) go(current + (dx < 0 ? 1 : -1));
         }}
         className={`mt-6 @3xl:mt-8 ${pad}`}
       >
@@ -1464,12 +1468,6 @@ function OutfitSlide({
   );
 }
 
-/**
- * As fotos e vídeos de um outfit no recorte 4:5, uma por vez, como um post de rede social: setas nas laterais (no
- * computador), pontos embaixo e, no celular, deslizar. Deslizar além da primeira ou da última passa para o outfit
- * vizinho (o toque sobe para o carrossel). Vídeo mostra a capa com o play; tocar abre o player oficial da rede ali
- * mesmo, ao lado das peças.
- */
 /** Altura do cabeçalho do player do Instagram (`/embed/`), em px: fixa, não muda com a largura. */
 const IG_EMBED_HEADER = 54;
 
@@ -1511,6 +1509,13 @@ function InstagramFrame({ mediaId, src, title, focusable }: { mediaId: string; s
   );
 }
 
+/**
+ * As fotos e vídeos de um outfit no recorte 4:5, uma por vez, como um post de rede social: uma faixa que rola de lado
+ * e encaixa em cada mídia (scroll-snap), com setas nas laterais (no computador) e pontos embaixo. No celular a foto
+ * acompanha o dedo, e a rolagem é a do navegador, então funciona também sobre o player do Instagram (o gesto passa do
+ * iframe para a faixa). Deslizar além da primeira ou da última passa para o outfit vizinho (o toque sobe para o
+ * carrossel). Vídeo mostra a capa com o play; tocar abre o player oficial da rede ali mesmo, ao lado das peças.
+ */
 function OutfitGallery({
   media,
   active,
@@ -1538,15 +1543,20 @@ function OutfitGallery({
   const [at, setAt] = useState(0);
   // a cada vez que a visitante sai de um vídeo do Instagram tocando, o player dele é recriado: é o jeito de parar o som
   const [stops, setStops] = useState<Record<string, number>>({});
-  const touchX = useRef<number | null>(null);
   const root = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLDivElement>(null);
+  // a mídia para onde a faixa está rolando sozinha (seta, ponto, troca automática); null = quem rola é a visitante
+  const target = useRef<number | null>(null);
+  // onde o toque começou e em que mídia: decide se o deslize fica na galeria ou troca de outfit
+  const touch = useRef<{ x: number; y: number; at: number } | null>(null);
   const latest = useRef({ onPlay, playing, onEnd });
   useEffect(() => {
     latest.current = { onPlay, playing, onEnd };
   });
   // O player do Instagram fica por baixo da capa, que é só enfeite (ele não aceita autoplay: com um play nosso que
   // abrisse o player, a visitante tocaria duas vezes). O toque nele não chega à página; o que chega é o foco indo para
-  // o iframe, e é isso que conta o play (métrica), tira o enfeite e segura o carrossel de outfits.
+  // o iframe, e é isso que conta o play (métrica), tira o enfeite e segura o carrossel de outfits. Rolar a faixa por
+  // cima dele não dá foco: só o toque parado.
   useEffect(() => {
     const onBlur = () =>
       setTimeout(() => {
@@ -1560,32 +1570,87 @@ function OutfitGallery({
   const total = media.length;
   const current = Math.min(at, total - 1);
 
+  /** Rola a faixa até a mídia `to`; a troca de `at` vem do `onScroll`, quando ela passa da metade. */
+  const glide = useCallback((to: number, smooth = true) => {
+    const el = track.current;
+    if (!el) return;
+    const left = to * el.clientWidth;
+    if (Math.abs(el.scrollLeft - left) < 1) {
+      target.current = null;
+      return;
+    }
+    target.current = to;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ left, behavior: smooth && !reduce ? "smooth" : "auto" });
+  }, []);
+
+  // a largura mudou (girar o celular, redimensionar a janela): a faixa volta para a mesma mídia, sem animação
+  const shown = useRef(current);
+  useEffect(() => {
+    shown.current = current;
+  }, [current]);
+  useEffect(() => {
+    const el = track.current;
+    if (!el) return;
+    let width = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      el.scrollTo({ left: shown.current * width, behavior: "auto" });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // sair de um vídeo tocando: o do Instagram é recriado (para o som); os outros voltam à capa
+  const stopVideo = () => {
+    const id = latest.current.playing;
+    if (!id) return;
+    setStops((s) => ({ ...s, [id]: (s[id] ?? 0) + 1 }));
+    latest.current.onPlay(null);
+  };
+
+  const onScroll = () => {
+    const el = track.current;
+    if (!el || !el.clientWidth) return;
+    const i = Math.min(total - 1, Math.max(0, Math.round(el.scrollLeft / el.clientWidth)));
+    const manual = target.current === null;
+    if (target.current === i) target.current = null;
+    if (i === current) return;
+    setAt(i);
+    // a visitante passou a foto com o dedo (ou o trackpad): a troca automática para e o vídeo que tocava sai
+    if (manual) {
+      onBrowse();
+      stopVideo();
+    }
+  };
+
   // a troca automática das mídias: a próxima a cada MEDIA_MS; depois da última, a primeira (único outfit) ou o próximo
   // outfit. O tempo recomeça a cada troca e quando a pausa termina.
   useEffect(() => {
     if (!autoplay || total < 2) return;
     const id = setTimeout(() => {
-      if (current < total - 1) setAt(current + 1);
-      else if (loop) setAt(0);
+      if (current < total - 1) glide(current + 1);
+      else if (loop) glide(0);
       else latest.current.onEnd();
     }, MEDIA_MS);
     return () => clearTimeout(id);
-  }, [autoplay, current, total, loop]);
+  }, [autoplay, current, total, loop, glide]);
 
   // o outfit saiu da tela: depois do fade, volta à primeira mídia, para recomeçar dela quando voltar
   useEffect(() => {
     if (active) return;
-    const id = setTimeout(() => setAt(0), 800);
+    const id = setTimeout(() => {
+      glide(0, false);
+      setAt(0);
+    }, 800);
     return () => clearTimeout(id);
-  }, [active]);
+  }, [active, glide]);
 
   const show = (to: number) => {
-    setAt(to);
     onBrowse();
-    if (playing) {
-      setStops((s) => ({ ...s, [playing]: (s[playing] ?? 0) + 1 }));
-      onPlay(null);
-    }
+    stopVideo();
+    glide(to);
   };
   const arrow =
     "absolute top-1/2 z-10 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-0 bg-white/90 p-0 text-ink shadow-[0_2px_10px_rgba(17,17,17,0.18)] transition-opacity hover:bg-white @max-2xl:hidden";
@@ -1594,86 +1659,96 @@ function OutfitGallery({
     <div
       ref={root}
       className={`group/gallery relative aspect-[4/5] overflow-clip ${playing && media.some((m) => m.id === playing) ? "bg-ink" : "bg-sand"}`}
-      onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+      // tocar ou rolar com o mouse interrompe a rolagem automática: o que vier daí é da visitante
+      onPointerDown={() => (target.current = null)}
+      onWheel={() => (target.current = null)}
+      onTouchStart={(e) => (touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, at: current })}
       onTouchEnd={(e) => {
-        const start = touchX.current;
-        touchX.current = null;
-        if (start === null || total < 2) return;
-        const dx = e.changedTouches[0].clientX - start;
-        if (Math.abs(dx) <= 40) return;
-        const to = current + (dx < 0 ? 1 : -1);
-        if (to < 0 || to >= total) return;
-        // dentro da galeria, o deslize troca a foto, não o outfit
-        e.stopPropagation();
-        show(to);
+        const start = touch.current;
+        touch.current = null;
+        if (!start) return;
+        const dx = e.changedTouches[0].clientX - start.x;
+        const dy = e.changedTouches[0].clientY - start.y;
+        if (Math.abs(dx) <= SWIPE_MIN || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        // a faixa tinha para onde rolar: o deslize foi dela, não troca o outfit
+        if (dx < 0 ? start.at < total - 1 : start.at > 0) e.stopPropagation();
       }}
     >
-      {media.map((m, i) => {
-        const on = i === current;
-        const video = m.videoUrl ? parseVideo(m.videoUrl) : null;
-        const instagram = video?.network === "instagram";
-        if (video && !instagram && playing === m.id && on)
+      <div
+        ref={track}
+        onScroll={onScroll}
+        className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {media.map((m, i) => {
+          const on = i === current;
+          const video = m.videoUrl ? parseVideo(m.videoUrl) : null;
+          const instagram = video?.network === "instagram";
           return (
-            // o player oficial da rede, ali mesmo: a visitante assiste sem sair da vitrine, com as peças ao lado
-            <iframe
-              key={m.id}
-              src={videoEmbedUrl(video)}
-              title={t("videoTitle", { network: VIDEO_LABELS[video.network] })}
-              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-              className="absolute inset-0 size-full border-0"
-            />
-          );
-        return (
-          <div key={m.id} aria-hidden={!on} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out motion-reduce:transition-none ${on ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-            {video && instagram && active && (Math.abs(i - current) <= 1 || playing === m.id) && (
-              <>
-                {/* fica por baixo da capa e já carrega quando a mídia é a vizinha: ao chegar nela, nada pisca */}
-                <InstagramFrame
-                  key={`${m.id}:${stops[m.id] ?? 0}`}
-                  mediaId={m.id}
+            <div key={m.id} aria-hidden={!on} className="relative h-full w-full flex-none snap-center snap-always overflow-clip">
+              {video && !instagram && playing === m.id && on ? (
+                // o player oficial da rede, ali mesmo: a visitante assiste sem sair da vitrine, com as peças ao lado
+                <iframe
                   src={videoEmbedUrl(video)}
                   title={t("videoTitle", { network: VIDEO_LABELS[video.network] })}
-                  focusable={on}
+                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className="absolute inset-0 size-full border-0"
                 />
-                {/* faixas nas bordas (o fundo preto do player): o deslize no celular continua trocando a mídia */}
-                {total > 1 && (
-                  <>
-                    <span aria-hidden="true" className="absolute inset-y-12 left-0 w-8" />
-                    <span aria-hidden="true" className="absolute inset-y-12 right-0 w-8" />
-                  </>
-                )}
-              </>
-            )}
-            {/* eslint-disable-next-line @next/next/no-img-element -- foto enviada pela creator para o bucket */}
-            <img
-              src={m.photoUrl}
-              alt={alt}
-              loading={eager && i === 0 ? "eager" : "lazy"}
-              className={`absolute inset-0 size-full object-cover ease-out motion-reduce:transition-none ${active && on ? "scale-100 transition-[scale,opacity] duration-[7000ms,300ms]" : "scale-[1.08] transition-[scale] delay-1000 duration-0"} ${instagram ? "pointer-events-none" : ""} ${instagram && playing === m.id ? "opacity-0" : ""}`}
-            />
-            {video && instagram && playing !== m.id && (
-              // a capa, o nosso play e o rótulo cobrem o player do Instagram inteiro (o play dele cresce com o quadro e
-              // escaparia de um círculo nosso); são só enfeite: o toque atravessa e cai no play dele, bem no centro
-              <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center bg-gradient-to-t from-ink/35 via-transparent to-transparent">
-                <PlayMark label={t("videoBadge", { network: VIDEO_LABELS[video.network] })} raised={total > 1} />
-              </span>
-            )}
-            {video && !instagram && (
-              <button
-                type="button"
-                tabIndex={on ? undefined : -1}
-                onClick={() => onPlay(m.id)}
-                aria-label={t("videoPlay", { network: VIDEO_LABELS[video.network] })}
-                className="group/play absolute inset-0 flex cursor-pointer items-center justify-center border-0 bg-gradient-to-t from-ink/35 via-transparent to-transparent p-0"
-              >
-                <PlayMark label={t("videoBadge", { network: VIDEO_LABELS[video.network] })} raised={total > 1} />
-              </button>
-            )}
-          </div>
-        );
-      })}
+              ) : (
+                <>
+                  {video && instagram && active && (Math.abs(i - current) <= 1 || playing === m.id) && (
+                    <>
+                      {/* fica por baixo da capa e já carrega quando a mídia é a vizinha: ao chegar nela, nada pisca */}
+                      <InstagramFrame
+                        key={`${m.id}:${stops[m.id] ?? 0}`}
+                        mediaId={m.id}
+                        src={videoEmbedUrl(video)}
+                        title={t("videoTitle", { network: VIDEO_LABELS[video.network] })}
+                        focusable={on}
+                      />
+                      {/* faixas nas bordas (o fundo preto do player): ali o toque é da página, e o deslize até o
+                          outfit vizinho funciona também a partir de um vídeo do Instagram */}
+                      {total > 1 && (
+                        <>
+                          <span aria-hidden="true" className="absolute inset-y-12 left-0 w-8" />
+                          <span aria-hidden="true" className="absolute inset-y-12 right-0 w-8" />
+                        </>
+                      )}
+                    </>
+                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- foto enviada pela creator para o bucket */}
+                  <img
+                    src={m.photoUrl}
+                    alt={alt}
+                    draggable={false}
+                    loading={eager && i === 0 ? "eager" : "lazy"}
+                    className={`absolute inset-0 size-full object-cover ease-out select-none motion-reduce:transition-none ${active && on ? "scale-100 transition-[scale,opacity] duration-[7000ms,300ms]" : "scale-[1.08] transition-[scale] delay-1000 duration-0"} ${instagram ? "pointer-events-none" : ""} ${instagram && playing === m.id ? "opacity-0" : ""}`}
+                  />
+                  {video && instagram && playing !== m.id && (
+                    // a capa, o nosso play e o rótulo cobrem o player do Instagram inteiro (o play dele cresce com o quadro e
+                    // escaparia de um círculo nosso); são só enfeite: o toque atravessa e cai no play dele, bem no centro
+                    <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center bg-gradient-to-t from-ink/35 via-transparent to-transparent">
+                      <PlayMark label={t("videoBadge", { network: VIDEO_LABELS[video.network] })} raised={total > 1} />
+                    </span>
+                  )}
+                  {video && !instagram && (
+                    <button
+                      type="button"
+                      tabIndex={on ? undefined : -1}
+                      onClick={() => onPlay(m.id)}
+                      aria-label={t("videoPlay", { network: VIDEO_LABELS[video.network] })}
+                      className="group/play absolute inset-0 flex cursor-pointer items-center justify-center border-0 bg-gradient-to-t from-ink/35 via-transparent to-transparent p-0"
+                    >
+                      <PlayMark label={t("videoBadge", { network: VIDEO_LABELS[video.network] })} raised={total > 1} />
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       {total > 1 && (
         <>
