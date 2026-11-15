@@ -30,6 +30,28 @@ function Stat({ n, label }: { n: number; label: string }) {
 }
 
 /**
+ * O atalho para o /metricas embaixo dos números: um botão baixo e reto, com a borda areia que preenche ao passar o
+ * mouse, um ícone de gráfico e a seta que anda para a direita — menor que os botões de editar e ver, para não
+ * disputar com eles.
+ */
+function MetricsLink({ label }: { label: string }) {
+  return (
+    <Link
+      href="/metricas"
+      className="group inline-flex min-h-9 items-center gap-2 border border-sand bg-white px-4 text-[11px] font-medium tracking-[0.18em] text-ink uppercase no-underline transition-colors hover:bg-sand focus-visible:bg-sand"
+    >
+      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+      </svg>
+      {label}
+      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5">
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </svg>
+    </Link>
+  );
+}
+
+/**
  * O topo da home logada, como um perfil do Instagram: a foto centralizada (tocar nela troca a foto, `ProfilePhoto`), o nome, o endereço (que copia),
  * as métricas da semana e os botões de editar e de ver a vitrine. Rola junto com a página; quem fica presa no
  * topo é a barra de busca e abas logo abaixo. Quem ainda não tem vitrine vê a própria conta (nome e foto do
@@ -58,17 +80,13 @@ export function ProfileHeader({ account, stats }: { account: Account; stats: Wee
                 <Stat n={stats.clicks} label={t("clicks", { count: stats.clicks })} />
                 <Stat n={stats.copied} label={t("copied", { count: stats.copied })} />
               </dl>
-              <p className="m-0 text-[13px] text-mute">
-                {t("period", { days: WEEK })} ·{" "}
-                <Link href="/metricas" className="text-ink underline-offset-4 hover:underline">
-                  {t("metrics")} →
-                </Link>
-              </p>
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                <p className="m-0 text-[13px] text-mute">{t("period", { days: WEEK })}</p>
+                <MetricsLink label={t("metrics")} />
+              </div>
             </div>
           ) : (
-            <Link href="/metricas" className="text-[14px] text-ink underline underline-offset-4">
-              {t("metrics")} →
-            </Link>
+            <MetricsLink label={t("metrics")} />
           )}
           <div className="grid w-full max-w-[34rem] grid-cols-2 gap-2">
             <Link href="/editor" className={pillSand}>
