@@ -16,7 +16,7 @@ import { Comments } from "./Comments";
 import { CoverLetter } from "@/components/home/CreatorCard";
 import { FavoriteButton } from "./FavoriteButton";
 import { ProductArt } from "./ProductIcon";
-import { ProductModal } from "./ProductModal";
+import { OutfitStoryModal, ProductModal, storyIcon } from "./ProductModal";
 import { useDragReorder } from "./useDragReorder";
 
 /**
@@ -779,6 +779,8 @@ export function Storefront({
 
   // produto ampliado aberto (e o outfit de onde veio, para a métrica do post)
   const [viewing, setViewing] = useState<{ product: Product; postId?: string } | null>(null);
+  // outfit cuja imagem de stories a dona está criando
+  const [sharingPost, setSharingPost] = useState<Post | null>(null);
   // ?p=<id>: o link da figurinha dos stories abre a vitrine já com o produto ampliado
   useEffect(() => {
     if (preview) return;
@@ -848,8 +850,9 @@ export function Storefront({
   /** Liga o produto ao link dele: o de afiliado ou, sem ele, o da loja. Esgotado ou sem link não é clicável. */
   const linkProps = (p: Product, postId?: string) => ({
     href: p.soldOut ? "" : productHref(p),
-    // na vitrine pública o toque abre o produto ampliado; a métrica de compra conta no botão da loja, lá dentro
-    onView: preview ? undefined : () => setViewing({ product: p, postId }),
+    // o visitante vai direto para a loja (um clique só). Só a dona, na própria vitrine, abre o produto ampliado,
+    // que é de onde sai a imagem de stories dele.
+    onView: preview || !owner ? undefined : () => setViewing({ product: p, postId }),
     onOpen: (e: MouseEvent) => {
       // na prévia do editor o clique não tira a pessoa da página
       if (preview) e.preventDefault();
@@ -1000,7 +1003,13 @@ export function Storefront({
       ) : (
         posts.length > 0 && (
           <section id="outfits" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
-            <OutfitCarousel outfits={posts} firstName={firstName} link={linkProps} onPlay={(postId) => send("video", postId)} />
+            <OutfitCarousel
+              outfits={posts}
+              firstName={firstName}
+              link={linkProps}
+              onPlay={(postId) => send("video", postId)}
+              onStory={preview || !owner ? undefined : setSharingPost}
+            />
           </section>
         )
       )}
@@ -1238,6 +1247,7 @@ export function Storefront({
           onClose={() => setViewing(null)}
         />
       )}
+      {sharingPost && <OutfitStoryModal key={sharingPost.id} post={sharingPost} name={firstName} onClose={() => setSharingPost(null)} />}
     </div>
   );
 }
@@ -1262,7 +1272,20 @@ type LinkFor = (p: Product, postId: string) => ProductLinkProps;
  * mídia). A barra de progresso mostra quanto falta. Para quando o mouse está em cima, quando algo dentro tem o foco e
  * para quem pede menos movimento (aí também não há animação); não há botão de pausa. No celular, arrastar para o lado troca de outfit.
  */
-function OutfitCarousel({ outfits, firstName, link, onPlay }: { outfits: Outfit[]; firstName: string; link: LinkFor; onPlay: (postId: string) => void }) {
+function OutfitCarousel({
+  outfits,
+  firstName,
+  link,
+  onPlay,
+  onStory,
+}: {
+  outfits: Outfit[];
+  firstName: string;
+  link: LinkFor;
+  onPlay: (postId: string) => void;
+  /** só para a dona: abre a imagem de stories do outfit */
+  onStory?: (post: Post) => void;
+}) {
   const t = useTranslations("storefront");
   const tCommon = useTranslations("common");
   const total = outfits.length;
@@ -1275,6 +1298,18 @@ function OutfitCarousel({ outfits, firstName, link, onPlay }: { outfits: Outfit[
   const [playing, setPlaying] = useState<string | null>(null);
   // a visitante passou as fotos de um outfit: a troca automática para até ela mudar de outfit
   const [browsing, setBrowsing] = useState(false);
+
+  // ?o=<id>: o link da figurinha do story do outfit abre a vitrine já nele
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("o");
+    const at = id ? outfits.findIndex((o) => o.post.id === id) : -1;
+    if (at < 0) return;
+    const timer = setTimeout(() => {
+      setIndex(at);
+      document.getElementById("outfits")?.scrollIntoView();
+    });
+    return () => clearTimeout(timer);
+  }, [outfits]);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -1367,6 +1402,7 @@ function OutfitCarousel({ outfits, firstName, link, onPlay }: { outfits: Outfit[
               autoplay={auto && i === current}
               loop={total === 1}
               onEnd={() => setIndex((x) => (x + 1) % total)}
+              onStory={onStory && (() => onStory(post))}
             />
           ))}
         </div>
@@ -1418,6 +1454,7 @@ function OutfitSlide({
   autoplay,
   loop,
   onEnd,
+  onStory,
 }: {
   post: Post;
   items: Product[];
@@ -1437,6 +1474,7 @@ function OutfitSlide({
   /** depois da última mídia, volta à primeira (é o único outfit) em vez de chamar `onEnd` */
   loop: boolean;
   onEnd: () => void;
+  onStory?: () => void;
 }) {
   const t = useTranslations("storefront");
   const two = (x: number) => String(x).padStart(2, "0");
@@ -1492,11 +1530,26 @@ function OutfitSlide({
             ))}
           </ul>
         </div>
-        {total > 1 && (
-          <span aria-hidden="true" className="font-display text-[clamp(28px,3.4cqw,52px)] leading-none lining-nums text-ink/80 @max-3xl:hidden">
-            {two(n)}
-            <span className="text-ink/30"> / {two(total)}</span>
-          </span>
+        {/* no rodapé do painel: o número do outfit e, para a dona, o botão da imagem de stories do look */}
+        {(total > 1 || onStory) && (
+          <div className="flex flex-col gap-4 @3xl:flex-row @3xl:items-end @3xl:justify-between">
+            {total > 1 && (
+              <span aria-hidden="true" className="font-display text-[clamp(28px,3.4cqw,52px)] leading-none lining-nums text-ink/80 @max-3xl:hidden">
+                {two(n)}
+                <span className="text-ink/30"> / {two(total)}</span>
+              </span>
+            )}
+            {onStory && (
+              <button
+                type="button"
+                onClick={onStory}
+                className="flex min-h-12 cursor-pointer items-center justify-center gap-2 border border-ink bg-transparent px-6 text-[12px] font-medium tracking-[0.18em] text-ink uppercase hover:bg-ink hover:text-white"
+              >
+                {storyIcon}
+                {t("product.outfitShare")}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </article>
@@ -1815,7 +1868,7 @@ function OutfitGallery({
 
 /** O produto vira um link quando há para onde ir; sem link (ou esgotado), é só a foto e o nome. */
 function ProductLink({ href, onOpen, onView, className, children }: ProductLinkProps & { className: string; children: ReactNode }) {
-  // na vitrine pública: botão que abre o produto ampliado (inclusive esgotado, que não tem link)
+  // a dona na própria vitrine: botão que abre o produto ampliado (inclusive esgotado, que não tem link)
   if (onView)
     return (
       <button type="button" onClick={onView} className={`${className} cursor-pointer border-0 bg-transparent p-0 font-[inherit] [text-align:inherit]`}>

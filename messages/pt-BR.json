@@ -49,7 +49,11 @@
       "copyLink": "Copiar link do produto",
       "linkCopied": "Link copiado",
       "back": "Voltar ao produto",
-      "imageAlt": "Imagem para os stories divulgando {name}"
+      "imageAlt": "Imagem para os stories divulgando {name}",
+      "outfitShare": "Criar imagem do look para os stories",
+      "outfitShareHint": "Poste nos stories e adicione a figurinha de link com o link do look.",
+      "outfitCopyLink": "Copiar link do look",
+      "outfitImageAlt": "Imagem para os stories divulgando o look de {name}"
     },
     "search": "Buscar",
     "searchLabel": "Buscar produto ou marca",
@@ -432,7 +436,9 @@
     "allInLink": "Todos os cupons no link",
     "siteTagline": "Cupons e produtos de quem você segue, num link só.",
     "productPick": "Achado de {name}",
-    "productCta": "Toque no link para ver"
+    "productCta": "Toque no link para ver",
+    "outfitPick": "Look de {name}",
+    "outfitCta": "Toque no link para ver as peças"
   },
   "counts": {
     "products": "{count, plural, one {# produto} other {# produtos}}",
