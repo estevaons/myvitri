@@ -137,7 +137,7 @@ export function NotificationBell({ count, onLeave }: { count: number; onLeave?: 
   };
 
   return (
-    <div ref={box} className="relative" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpen(false)}>
+    <div ref={box} data-tour="bell" className="relative" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpen(false)}>
       <button
         ref={trigger}
         type="button"

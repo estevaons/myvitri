@@ -599,6 +599,7 @@
   "account": {
     "label": "Your account ({email})",
     "settings": "Settings",
+    "tour": "Take the platform tour",
     "signOut": "Sign out",
     "close": "Close",
     "profile": "Profile",
@@ -1087,6 +1088,89 @@
     "errors": {
       "choose": "Pick an option to continue.",
       "save": "Couldn't save right now. Try again."
+    }
+  },
+  "tour": {
+    "step": "Step {current} of {total}",
+    "skip": "Skip tour",
+    "back": "Back",
+    "next": "Next",
+    "start": "Start",
+    "finish": "Done",
+    "home": {
+      "welcome": {
+        "title": "Welcome, {name}!",
+        "titleNoName": "Welcome to MyVitri!",
+        "creator": "This is your home page. In less than a minute we'll show you where everything is: your link, your numbers, the storefront editor and what you can explore.",
+        "shopper": "This is your home page. In less than a minute we'll show you how to find storefronts, coupons and products recommended by creators."
+      },
+      "link": {
+        "title": "Your storefront link",
+        "text": "Tap to copy it and paste it in your Instagram and TikTok bio. That's how people get to your storefront."
+      },
+      "stats": {
+        "title": "Your numbers",
+        "text": "Visits, product clicks and coupons copied in the last 7 days. Tap here for the full metrics, day by day."
+      },
+      "vitrine": {
+        "title": "Your storefront",
+        "text": "Edit storefront opens the editor, where you add coupons, products and outfits. View my storefront shows how visitors see it."
+      },
+      "create": {
+        "title": "Build your storefront",
+        "text": "If you recommend products, gather your coupons and products in a single link. It's free and ready in 2 minutes."
+      },
+      "explore": {
+        "title": "Explore",
+        "text": "Search storefronts, brands and products by name. Following gathers the storefronts you follow, and in the other tabs you browse every storefront, product, outfit and brand, with filters and sorting."
+      },
+      "bell": {
+        "title": "Notifications",
+        "text": "This is where you find out when someone follows or comments on your storefront."
+      },
+      "account": {
+        "title": "Your account",
+        "text": "Photo, name, link and password are in Settings. To see this tour again, just open this menu."
+      },
+      "done": {
+        "title": "All set!",
+        "creator": "Why not start in the editor? Add the coupons and products you recommend the most and publish.",
+        "shopper": "Explore storefronts and follow the ones you like: they stay under Following, with their coupons at hand."
+      }
+    },
+    "editor": {
+      "welcome": {
+        "title": "This is the editor",
+        "text": "Here you see your storefront the way visitors do. Tap anywhere to edit it: we'll show you the main parts."
+      },
+      "cover": {
+        "title": "Cover",
+        "text": "Tap the cover to pick a photo. It's saved right away."
+      },
+      "profile": {
+        "title": "Photo, socials and title",
+        "text": "Tap your photo to change it, the icons to add your Instagram, TikTok and YouTube, and write your storefront's title and text right here."
+      },
+      "outfits": {
+        "title": "Outfits",
+        "text": "Show looks you've already posted, with photos or videos, and tag the pieces: each one leads to the product in the store."
+      },
+      "products": {
+        "title": "Products",
+        "text": "Paste the product link from the store and we fetch the photo and name. Visitors tap it and go straight to the store."
+      },
+      "coupons": {
+        "title": "Coupons",
+        "text": "Add the discount coupons of the brands you promote. Visitors copy them with one tap."
+      },
+      "publish": {
+        "title": "Draft and publishing",
+        "text": "Everything you change is saved automatically as a draft. It only goes to your public storefront when you tap Publish, which shows up here."
+      },
+      "done": {
+        "title": "Ready to start",
+        "text": "Start with the products or coupons you recommend the most. You can see this tour again anytime from your account menu."
+      }
     }
   }
 }

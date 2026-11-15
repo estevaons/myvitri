@@ -10,6 +10,7 @@ import { AccountMenu, type Account, type LeaveGuard } from "@/components/home/Ac
 import { NotificationBell } from "@/components/home/NotificationBell";
 import { Link, useRouter, vitrineHref } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
+import { EditorTour } from "@/components/onboarding/PlatformTours";
 import { Storefront, type StorefrontEdit } from "@/components/storefront/Storefront";
 import { vitrineAddress } from "@/lib/vitrine/links";
 import { pickProfile, type Coupon, type Product, type VitrineContent } from "@/lib/vitrine/types";
@@ -57,6 +58,7 @@ export function Editor({
   account,
   unread,
   initialTab,
+  tour = false,
 }: {
   published: VitrineContent;
   draft: VitrineContent | null;
@@ -65,6 +67,8 @@ export function Editor({
   unread: number;
   /** valor de ?tab= na URL: a seção para onde rolar ao abrir */
   initialTab?: string;
+  /** primeira visita ao editor: o tour abre sozinho (senão, só pelo menu da conta) */
+  tour?: boolean;
 }) {
   const t = useTranslations("editor");
   const tCommon = useTranslations("common");
@@ -260,7 +264,7 @@ export function Editor({
           <div className="flex-1" />
           {/* só com alterações: o aviso e o botão de publicar. No celular vira uma barra presa embaixo da tela, perto do polegar. */}
           {dirty && (
-            <div className="flex items-center gap-3.5 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:justify-between max-sm:border-t max-sm:border-[#E0DCD3] max-sm:bg-white max-sm:px-4 max-sm:pt-2.5 max-sm:pb-[max(10px,env(safe-area-inset-bottom))] max-sm:shadow-[0_-4px_16px_rgba(17,17,17,0.06)]">
+            <div data-tour="publish" className="flex items-center gap-3.5 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:justify-between max-sm:border-t max-sm:border-[#E0DCD3] max-sm:bg-white max-sm:px-4 max-sm:pt-2.5 max-sm:pb-[max(10px,env(safe-area-inset-bottom))] max-sm:shadow-[0_-4px_16px_rgba(17,17,17,0.06)]">
               <span role="status" className={`flex items-center gap-2 text-[13px] font-medium ${saveFailed ? "text-[#A3361B]" : "text-ink"}`}>
                 <span aria-hidden="true" className={`size-2 flex-none rounded-full ${saveFailed ? "bg-[#A3361B]" : "bg-[#E8590C]"}`} />
                 {saveFailed ? t("draftFailed") : t("unpublished")}
@@ -291,6 +295,7 @@ export function Editor({
           {!dirty && (
             <Link
               href={vitrineHref(published.handle)}
+              data-tour="publish"
               onClick={(e) => confirmLeave(e, () => router.push({ pathname: "/[handle]", params: { handle: `@${published.handle}` } }))}
               className="flex min-h-10 flex-none items-center gap-2 border border-ink px-4 text-[12px] font-medium tracking-[0.18em] text-ink uppercase no-underline transition-colors hover:bg-ink hover:text-white"
             >
@@ -384,6 +389,8 @@ export function Editor({
 
       {cropper}
       {confirmDialog}
+      {/* com ?tab= (vindo das métricas) a pessoa já sabe o que quer: o tour não abre sozinho por cima */}
+      <EditorTour autoStart={tour && !initialTab} />
       {open && <EditSheet open={open} draft={draft} update={update} close={close} setOpen={setOpen} patch={patch} remove={remove} />}
     </div>
   );

@@ -16,7 +16,7 @@ import { hrefWith, PAGE, TABS, type TabId, type TabParams } from "./params";
  */
 export function HomeBar({ current, search }: { current?: TabId; search: ReactNode }) {
   return (
-    <div className="sticky top-0 z-20 border-y border-sand bg-white/95 backdrop-blur-sm">
+    <div data-tour="explore" className="sticky top-0 z-20 border-y border-sand bg-white/95 backdrop-blur-sm">
       <div className={`mx-auto max-w-[1440px] pt-3 ${pad}`}>{search}</div>
       <TabNav current={current} />
     </div>

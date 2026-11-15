@@ -599,6 +599,7 @@
   "account": {
     "label": "Sua conta ({email})",
     "settings": "Configurações",
+    "tour": "Ver tour da plataforma",
     "signOut": "Sair",
     "close": "Fechar",
     "profile": "Perfil",
@@ -1087,6 +1088,89 @@
     "errors": {
       "choose": "Escolha uma opção para continuar.",
       "save": "Não deu para salvar agora. Tente de novo."
+    }
+  },
+  "tour": {
+    "step": "Passo {current} de {total}",
+    "skip": "Pular tour",
+    "back": "Voltar",
+    "next": "Próximo",
+    "start": "Começar",
+    "finish": "Concluir",
+    "home": {
+      "welcome": {
+        "title": "Boas-vindas, {name}!",
+        "titleNoName": "Boas-vindas ao MyVitri!",
+        "creator": "Esta é a sua página inicial. Em menos de um minuto mostramos onde fica cada coisa: seu link, seus números, o editor da vitrine e o que dá para explorar.",
+        "shopper": "Esta é a sua página inicial. Em menos de um minuto mostramos como achar vitrines, cupons e produtos indicados por creators."
+      },
+      "link": {
+        "title": "O link da sua vitrine",
+        "text": "Toque para copiar e cole na bio do Instagram e do TikTok. É por ele que as pessoas chegam a sua vitrine."
+      },
+      "stats": {
+        "title": "Seus números",
+        "text": "Visitas, cliques nos produtos e cupons copiados nos últimos 7 dias. Toque aqui para ver as métricas completas, dia a dia."
+      },
+      "vitrine": {
+        "title": "Sua vitrine",
+        "text": "Editar vitrine abre o editor, onde você adiciona cupons, produtos e outfits. Ver minha vitrine mostra como ela aparece para quem visita."
+      },
+      "create": {
+        "title": "Monte a sua vitrine",
+        "text": "Se você indica produtos, junte num link só os seus cupons e produtos. É grátis e fica pronta em 2 minutos."
+      },
+      "explore": {
+        "title": "Explorar",
+        "text": "Busque vitrines, marcas e produtos pelo nome. Seguindo reúne as vitrines que você segue, e nas outras abas você navega por todas as vitrines, produtos, outfits e marcas, com filtros e ordem."
+      },
+      "bell": {
+        "title": "Notificações",
+        "text": "Aqui você fica sabendo quando alguém segue a sua vitrine ou comenta nela."
+      },
+      "account": {
+        "title": "Sua conta",
+        "text": "Foto, nome, link e senha ficam nas Configurações. Para ver este tour de novo, é só abrir este menu."
+      },
+      "done": {
+        "title": "Tudo pronto!",
+        "creator": "Que tal começar pelo editor? Adicione os cupons e produtos que você mais indica e publique.",
+        "shopper": "Explore as vitrines e siga as que você gostar: elas ficam em Seguindo, com os cupons à mão."
+      }
+    },
+    "editor": {
+      "welcome": {
+        "title": "Este é o editor",
+        "text": "Aqui você vê a sua vitrine do jeito que os visitantes veem. Toque em qualquer parte para editar: vamos mostrar as principais."
+      },
+      "cover": {
+        "title": "Capa",
+        "text": "Toque na capa para escolher uma foto. Ela é salva na hora."
+      },
+      "profile": {
+        "title": "Foto, redes e título",
+        "text": "Toque na sua foto para trocar, nos ícones para adicionar seu Instagram, TikTok e YouTube, e escreva o título e o texto da vitrine direto aqui."
+      },
+      "outfits": {
+        "title": "Outfits",
+        "text": "Mostre os looks que você já postou, com fotos ou vídeos, e marque as peças: cada uma leva ao produto na loja."
+      },
+      "products": {
+        "title": "Produtos",
+        "text": "Cole o link do produto na loja e a gente busca a foto e o nome. Quem visita toca e vai direto para a loja."
+      },
+      "coupons": {
+        "title": "Cupons",
+        "text": "Adicione os cupons de desconto das marcas que você divulga. Os visitantes copiam com um toque."
+      },
+      "publish": {
+        "title": "Rascunho e publicação",
+        "text": "Tudo o que você muda fica salvo sozinho como rascunho. Só vai para a vitrine pública quando você toca em Publicar, que aparece aqui."
+      },
+      "done": {
+        "title": "Pronto para começar",
+        "text": "Comece pelos produtos ou cupons que você mais indica. Você pode rever este tour quando quiser, pelo menu da sua conta."
+      }
     }
   }
 }

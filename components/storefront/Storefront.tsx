@@ -896,7 +896,7 @@ export function Storefront({
       )}
 
       <section className={`mx-auto max-w-[1440px] ${pad} ${edit ? "pt-5 @3xl:pt-6" : ""}`}>
-        <div className="relative">
+        <div className="relative" data-tour={edit ? "cover" : undefined}>
         {banner ? (
           // eslint-disable-next-line @next/next/no-img-element -- capa vem de URL arbitrária
           <img src={banner} alt="" fetchPriority="high" className="block aspect-[21/9] w-full bg-cream object-cover @max-2xl:aspect-[4/3]" />
@@ -921,74 +921,77 @@ export function Storefront({
           </button>
         )}
         </div>
-        {/* quem indica: a foto fica sobre a borda da capa */}
-        <div className="relative -mt-10 flex flex-col items-center gap-2.5 text-center">
-          {edit ? (
-            <button
-              type="button"
-              onClick={edit.avatar}
-              disabled={edit.avatarBusy}
-              aria-label={te("avatar")}
-              title={te("avatar")}
-              className={`group/avatar relative z-20 cursor-pointer rounded-full border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${edit.avatarBusy ? "animate-pulse" : ""}`}
-            >
+        {/* no editor, o tour destaca juntos a foto, as redes e os textos (a margem negativa da foto atravessa este bloco) */}
+        <div data-tour={edit ? "profile" : undefined}>
+          {/* quem indica: a foto fica sobre a borda da capa */}
+          <div className="relative -mt-10 flex flex-col items-center gap-2.5 text-center">
+            {edit ? (
+              <button
+                type="button"
+                onClick={edit.avatar}
+                disabled={edit.avatarBusy}
+                aria-label={te("avatar")}
+                title={te("avatar")}
+                className={`group/avatar relative z-20 cursor-pointer rounded-full border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${edit.avatarBusy ? "animate-pulse" : ""}`}
+              >
+                <Avatar content={content} className="box-border size-20 flex-none rounded-full text-2xl ring-4 ring-white" />
+                {/* o selo de câmera: diz que a foto é clicável, sem cobrir o rosto */}
+                <span aria-hidden="true" className="absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full border-2 border-white bg-ink text-white transition-transform group-hover/avatar:scale-110">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                  </svg>
+                </span>
+              </button>
+            ) : (
               <Avatar content={content} className="box-border size-20 flex-none rounded-full text-2xl ring-4 ring-white" />
-              {/* o selo de câmera: diz que a foto é clicável, sem cobrir o rosto */}
-              <span aria-hidden="true" className="absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full border-2 border-white bg-ink text-white transition-transform group-hover/avatar:scale-110">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                  <circle cx="12" cy="13" r="3" />
-                </svg>
-              </span>
-            </button>
-          ) : (
-            <Avatar content={content} className="box-border size-20 flex-none rounded-full text-2xl ring-4 ring-white" />
-          )}
-          <div className="flex max-w-full min-w-0 flex-col leading-tight">
-            <span className="font-display text-[22px] leading-tight font-medium break-words">{content.name}</span>
-            <span className="text-[13px] break-words text-mute">@{content.handle}</span>
+            )}
+            <div className="flex max-w-full min-w-0 flex-col leading-tight">
+              <span className="font-display text-[22px] leading-tight font-medium break-words">{content.name}</span>
+              <span className="text-[13px] break-words text-mute">@{content.handle}</span>
+            </div>
+            <SocialLinks socials={content.socials} name={content.name} onEdit={edit?.socials} />
+            {/* favoritar fica junto de quem indica, não no cabeçalho; na prévia do editor não aparece */}
+            {!preview && (
+              <div className="pt-1.5">
+                <FavoriteButton
+                  key={viewer?.user ? `${viewer.user.id}:${viewer.favorited}` : "visitante"}
+                  variant="profile"
+                  handle={content.handle}
+                  name={content.name}
+                  loading={!viewer}
+                  guest={!viewer?.user}
+                  favorited={Boolean(viewer?.user && viewer.favorited)}
+                  count={favorites}
+                />
+              </div>
+            )}
           </div>
-          <SocialLinks socials={content.socials} name={content.name} onEdit={edit?.socials} />
-          {/* favoritar fica junto de quem indica, não no cabeçalho; na prévia do editor não aparece */}
-          {!preview && (
-            <div className="pt-1.5">
-              <FavoriteButton
-                key={viewer?.user ? `${viewer.user.id}:${viewer.favorited}` : "visitante"}
-                variant="profile"
-                handle={content.handle}
-                name={content.name}
-                loading={!viewer}
-                guest={!viewer?.user}
-                favorited={Boolean(viewer?.user && viewer.favorited)}
-                count={favorites}
-              />
-            </div>
-          )}
-        </div>
-        <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 pt-7 pb-2 text-center @3xl:pt-8">
-          {edit ? (
-            <InlineTexts content={content} placeholder={t("defaultHeadline", { name: firstName })} onChange={edit.text} />
-          ) : (
-            <div className="flex flex-col items-center gap-4">
-              <h1 className="m-0 font-display text-[clamp(44px,8cqw,96px)] leading-[1] font-normal text-balance">{headline}</h1>
-              {content.sub && <p className="m-0 max-w-[36rem] text-[17px] leading-relaxed text-mute">{content.sub}</p>}
-            </div>
-          )}
-          {ctas.length > 0 && (
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {ctas.map(([href, label], i) => (
-                <a key={href} href={href} className={i === 0 ? pillDark : pillLight}>
-                  {label}
-                </a>
-              ))}
-            </div>
-          )}
-          {/* no celular o menu de seções some: este link é o caminho até a conversa */}
-          {comments && comments.total > 0 && (
-            <a href="#comentarios" className="mt-1 text-[14px] text-mute underline underline-offset-4 hover:text-ink">
-              {t("commentCount", { count: comments.total })}
-            </a>
-          )}
+          <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 pt-7 pb-2 text-center @3xl:pt-8">
+            {edit ? (
+              <InlineTexts content={content} placeholder={t("defaultHeadline", { name: firstName })} onChange={edit.text} />
+            ) : (
+              <div className="flex flex-col items-center gap-4">
+                <h1 className="m-0 font-display text-[clamp(44px,8cqw,96px)] leading-[1] font-normal text-balance">{headline}</h1>
+                {content.sub && <p className="m-0 max-w-[36rem] text-[17px] leading-relaxed text-mute">{content.sub}</p>}
+              </div>
+            )}
+            {ctas.length > 0 && (
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                {ctas.map(([href, label], i) => (
+                  <a key={href} href={href} className={i === 0 ? pillDark : pillLight}>
+                    {label}
+                  </a>
+                ))}
+              </div>
+            )}
+            {/* no celular o menu de seções some: este link é o caminho até a conversa */}
+            {comments && comments.total > 0 && (
+              <a href="#comentarios" className="mt-1 text-[14px] text-mute underline underline-offset-4 hover:text-ink">
+                {t("commentCount", { count: comments.total })}
+              </a>
+            )}
+          </div>
         </div>
       </section>
 

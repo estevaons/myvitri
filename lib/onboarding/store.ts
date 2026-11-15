@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { ATTRIBUTION_COOKIE } from "@/lib/analytics/attribution";
 import type { OnboardingAnswers } from "@/lib/onboarding/options";
 import { ONBOARDING_VERSION } from "@/lib/onboarding/options";
+import { seenTours, TOUR_IDS, type TourId } from "@/lib/onboarding/tours";
 import type { createSupabase } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -29,6 +30,33 @@ export async function recordingConsent(db: Db, userId: string): Promise<boolean>
     return false;
   }
   return data?.recording_opt_in === true;
+}
+
+let warnedMissingTours = false;
+
+/**
+ * O que as páginas logadas leem de `profiles` numa ida só: o consentimento de gravação e os tours já vistos.
+ * Se a leitura falhar (ex.: a coluna `tours` ainda não existe no banco), o consentimento é lido sozinho e os tours
+ * contam como vistos: sem saber, é melhor não abrir o tour do que abri-lo a cada visita.
+ */
+export async function profileFlags(db: Db, userId: string): Promise<{ recording: boolean; tours: TourId[] }> {
+  const { data, error } = await db.from("profiles").select("recording_opt_in, tours").eq("user_id", userId).maybeSingle();
+  if (error) {
+    // 42703 = coluna inexistente: a migração 20261117000000_profile_tours.sql não foi aplicada. Não é falha do app
+    // (segue sem tour automático), então avisa uma vez por processo em vez de logar erro a cada página.
+    if (error.code === "42703") {
+      if (!warnedMissingTours) console.warn("profileFlags: coluna profiles.tours ausente; aplique a migração 20261117000000_profile_tours.sql");
+      warnedMissingTours = true;
+    } else console.error("profileFlags", error.code, error.message);
+    return { recording: await recordingConsent(db, userId), tours: [...TOUR_IDS] };
+  }
+  return { recording: data?.recording_opt_in === true, tours: seenTours(data?.tours) };
+}
+
+/** Marca o tour como visto (concluído ou pulado). Merge no banco pela RPC; a RLS confere que a linha é da pessoa. */
+export async function markTourSeen(db: Db, tour: TourId) {
+  const { error } = await db.rpc("mark_tour_seen", { tour });
+  if (error) throw error;
 }
 
 /** Lê o primeiro toque de atribuição e apaga o cookie: ele vale só para o cadastro que acabou de acontecer. */

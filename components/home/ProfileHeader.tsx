@@ -52,6 +52,7 @@ function StatsCard({ stats }: { stats: WeekStats }) {
   return (
     <Link
       href="/metricas"
+      data-tour="stats"
       className="group block w-full border-y border-sand text-ink no-underline transition-colors hover:bg-sand/50 focus-visible:bg-sand/50"
     >
       <dl className="m-0 grid grid-cols-3 divide-x divide-sand">
@@ -84,7 +85,11 @@ export function ProfileHeader({ account, stats }: { account: Account; stats: Wee
         <h1 id="perfil" className="m-0 font-display text-[clamp(38px,4.4vw,56px)] leading-[1] font-normal break-words text-balance">
           {name}
         </h1>
-        {v && <VitrineLinkLine handle={v.handle} />}
+        {v && (
+          <div data-tour="link" className="flex max-w-full flex-col items-center">
+            <VitrineLinkLine handle={v.handle} />
+          </div>
+        )}
       </div>
 
       {v ? (
@@ -92,11 +97,11 @@ export function ProfileHeader({ account, stats }: { account: Account; stats: Wee
           {stats ? (
             <StatsCard stats={stats} />
           ) : (
-            <Link href="/metricas" className="group no-underline">
+            <Link href="/metricas" data-tour="stats" className="group no-underline">
               <MetricsCue label={t("metrics")} />
             </Link>
           )}
-          <div className="grid w-full max-w-[34rem] grid-cols-2 gap-2">
+          <div data-tour="vitrine" className="grid w-full max-w-[34rem] grid-cols-2 gap-2">
             <Link href="/editor" className={pillSand}>
               {t("edit")}
             </Link>
@@ -109,7 +114,7 @@ export function ProfileHeader({ account, stats }: { account: Account; stats: Wee
           </div>
         </>
       ) : (
-        <div className="mt-1 flex w-full max-w-[34rem] flex-col items-center gap-3 bg-sand px-6 py-8">
+        <div data-tour="create" className="mt-1 flex w-full max-w-[34rem] flex-col items-center gap-3 bg-sand px-6 py-8">
           <span className={`${kicker} text-[11px] text-gold`}>{t("create.kicker")}</span>
           <p className="m-0 font-display text-[clamp(26px,2.6vw,34px)] leading-[1.1]">{t.rich("create.title", { em: (s) => <em>{s}</em> })}</p>
           <p className="m-0 max-w-[26rem] text-[15px] leading-relaxed text-ink/70">{t("create.text")}</p>

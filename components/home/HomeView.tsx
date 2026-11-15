@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { HomeTour } from "@/components/onboarding/PlatformTours";
 import { AccountMenu, type Account } from "./AccountMenu";
 import { pad, SiteFooter, SiteHeader } from "./chrome";
 import { HomeSearch } from "./HomeSearch";
@@ -21,7 +22,8 @@ import { VitrinesTab } from "./tabs/VitrinesTab";
 function ExploreHead() {
   const t = useTranslations("home");
   return (
-    <div className={`mx-auto max-w-[1440px] pt-4 pb-4 md:pt-6 ${pad}`}>
+    // `data-tour="explore"` aqui e na barra: o passo Explorar do tour destaca o título junto com a busca e as abas
+    <div data-tour="explore" className={`mx-auto max-w-[1440px] pt-4 pb-4 md:pt-6 ${pad}`}>
       <h2 className="m-0 text-[24px] leading-none font-semibold tracking-[-0.02em] text-ink md:text-[28px]">{t("explore")}</h2>
     </div>
   );
@@ -49,6 +51,7 @@ export function HomeView({
   params,
   favorites = [],
   unread = 0,
+  tour = false,
 }: {
   /** quem entrou: o topo e o menu da conta saem daqui */
   account: Account;
@@ -60,6 +63,8 @@ export function HomeView({
   favorites?: string[];
   /** notificações ainda não vistas; o sino só aparece para quem tem vitrine */
   unread?: number;
+  /** primeira visita: o tour da home abre sozinho (senão, só pelo menu da conta) */
+  tour?: boolean;
 }) {
   return (
     // clip, e não hidden: hidden faz desta div a área de rolagem e a barra para de ficar presa no topo
@@ -82,6 +87,8 @@ export function HomeView({
 
         <SiteFooter signedIn />
       </NavPending>
+
+      <HomeTour autoStart={tour} name={account.vitrine?.name || account.name} hasVitrine={Boolean(account.vitrine)} />
     </div>
   );
 }
