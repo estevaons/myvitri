@@ -144,6 +144,16 @@ export function Editor({
     });
   };
 
+  // Descartar: o rascunho volta a ser a versão publicada. O autosave vê que não há mais diferença e apaga o rascunho no
+  // servidor (saveDraftAction(null)), como quando a pessoa desfaz tudo à mão.
+  const discard = async () => {
+    const ok = await ask({ title: t("discard.title"), text: t("discard.text"), confirm: t("discard.confirm"), danger: true });
+    if (!ok) return;
+    setOpen(null);
+    setError(null);
+    setDraft(published);
+  };
+
   // A foto de perfil não passa pelo rascunho: salva na hora, como na home (o perfil novo chega pelo router.refresh).
   const sendAvatar = async (picked: File) => {
     const file = await crop(picked, "avatar");
@@ -255,9 +265,26 @@ export function Editor({
                 <span aria-hidden="true" className={`size-2 flex-none rounded-full ${saveFailed ? "bg-[#A3361B]" : "bg-[#E8590C]"}`} />
                 {saveFailed ? t("draftFailed") : t("unpublished")}
               </span>
-              <button type="button" onClick={publish} disabled={saving} className="min-h-11 flex-none cursor-pointer border-0 bg-ink px-6 text-sm font-bold text-white transition-opacity hover:opacity-85 disabled:cursor-default disabled:opacity-60">
-                {saving ? t("publishing") : t("publish")}
-              </button>
+              <div className="flex flex-none items-center gap-2">
+                {/* no celular só o ícone, para caber ao lado do aviso e do Publicar */}
+                <button
+                  type="button"
+                  onClick={discard}
+                  disabled={saving}
+                  aria-label={t("discard.button")}
+                  title={t("discard.button")}
+                  className="flex min-h-11 min-w-11 flex-none cursor-pointer items-center justify-center gap-2 border border-[#D6D1C7] bg-white px-4 text-sm font-semibold text-ink transition-colors hover:border-ink disabled:cursor-default disabled:opacity-60 max-sm:px-0"
+                >
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 7v6h6" />
+                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                  </svg>
+                  <span className="max-sm:hidden">{t("discard.button")}</span>
+                </button>
+                <button type="button" onClick={publish} disabled={saving} className="min-h-11 flex-none cursor-pointer border-0 bg-ink px-6 text-sm font-bold text-white transition-opacity hover:opacity-85 disabled:cursor-default disabled:opacity-60">
+                  {saving ? t("publishing") : t("publish")}
+                </button>
+              </div>
             </div>
           )}
           {/* sem alterações pendentes (ou logo depois de publicar), o que está aqui é o que está no ar: dá para ir ver a vitrine pública */}
@@ -298,9 +325,10 @@ export function Editor({
 
       <main className={`mx-auto box-border flex w-full max-w-[1440px] flex-1 flex-col items-center gap-4 px-5 py-6 md:px-12 max-sm:px-0 max-sm:pt-0 ${dirty ? "max-sm:pb-24" : "max-sm:pb-6"}`}>
         <p className="m-0 w-full text-[13px] leading-snug text-[#5E5A52] max-sm:px-4 max-sm:pt-3">{t("editHint")}</p>
-        {/* flex-none: a vitrine cresce com o conteúdo e quem rola é a página */}
+        {/* flex-none: a vitrine cresce com o conteúdo e quem rola é a página. `isolate`: os z-index de dentro da vitrine (o X
+            da capa, o coração, o card arrastado) ficam presos ao quadro e nunca passam por cima do cabeçalho preso no topo */}
         <div
-          className="w-full flex-none overflow-hidden bg-white sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]"
+          className="isolate w-full flex-none overflow-hidden bg-white sm:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_20px_50px_rgba(17,17,17,0.12)]"
         >
           <div className="flex items-center justify-center border-b border-[#E8E5DF] bg-[#F7F6F3] px-3.5 py-2.5 max-sm:hidden">
             <span className="flex items-center gap-1.5 border border-[#E8E5DF] bg-white px-3.5 py-1.5 text-xs text-[#3A3A3A]">

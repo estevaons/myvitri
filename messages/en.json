@@ -753,6 +753,12 @@
       "text": "We are still saving your changes. If you leave now, the latest change may be lost.",
       "confirm": "Leave anyway"
     },
+    "discard": {
+      "button": "Discard",
+      "title": "Discard your changes?",
+      "text": "Everything you changed since the last publish will be undone and the editor goes back to the storefront that is live. This can't be recovered.",
+      "confirm": "Discard changes"
+    },
     "draftFailed": "Error saving the draft",
     "unpublished": "Unpublished changes",
     "publishing": "Publishing…",

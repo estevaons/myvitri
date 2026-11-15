@@ -753,6 +753,12 @@
       "text": "Ainda estamos salvando suas alterações. Se sair agora, a última mudança pode se perder.",
       "confirm": "Sair mesmo assim"
     },
+    "discard": {
+      "button": "Descartar",
+      "title": "Descartar as alterações?",
+      "text": "Tudo o que você mudou desde a última publicação será desfeito e o editor volta a mostrar a vitrine que está no ar. Não dá para recuperar depois.",
+      "confirm": "Descartar alterações"
+    },
     "draftFailed": "Erro ao salvar o rascunho",
     "unpublished": "Alterações não publicadas",
     "publishing": "Publicando…",
