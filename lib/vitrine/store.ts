@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { getUser } from "@/lib/supabase/server";
 import { safeUrl } from "./links";
+import { toCategory } from "./categories";
 import { pickSocials } from "./socials";
 import { COUPON_EXTRA, emptyContent, pickProfile, postCover, PRODUCT_EXTRA, readPostMedia, type Coupon, type IconId, type Post, type Product, type VitrineContent, type VitrineProfile } from "./types";
 
@@ -50,7 +51,7 @@ export const toProduct = (p: Fields<ProductRow>): Product => ({
   id: p.id,
   name: p.name,
   brand: p.brand,
-  category: p.category,
+  category: toCategory(p.category),
   price: p.price,
   couponId: p.coupon_id,
   url: safeUrl(p.url),
@@ -245,7 +246,8 @@ export async function findDraft(db: Db, ownerId: string, published: VitrineConte
     ...without(d, "kits", "tracking"),
     ...pickProfile(published),
     coupons: d.coupons!.map((c) => ({ ...COUPON_EXTRA, ...without(c, "color") })),
-    products: d.products!.map((p) => ({ ...PRODUCT_EXTRA, ...p })),
+    // categoria em texto livre (de antes da lista fixa) vira a chave da lista
+    products: d.products!.map((p) => ({ ...PRODUCT_EXTRA, ...p, category: toCategory(p.category) })),
     // rascunho salvo antes de existirem os posts; e posts de antes da galeria (só `photoUrl`) viram uma mídia
     posts: Array.isArray(d.posts) ? d.posts.map(draftPost) : published.posts,
     show: { ...published.show, ...d.show },

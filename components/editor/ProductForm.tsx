@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { importProductAction } from "@/app/actions";
+import { CATEGORIES, type ProductCategory } from "@/lib/vitrine/categories";
 import { withHttps } from "@/lib/vitrine/links";
 import { PRODUCT_EXTRA, type Product } from "@/lib/vitrine/types";
 import { ImageField } from "./ImageField";
@@ -97,18 +98,18 @@ export function ProductImport({ onAdd }: { onAdd: (patch: Partial<Product>, erro
 /** Os campos de um produto, dentro da janela de edição. Cada mudança vai direto para o rascunho. */
 export function ProductForm({
   product: p,
-  categories,
   notice,
   onChange,
 }: {
   product: Product;
-  /** categorias que a vitrine já usa, para sugerir */
-  categories: string[];
   /** aviso de quando a busca pelo link falhou */
   notice?: string;
   onChange: (patch: Partial<Product>) => void;
 }) {
   const t = useTranslations("editor.products");
+  const tCat = useTranslations("productCategories");
+  // em ordem alfabética do idioma da tela, não da lista
+  const categories = CATEGORIES.map((c) => [c, tCat(c)] as const).toSorted((a, b) => a[1].localeCompare(b[1]));
   return (
     <>
       {notice && (
@@ -132,14 +133,17 @@ export function ProductForm({
               <TextInput value={p.brand} onChange={(brand) => onChange({ brand })} maxLength={60} />
             </Field>
             <Field label={t("category")}>
-              <TextInput value={p.category} onChange={(category) => onChange({ category })} maxLength={30} list="vitri-categories" placeholder={t("categoryPlaceholder")} />
+              {/* lista fixa: com texto livre, "Relogio" e "Relógio" viravam duas categorias nos filtros */}
+              <select value={p.category} onChange={(e) => onChange({ category: e.target.value as ProductCategory })} className={`${inputCls} bg-white`}>
+                <option value="">{t("categoryNone")}</option>
+                {categories.map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </Field>
           </div>
-          <datalist id="vitri-categories">
-            {categories.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
 
           {p.soldOut && (
             <div className="flex flex-col items-start gap-1">

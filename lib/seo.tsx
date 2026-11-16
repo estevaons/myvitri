@@ -119,7 +119,7 @@ export async function listNames(names: string[], max = 4) {
 
 /** Perfil da creator e os produtos da vitrine, sem preço: a vitrine não mostra, e o preço vale o da loja. */
 export async function vitrineJsonLd(content: VitrineContent) {
-  const [locale, t] = await Promise.all([getLocale(), getTranslations("seo.vitrine")]);
+  const [locale, t, tCat] = await Promise.all([getLocale(), getTranslations("seo.vitrine"), getTranslations("productCategories")]);
   const url = `${SITE_URL}${localizedPath(vitrinePath(content.handle), locale as Locale)}`;
   const products = content.products;
   const person = {
@@ -164,7 +164,7 @@ export async function vitrineJsonLd(content: VitrineContent) {
                   "@type": "Product",
                   name: p.name,
                   ...(p.brand && { brand: { "@type": "Brand", name: p.brand } }),
-                  ...(p.category && { category: p.category }),
+                  ...(p.category && { category: tCat(p.category) }),
                   ...(p.imageUrl && { image: p.imageUrl }),
                   ...((p.affiliateUrl || p.url) && { url: p.affiliateUrl || p.url }),
                 },

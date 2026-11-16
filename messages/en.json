@@ -284,6 +284,26 @@
     "pickedBy": "Picked by <b>{creator}</b>",
     "more": "See more finds"
   },
+  "productCategories": {
+    "roupas": "Clothing",
+    "moda-praia": "Swimwear",
+    "calcados": "Shoes",
+    "bolsas": "Bags",
+    "acessorios": "Accessories",
+    "joias": "Jewelry",
+    "relogios": "Watches",
+    "oculos": "Eyewear",
+    "maquiagem": "Makeup",
+    "skincare": "Skincare",
+    "cabelo": "Hair",
+    "perfumes": "Fragrances",
+    "esporte": "Sports",
+    "suplementos": "Supplements",
+    "eletronicos": "Electronics",
+    "casa": "Home",
+    "infantil": "Kids",
+    "pets": "Pets"
+  },
   "lookHero": {
     "alt": "Woman in a headscarf, sunglasses and beige blazer holding a printed handbag"
   },
@@ -855,7 +875,7 @@
       "name": "Name",
       "brand": "Brand",
       "category": "Category",
-      "categoryPlaceholder": "E.g. Beach",
+      "categoryNone": "No category",
       "soldOutStore": "Sold out at the store",
       "soldOutHint": "The store was out of stock when we fetched the product. It stays on your storefront, without a link and at the end of the list.",
       "link": "Product link",

@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Fragment, type CSSProperties } from "react";
+import { isCategory } from "@/lib/vitrine/categories";
 import { getCatalogBrands } from "@/lib/vitrine/catalog/brands";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
 import { CatalogEmpty, CatalogFrame, FilterChips, LoadMore, SortMenu } from "../catalog/ui";
@@ -16,7 +17,14 @@ const grid = "grid grid-cols-2 gap-1 md:grid-cols-3 lg:grid-cols-4";
  * todas as vitrines — o que nenhuma vitrine sozinha mostra. `?brand=` abre o comparativo dos cupons dela.
  */
 export async function MarcasTab({ params }: { params: TabParams }) {
-  const [{ brands: all, categoryLabels }, t, tCount] = await Promise.all([getCatalogBrands(), getTranslations("catalog"), getTranslations("counts")]);
+  const [{ brands: all }, t, tCount, tCat] = await Promise.all([
+    getCatalogBrands(),
+    getTranslations("catalog"),
+    getTranslations("counts"),
+    getTranslations("productCategories"),
+  ]);
+  // `?category=` vem da URL: fora da lista, mostra o valor como veio (o chip existe só para dar para tirá-lo)
+  const catLabel = (v: string) => (isCategory(v) ? tCat(v) : v);
 
   const filtered = sortBrands(
     all.filter((b) => passes(b, params)),
@@ -28,7 +36,7 @@ export async function MarcasTab({ params }: { params: TabParams }) {
   // opções de cada filtro tiradas das marcas que os outros filtros deixam, para nenhum chip levar a uma lista vazia
   const catOptions = optionsBy(
     all.filter((b) => passes(b, params, "category")).flatMap((b) => b.categories),
-    (v) => categoryLabels[v] ?? v,
+    catLabel,
     params.category,
     12,
   );
@@ -57,7 +65,7 @@ export async function MarcasTab({ params }: { params: TabParams }) {
     <BrandDetail
       b={selected}
       closeHref={closeHref}
-      categories={selected.categories.map((c) => categoryLabels[c] ?? c)}
+      categories={selected.categories.map(catLabel)}
       // dentro da grade, logo abaixo da linha da marca em cada largura (via `order`); fora dela (filtrada ou
       // além do "Ver mais"), no topo
       {...(selectedAt >= 0 && {

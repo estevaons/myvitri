@@ -747,6 +747,7 @@ export function Storefront({
 }) {
   const t = useTranslations("storefront");
   const te = useTranslations("editor.edit");
+  const tCat = useTranslations("productCategories");
   const format = useFormatter();
   const preview = previewProp || Boolean(edit);
   const viewer = useViewer(content.handle, preview);
@@ -768,8 +769,9 @@ export function Storefront({
   );
   const posts = useMemo(() => allPosts.filter((p) => p.media.length > 0 && p.items.length > 0), [allPosts]);
 
-  const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))], [products]);
-  // "" é "todas as categorias": nenhuma categoria de produto tem nome vazio
+  // chaves da lista fixa (`CATEGORIES`), na ordem em que aparecem nos produtos; o rótulo vem de `productCategories`
+  const categories = useMemo(() => [...new Set(products.map((p) => p.category))].filter((c) => c !== ""), [products]);
+  // "" é "todas as categorias": é também o "sem categoria" do produto, que nunca vira chip
   const [cat, setCat] = useState("");
   // as marcas como a creator escreveu, sem repetir "Nike" e "nike": a chave é o nome dobrado, o rótulo é o primeiro que aparece
   const brands = useMemo(() => {
@@ -788,7 +790,7 @@ export function Storefront({
     (p) =>
       (!cat || p.category === cat) &&
       (!brand || fold(p.brand.trim()) === brand) &&
-      (!q || fold(`${p.name} ${p.brand} ${p.category}`).includes(q)),
+      (!q || fold(`${p.name} ${p.brand} ${p.category && tCat(p.category)}`).includes(q)),
   );
   const filtered = Boolean(cat || brand || q);
 
@@ -1189,9 +1191,9 @@ export function Storefront({
             <div className="flex flex-col gap-3">
               {categories.length > 1 && (
                 <div role="group" aria-label={t("filterCategory")} className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0">
-                  {["", ...categories].map((c) => (
+                  {["" as const, ...categories].map((c) => (
                     <Chip key={c} active={c === cat} aria-pressed={c === cat} onClick={() => setCat(c)}>
-                      {c || t("all")}
+                      {c ? tCat(c) : t("all")}
                     </Chip>
                   ))}
                 </div>

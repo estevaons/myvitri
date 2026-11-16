@@ -284,6 +284,26 @@
     "pickedBy": "Indicado por <b>{creator}</b>",
     "more": "Ver mais achados"
   },
+  "productCategories": {
+    "roupas": "Roupas",
+    "moda-praia": "Moda praia",
+    "calcados": "Calçados",
+    "bolsas": "Bolsas",
+    "acessorios": "Acessórios",
+    "joias": "Joias",
+    "relogios": "Relógios",
+    "oculos": "Óculos",
+    "maquiagem": "Maquiagem",
+    "skincare": "Skincare",
+    "cabelo": "Cabelo",
+    "perfumes": "Perfumes",
+    "esporte": "Esporte",
+    "suplementos": "Suplementos",
+    "eletronicos": "Eletrônicos",
+    "casa": "Casa",
+    "infantil": "Infantil",
+    "pets": "Pets"
+  },
   "lookHero": {
     "alt": "Mulher de lenço, óculos escuros e blazer bege segurando uma bolsa estampada"
   },
@@ -855,7 +875,7 @@
       "name": "Nome",
       "brand": "Marca",
       "category": "Categoria",
-      "categoryPlaceholder": "Ex.: Praia",
+      "categoryNone": "Sem categoria",
       "soldOutStore": "Esgotado na loja",
       "soldOutHint": "A loja estava sem estoque quando buscamos o produto. Ele continua na vitrine, sem link e no fim da lista.",
       "link": "Link do produto",

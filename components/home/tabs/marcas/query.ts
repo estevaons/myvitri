@@ -23,7 +23,7 @@ type Filter = "category" | "letter";
 
 /** Passa nos filtros da URL, menos `skip`: as opções de cada filtro saem das marcas que os outros deixam. */
 export function passes(b: CatalogBrand, p: TabParams, skip?: Filter) {
-  if (skip !== "category" && p.category && !b.categories.includes(p.category)) return false;
+  if (skip !== "category" && p.category && !(b.categories as string[]).includes(p.category)) return false;
   if (skip !== "letter" && p.letter && letterOf(b.brand) !== p.letter) return false;
   return true;
 }

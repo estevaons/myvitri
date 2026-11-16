@@ -12,7 +12,6 @@ import { toProduct, type Db } from "../store";
 
 /** Um produto do catálogo. `others` = quantas creators além de `creator` indicam o mesmo produto. */
 export type CatalogProduct = HomeProduct & {
-  catKey: string;
   brandKey: string;
   others: number;
 };
@@ -66,7 +65,10 @@ async function listAll(db: Db): Promise<HomeProduct[][]> {
   );
 }
 
-/** Opções de filtro pela frequência; o rótulo é a primeira grafia vista. */
+/**
+ * Opções de filtro pela frequência; o rótulo é a primeira grafia vista. As categorias já chegam como chave da lista
+ * fixa (o rótulo traduzido é posto pela aba).
+ */
 function options(values: string[]): CatalogOption[] {
   const seen = new Map<string, CatalogOption>();
   for (const v of values) {
@@ -102,7 +104,6 @@ export async function getProductCatalog(): Promise<ProductCatalog> {
 
   const products = [...groups.values()].map(({ best: p, creators }): CatalogProduct => ({
     ...p,
-    catKey: slug(p.category),
     brandKey: slug(p.brand),
     others: creators.size - 1,
   }));
@@ -113,13 +114,16 @@ export async function getProductCatalog(): Promise<ProductCatalog> {
 /** Quantas marcas viram chip; a escolhida entra mesmo fora das mais frequentes. */
 const BRAND_CHIPS = 12;
 
-/** Filtra o catálogo conforme a URL, na ordem "Em destaque"; devolve também as opções dos filtros (do catálogo inteiro). */
+/**
+ * Filtra o catálogo conforme a URL, na ordem "Em destaque"; devolve também as opções dos filtros (do catálogo inteiro).
+ * Nas categorias, o rótulo da opção é a chave: quem mostra traduz (`productCategories`).
+ */
 export async function queryProducts(params: Record<string, string>) {
   const { products, categories, brands } = await getProductCatalog();
 
   const items = products.filter(
     (p) =>
-      (!params.category || p.catKey === params.category) &&
+      (!params.category || p.category === params.category) &&
       (!params.brand || p.brandKey === params.brand),
   );
 

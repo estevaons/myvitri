@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { isCategory } from "@/lib/vitrine/categories";
 import { getDailyCreators } from "@/lib/vitrine/data";
 import { bestRank, getTrendingHandles, getVitrinesCatalog, keyOf, type CatalogOption, type CatalogVitrine } from "@/lib/vitrine/catalog/vitrines";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
@@ -28,13 +29,15 @@ const byRecent = (a: CatalogVitrine, b: CatalogVitrine) => b.updatedAt.localeCom
 export async function VitrinesTab({ params, favorites = [] }: { params: TabParams; favorites?: string[] }) {
   const sort = SORTS.find((id) => id === params.sort) ?? SORTS[0];
   const filtering = FILTER_KEYS.some((k) => params[k]);
-  const [{ vitrines, categories, brands }, trending, daily, t, tCount] = await Promise.all([
+  const [{ vitrines, categories: catKeys, brands }, trending, daily, t, tCount, tCat] = await Promise.all([
     getVitrinesCatalog(),
     sort === "trending" ? getTrendingHandles() : [],
     filtering ? null : getDailyCreators(),
     getTranslations("catalog"),
     getTranslations("counts"),
+    getTranslations("productCategories"),
   ]);
+  const categories = catKeys.map(([k]): CatalogOption => [k, isCategory(k) ? tCat(k) : k]);
 
   const cat = params.category && keyOf(params.category);
   const brand = params.brand && keyOf(params.brand);
