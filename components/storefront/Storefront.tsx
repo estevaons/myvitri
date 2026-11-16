@@ -25,6 +25,14 @@ import { useDragReorder } from "./useDragReorder";
  */
 
 const pad = "px-5 @3xl:px-12";
+
+/**
+ * Na vitrine pública, outfits e produtos são abas (feedback das primeiras usuárias: empilhados, a segunda seção
+ * ficava enterrada). O hash escolhe a aba: /@fulana#produtos abre direto nos produtos, e os favoritos moram nela.
+ */
+type Tab = "outfits" | "produtos";
+const TAB_OF: Partial<Record<string, Tab>> = { "#outfits": "outfits", "#produtos": "produtos", "#favoritos": "produtos" };
+
 // botões retos em caixa alta espaçada, os mesmos da home
 const pillDark =
   "flex min-h-12 items-center justify-center border-0 bg-ink px-7 text-[12px] font-medium tracking-[0.18em] text-white uppercase no-underline hover:bg-[#2b2925]";
@@ -763,12 +771,77 @@ export function Storefront({
   const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))], [products]);
   // "" é "todas as categorias": nenhuma categoria de produto tem nome vazio
   const [cat, setCat] = useState("");
+  // as marcas como a creator escreveu, sem repetir "Nike" e "nike": a chave é o nome dobrado, o rótulo é o primeiro que aparece
+  const brands = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const p of products) {
+      const key = fold(p.brand.trim());
+      if (key && !seen.has(key)) seen.set(key, p.brand.trim());
+    }
+    return [...seen];
+  }, [products]);
+  // "" é "todas as marcas"; o valor é a chave dobrada
+  const [brand, setBrand] = useState("");
   const [query, setQuery] = useState("");
   const q = fold(query.trim());
   const shownProducts = products.filter(
-    (p) => (!cat || p.category === cat) && (!q || fold(`${p.name} ${p.brand} ${p.category}`).includes(q)),
+    (p) =>
+      (!cat || p.category === cat) &&
+      (!brand || fold(p.brand.trim()) === brand) &&
+      (!q || fold(`${p.name} ${p.brand} ${p.category}`).includes(q)),
   );
+  const filtered = Boolean(cat || brand || q);
 
+
+  // abas só na vitrine pública (e na prévia), e só quando há os dois: no editor a dona precisa ver e editar tudo
+  const tabbed = !edit && posts.length > 0 && products.length > 0;
+  const [tab, setTab] = useState<Tab>("outfits");
+  // marca o começo das abas: a barra é fixa no topo, então é aqui que a rolagem para quando a aba muda
+  const tabsTop = useRef<HTMLDivElement>(null);
+  const toTabs = useCallback(() => tabsTop.current?.scrollIntoView({ block: "start" }), []);
+  // o hash que chega (link compartilhado, voltar no navegador, âncora digitada) escolhe a aba
+  useEffect(() => {
+    if (!tabbed) return;
+    const sync = () => {
+      const next = TAB_OF[window.location.hash];
+      if (!next) return;
+      setTab(next);
+      toTabs();
+    };
+    const timer = setTimeout(sync);
+    window.addEventListener("hashchange", sync);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("hashchange", sync);
+    };
+  }, [tabbed, toTabs]);
+  /** Troca de aba: o endereço acompanha (para compartilhar) e, se a barra já está grudada no topo, a aba nova começa do início. */
+  const selectTab = (next: Tab, scroll: "always" | "if-stuck") => {
+    setTab(next);
+    if (!preview) history.replaceState(null, "", `#${next}`);
+    if (scroll === "always" || (tabsTop.current?.getBoundingClientRect().top ?? 0) < 0) toTabs();
+  };
+  /** Os atalhos do topo (#outfits, #produtos) trocam a aba em vez de rolar até uma seção escondida. */
+  const jump = (e: MouseEvent<HTMLAnchorElement>) => {
+    const next = tabbed ? TAB_OF[e.currentTarget.hash] : undefined;
+    if (!next) return;
+    e.preventDefault();
+    selectTab(next, "always");
+  };
+  const tabs = [
+    ["outfits", t("nav.posts"), posts.length],
+    ["produtos", t("nav.products"), products.length],
+  ] as const;
+  // os pares lado a lado: as setas trocam de aba (padrão de tablist), e o foco vai junto
+  const onTabKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    const next: Tab = e.key === "Home" ? "outfits" : e.key === "End" ? "produtos" : tab === "outfits" ? "produtos" : "outfits";
+    selectTab(next, "if-stuck");
+    document.getElementById(`aba-${next}`)?.focus();
+  };
+  // a primeira seção de cada aba fica mais perto da barra
+  const lead = tabbed ? "pt-10 @3xl:pt-14" : "pt-16 @3xl:pt-24";
 
   const [copied, flash] = useFlash();
 
@@ -866,7 +939,8 @@ export function Storefront({
   });
 
   return (
-    <div className="@container w-full overflow-hidden bg-white font-sans text-ink">
+    // overflow-x-clip, não overflow-hidden: o hidden criaria um contêiner de rolagem e a barra de abas não grudaria no topo
+    <div className="@container w-full overflow-x-clip bg-white font-sans text-ink">
       {/* no modo de edição o editor tem o próprio cabeçalho */}
       {!edit && (
       <header className={`mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-b border-sand py-3.5 ${pad}`}>
@@ -878,7 +952,7 @@ export function Storefront({
           <nav aria-label={t("nav.label")} className="flex flex-none gap-6 @max-2xl:hidden">
             {nav.map(([href, label, on]) =>
               on ? (
-                <a key={href} href={href} className="text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold">
+                <a key={href} href={href} onClick={jump} className="text-[12px] font-medium tracking-[0.22em] text-ink uppercase no-underline hover:text-gold">
                   {label}
                 </a>
               ) : null,
@@ -982,7 +1056,7 @@ export function Storefront({
             {ctas.length > 0 && (
               <div className="mt-3 flex flex-wrap justify-center gap-2">
                 {ctas.map(([href, label], i) => (
-                  <a key={href} href={href} className={i === 0 ? pillDark : pillLight}>
+                  <a key={href} href={href} onClick={jump} className={i === 0 ? pillDark : pillLight}>
                     {label}
                   </a>
                 ))}
@@ -1007,21 +1081,57 @@ export function Storefront({
           <div className={`mt-6 @3xl:mt-8 ${pad}`}>{edit.outfits}</div>
         </section>
       ) : (
-        posts.length > 0 && (
-          <section id="outfits" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
-            <OutfitCarousel
-              outfits={posts}
-              firstName={firstName}
-              link={linkProps}
-              onPlay={(postId) => send("video", postId)}
-              onStory={preview || !owner ? undefined : setSharingPost}
-            />
-          </section>
-        )
+        <>
+          {tabbed && (
+            <>
+              <div ref={tabsTop} className="mt-12 @3xl:mt-16" />
+              {/* fica grudada no topo: de qualquer ponto da página dá para trocar (no celular o menu de seções some) */}
+              <div className="sticky top-0 z-30 border-b border-sand bg-white">
+                <div role="tablist" aria-label={t("nav.label")} className={`mx-auto flex max-w-[1440px] justify-center gap-10 ${pad} @max-md:gap-0`}>
+                  {tabs.map(([id, label, count]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      id={`aba-${id}`}
+                      aria-selected={tab === id}
+                      aria-controls={`painel-${id}`}
+                      tabIndex={tab === id ? 0 : -1}
+                      onClick={() => selectTab(id, "if-stuck")}
+                      onKeyDown={onTabKey}
+                      className={`relative flex min-h-14 cursor-pointer items-center justify-center gap-2 border-0 bg-transparent px-2 text-[12px] font-medium tracking-[0.22em] uppercase after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ink @max-md:flex-1 ${
+                        tab === id ? "text-ink after:bg-ink" : "text-mute after:bg-transparent hover:text-ink"
+                      }`}
+                    >
+                      {label}
+                      <span className="font-normal tracking-normal text-mute">({format.number(count)})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+          {posts.length > 0 && (
+            <div {...(tabbed && { role: "tabpanel", id: "painel-outfits", "aria-labelledby": "aba-outfits", hidden: tab !== "outfits" })}>
+              <section id="outfits" className={`mx-auto max-w-[1440px] scroll-mt-4 ${lead}`}>
+                <OutfitCarousel
+                  outfits={posts}
+                  firstName={firstName}
+                  shown={!tabbed || tab === "outfits"}
+                  link={linkProps}
+                  onPlay={(postId) => send("video", postId)}
+                  onStory={preview || !owner ? undefined : setSharingPost}
+                />
+              </section>
+            </div>
+          )}
+        </>
       )}
 
+      {/* a aba de produtos: os favoritos e a grade (escondida continua no HTML, que é o que a busca lê) */}
+      <div {...(tabbed && { role: "tabpanel", id: "painel-produtos", "aria-labelledby": "aba-produtos", hidden: tab !== "produtos" })}>
       {favoriteProducts.length > 0 && (
-        <section id="favoritos" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
+        <section id="favoritos" className={`mx-auto max-w-[1440px] scroll-mt-4 ${lead}`}>
           <Carousel title={t("favoritesTitle", { name: firstName })} label={t("favoritesLabel", { name: firstName })}>
             {favoriteProducts.map((p) => (
               <article key={p.id} className="relative flex w-[260px] flex-none snap-start flex-col items-center text-center @max-md:w-[62%]">
@@ -1047,7 +1157,10 @@ export function Storefront({
       )}
 
       {(products.length > 0 || edit) && (
-        <section id="produtos" className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-6 pt-16 @3xl:pt-24 ${pad}`}>
+        <section
+          id="produtos"
+          className={`mx-auto flex max-w-[1440px] scroll-mt-4 flex-col gap-6 ${favoriteProducts.length > 0 ? "pt-16 @3xl:pt-24" : lead} ${pad}`}
+        >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <SectionTitle>
               {t("productsTitle")} {products.length > 0 && <span className="text-mute">({format.number(products.length)})</span>}
@@ -1071,18 +1184,47 @@ export function Storefront({
             )}
           </div>
 
-          {categories.length > 1 && (
-            <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0">
-              {["", ...categories].map((c) => (
-                <Chip key={c} active={c === cat} aria-pressed={c === cat} onClick={() => setCat(c)}>
-                  {c || t("all")}
-                </Chip>
-              ))}
+          {(categories.length > 1 || brands.length > 1) && (
+            // categoria e marca se somam (e somam com a busca): "Tênis" + "Nike" mostra só os tênis da Nike
+            <div className="flex flex-col gap-3">
+              {categories.length > 1 && (
+                <div role="group" aria-label={t("filterCategory")} className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0">
+                  {["", ...categories].map((c) => (
+                    <Chip key={c} active={c === cat} aria-pressed={c === cat} onClick={() => setCat(c)}>
+                      {c || t("all")}
+                    </Chip>
+                  ))}
+                </div>
+              )}
+              {brands.length > 1 && (
+                <div role="group" aria-label={t("filterBrand")} className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 @3xl:mx-0 @3xl:flex-wrap @3xl:px-0">
+                  {[["", t("allBrands")] as const, ...brands].map(([key, label]) => (
+                    <Chip key={key} active={key === brand} aria-pressed={key === brand} onClick={() => setBrand(key)}>
+                      {label}
+                    </Chip>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           {edit && products.length === 0 && <p className="m-0 -mt-2 max-w-[36rem] text-[15px] leading-snug text-mute">{te("emptyProducts")}</p>}
           {edit && shownProducts.length > 1 && <ReorderHint className="-mt-3" />}
-          {products.length > 0 && shownProducts.length === 0 && <p className="m-0 text-[17px] text-mute">{t("noResults", { query: query.trim() })}</p>}
+          {products.length > 0 && shownProducts.length === 0 && filtered && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <p className="m-0 text-[17px] text-mute">{q ? t("noResults", { query: query.trim() }) : t("noMatch")}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setCat("");
+                  setBrand("");
+                  setQuery("");
+                }}
+                className="cursor-pointer border-0 bg-transparent p-0 text-[15px] text-ink underline underline-offset-4 hover:text-gold"
+              >
+                {t("clearFilters")}
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-x-3 gap-y-10 @3xl:grid-cols-3 @3xl:gap-x-4 @3xl:gap-y-12">
             {shownProducts.map((p) => (
@@ -1143,6 +1285,7 @@ export function Storefront({
           </div>
         </section>
       )}
+      </div>
 
       {(coupons.length > 0 || edit) && (
         <section id="cupons" className="mx-auto max-w-[1440px] scroll-mt-4 pt-16 @3xl:pt-24">
@@ -1295,12 +1438,15 @@ type LinkFor = (p: Product, postId: string) => ProductLinkProps;
 function OutfitCarousel({
   outfits,
   firstName,
+  shown,
   link,
   onPlay,
   onStory,
 }: {
   outfits: Outfit[];
   firstName: string;
+  /** false com a aba de produtos aberta: nada passa sozinho e o vídeo que tocava sai (escondido, o som continuaria) */
+  shown: boolean;
   link: LinkFor;
   onPlay: (postId: string) => void;
   /** só para a dona: abre a imagem de stories do outfit */
@@ -1339,9 +1485,16 @@ function OutfitCarousel({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
+  // a aba saiu de vista: o vídeo para (ajuste durante o render, sem efeito)
+  const [wasShown, setWasShown] = useState(shown);
+  if (shown !== wasShown) {
+    setWasShown(shown);
+    if (!shown) setPlaying(null);
+  }
+
   const current = Math.min(index, total - 1);
   // a troca automática: de mídia em mídia dentro do outfit e de outfit em outfit
-  const auto = !hovering && !focused && !reduced && !playing && !browsing;
+  const auto = shown && !hovering && !focused && !reduced && !playing && !browsing;
   const running = total > 1 && auto;
   // há o que passar sozinho: mais de um outfit ou um outfit com várias mídias
   const moves = total > 1 || outfits.some((o) => o.media.length > 1);
@@ -1408,7 +1561,8 @@ function OutfitCarousel({
               post={post}
               items={items}
               media={media}
-              active={i === current}
+              // escondido, nenhum slide fica ativo: o player do Instagram só existe no slide ativo, então sai junto
+              active={shown && i === current}
               n={i + 1}
               total={total}
               alt={t("postAlt", { name: firstName })}
