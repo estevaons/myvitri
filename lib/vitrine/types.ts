@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CATEGORIES } from "./categories";
 import { withHttps } from "./links";
 import { SOCIALS, socialUrl, type SocialNetwork } from "./socials";
 import { parseVideo } from "./video";
@@ -58,7 +59,8 @@ export const productSchema = z.object({
   id: z.uuid(),
   name: text(80).min(1, "productName"),
   brand: text(60),
-  category: text(30),
+  /** chave de `CATEGORIES` ou "" (sem categoria) */
+  category: z.enum(["", ...CATEGORIES] as const),
   /** Legado, como `couponId`: a vitrine não mostra preço nem cupom por produto (cupom é da marca). Produto novo fica com 0 e null. */
   price: z.number().int().nonnegative(),
   couponId: z.uuid().nullable(),

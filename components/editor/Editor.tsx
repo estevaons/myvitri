@@ -462,7 +462,6 @@ function EditSheet({
       <Sheet title={open.isNew ? tSheet("newProduct") : tSheet("product")} onClose={close} footer={footer} wide>
         <ProductForm
           product={draft.products[index]}
-          categories={[...new Set(draft.products.map((p) => p.category).filter(Boolean))]}
           notice={open.notice}
           onChange={(p) => patch("products", open.id, p)}
         />

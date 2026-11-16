@@ -7,21 +7,13 @@ import { postCover, postHasVideo, postItems } from "../types";
 
 /** Post do catálogo da aba Posts: o do carrossel mais a data e as categorias das peças. */
 export type CatalogPost = HomePost & { publishedAt: string; cats: string[] };
-export type PostCatalog = { posts: CatalogPost[]; categories: [slug: string, label: string][]; creators: [handle: string, name: string][] };
+/** `categories`: [chave, chave] (a aba traduz o rótulo, `productCategories`); `creators`: [handle, nome]. */
+export type PostCatalog = { posts: CatalogPost[]; categories: [key: string, label: string][]; creators: [handle: string, name: string][] };
 
 // teto do catálogo: a aba filtra e pagina em memória
 const MAX_POSTS = 500;
 // `in(...)` vai na URL do PostgREST: em lotes para não estourar o tamanho dela
 const CHUNK = 100;
-
-/** "Cuidados com a Pele" → "cuidados-com-a-pele": a categoria é texto livre, a URL precisa de algo estável. */
-export const catSlug = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 
 async function inChunks<T>(ids: string[], load: (part: string[]) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
   const parts: string[][] = [];
@@ -62,7 +54,6 @@ export async function getPostCatalog(): Promise<PostCatalog> {
   // produto de outra vitrine nunca entra no post, mesmo que o id apareça lá por engano
   const vitrineOf = new Map(products.map((p) => [p.id, p.vitrine_id]));
 
-  const labels = new Map<string, string>();
   const catPosts = new Map<string, number>();
   const creators = new Map<string, { name: string; posts: number }>();
 
@@ -71,11 +62,7 @@ export async function getPostCatalog(): Promise<PostCatalog> {
     const items = postItems(post, onSale.filter((p) => vitrineOf.get(p.id) === row.vitrine_id));
     if (!items.length) return [];
 
-    const cats = [...new Set(items.map((p) => catSlug(p.category)).filter(Boolean))];
-    for (const p of items) {
-      const slug = catSlug(p.category);
-      if (slug && !labels.has(slug)) labels.set(slug, p.category.trim());
-    }
+    const cats = [...new Set(items.map((p) => p.category))].filter((c) => c !== "");
     for (const c of cats) catPosts.set(c, (catPosts.get(c) ?? 0) + 1);
     const cr = creators.get(v.handle) ?? { name: v.name, posts: 0 };
     creators.set(v.handle, { ...cr, posts: cr.posts + 1 });
@@ -104,7 +91,7 @@ export async function getPostCatalog(): Promise<PostCatalog> {
 
   return {
     posts: out,
-    categories: byCount(catPosts, (n) => n, (k) => labels.get(k)!),
+    categories: byCount(catPosts, (n) => n, (k) => k),
     creators: byCount(creators, (c) => c.posts, (_, c) => c.name),
   };
 }

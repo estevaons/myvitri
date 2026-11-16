@@ -237,6 +237,7 @@ export function ProductModal({
   onClose: () => void;
 }) {
   const t = useTranslations("storefront.product");
+  const tCat = useTranslations("productCategories");
   const [sharing, setSharing] = useState(false);
   const href = p.soldOut ? "" : productHref(p);
 
@@ -267,7 +268,7 @@ export function ProductModal({
             <div className="flex flex-col gap-2">
               {p.brand && <span className="text-[12px] font-medium tracking-[0.22em] text-mute uppercase">{p.brand}</span>}
               <h2 className="m-0 font-display text-[clamp(28px,4vw,40px)] leading-[1.08] font-normal break-words">{p.name}</h2>
-              {p.category && <span className="text-[14px] text-mute">{t("category", { category: p.category })}</span>}
+              {p.category && <span className="text-[14px] text-mute">{t("category", { category: tCat(p.category) })}</span>}
             </div>
             {p.soldOut && <p className="m-0 text-[15px] text-mute">{t("soldOutText")}</p>}
             <div className="flex flex-col gap-2.5">

@@ -4,21 +4,24 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { Link, vitrineHref } from "@/lib/i18n/navigation";
 import { ProductArt } from "@/components/storefront/ProductIcon";
+import type { ProductCategory } from "@/lib/vitrine/categories";
 import type { HomeProduct } from "@/lib/vitrine/data";
 
 const PAGE = 8;
-/** "Todas as categorias": nenhuma categoria de produto tem nome vazio. */
-const ALL = "";
+/** "Todas as categorias": é também o "sem categoria" do produto, que nunca vira chip. */
+const ALL: ProductCategory = "";
 
 /** Os chips filtram a grade de achados logo abaixo; o título da seção já diz que é por categoria. */
 export function CategoryShop({ products }: { products: HomeProduct[] }) {
   const t = useTranslations("categoryShop");
+  const tCat = useTranslations("productCategories");
+  // chaves da lista fixa (lib/vitrine/categories.ts): "Relogio" e "Relógio" não viram mais duas abas
   const categories = useMemo(() => [...new Set(products.map((p) => p.category).filter(Boolean))], [products]);
   const [cat, setCat] = useState(ALL);
   const [limit, setLimit] = useState(PAGE);
 
   const shown = cat === ALL ? products : products.filter((p) => p.category === cat);
-  const pick = (c: string) => {
+  const pick = (c: ProductCategory) => {
     setCat(c);
     setLimit(PAGE);
   };
@@ -27,7 +30,7 @@ export function CategoryShop({ products }: { products: HomeProduct[] }) {
     <>
       {categories.length > 1 && (
         <div role="group" aria-label={t("filter")} className="no-scrollbar -mx-5 flex gap-7 overflow-x-auto border-b border-sand px-5 md:mx-0 md:justify-center md:px-0">
-          {[ALL, ...categories].map((c) => (
+          {[ALL, ...categories].map((c: ProductCategory) => (
             <button
               key={c}
               type="button"
@@ -35,7 +38,7 @@ export function CategoryShop({ products }: { products: HomeProduct[] }) {
               onClick={() => pick(c)}
               className={`-mb-px min-h-11 flex-none border-0 border-b bg-transparent px-0 text-[12px] font-medium tracking-[0.2em] whitespace-nowrap uppercase ${c === cat ? "border-ink text-ink" : "border-transparent text-mute hover:text-ink"}`}
             >
-              {c || t("all")}
+              {c ? tCat(c) : t("all")}
             </button>
           ))}
         </div>

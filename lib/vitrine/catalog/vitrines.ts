@@ -17,8 +17,7 @@ export type CatalogOption = [value: string, label: string];
 export type CatalogVitrine = {
   /** No formato da landing, para reaproveitar a capa (`CreatorCover`). */
   card: HomeCreator;
-  /** Todas as categorias à venda (rótulos e chaves), para o filtro. */
-  categories: string[];
+  /** Chaves (`CATEGORIES`) das categorias à venda, para o filtro; o rótulo vem de `productCategories`. */
   categoryKeys: string[];
   /** Marcas dos cupons ativos (o melhor primeiro) e depois dos produtos, sem repetir. */
   brands: string[];
@@ -30,6 +29,7 @@ export type CatalogVitrine = {
   updatedAt: string;
 };
 
+/** Nas `categories`, o rótulo da opção é a chave: a aba traduz. */
 export type VitrinesCatalog = { vitrines: CatalogVitrine[]; categories: CatalogOption[]; brands: CatalogOption[] };
 
 const MAX_OPTIONS = 12;
@@ -131,7 +131,6 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
         coupons: active.length,
         products: onSale.length,
       },
-      categories: categories.map(([, label]) => label),
       categoryKeys: categories.map(([k]) => k),
       brands: [...brands.values()],
       brandKeys: [...brands.keys()],
@@ -144,7 +143,7 @@ export async function getVitrinesCatalog(): Promise<VitrinesCatalog> {
   // opções pelo número de vitrines que têm a categoria/marca, não pelo de itens
   return {
     vitrines,
-    categories: tally(vitrines.flatMap((v) => v.categories)).slice(0, MAX_OPTIONS),
+    categories: tally(vitrines.flatMap((v) => v.categoryKeys)).slice(0, MAX_OPTIONS),
     brands: tally(vitrines.flatMap((v) => v.brands)).slice(0, MAX_OPTIONS),
   };
 }

@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
+import { toCategory, type CategoryId } from "../categories";
 import { HOME_TAG, rank } from "../data";
 import { toCoupon } from "../store";
 import type { Coupon } from "../types";
@@ -28,11 +29,11 @@ export type CatalogBrand = {
   productsKey: string;
   /** sem repetir: primeiro quem tem cupom (na ordem do melhor), depois quem só indica produtos */
   creators: BrandCreator[];
-  /** chaves das categorias dos produtos dessa marca nas vitrines */
-  categories: string[];
+  /** chaves (`CATEGORIES`) das categorias dos produtos dessa marca nas vitrines; o rótulo vem de `productCategories` */
+  categories: CategoryId[];
 };
 
-export type CatalogBrands = { brands: CatalogBrand[]; categoryLabels: Record<string, string> };
+export type CatalogBrands = { brands: CatalogBrand[] };
 
 const norm = (s: string) => s.trim().toLowerCase();
 
@@ -83,8 +84,7 @@ export async function getCatalogBrands(): Promise<CatalogBrands> {
   }
 
   // produto entra na marca do cupom ligado a ele ou, sem cupom, na do próprio nome de marca
-  const categoryLabels: Record<string, string> = {};
-  const brandCats = new Map<string, Set<string>>();
+  const brandCats = new Map<string, Set<CategoryId>>();
   const brandProducts = new Map<string, Set<string>>();
   const productCreators = new Map<string, Map<string, BrandCreator>>();
   const spellings = new Map<string, Map<string, number>>();
@@ -101,9 +101,8 @@ export async function getCatalogBrands(): Promise<CatalogBrands> {
     const spelled = p.brand.trim();
     if (spelled) names.set(spelled, (names.get(spelled) ?? 0) + 1);
     spellings.set(key, names);
-    const cat = norm(p.category);
+    const cat = toCategory(p.category);
     if (!cat) continue;
-    categoryLabels[cat] ??= p.category.trim();
     brandCats.set(key, (brandCats.get(key) ?? new Set()).add(cat));
   }
 
@@ -122,5 +121,5 @@ export async function getCatalogBrands(): Promise<CatalogBrands> {
     b.categories = [...(brandCats.get(b.key) ?? [])];
   }
 
-  return { brands: [...brands.values()], categoryLabels };
+  return { brands: [...brands.values()] };
 }

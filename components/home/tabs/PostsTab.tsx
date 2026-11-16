@@ -1,4 +1,5 @@
 import { getFormatter, getTranslations } from "next-intl/server";
+import { isCategory } from "@/lib/vitrine/categories";
 import { getPostCatalog, queryPosts } from "@/lib/vitrine/catalog/posts";
 import { hrefWith, limitOf, type TabParams } from "../catalog/params";
 import { CatalogEmpty, CatalogFrame, catalogGrid, FilterChips, LoadMore } from "../catalog/ui";
@@ -11,7 +12,14 @@ const FILTERS = ["category", "creator"] as const;
  * Os dados vêm de um cache só; filtro e "Ver mais" são feitos aqui, a partir da URL.
  */
 export async function PostsTab({ params }: { params: TabParams }) {
-  const [{ posts, categories, creators }, t, tCount, format] = await Promise.all([getPostCatalog(), getTranslations("catalog"), getTranslations("counts"), getFormatter()]);
+  const [{ posts, categories: catKeys, creators }, t, tCount, format, tCat] = await Promise.all([
+    getPostCatalog(),
+    getTranslations("catalog"),
+    getTranslations("counts"),
+    getFormatter(),
+    getTranslations("productCategories"),
+  ]);
+  const categories = catKeys.flatMap(([k]): [string, string][] => (isCategory(k) ? [[k, tCat(k)]] : []));
   // a home é montada por requisição (connection() na página), então "agora" é a hora desta visita
   const now = new Date();
   const shown = queryPosts(posts, params);
