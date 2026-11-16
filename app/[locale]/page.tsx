@@ -73,17 +73,18 @@ export default async function Home() {
       <section>
         {/* A foto ocupa o hero de ponta a ponta. A altura desconta o header, para o hero fechar a primeira tela.
             O teto acompanha a largura (56vw): numa tela larga a foto cresce junto, e com a altura presa ela só cortaria mais, deixando a pessoa enorme e sem a bolsa.
-            Em janela estreita e alta o teto de 860px deixa a seção seguinte aparecer, em vez de esticar a foto. */}
-        <div className="relative mx-auto max-w-[2560px] overflow-hidden lg:h-[clamp(480px,calc(100svh-81px),max(860px,56vw))]">
-          <div className={`relative z-10 mx-auto flex h-full max-w-[1440px] flex-col items-start justify-center gap-4 py-8 md:py-10 lg:py-6 ${pad}`}>
-            {/* sobre a parede da foto o dourado perde contraste: do lg em diante o texto é todo preto */}
-            <span className={`${kicker} text-gold lg:text-ink`}>{t("heroKicker")}</span>
-            {/* Uma frase por linha, na parede, à esquerda da pessoa na foto. Acima de 1440px a coluna do texto anda para a direita mais rápido que a pessoa,
-                então a fonte diminui com a largura até 56px (em 2560px, onde a foto para de crescer): sem isso o título encosta no ombro em janela baixa, em que ele fica na altura do blazer. A altura também limita, para caber em tela baixa. */}
-            <h1 className="m-0 font-display text-[clamp(38px,10.8vw,76px)] leading-[0.98] font-normal tracking-[-0.01em] lg:text-[clamp(40px,min(4.6vw,10svh,max(56px,90px_-_1.34vw)),66px)]">
+            Em janela estreita e alta o teto de 860px deixa a seção seguinte aparecer, em vez de esticar a foto.
+            No celular e no tablet o texto também fica sobre a foto, embaixo (o hero fecha a tela, descontado o header de 73/81px). */}
+        <div className="relative mx-auto h-[clamp(560px,calc(100svh-73px),860px)] max-w-[2560px] overflow-hidden md:h-[clamp(640px,calc(100svh-81px),1100px)] lg:h-[clamp(480px,calc(100svh-81px),max(860px,56vw))]">
+          <div className={`relative z-10 mx-auto flex h-full max-w-[1440px] flex-col items-start justify-end gap-4 pb-8 md:pb-14 lg:justify-center lg:py-6 ${pad}`}>
+            {/* sobre a foto o dourado perde contraste: o texto é todo preto */}
+            <span className={`${kicker} text-ink`}>{t("heroKicker")}</span>
+            {/* Uma frase por linha, na parede, à esquerda da pessoa na foto (que o LookHero empurra para a direita do lg em diante, deixando a parede livre).
+                A fonte cresce com a largura até 84px; a altura também limita, para caber em tela baixa. */}
+            <h1 className="m-0 font-display text-[clamp(38px,10.8vw,76px)] leading-[0.98] font-normal tracking-[-0.01em] lg:text-[clamp(40px,min(4.6vw,10svh),84px)]">
               <span className="block">{t("heroTitle")}</span> <em className="block font-normal">{t("heroTitleEm")}</em>
             </h1>
-            <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-mute lg:max-w-[20rem] lg:text-ink xl:max-w-[24rem]">
+            <p className="m-0 max-w-[32rem] text-[17px] leading-relaxed text-ink lg:max-w-[22rem] xl:max-w-[26rem] 2xl:text-[19px]">
               {t("heroText")}
             </p>
             {/* botões mais estreitos em duas situações: no celular, para caberem lado a lado; no lg ainda estreito, para o segundo não encostar na pessoa da foto */}
@@ -92,7 +93,7 @@ export default async function Home() {
                 {t("createVitrine")}
               </Link>
               {creators.length > 0 && (
-                <a href="#vitrines" className={`${pillLight} whitespace-nowrap max-sm:flex-1 max-sm:px-3 max-sm:tracking-[0.12em] lg:bg-white/60 lg:max-xl:px-4`}>
+                <a href="#vitrines" className={`${pillLight} whitespace-nowrap max-sm:flex-1 max-sm:px-3 max-sm:tracking-[0.12em] bg-white/60 lg:max-xl:px-4`}>
                   {t("explore")}
                 </a>
               )}

@@ -285,12 +285,13 @@
     "more": "See more finds"
   },
   "lookHero": {
-    "alt": "Woman in a cream blazer, taupe trousers and a caramel bag near a window"
+    "alt": "Woman in a headscarf, sunglasses and beige blazer holding a printed handbag"
   },
   "pitch": {
     "kicker": "For creators who promote brands",
     "title": "Your audience asks.",
     "titleEm": "Your storefront answers.",
+    "introCta": "Build my storefront",
     "text": "Your coupons and product links in one place. No more sending the same code in DMs.",
     "madeFor": "Made for creators with coupons from lots of brands",
     "couponsTitle": "All your coupons in one link",
@@ -313,15 +314,17 @@
       "metricsTitle": "See what works",
       "metricsText": "Visits, clicks, most-clicked products and most-copied coupons, day by day.",
       "videoTitle": "Video reviews",
-      "videoText": "Attach your Reels, TikTok or YouTube video showing the product.",
-      "soldOutTitle": "Sold out? Don't delete it",
-      "soldOutText": "Mark the product as sold out and it stays there, ready for when it's back."
+      "videoText": "Attach your Reels, TikTok or YouTube video showing the product."
     },
     "stepsTitle": "Ready in 2 minutes",
+    "stepsCta": "Pick my link",
     "steps": {
-      "link": "Pick your {host} link",
+      "link": "Pick your link",
       "items": "Add your coupons and products",
-      "bio": "Put the link in your bio and you're done"
+      "bio": "Put the link in your bio and you're done",
+      "linkText": "Your address becomes {host}/@yourname. It's free to start.",
+      "itemsText": "Paste the product link and we pull the name and photo. For coupons, just the code and the terms.",
+      "bioText": "On Instagram, TikTok or anywhere. Your audience finds everything in one place."
     },
     "faqTitle": "Frequently asked questions",
     "faq": {
