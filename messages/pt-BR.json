@@ -285,12 +285,13 @@
     "more": "Ver mais achados"
   },
   "lookHero": {
-    "alt": "Mulher de blazer creme, calça taupe e bolsa caramelo perto de uma janela"
+    "alt": "Mulher de lenço, óculos escuros e blazer bege segurando uma bolsa estampada"
   },
   "pitch": {
     "kicker": "Para quem divulga marcas",
     "title": "Seu público pergunta.",
     "titleEm": "A vitrine responde.",
+    "introCta": "Montar minha vitrine",
     "text": "Seus cupons e os links dos produtos num lugar só. Você para de mandar o mesmo código no direct.",
     "madeFor": "Feita para quem tem cupom de muita marca",
     "couponsTitle": "Todos os cupons num link só",
@@ -313,15 +314,17 @@
       "metricsTitle": "Veja o que funciona",
       "metricsText": "Visitas, cliques, produtos mais clicados e cupons mais copiados, dia a dia.",
       "videoTitle": "Review em vídeo",
-      "videoText": "Junte ao produto o seu Reels, TikTok ou vídeo do YouTube mostrando como ele é.",
-      "soldOutTitle": "Esgotou? Sem apagar",
-      "soldOutText": "Marque o produto como esgotado e ele continua lá, pronto para quando voltar."
+      "videoText": "Junte ao produto o seu Reels, TikTok ou vídeo do YouTube mostrando como ele é."
     },
     "stepsTitle": "Pronta em 2 minutos",
+    "stepsCta": "Escolher meu link",
     "steps": {
-      "link": "Escolha seu link {host}",
+      "link": "Escolha o seu link",
       "items": "Cadastre seus cupons e produtos",
-      "bio": "Coloque o link na bio e pronto"
+      "bio": "Coloque o link na bio e pronto",
+      "linkText": "Seu endereço fica {host}/@seunome. É grátis para começar.",
+      "itemsText": "Cole o link do produto e a gente puxa nome e foto. Do cupom, só o código e a condição.",
+      "bioText": "No Instagram, no TikTok ou onde quiser. Seu público acha tudo num lugar só."
     },
     "faqTitle": "Perguntas frequentes",
     "faq": {
