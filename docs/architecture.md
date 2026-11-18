@@ -713,6 +713,8 @@ Não há arquivos de configuração por ambiente; tudo vem de variáveis de ambi
 | `TRACK_SALT` | só em produção; em localhost fica vazia (o localhost não gera métrica) | `app/api/t/route.ts` | Segredo do HMAC do código diário anônimo `events.visitor` e da assinatura enviada a `track_event()`; o mesmo valor fica no Vault do Supabase (secret `track_salt`). Sem ela, `/api/t` descarta o evento |
 | `NODE_ENV` | automática | `lib/vitrine/claim.ts:16`, `lib/auth/return-to.ts` | Cookies `vitri_claim`, `vitri_return` e `vitri_ref` com `secure` só em produção |
 
+Na Vercel, `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` são do tipo *Config* (a Vercel não aceita o prefixo `NEXT_PUBLIC_` como *Secret*). As demais `SUPABASE_*`/`POSTGRES_*` que aparecem no projeto da Vercel são sobras de integração antiga e o código não as lê.
+
 | Aspecto | Desenvolvimento | Produção |
 |---|---|---|
 | Servidor | `npm run dev` (Turbopack) | `npm run build && npm start`, ou Vercel |
@@ -744,7 +746,7 @@ graph LR
 ```
 
 - **Deploy do app:** presumivelmente pela integração Git da Vercel (push na `main` / PRs com preview).
-- **Região das funções:** `vercel.json` fixa `"regions": ["pdx1"]` (Portland), ao lado do banco Supabase (AWS `us-west-2`), em vez do padrão `iad1` (Virginia), que fazia cada consulta atravessar os EUA (~70 ms de ida e volta). Se o Supabase mudar de região, `regions` deve acompanhar.
+- **Região das funções:** `vercel.json` fixa `"regions": ["gru1"]` (São Paulo), na mesma região do banco Supabase (AWS `sa-east-1`), para que cada consulta tenha latência baixa para o público no Brasil. O `regions` do `vercel.json` sobrepõe a configuração de região do painel da Vercel. Antes, as funções ficavam em Portland (`pdx1`) junto ao projeto antigo do Supabase (`us-west-2`). Se o Supabase mudar de região, `regions` deve acompanhar.
 - **Deploy do banco:** manual, com `supabase db push`. Exceção, o fechamento do insert anônimo em `events` (concluído em produção em 14/11/2026), em ordem: (1) gravar no Vault o segredo `track_salt` com o mesmo valor de `TRACK_SALT` da Vercel (`select vault.create_secret('<valor de TRACK_SALT>', 'track_salt');`); (2) aplicar `20261114000000_track_event.sql` (pode ser antes do deploy); (3) deploy do app; (4) aplicar `20261114000100_events_lockdown.sql`. Detalhes em [`docs/database.md`](database.md#como-os-eventos-entram).
 - **Segredos:** só no painel da Vercel e no Supabase. `.env*` está no `.gitignore` (exceto `.env.example`). Nenhum segredo versionado foi encontrado.
 

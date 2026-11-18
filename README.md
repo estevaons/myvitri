@@ -8,7 +8,7 @@ O **MyVitri** (`myvitri.com`) é uma plataforma onde **creators** montam uma **v
 |---|---|
 | **Stack** | Next.js 16 (App Router, Cache Components) · React 19 · TypeScript · Tailwind CSS v4 · Zod 4 |
 | **Backend** | Supabase: Postgres com RLS, Auth (e-mail e senha, e Google), Storage |
-| **Hospedagem** | Vercel (inferido: Web Analytics, Speed Insights + integração), funções em Portland (`pdx1`, `vercel.json`), junto ao Supabase |
+| **Hospedagem** | Vercel (inferido: Web Analytics, Speed Insights + integração), funções em São Paulo (`gru1`, `vercel.json`), na mesma região do Supabase (`sa-east-1`), para baixa latência no Brasil |
 | **Idioma do produto e do código** | Português do Brasil |
 
 > ⚠️ **Este projeto usa Next.js 16**, que mudou APIs e convenções (ex.: `proxy.ts` no lugar de `middleware.ts`, `updateTag`, `"use cache"`). Antes de escrever código, leia o guia correspondente em `node_modules/next/dist/docs/` — veja [`AGENTS.md`](AGENTS.md).
@@ -112,6 +112,13 @@ O login com e-mail e senha e o recebimento de links por e-mail (confirmar conta 
 2. No Supabase: **Authentication → Providers → Google** (Client ID e Secret).
 3. A *Site URL* e as *Redirect URLs* são as do passo 2 de e-mail e senha.
 
+**Checklist do projeto de produção (Supabase `myvitri`, `sa-east-1`)** — configuração só do painel, sem valores secretos:
+
+- *Site URL*: `https://myvitri.com`.
+- 12 *Redirect URLs*: `http://localhost:3000/auth/callback`, os previews `*.vercel.app` dos projetos `vitri` e `myvitri`, `vitri-alpha.vercel.app`, `myvitri.com` e `www.myvitri.com` (todos com `/auth/callback`).
+- Provedor Google ativado (Client ID e Secret).
+- SMTP próprio via Resend (`smtp.resend.com`, porta 465), remetente `nao-responda@myvitri.com`, nome `MyVitri`; modelos de e-mail padrão; limite de 100 e-mails por hora.
+
 ### 4. Variáveis de ambiente
 
 Copie o exemplo e preencha:
@@ -128,6 +135,8 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_POSTHOG_KEY` | não | PostHog → Project Settings (chave do projeto, pública) | Liga o PostHog (funis e retenção, navegador e servidor). Sem ela, nada é enviado: dev e preview funcionam sem a conta |
 | `NEXT_PUBLIC_POSTHOG_HOST` | não | Região do projeto no PostHog | Endereço do PostHog. Padrão `https://us.i.posthog.com` (EUA); para a UE, `https://eu.i.posthog.com` |
 | `TRACK_SALT` | só em produção; em localhost fica vazia (o localhost não gera métrica) | string aleatória longa, só do servidor | Segredo do código anônimo diário de visitante que `/api/t` grava em `events.visitor` (HMAC-SHA256) e da assinatura que a função `track_event()` confere. Sem ela, `/api/t` descarta o evento e loga "TRACK_SALT ausente". O mesmo valor vai para o Vault do Supabase (secret `track_salt`, veja a ordem na etapa de migrações). |
+
+Na Vercel, `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` são cadastradas como tipo *Config* (a Vercel não aceita o prefixo `NEXT_PUBLIC_` como *Secret*). Outras variáveis `SUPABASE_*`/`POSTGRES_*` que apareçam no projeto da Vercel são sobras de uma integração antiga: o código não as lê (só lê as variáveis da tabela acima).
 
 ### 5. Instalar e subir o servidor
 
