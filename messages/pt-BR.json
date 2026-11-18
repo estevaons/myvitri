@@ -78,6 +78,10 @@
     "mediaGo": "Ver {n} de {total}",
     "outfitGo": "Ver o outfit {n} de {total}",
     "socialLink": "{name} no {network}",
+    "recommended": {
+      "kicker": "Continue explorando",
+      "title": "Você também pode gostar"
+    },
     "cta": {
       "kicker": "Para quem cria conteúdo",
       "title": "Gostou desta vitrine?",

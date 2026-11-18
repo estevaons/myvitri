@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { RecommendedVitrines } from "@/components/storefront/RecommendedVitrines";
 import { Storefront } from "@/components/storefront/Storefront";
 import { StorefrontSkeleton } from "@/components/storefront/StorefrontSkeleton";
 import type { Locale } from "@/lib/i18n/routing";
@@ -48,7 +49,17 @@ async function VitrinePage({ params }: Pick<PageProps<"/[locale]/[handle]">, "pa
   return (
     <>
       <JsonLd data={await vitrineJsonLd(vitrine.content)} />
-      <Storefront content={vitrine.content} comments={comments} favorites={favorites} />
+      <Storefront
+        content={vitrine.content}
+        comments={comments}
+        favorites={favorites}
+        // em Suspense próprio: a vitrine aparece sem esperar as recomendações, que chegam depois
+        recommended={
+          <Suspense fallback={null}>
+            <RecommendedVitrines handle={vitrine.content.handle} />
+          </Suspense>
+        }
+      />
     </>
   );
 }

@@ -78,6 +78,10 @@
     "mediaGo": "Show {n} of {total}",
     "outfitGo": "Show outfit {n} of {total}",
     "socialLink": "{name} on {network}",
+    "recommended": {
+      "kicker": "Keep exploring",
+      "title": "You might also like"
+    },
     "cta": {
       "kicker": "For content creators",
       "title": "Like this storefront?",

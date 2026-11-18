@@ -735,6 +735,7 @@ export function Storefront({
   edit,
   comments,
   favorites = null,
+  recommended,
 }: {
   content: VitrineContent;
   preview?: boolean;
@@ -744,6 +745,8 @@ export function Storefront({
   comments?: CommentList;
   /** Quantas pessoas favoritaram; null: não deu para contar. */
   favorites?: number | null;
+  /** As vitrines recomendadas (`RecommendedVitrines`, do servidor), no fim da página; a prévia do editor não tem. */
+  recommended?: ReactNode;
 }) {
   const t = useTranslations("storefront");
   const te = useTranslations("editor.edit");
@@ -1375,6 +1378,8 @@ export function Storefront({
       )}
 
       {comments && <Comments handle={content.handle} firstName={firstName} comments={comments} viewer={viewer} className={pad} />}
+
+      {!preview && recommended}
 
       {!preview && viewer?.user === null && (
         <section className={`mx-auto max-w-[1440px] pt-20 @3xl:pt-28 ${pad}`}>
