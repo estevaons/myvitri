@@ -46,6 +46,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     agentFeedback: true,
+    // avisa os agentes de código quando a versão instalada do Next tiver um alerta de segurança publicado
+    agentUpgrade: "security",
     // o layout raiz fica em app/[locale]: o 404 de URLs fora dele vem de app/global-not-found.tsx
     globalNotFound: true,
   },
