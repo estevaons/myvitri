@@ -2,9 +2,10 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { createPublicSupabase } from "@/lib/supabase/server";
-import { HOME_TAG, live, rank, type HomeCreator } from "../data";
+import { HOME_TAG, live, rank, todayISO, type HomeCreator } from "../data";
 import { isMissingTable, toCoupon, toProduct, topCreatorsToday, type FeedVitrine } from "../store";
 import type { Coupon } from "../types";
+import { recommend } from "./recommend";
 
 /**
  * Dados da aba "Vitrines" do /inicio: todas as vitrines publicadas com algo ativo, já resumidas para o
@@ -160,4 +161,23 @@ export async function getTrendingHandles(): Promise<string[]> {
   cacheTag(HOME_TAG);
   cacheLife("minutes");
   return topCreatorsToday(createPublicSupabase(), 50);
+}
+
+/**
+ * As vitrines recomendadas no fim da vitrine de `handle` ("Você também pode gostar"), sem ela: o algoritmo de
+ * `recommend` sobre o catálogo e o ranking de hoje. Horas, como o catálogo: o ranking pode atrasar um pouco aqui.
+ * Sem o ranking (erro ou sem a migração), recomenda só pela semelhança e pelo frescor.
+ */
+export async function getRecommendedVitrines(handle: string, limit = 4): Promise<CatalogVitrine[]> {
+  "use cache";
+  cacheTag(HOME_TAG);
+  cacheLife("hours");
+  const [catalog, trending] = await Promise.all([
+    getVitrinesCatalog(),
+    getTrendingHandles().catch((e): string[] => {
+      console.error("getTrendingHandles", e);
+      return [];
+    }),
+  ]);
+  return recommend(handle, catalog.vitrines, trending, { limit, today: todayISO() });
 }

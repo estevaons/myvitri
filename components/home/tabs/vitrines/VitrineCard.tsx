@@ -11,7 +11,18 @@ const BRANDS_SHOWN = 3;
  * as marcas, e quanto há para ver (o que está zerado não aparece). O coração fica fora do link, por cima
  * da capa: botão dentro de link não é HTML válido.
  */
-export function VitrineCard({ v, favorited, stay = false }: { v: CatalogVitrine; favorited: boolean; stay?: boolean }) {
+export function VitrineCard({
+  v,
+  favorited = false,
+  stay = false,
+  follow = true,
+}: {
+  v: CatalogVitrine;
+  favorited?: boolean;
+  stay?: boolean;
+  /** `false`: sem o botão de seguir (nas recomendações da vitrine, o servidor não sabe quem está vendo). */
+  follow?: boolean;
+}) {
   const t = useTranslations("counts");
   const { card } = v;
   const extra = v.brands.length - BRANDS_SHOWN;
@@ -44,7 +55,7 @@ export function VitrineCard({ v, favorited, stay = false }: { v: CatalogVitrine;
           </span>
         </div>
       </Link>
-      <FavoriteButton variant="card" handle={card.handle} name={card.creator} favorited={favorited} guest={false} />
+      {follow && <FavoriteButton variant="card" handle={card.handle} name={card.creator} favorited={favorited} guest={false} />}
     </div>
   );
 }
