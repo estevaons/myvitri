@@ -554,6 +554,11 @@ async function saveProfile(patch: Partial<VitrineProfile>): Promise<SocialResult
   updateTag(vitrineTag(vitrine.handle));
   if (vitrine.handle !== parsed.data.handle) updateTag(vitrineTag(parsed.data.handle));
   updateTag(HOME_TAG);
+  // os comentários mostram o nome e a foto atuais da vitrine de quem escreveu: os das vitrines em que ela comentou mudam junto
+  if (vitrine.name !== parsed.data.name || vitrine.avatarUrl !== parsed.data.avatarUrl) {
+    const commented = await listCommentedHandles(supabase, user.id).catch((e) => (console.error("listCommentedHandles", e), []));
+    commented.forEach((handle) => updateTag(commentsTag(handle)));
+  }
 
   // Foto de perfil e capa trocadas não ficam guardadas: liberam espaço da cota de upload da pessoa.
   const stale = [

@@ -14,6 +14,7 @@ import {
   topCreatorsToday,
   type FeedVitrine,
 } from "./store";
+import { safeUrl } from "./links";
 import type { CommentList, VitrineComment } from "./social";
 import type { Coupon, Product, VitrineContent } from "./types";
 
@@ -61,14 +62,15 @@ export async function getComments(handle: string, locale: Locale): Promise<Comme
   cacheTag(commentsTag(handle));
   cacheLife("minutes");
 
-  const [{ total, rows, replies }, format] = await Promise.all([listComments(createPublicSupabase(), handle, COMMENTS_SHOWN), getFormatter({ locale })]);
+  const [{ total, rows, replies, authors }, format] = await Promise.all([listComments(createPublicSupabase(), handle, COMMENTS_SHOWN), getFormatter({ locale })]);
   const toComment = (c: (typeof rows)[number]): VitrineComment => ({
     id: c.id,
     parentId: c.parent_id,
     replyToId: c.reply_to_id,
     authorId: c.author_id,
-    authorName: c.author_name,
-    authorAvatarUrl: c.author_avatar_url,
+    // nome e foto da vitrine de quem comentou valem mais que os guardados no comentário (da conta Google)
+    authorName: authors.get(c.author_id)?.name || c.author_name,
+    authorAvatarUrl: safeUrl(authors.get(c.author_id)?.avatarUrl || c.author_avatar_url),
     body: c.body,
     byOwner: c.vitrines.owner_id === c.author_id,
     // fuso vem de lib/i18n/request.ts

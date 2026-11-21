@@ -362,7 +362,7 @@ export async function listComments(db: Db, handle: string, limit: number) {
   ]);
   if (top.error) throw top.error;
   if (all.error) throw all.error;
-  if (!top.data.length) return { total: all.count ?? 0, rows: top.data, replies: [] };
+  if (!top.data.length) return { total: all.count ?? 0, rows: top.data, replies: [], authors: new Map<string, { name: string; avatarUrl: string }>() };
   const { data: replies, error } = await db
     .from("comments")
     .select("id, parent_id, reply_to_id, author_id, author_name, author_avatar_url, body, created_at, vitrines!inner(owner_id, handle)")
@@ -373,7 +373,19 @@ export async function listComments(db: Db, handle: string, limit: number) {
     .order("created_at")
     .order("id");
   if (error) throw error;
-  return { total: all.count ?? top.data.length + replies.length, rows: top.data, replies };
+  return { total: all.count ?? top.data.length + replies.length, rows: top.data, replies, authors: await commentAuthors(db, [...top.data, ...replies]) };
+}
+
+/**
+ * Nome e foto atuais da vitrine de cada autor. O comentário guarda os da conta Google no momento em que foi
+ * escrito; quem tem vitrine aparece com o que está nela hoje, como nas notificações.
+ */
+async function commentAuthors(db: Db, comments: { author_id: string }[]) {
+  const ids = [...new Set(comments.map((c) => c.author_id))];
+  if (!ids.length) return new Map<string, { name: string; avatarUrl: string }>();
+  const { data, error } = await db.from("vitrines").select("owner_id, name, avatar_url").in("owner_id", ids);
+  if (error) throw error;
+  return new Map(data.map((v) => [v.owner_id, { name: v.name, avatarUrl: v.avatar_url }]));
 }
 
 /**
@@ -399,7 +411,7 @@ export async function deleteComment(db: Db, id: string) {
   return data?.vitrines?.handle ?? null;
 }
 
-/** Vitrines em que a pessoa comentou: os comentários saem junto com a conta, e o cache delas precisa acompanhar. */
+/** Vitrines em que a pessoa comentou: o cache delas acompanha a conta apagada e a troca de nome ou foto da vitrine. */
 export async function listCommentedHandles(db: Db, userId: string) {
   const { data, error } = await db.from("comments").select("vitrines(handle)").eq("author_id", userId);
   if (error) throw error;
