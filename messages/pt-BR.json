@@ -21,6 +21,7 @@
     "couponsTitle": "Cupons",
     "couponsLabel": "Cupons ativos",
     "howTo": "Como usar",
+    "expiry": "{kind, select, expired {Vencido: não aparece na vitrine} today {Vence hoje} tomorrow {Vence amanhã} days {Vence em {days} dias} other {Válido até {date}}}",
     "copyAndOpenLabel": "Copiar cupom {code} e abrir a loja {brand}",
     "copyLabel": "Copiar cupom {code}",
     "copied": "Copiado!",
@@ -396,7 +397,6 @@
     "publishItem": "{item, select, coupons {Cupom} products {Produto} other {Outfit}} {n}: {message}",
     "publishFailed": "Erro ao salvar. Tente de novo.",
     "importFailed": "Não conseguimos ler esse link. Preencha os dados à mão.",
-    "logoFailed": "Não conseguimos abrir o site da loja. Confira o link.",
     "rateLimited": "Muitas buscas em pouco tempo. Espere alguns minutos e tente de novo, ou preencha os dados à mão.",
     "videoLink": "Esse link não é de um vídeo do Instagram, TikTok ou YouTube. Copie o link pelo botão Compartilhar do vídeo.",
     "imageType": "Use uma imagem PNG, JPG, SVG ou WebP.",
@@ -829,6 +829,9 @@
       "kind": "Tipo de desconto",
       "condition": "Condição (opcional)",
       "conditionPlaceholder": "Ex.: Na primeira compra",
+      "expiresAt": "Validade (opcional)",
+      "expiresHint": "Último dia em que o cupom vale. Depois disso, ele sai da vitrine sozinho.",
+      "expiredHint": "Venceu em {date} e já saiu da vitrine. Mude a data para ele voltar.",
       "storeUrl": "Link da loja (opcional)",
       "howTo": "Como usar (opcional)",
       "steps": "Passos",
@@ -839,27 +842,6 @@
       "groupStore": "Loja",
       "removeTitle": "Excluir este cupom?",
       "removeText": "Ele também sai dos produtos ligados a ele."
-    },
-    "logo": {
-      "status": {
-        "start": "Toque no + para enviar uma imagem, ou preencha o link da loja e a gente busca o logo.",
-        "notFound": "Não achamos um logo no site. Toque no + para enviar uma imagem.",
-        "found": "{count, plural, one {Achamos este} other {Achamos estes}} no site da loja. Toque para usar."
-      },
-      "label": "Logo da marca (opcional)",
-      "group": "Logo da marca",
-      "inUse": "Logo em uso",
-      "use": "Usar logo {n} do site da loja",
-      "remove": "Remover logo",
-      "other": "Enviar ou colar outro logo",
-      "uploading": "Enviando imagem…",
-      "searching": "Procurando no site da loja…",
-      "sending": "Enviando…",
-      "send": "Enviar imagem",
-      "urlPlaceholder": "Cole o link da imagem (https://…)",
-      "urlLabel": "Link da imagem do logo",
-      "broken": "Essa imagem não abriu. Confira se o link termina em .png, .jpg, .svg ou .webp.",
-      "tip": "Uma imagem quadrada fica melhor. Aparece num círculo ao lado do nome da marca."
     },
     "image": {
       "sending": "Enviando…",

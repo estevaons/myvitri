@@ -141,14 +141,6 @@ export function HomeSearch() {
               <h2 className={`m-0 mb-1 ${groupTitle}`}>{t("brands")}</h2>
               {r.brands.map((b) => (
                 <Link key={b.brand} href={vitrineHref(b.handle, "cupons")} className={row}>
-                  {b.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária
-                    <img src={b.logoUrl} alt="" loading="lazy" className="size-10 flex-none rounded-full border border-sand bg-white object-contain" />
-                  ) : (
-                    <span aria-hidden="true" className="flex size-10 flex-none items-center justify-center rounded-full bg-cream text-xs font-semibold">
-                      {b.brand.slice(0, 1).toUpperCase()}
-                    </span>
-                  )}
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate text-[15px] font-medium">{b.brand}</span>
                     <span className="truncate text-[13px] text-mute">

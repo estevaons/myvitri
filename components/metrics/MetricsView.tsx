@@ -279,14 +279,7 @@ export function MetricsView({ vitrine, stats, period, today, position, path = "/
       id,
       n,
       thumb: (
-        <Thumb>
-          {c?.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- logos vêm de lojas arbitrárias
-            <img src={c.logoUrl} alt="" loading="lazy" className="size-full object-contain p-2 mix-blend-multiply" />
-          ) : (
-            c && <span className="font-display text-[30px] leading-none">{c.brand.slice(0, 1).toUpperCase()}</span>
-          )}
-        </Thumb>
+        <Thumb>{c && <span className="font-display text-[30px] leading-none">{c.brand.slice(0, 1).toUpperCase()}</span>}</Thumb>
       ),
       title: c?.brand ?? t("removed"),
       sub: c ? (

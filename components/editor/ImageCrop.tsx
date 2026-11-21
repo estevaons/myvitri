@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Poin
 import { createPortal } from "react-dom";
 import { MAX_SIDE } from "./upload";
 
-/** As fotos que passam pelo recorte antes de subir (o logo da marca não: é transparente e de qualquer formato). */
+/** As fotos que passam pelo recorte antes de subir. */
 export type CropKind = "avatar" | "cover" | "product" | "post" | "postVideo";
 
 /**

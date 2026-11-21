@@ -268,9 +268,6 @@ function findAllLd(html: string, test: (node: Json) => boolean): Json[] {
   return found;
 }
 
-/** Primeiro nó dos blocos JSON-LD da página que passa no teste. */
-const findLd = (html: string, test: (node: Json) => boolean): Json | null => findAllLd(html, test)[0] ?? null;
-
 const isProduct = (node: Json) => {
   const type = node["@type"];
   return type === "Product" || type === "ProductGroup" || (Array.isArray(type) && (type.includes("Product") || type.includes("ProductGroup")));
@@ -358,6 +355,9 @@ function sameProduct(a: string, b: string) {
     return false;
   }
 }
+
+/** Atributo de uma tag HTML (`<link rel="canonical" href="…">`). */
+const attr = (tag: string, name: string) => decode(tag.match(new RegExp(`\\b${name}=["']([^"']*)["']`, "i"))?.[1] ?? "");
 
 /** O `<link rel="…">` da página (canonical, image_src). */
 const linkRel = (html: string, rel: string) => {
@@ -665,42 +665,4 @@ export async function importProductFromUrl(raw: string): Promise<ImportedProduct
   };
   if (!product.name) throw new Error("Não deu para ler o produto");
   return { ...product, source: page?.name ? "page" : found ? "search" : "link" };
-}
-
-/** Atributo de uma tag HTML (`<link rel="icon" href="…">`). */
-const attr = (tag: string, name: string) => decode(tag.match(new RegExp(`\\b${name}=["']([^"']*)["']`, "i"))?.[1] ?? "");
-
-/**
- * Logos possíveis da loja, do melhor para o pior: o logo declarado no JSON-LD da página inicial,
- * os ícones grandes do site (apple-touch-icon, svg) e, se a loja bloquear robôs, o ícone que o Google guarda.
- */
-export async function findStoreLogos(raw: string): Promise<string[]> {
-  const link = await assertPublicUrl(raw);
-  const found: string[] = [];
-  const page = await fetchHtml(link.origin + "/").catch(() => null);
-  if (page) {
-    const abs = (src: string) => {
-      try {
-        return src ? new URL(src, page.url).toString() : "";
-      } catch {
-        return "";
-      }
-    };
-    // logo pode ser texto ou ImageObject ({ url }); str() leria o "name" do ImageObject
-    const logo = findLd(page.html, (node) => !!node.logo)?.logo;
-    found.push(abs(logo && typeof logo === "object" && !Array.isArray(logo) ? str((logo as Json).url) : str(logo)));
-    const icons = [...page.html.matchAll(/<link\b[^>]*>/gi)]
-      .map(([tag]) => ({ rel: attr(tag, "rel").toLowerCase(), href: abs(attr(tag, "href")), sizes: attr(tag, "sizes") }))
-      .filter((l) => l.href && /\bicon\b|apple-touch-icon/.test(l.rel))
-      .map((l) => ({
-        href: l.href,
-        // sem "sizes": apple-touch-icon costuma ter 180px; favicon comum, 32px
-        size: /\.svg(\?|$)/i.test(l.href) ? 512 : Number(l.sizes.split("x")[0]) || (l.rel.includes("apple") ? 180 : 32),
-      }))
-      .filter((l) => l.size >= 64)
-      .sort((a, b) => b.size - a.size);
-    found.push(...icons.map((l) => l.href));
-  }
-  found.push(`https://www.google.com/s2/favicons?domain=${link.hostname}&sz=128`);
-  return [...new Set(found.filter((src) => src.startsWith("https://")))].slice(0, 4);
 }

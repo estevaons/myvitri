@@ -15,6 +15,7 @@ import {
   type FeedVitrine,
 } from "./store";
 import { safeUrl } from "./links";
+import { isExpired, todayBR } from "./pricing";
 import type { CommentList, VitrineComment } from "./social";
 import type { Coupon, Product, VitrineContent } from "./types";
 
@@ -33,7 +34,8 @@ export async function getPublicVitrine(handle: string): Promise<PublicVitrine | 
 
   const content = await findByHandle(createPublicSupabase(), handle);
   if (!content) return null;
-  return { content, today: new Date().toISOString().slice(0, 10) };
+  const today = todayBR();
+  return { content: { ...content, coupons: content.coupons.filter((c) => !isExpired(c, today)) }, today };
 }
 
 export const favoritesTag = (handle: string) => `favoritos:${handle}`;
@@ -101,7 +103,7 @@ export type HomeCreator = By & {
 export type HomeCoupon = Coupon & By;
 export type HomeProduct = Product & By;
 /** `best`: o melhor cupom ativo da marca, ou null quando ela só aparece nos produtos à venda. */
-export type HomeBrand = By & { brand: string; logoUrl: string; best: Coupon | null; creators: number; products: number };
+export type HomeBrand = By & { brand: string; best: Coupon | null; creators: number; products: number };
 export type HomeFeed = { creators: HomeCreator[]; coupons: HomeCoupon[]; products: HomeProduct[]; brands: HomeBrand[] };
 
 /** Percentual sempre na frente de valor fixo; dentro de cada tipo, o maior. */
@@ -116,15 +118,16 @@ export function interleave<T>(lists: T[][]): T[] {
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 
-/** Cupons (o melhor primeiro) e produtos à venda. */
+/** Cupons dentro da validade (o melhor primeiro) e produtos à venda. */
 export function live(v: FeedVitrine) {
   const by = { handle: v.handle, creator: v.name };
-  const coupons = [...v.coupons].sort((a, b) => rank(b) - rank(a));
+  const today = todayBR();
+  const coupons = v.coupons.filter((c) => !isExpired(c, today)).sort((a, b) => rank(b) - rank(a));
   const products = v.products.filter((p) => !p.soldOut);
   return { v, by, coupons, products };
 }
 
-/** Só as vitrines com algum cupom ou produto à venda. */
+/** Só as vitrines com algum cupom válido ou produto à venda. */
 const liveFeed = (vitrines: FeedVitrine[]) =>
   vitrines.map((v) => live(v)).filter((f) => f.coupons.length > 0 || f.products.length > 0);
 
@@ -150,8 +153,7 @@ export function groupBrands(coupons: HomeCoupon[], products: HomeProduct[] = [])
     couponBrand.set(c.id, key);
     seen(key, c.handle);
     const b = brands.get(key);
-    if (!b || rank(c) > rank(b.best!)) brands.set(key, { brand: c.brand, logoUrl: c.logoUrl || b?.logoUrl || "", best: c, handle: c.handle, creator: c.creator, creators: 0, products: b?.products ?? 0 });
-    else if (!b.logoUrl) b.logoUrl = c.logoUrl;
+    if (!b || rank(c) > rank(b.best!)) brands.set(key, { brand: c.brand, best: c, handle: c.handle, creator: c.creator, creators: 0, products: b?.products ?? 0 });
   }
   for (const p of products) {
     const key = (p.couponId && couponBrand.get(p.couponId)) || p.brand.trim().toLowerCase();
@@ -159,7 +161,7 @@ export function groupBrands(coupons: HomeCoupon[], products: HomeProduct[] = [])
     seen(key, p.handle);
     const b = brands.get(key);
     if (b) b.products++;
-    else brands.set(key, { brand: p.brand.trim(), logoUrl: "", best: null, handle: p.handle, creator: p.creator, creators: 0, products: 1 });
+    else brands.set(key, { brand: p.brand.trim(), best: null, handle: p.handle, creator: p.creator, creators: 0, products: 1 });
   }
   return [...brands].map(([key, b]) => ({ ...b, creators: brandCreators.get(key)!.size }));
 }
@@ -231,7 +233,7 @@ export async function searchHome(q: string): Promise<SearchResults> {
   const hits = await searchCatalog(createPublicSupabase(), q, SEARCH_LIMIT);
   return {
     creators: hits.creators,
-    brands: groupBrands(hits.coupons).slice(0, SEARCH_LIMIT),
+    brands: groupBrands(hits.coupons.filter((c) => !isExpired(c, todayBR()))).slice(0, SEARCH_LIMIT),
     products: hits.products.filter((p) => !p.soldOut).slice(0, SEARCH_LIMIT),
   };
 }

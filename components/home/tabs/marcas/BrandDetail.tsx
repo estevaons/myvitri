@@ -6,7 +6,6 @@ import type { CatalogBrand } from "@/lib/vitrine/catalog/brands";
 import { couponOff } from "@/lib/vitrine/pricing";
 import { hrefWith } from "../../catalog/params";
 import { kicker } from "../../chrome";
-import { BrandLogo } from "./BrandCard";
 
 /**
  * Detalhe de uma marca: todos os cupons ativos dela, de todas as creators, lado a lado e do melhor
@@ -32,9 +31,7 @@ export function BrandDetail({
   return (
     <section id="marca-detalhe" aria-label={t("detailLabel", { brand: b.brand })} style={style} className={`col-span-full flex min-w-0 flex-col gap-6 border border-ink bg-white p-5 md:p-8 ${className}`}>
       <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3 md:gap-4">
-          <BrandLogo url={b.logoUrl} className="size-12 md:size-16" />
-          <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1">
             <h3 className="m-0 font-display text-[clamp(30px,3.4vw,46px)] leading-[1] font-normal break-words">{b.brand}</h3>
             <p className="m-0 text-[14px] text-mute">
               {[
@@ -46,7 +43,6 @@ export function BrandDetail({
                 .join(" · ")}
               {categories.length > 0 && <span className="max-md:hidden"> · {categories.join(", ")}</span>}
             </p>
-          </div>
         </div>
         <Link href={closeHref} scroll={false} className={`${kicker} flex min-h-11 flex-none items-center gap-1.5 text-[11px] text-ink no-underline hover:text-gold`}>
           {tCatalog("close")} <span aria-hidden="true" className="text-[16px] leading-none">×</span>

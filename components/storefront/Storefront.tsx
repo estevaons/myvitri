@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type MouseEvent, type ReactNode, type RefObject } from "react";
 import { Link } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
@@ -8,7 +8,7 @@ import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { productHref } from "@/lib/vitrine/links";
 import { copyLater, copyNow, openStore } from "./copy";
-import { couponOff } from "@/lib/vitrine/pricing";
+import { couponOff, expiryValues, isExpired, todayBR } from "@/lib/vitrine/pricing";
 import type { CommentList, Viewer } from "@/lib/vitrine/social";
 import { SOCIAL_LABELS, socialLinks, type SocialNetwork } from "@/lib/vitrine/socials";
 import { postItems, type Coupon, type Post, type PostMedia, type Product, type VitrineContent } from "@/lib/vitrine/types";
@@ -113,11 +113,6 @@ function Avatar({ content, className }: { content: VitrineContent; className: st
       {initials || "?"}
     </div>
   );
-}
-
-function BrandLogo({ url, className }: { url: string; className: string }) {
-  // eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária
-  return url ? <img src={url} alt="" loading="lazy" className={`${className} flex-none rounded-full bg-white object-contain`} /> : null;
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
@@ -703,8 +698,11 @@ export function Storefront({
   comments,
   favorites = null,
   recommended,
+  today: todayProp,
 }: {
   content: VitrineContent;
+  /** AAAA-MM-DD da validade dos cupons: o da página pública vem do servidor (o mesmo dia do filtro de vencidos); sem ele, o de agora */
+  today?: string;
   preview?: boolean;
   /** modo de edição do editor (veja `StorefrontEdit`); implica `preview` */
   edit?: StorefrontEdit;
@@ -719,13 +717,15 @@ export function Storefront({
   const te = useTranslations("editor.edit");
   const tCat = useTranslations("productCategories");
   const format = useFormatter();
+  const locale = useLocale();
+  const today = todayProp ?? todayBR();
   const preview = previewProp || Boolean(edit);
   const viewer = useViewer(content.handle, preview);
   const firstName = content.name.split(" ")[0] || content.name;
   const headline = content.headline.replace(/\*/g, "").trim() || t("defaultHeadline", { name: firstName });
   const banner = content.look.bannerUrl;
 
-  // no modo de edição aparecem todos, inclusive vencidos e agendados, para dar para corrigir
+  // a página pública já chega sem os vencidos; no modo de edição eles aparecem, marcados, para dar para corrigir
   const coupons = content.coupons;
   // esgotados vão para o fim da lista
   const products = useMemo(() => [...content.products].sort((a, b) => Number(a.soldOut) - Number(b.soldOut)), [content.products]);
@@ -1280,8 +1280,7 @@ export function Storefront({
                 className={`relative box-border flex min-h-[290px] w-[300px] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-6 @max-md:w-[82%] ${edit ? "select-none [-webkit-touch-callout:none]" : ""} ${dragCoupons.dragging === c.id ? dragged : ""}`}
               >
                 {edit && <EditHit label={te("coupon", { name: c.brand || c.code || te("newCoupon") })} onClick={() => edit.coupon(c.id)} {...dragCoupons.handle(c.id)} />}
-                <div className="flex min-w-0 items-center gap-2">
-                  <BrandLogo url={c.logoUrl} className="size-8" />
+                <div className="flex min-w-0 items-center">
                   {c.storeUrl ? (
                     <a href={c.storeUrl} target="_blank" rel="noopener noreferrer" className="truncate text-[15px] font-medium text-inherit">
                       {c.brand}
@@ -1293,6 +1292,11 @@ export function Storefront({
                 <div className="flex flex-col gap-1.5">
                   <span className="font-display text-[56px] leading-[1] font-normal lining-nums">{couponOff(c)}</span>
                   {c.condition && <span className="text-[15px] leading-snug text-mute">{c.condition}</span>}
+                  {c.expiresAt && (
+                    <span className={`text-[13px] leading-snug ${isExpired(c, today) ? "font-medium text-[#A3361B]" : "text-mute"}`}>
+                      {t("expiry", expiryValues(c, today, locale))}
+                    </span>
+                  )}
                   {c.howTo && (
                     <details className="text-sm">
                       <summary className="cursor-pointer py-1 font-medium underline underline-offset-2">{t("howTo")}</summary>
