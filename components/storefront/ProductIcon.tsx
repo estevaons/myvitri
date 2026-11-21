@@ -1,4 +1,5 @@
 import type { IconId } from "@/lib/vitrine/types";
+import { ProductPhoto } from "./ProductPhoto";
 
 function Paths({ icon }: { icon: IconId }) {
   switch (icon) {
@@ -95,21 +96,27 @@ export function ProductIcon({ icon, className, strokeWidth = 2.6 }: { icon: Icon
 export function ProductArt({
   product,
   className,
+  photoClassName,
   iconClassName,
   strokeWidth,
 }: {
   product: { imageUrl: string; icon: IconId; name: string };
+  /** Substitui o encaixe automático: a foto fica sempre como essas classes mandam (o modal mostra a foto inteira). */
   className?: string;
+  /** Classes somadas ao encaixe automático (esgotado: opacidade e cinza). */
+  photoClassName?: string;
   iconClassName?: string;
   strokeWidth?: number;
 }) {
   if (product.imageUrl) {
-    // Foto de loja é quase sempre quadrada, com o produto centrado em fundo branco ou cinza claro.
-    // Sem margem e com multiply, o fundo da foto se funde ao cinza do card e não aparece uma "caixa" dentro dele.
     return (
       <div className="absolute inset-0">
-        {/* eslint-disable-next-line @next/next/no-img-element -- imagens vêm de lojas arbitrárias */}
-        <img src={product.imageUrl} alt="" loading="lazy" className={className ?? "size-full object-contain mix-blend-multiply"} />
+        {className ? (
+          // eslint-disable-next-line @next/next/no-img-element -- imagens vêm de lojas arbitrárias
+          <img src={product.imageUrl} alt="" loading="lazy" className={className} />
+        ) : (
+          <ProductPhoto src={product.imageUrl} extraClassName={photoClassName} />
+        )}
       </div>
     );
   }

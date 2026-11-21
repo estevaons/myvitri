@@ -1235,7 +1235,7 @@ export function Storefront({
                     <div aria-hidden="true" className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
                       <ProductArt
                         product={p}
-                        className={p.soldOut ? "size-full object-contain opacity-50 mix-blend-multiply grayscale" : undefined}
+                        photoClassName={p.soldOut ? "opacity-50 grayscale" : undefined}
                         iconClassName={`w-[52%] ${p.soldOut ? "opacity-40" : ""}`}
                       />
                     </div>
