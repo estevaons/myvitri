@@ -8,7 +8,7 @@ import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
 import { productHref } from "@/lib/vitrine/links";
 import { copyLater, copyNow, openStore } from "./copy";
-import { couponOff, expiryValues, isExpired, todayBR } from "@/lib/vitrine/pricing";
+import { couponOff, expiryValues, isDay, isExpired, todayBR } from "@/lib/vitrine/pricing";
 import type { CommentList, Viewer } from "@/lib/vitrine/social";
 import { SOCIAL_LABELS, socialLinks, type SocialNetwork } from "@/lib/vitrine/socials";
 import { postItems, type Coupon, type Post, type PostMedia, type Product, type VitrineContent } from "@/lib/vitrine/types";
@@ -1292,7 +1292,7 @@ export function Storefront({
                 <div className="flex flex-col gap-1.5">
                   <span className="font-display text-[56px] leading-[1] font-normal lining-nums">{couponOff(c)}</span>
                   {c.condition && <span className="text-[15px] leading-snug text-mute">{c.condition}</span>}
-                  {c.expiresAt && (
+                  {isDay(c.expiresAt) && (
                     <span className={`text-[13px] leading-snug ${isExpired(c, today) ? "font-medium text-[#A3361B]" : "text-mute"}`}>
                       {t("expiry", expiryValues(c, today, locale))}
                     </span>
@@ -1372,7 +1372,6 @@ export function Storefront({
         <Link href="/" aria-label={BRAND} className="flex items-center text-inherit no-underline">
           <Wordmark className="h-[14px] w-auto text-ink" />
         </Link>
-        <span>{t("footer")}</span>
       </footer>
 
       {viewing && (

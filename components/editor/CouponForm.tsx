@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ddmm, isExpired, todayBR } from "@/lib/vitrine/pricing";
+import { ddmm, isDay, isExpired, todayBR } from "@/lib/vitrine/pricing";
 import { COUPON_EXTRA, type Coupon } from "@/lib/vitrine/types";
 import { Field, Group, MoneyInput, PercentInput, Segmented, TextInput, UrlInput, inputCls, labelCls, newId } from "./ui";
 
@@ -75,7 +75,12 @@ export function CouponForm({ coupon: c, onChange }: { coupon: Coupon; onChange: 
           <input
             type="date"
             value={c.expiresAt ?? ""}
-            onChange={(e) => onChange({ expiresAt: e.target.value || null, startsAt: null })}
+            // `max` faz o Chrome parar o ano em 4 dígitos; o resto que não for data de verdade é ignorado
+            max="9999-12-31"
+            onChange={(e) => {
+              const v = e.target.value;
+              if (!v || isDay(v)) onChange({ expiresAt: v || null, startsAt: null });
+            }}
             className={`${inputCls} [&::-webkit-date-and-time-value]:text-left`}
           />
         </Field>
