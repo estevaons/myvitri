@@ -54,7 +54,7 @@ export const commentsTag = (handle: string) => `comentarios:${handle}`;
 const COMMENTS_SHOWN = 100;
 
 /**
- * Comentários públicos de uma vitrine, com as respostas. Quem comenta vê na hora (`updateTag`); para os outros, minutos.
+ * Comentários públicos de uma vitrine, com as respostas, dos mais antigos para os mais novos. Quem comenta vê na hora (`updateTag`); para os outros, minutos.
  * Cache separado de `getPublicVitrine`, que dura horas e só muda ao publicar.
  * O idioma das datas vem como argumento (e entra na chave do cache): sem ele, o next-intl pode cair no
  * cabeçalho da requisição, que `"use cache"` não deixa ler.
@@ -81,7 +81,8 @@ export async function getComments(handle: string, locale: Locale): Promise<Comme
   });
   return {
     total,
-    items: rows.map((c) => ({ ...toComment(c), replies: replies.filter((r) => r.parent_id === c.id).map(toComment) })),
+    // o banco traz os mais recentes primeiro; a tela mostra em ordem de conversa, o mais novo embaixo, junto do campo
+    items: rows.toReversed().map((c) => ({ ...toComment(c), replies: replies.filter((r) => r.parent_id === c.id).map(toComment) })),
   };
 }
 

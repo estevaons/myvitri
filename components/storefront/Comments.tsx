@@ -19,10 +19,11 @@ const REPLIES_OPEN = 2;
  */
 const MAX_DEPTH = 3;
 
+/** "Publicar" como no Instagram: só o texto, apagado enquanto o campo está vazio. */
 const send =
-  "flex min-h-10 flex-none cursor-pointer items-center justify-center border-0 bg-ink px-5 text-[11px] font-medium tracking-[0.16em] text-white uppercase hover:bg-[#2b2925]";
-const more =
-  "flex min-h-12 cursor-pointer items-center justify-center border border-ink bg-transparent px-7 text-[12px] font-medium tracking-[0.18em] text-ink uppercase hover:bg-ink hover:text-white";
+  "flex min-h-10 flex-none cursor-pointer items-center border-0 bg-transparent px-1 text-[14px] font-semibold whitespace-nowrap text-ink hover:text-gold disabled:cursor-default disabled:text-mute/60 disabled:hover:text-mute/60";
+/** Ações embaixo do comentário (Responder, Excluir) e "Ver comentários anteriores". */
+const action = "cursor-pointer border-0 bg-transparent p-0 text-[13px] font-medium text-mute hover:text-ink";
 const quiet = "cursor-pointer border-0 bg-transparent p-0 text-[13px] text-mute underline underline-offset-2 hover:text-ink";
 const errorText = "m-0 text-sm font-semibold text-[#A3361B]";
 
@@ -101,7 +102,13 @@ function Avatar({ name, url, className }: { name: string; url: string; className
   }
   return (
     <span aria-hidden="true" className={`${box} flex items-center justify-center text-[13px] font-semibold`}>
-      {name[0]?.toUpperCase()}
+      {name[0]?.toUpperCase() ?? (
+        // quem ainda não entrou: silhueta no lugar da foto
+        <svg viewBox="0 0 24 24" className="size-3/5 fill-mute/50">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21a8 8 0 0 1 16 0z" />
+        </svg>
+      )}
     </span>
   );
 }
@@ -109,7 +116,8 @@ function Avatar({ name, url, className }: { name: string; url: string; className
 type ComposerText = { field: string; placeholder: string; submit: string; signIn: string };
 
 /**
- * Campo de comentar ou de responder, igual para todos: quem não entrou escreve primeiro e o login vem só na
+ * Campo de comentar ou de responder, numa linha só como no Instagram e no Twitter: foto, texto que cresce e
+ * "Publicar" (Enter publica, Shift+Enter quebra a linha). Igual para todos: quem não entrou escreve primeiro e o login vem só na
  * hora de publicar. O texto fica guardado e, na volta do Google, a pessoa cai de novo aqui para confirmar o
  * envio (nada é publicado sozinho: o comentário sai com o nome e a foto dela). Só monta no navegador, depois
  * de se saber quem está vendo, por isso pode ler o rascunho ao iniciar.
@@ -129,7 +137,7 @@ function Composer({
   resume?: string;
   text: ComposerText;
   user: { name: string; avatarUrl: string } | null;
-  /** Campo de resposta: menor, com foco ao abrir e com "Cancelar". */
+  /** Campo de resposta: foto menor, foco ao abrir e "Cancelar". */
   reply?: boolean;
   /** Devolve a mensagem de erro, ou null se publicou. */
   onSend: (body: string) => Promise<string | null>;
@@ -181,58 +189,63 @@ function Composer({
     onCancel?.();
   };
 
+  const counter = left <= WARN_LEFT && (
+    <span className={`text-[13px] whitespace-nowrap lining-nums ${left === 0 ? "font-semibold text-[#A3361B]" : "text-mute"}`}>{t("left", { count: left })}</span>
+  );
+  const name = user ? user.name || t("you") : "";
+
   return (
     <form onSubmit={submit} className="flex flex-col gap-2">
-      <div className="border border-sand transition-colors focus-within:border-ink">
-        <label>
-          <span className="sr-only">{copy.field}</span>
+      <div className={`flex items-start gap-3 border border-sand bg-white transition-colors focus-within:border-ink ${reply ? "py-1 pr-2 pl-2.5" : "py-1.5 pr-3 pl-3"}`}>
+        <span className="flex min-h-10 flex-none items-center">
+          <Avatar name={name} url={user?.avatarUrl ?? ""} className={reply ? "size-7" : "size-8"} />
+        </span>
+        <label className="min-w-0 flex-1">
+          <span className="sr-only">
+            {copy.field}
+            {user && <> ({t.rich("commentingAs", { name, b: (s) => s })})</>}
+          </span>
           <textarea
             ref={field}
+            rows={1}
             value={text}
             onChange={(e) => type(e.target.value)}
             onKeyDown={(e) => {
-              if (user && e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                if (user) submit();
+              }
               if (reply && e.key === "Escape" && !hasText) cancel();
             }}
             maxLength={COMMENT_MAX}
             placeholder={copy.placeholder}
-            className={`field-sizing-content box-border block max-h-80 w-full resize-none border-0 bg-transparent text-base leading-relaxed text-ink outline-none placeholder:text-mute ${reply ? "min-h-16 px-3.5 py-3" : "min-h-24 p-4"}`}
+            enterKeyHint="send"
+            className="field-sizing-content box-border block max-h-60 min-h-10 w-full resize-none border-0 bg-transparent py-2 text-[15px] leading-6 text-ink outline-none placeholder:text-mute"
           />
         </label>
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-sand py-2 pr-2 pl-3">
-          {user ? (
-            <div className="flex min-w-0 flex-1 basis-40 items-center gap-2 text-[13px] text-mute">
-              <Avatar name={user.name} url={user.avatarUrl} className="size-6" />
-              <span className="truncate">
-                {t.rich("commentingAs", { name: user.name || t("you"), b: (s) => <span className="font-medium text-ink">{s}</span> })}
-              </span>
-            </div>
-          ) : (
-            <span className="min-w-0 flex-1 basis-40 text-[13px] leading-snug text-mute">{t("guestHint")}</span>
+        <span className="flex min-h-10 flex-none items-center gap-3">
+          {onCancel && (
+            <button type="button" onClick={cancel} className={action}>
+              {t("cancel")}
+            </button>
           )}
-          <div className="ml-auto flex items-center gap-3">
-            {left <= WARN_LEFT && (
-              <span className={`text-[13px] whitespace-nowrap lining-nums ${left === 0 ? "font-semibold text-[#A3361B]" : "text-mute"}`}>
-                {t("left", { count: left })}
-              </span>
-            )}
-            {onCancel && (
-              <button type="button" onClick={cancel} className={quiet}>
-                {t("cancel")}
-              </button>
-            )}
-            {user ? (
-              <button type="submit" disabled={!hasText} className={send}>
-                {copy.submit}
-              </button>
-            ) : (
-              <LoginButton className={send} onOpen={() => store(RETURNING, resume)}>
-                {hasText ? t("signInAndPost") : copy.signIn}
-              </LoginButton>
-            )}
-          </div>
-        </div>
+          {user ? (
+            <button type="submit" disabled={!hasText} className={send}>
+              {copy.submit}
+            </button>
+          ) : (
+            <LoginButton className={send} onOpen={() => store(RETURNING, resume)}>
+              {hasText ? t("signInAndPost") : copy.signIn}
+            </LoginButton>
+          )}
+        </span>
       </div>
+      {(counter || (!user && !reply)) && (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-0.5">
+          {!user && !reply ? <span className="text-[13px] leading-snug text-mute">{t("guestHint")}</span> : <span />}
+          {counter}
+        </div>
+      )}
       {error && (
         <p role="alert" className={errorText}>
           {error}
@@ -271,21 +284,6 @@ function CommentRow({ comment, small = false, replyingTo, mine, canDelete, onDel
           <span className="min-w-0 text-[15px] font-medium break-words">{comment.authorName}</span>
           {tag && <span className="text-[10px] font-medium tracking-[0.16em] text-gold uppercase">{tag}</span>}
           {sending ? <span className="text-[13px] text-mute">{t("sending")}</span> : <When comment={comment} />}
-          {canDelete && !sending && (
-            <span className="ml-auto flex gap-3 pl-3">
-              <button
-                type="button"
-                onClick={async () => {
-                  if (await ask({ title: t("deleteTitle"), text: t("deleteText"), confirm: t("delete"), danger: true })) onDelete();
-                }}
-                aria-label={t("deleteLabel", { name: comment.authorName })}
-                className={quiet}
-              >
-                {t("delete")}
-              </button>
-              {confirmDialog}
-            </span>
-          )}
         </div>
         <p className="m-0 text-[15px] leading-relaxed break-words whitespace-pre-line">
           {replyingTo && (
@@ -295,15 +293,30 @@ function CommentRow({ comment, small = false, replyingTo, mine, canDelete, onDel
           )}
           {comment.body}
         </p>
-        {onReply && !sending && (
-          <button
-            type="button"
-            onClick={onReply}
-            aria-label={t("replyLabel", { name: comment.authorName })}
-            className="mt-0.5 cursor-pointer self-start border-0 bg-transparent p-0 text-[13px] font-medium text-mute hover:text-ink"
-          >
-            {t("reply")}
-          </button>
+        {/* ações embaixo do texto, como no Instagram e no Twitter */}
+        {!sending && (onReply || canDelete) && (
+          <div className="mt-0.5 flex items-center gap-4">
+            {onReply && (
+              <button type="button" onClick={onReply} aria-label={t("replyLabel", { name: comment.authorName })} className={action}>
+                {t("reply")}
+              </button>
+            )}
+            {canDelete && (
+              <>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (await ask({ title: t("deleteTitle"), text: t("deleteText"), confirm: t("delete"), danger: true })) onDelete();
+                  }}
+                  aria-label={t("deleteLabel", { name: comment.authorName })}
+                  className={action}
+                >
+                  {t("delete")}
+                </button>
+                {confirmDialog}
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -315,7 +328,8 @@ type Change = { add: VitrineComment } | { remove: string };
 function applyChange(list: CommentThread[], c: Change): CommentThread[] {
   if ("remove" in c) return list.filter((x) => x.id !== c.remove).map((x) => (x.replies.some((r) => r.id === c.remove) ? { ...x, replies: x.replies.filter((r) => r.id !== c.remove) } : x));
   const { parentId } = c.add;
-  if (!parentId) return [{ ...c.add, replies: [] }, ...list];
+  // o mais novo vai para o fim da conversa, junto do campo
+  if (!parentId) return [...list, { ...c.add, replies: [] }];
   return list.map((x) => (x.id === parentId ? { ...x, replies: [...x.replies, c.add] } : x));
 }
 
@@ -374,7 +388,10 @@ const countAll = (list: CommentThread[]) => list.reduce((n, x) => n + 1 + x.repl
  */
 type ReplyTo = { thread: string; to: string | null; name: string };
 
-/** Comentários da vitrine: o título, o campo e, abaixo, a lista com as respostas. */
+/**
+ * Comentários da vitrine, como no Instagram e no Twitter: o título, a conversa em ordem (o mais novo embaixo,
+ * com "Ver comentários anteriores" no alto) e o campo no fim.
+ */
 export function Comments({
   handle,
   firstName,
@@ -394,7 +411,11 @@ export function Comments({
   const format = useFormatter();
   // aparece na hora; a lista de verdade chega junto com a resposta da ação, que invalida o cache
   const [items, change] = useOptimistic(comments.items, applyChange);
-  const [shown, setShown] = useState(STEP);
+  // quantos dos mais recentes aparecem; quem volta do login no meio de uma resposta encontra essa conversa na tela
+  const [shown, setShown] = useState(() => {
+    const at = comments.items.findIndex((x) => x.id === returningReply(handle)?.thread);
+    return at < 0 ? STEP : Math.max(STEP, comments.items.length - at);
+  });
   const [listError, setListError] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   // quem voltou do login no meio de uma resposta encontra o campo dela aberto (só aparece com `viewer`, depois da hidratação)
@@ -411,7 +432,7 @@ export function Comments({
   const user = viewer?.user ?? null;
   const owner = Boolean(viewer?.user && viewer.owner);
   const total = comments.total + countAll(items) - countAll(comments.items);
-  const remaining = items.length - shown;
+  const remaining = Math.max(0, items.length - shown);
 
   const optimistic = (body: string, parentId: string | null, replyToId: string | null = null): VitrineComment | null => {
     if (!user) return null;
@@ -478,17 +499,6 @@ export function Comments({
           </h2>
           <p className="m-0 text-[15px] leading-relaxed text-mute">{t("intro", { name: firstName })}</p>
         </div>
-        {viewer ? (
-          <Composer
-            target={handle}
-            text={{ field: t("field"), placeholder: t("placeholder", { name: firstName }), submit: t("submit"), signIn: t("signInToComment") }}
-            user={user}
-            onSend={onSend}
-          />
-        ) : (
-          <div aria-hidden="true" className="h-[154px] bg-cream motion-safe:animate-pulse" />
-        )}
-
         {listError && (
           <p role="alert" className={errorText}>
             {listError}
@@ -497,76 +507,90 @@ export function Comments({
         {items.length === 0 ? (
           <p className="m-0 text-[15px] leading-relaxed text-mute">{t("empty")}</p>
         ) : (
-          <ul className="m-0 mt-3 list-none border-t border-sand p-0">
-            {items.slice(0, shown).map((c) => {
-              const replying = viewer && !isSending(c) && replyTo?.thread === c.id ? replyTo : null;
-              const collapsible = c.replies.length > REPLIES_OPEN;
-              const open = !collapsible || expanded.has(c.id);
-              const tree = replyTree(c.replies);
-              // o campo aparece embaixo de quem está sendo respondido (ou de quem recebe a resposta, no último nível)
-              const target = replying?.to ? tree.byId.get(replying.to) : undefined;
-              const host = !replying ? null : !target ? c.id : target.depth >= MAX_DEPTH ? (target.up?.comment.id ?? c.id) : target.comment.id;
-              const composerAt = (id: string): Item[] =>
-                replying && host === id
+          <div className="mt-2 flex flex-col gap-5">
+            {remaining > 0 && (
+              <button type="button" onClick={() => setShown((n) => n + STEP)} className={`${action} self-start`}>
+                {t("more", { n: Math.min(remaining, STEP) })}
+              </button>
+            )}
+            <ul className="m-0 flex list-none flex-col gap-6 p-0">
+              {items.slice(remaining).map((c) => {
+                const replying = viewer && !isSending(c) && replyTo?.thread === c.id ? replyTo : null;
+                const collapsible = c.replies.length > REPLIES_OPEN;
+                const open = !collapsible || expanded.has(c.id);
+                const tree = replyTree(c.replies);
+                // o campo aparece embaixo de quem está sendo respondido (ou de quem recebe a resposta, no último nível)
+                const target = replying?.to ? tree.byId.get(replying.to) : undefined;
+                const host = !replying ? null : !target ? c.id : target.depth >= MAX_DEPTH ? (target.up?.comment.id ?? c.id) : target.comment.id;
+                const composerAt = (id: string): Item[] =>
+                  replying && host === id
+                    ? [
+                        {
+                          key: "composer",
+                          content: (
+                            <Composer
+                              key={c.id}
+                              target={replyTarget(handle, c.id)}
+                              resume={resumeTarget(handle, c.id, replying.to)}
+                              text={{
+                                field: t("replyField"),
+                                placeholder: t("replyPlaceholder", { name: firstNameOf(replying.name) }),
+                                submit: t("replySubmit"),
+                                signIn: t("signInToReply"),
+                              }}
+                              user={user}
+                              reply
+                              onSend={onReply(c.id, replying.to)}
+                              onCancel={() => setReplyTo(null)}
+                            />
+                          ),
+                        },
+                      ]
+                    : [];
+                const replyItems = (nodes: ReplyNode[]): Item[] =>
+                  nodes.map((n) => {
+                    const answered = n.comment.replyToId ? tree.byId.get(n.comment.replyToId) : undefined;
+                    // o recuo já mostra a quem ela responde; o "@Nome" fica para quando ela não está logo embaixo
+                    const mention = answered && answered !== n.up ? answered.comment.authorName : undefined;
+                    return {
+                      key: n.comment.id,
+                      content: (
+                        <Branched indent={REPLY_INDENT} row={<CommentRow {...rowProps(n.comment, c.id, mention)} small />} items={[...replyItems(n.kids), ...composerAt(n.comment.id)]} />
+                      ),
+                    };
+                  });
+                const toggleItem: Item[] = collapsible
                   ? [
                       {
-                        key: "composer",
+                        key: "toggle",
                         content: (
-                          <Composer
-                            key={c.id}
-                            target={replyTarget(handle, c.id)}
-                            resume={resumeTarget(handle, c.id, replying.to)}
-                            text={{
-                              field: t("replyField"),
-                              placeholder: t("replyPlaceholder", { name: firstNameOf(replying.name) }),
-                              submit: t("replySubmit"),
-                              signIn: t("signInToReply"),
-                            }}
-                            user={user}
-                            reply
-                            onSend={onReply(c.id, replying.to)}
-                            onCancel={() => setReplyTo(null)}
-                          />
+                          <button type="button" onClick={() => toggle(c.id)} aria-expanded={open} className={quiet}>
+                            {open ? t("hideReplies") : t("showReplies", { count: c.replies.length })}
+                          </button>
                         ),
                       },
                     ]
                   : [];
-              const replyItems = (nodes: ReplyNode[]): Item[] =>
-                nodes.map((n) => {
-                  const answered = n.comment.replyToId ? tree.byId.get(n.comment.replyToId) : undefined;
-                  // o recuo já mostra a quem ela responde; o "@Nome" fica para quando ela não está logo embaixo
-                  const mention = answered && answered !== n.up ? answered.comment.authorName : undefined;
-                  return {
-                    key: n.comment.id,
-                    content: (
-                      <Branched indent={REPLY_INDENT} row={<CommentRow {...rowProps(n.comment, c.id, mention)} small />} items={[...replyItems(n.kids), ...composerAt(n.comment.id)]} />
-                    ),
-                  };
-                });
-              const toggleItem: Item[] = collapsible
-                ? [
-                    {
-                      key: "toggle",
-                      content: (
-                        <button type="button" onClick={() => toggle(c.id)} aria-expanded={open} className={quiet}>
-                          {open ? t("hideReplies") : t("showReplies", { count: c.replies.length })}
-                        </button>
-                      ),
-                    },
-                  ]
-                : [];
-              return (
-                <li key={c.id} className="border-b border-sand py-5">
-                  <Branched indent={ROOT_INDENT} row={<CommentRow {...rowProps(c, c.id)} />} items={[...toggleItem, ...(open ? replyItems(tree.top) : []), ...composerAt(c.id)]} />
-                </li>
-              );
-            })}
-          </ul>
+                return (
+                  <li key={c.id}>
+                    <Branched indent={ROOT_INDENT} row={<CommentRow {...rowProps(c, c.id)} />} items={[...toggleItem, ...(open ? replyItems(tree.top) : []), ...composerAt(c.id)]} />
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         )}
-        {remaining > 0 && (
-          <button type="button" onClick={() => setShown((n) => n + STEP)} className={`${more} mt-1 self-start`}>
-            {t("more", { n: Math.min(remaining, STEP) })}
-          </button>
+        {viewer ? (
+          <div className="mt-3">
+            <Composer
+              target={handle}
+              text={{ field: t("field"), placeholder: t("placeholder", { name: firstName }), submit: t("submit"), signIn: t("signInToComment") }}
+              user={user}
+              onSend={onSend}
+            />
+          </div>
+        ) : (
+          <div aria-hidden="true" className="mt-3 h-[54px] bg-cream motion-safe:animate-pulse" />
         )}
         <span role="status" className="sr-only">
           {status}
