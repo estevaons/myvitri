@@ -3,7 +3,9 @@
 import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { productHref } from "@/lib/vitrine/links";
-import type { Post, Product } from "@/lib/vitrine/types";
+import { couponOff } from "@/lib/vitrine/pricing";
+import type { Coupon, Post, Product } from "@/lib/vitrine/types";
+import { copyLater, copyNow, openStore } from "./copy";
 import { ProductArt } from "./ProductIcon";
 
 // os mesmos botões retos em caixa alta da vitrine
@@ -218,22 +220,99 @@ export const storyIcon = (
 );
 
 /**
+ * Um cupom da vitrine dentro do produto ampliado: o desconto, a condição, o código e o botão que copia o código e já
+ * abre o produto (`href`, o link de afiliado ou da loja) no mesmo toque. Produto sem link (esgotado) abre a loja do
+ * cupom. Se a cópia na hora falhar, tenta de novo e, sem conseguir, deixa o código selecionado para copiar à mão; o
+ * produto vira um link à parte, porque abrir depois de esperar seria bloqueado como pop-up.
+ */
+function ProductCoupon({ coupon: c, href, onGo, onCopy }: { coupon: Coupon; href: string; onGo: () => void; onCopy: () => void }) {
+  const t = useTranslations("storefront");
+  const tp = useTranslations("storefront.product");
+  const code = useRef<HTMLSpanElement>(null);
+  // null: ainda não copiou; true: copiou; false: não deu, a pessoa copia à mão
+  const [copied, setCopied] = useState<boolean | null>(null);
+  // a cópia que precisou da segunda tentativa: o produto vira um link à parte
+  const [late, setLate] = useState(false);
+  const target = href || c.storeUrl;
+
+  useEffect(() => {
+    if (!copied) return;
+    const id = setTimeout(() => setCopied(null), 2500);
+    return () => clearTimeout(id);
+  }, [copied]);
+
+  const copy = () => {
+    onCopy();
+    if (copyNow(c.code)) {
+      setCopied(true);
+      if (target) {
+        if (href) onGo();
+        openStore(target);
+      }
+      return;
+    }
+    void copyLater(c.code).then((ok) => {
+      setLate(true);
+      setCopied(ok);
+      if (!ok && code.current) window.getSelection()?.selectAllChildren(code.current);
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-3 border border-sand bg-cream p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-display text-[30px] leading-none font-normal lining-nums">{couponOff(c)}</span>
+        <span className="truncate text-[13px] font-medium text-mute">{c.brand}</span>
+      </div>
+      {c.condition && <p className="m-0 text-[14px] leading-snug text-mute">{c.condition}</p>}
+      <span
+        ref={code}
+        className="flex min-h-11 items-center justify-center border border-dashed border-gold/50 bg-white px-4 text-center font-mono text-[15px] font-bold tracking-[0.08em] break-all select-all"
+      >
+        {c.code}
+      </span>
+      <button
+        type="button"
+        onClick={copy}
+        aria-label={href ? tp("copyAndGoLabel", { code: c.code }) : c.storeUrl ? t("copyAndOpenLabel", { code: c.code, brand: c.brand }) : t("copyLabel", { code: c.code })}
+        className={pillDark}
+      >
+        {copied ? t("copied") : copied === false ? t("copyManually") : href ? tp("copyAndGo") : c.storeUrl ? t("copyAndOpen") : t("copyCode")}
+      </button>
+      {late && target && (
+        <a href={target} target="_blank" rel="sponsored noopener noreferrer" onClick={href ? onGo : undefined} className={pillLight}>
+          {href ? tp("goToProduct") : t("goToStore")}
+        </a>
+      )}
+    </div>
+  );
+}
+
+/**
  * Produto ampliado, com a foto grande, marca, nome e categoria. O visitante que toca num produto vai direto para a
  * loja; esta janela abre quando alguém chega pelo link da figurinha dos stories (`?p=<id>`), com o botão da loja, e
  * quando a dona toca num produto da própria vitrine: para ela, no lugar da loja, o botão que cria a imagem de stories
- * do produto (rota /@fulana/story/<id>), que dá para compartilhar ou baixar, junto com o link que abre o produto na vitrine.
+ * do produto (rota /@fulana/story/<id>), que dá para compartilhar ou baixar, junto com o link que abre o produto na vitrine,
+ * e o link para a página do produto. Embaixo, os cupons da vitrine para a marca do produto (`coupons`), cada um com o
+ * botão que copia o código e abre o produto.
  */
 export function ProductModal({
   product: p,
+  coupons,
   owner,
   onBuy,
+  onCopy,
   onClose,
 }: {
   product: Product;
-  /** quem vê é a dona da vitrine: no lugar do botão da loja, o de criar a imagem de stories */
+  /** os cupons da vitrine que valem para este produto (os da marca dele) */
+  coupons: Coupon[];
+  /** quem vê é a dona da vitrine: o botão principal cria a imagem de stories, e a página do produto vem logo abaixo */
   owner: boolean;
-  /** clique no botão da loja: conta a métrica de compra */
+  /** ida para a loja pelo produto: conta a métrica de compra */
   onBuy: () => void;
+  /** cópia de um cupom: conta a métrica de cupom copiado */
+  onCopy: (couponId: string) => void;
   onClose: () => void;
 }) {
   const t = useTranslations("storefront.product");
@@ -273,11 +352,19 @@ export function ProductModal({
             {p.soldOut && <p className="m-0 text-[15px] text-mute">{t("soldOutText")}</p>}
             <div className="flex flex-col gap-2.5">
               {owner ? (
-                // a dona não compra o próprio produto: para ela a janela serve para a imagem de stories
-                <button type="button" onClick={() => setSharing(true)} className={pillDark}>
-                  {storyIcon}
-                  {t("share")}
-                </button>
+                // a dona não compra o próprio produto: para ela a janela serve para a imagem de stories, e o link leva à
+                // página do produto (para conferir, ou ir com o cupom copiado por um dos cupons abaixo)
+                <>
+                  <button type="button" onClick={() => setSharing(true)} className={pillDark}>
+                    {storyIcon}
+                    {t("share")}
+                  </button>
+                  {href && (
+                    <a href={href} target="_blank" rel="sponsored noopener noreferrer" onClick={onBuy} className={pillLight}>
+                      {t("goToProduct")}
+                    </a>
+                  )}
+                </>
               ) : (
                 href && (
                   <a href={href} target="_blank" rel="sponsored noopener noreferrer" onClick={onBuy} className={pillDark}>
@@ -289,6 +376,14 @@ export function ProductModal({
                 )
               )}
             </div>
+            {coupons.length > 0 && (
+              <section aria-label={t("coupons")} className="flex flex-col gap-2.5">
+                <h3 className="m-0 text-[12px] font-medium tracking-[0.22em] text-mute uppercase">{t("coupons")}</h3>
+                {coupons.map((c) => (
+                  <ProductCoupon key={c.id} coupon={c} href={href} onGo={onBuy} onCopy={() => onCopy(c.id)} />
+                ))}
+              </section>
+            )}
           </div>
         </div>
       )}

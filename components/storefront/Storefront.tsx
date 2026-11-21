@@ -6,11 +6,12 @@ import { Link } from "@/lib/i18n/navigation";
 import { BRAND } from "@/lib/brand";
 import { BackLink } from "@/components/brand/BackLink";
 import { Wordmark } from "@/components/brand/Logo";
-import { productHref, safeUrl } from "@/lib/vitrine/links";
+import { productHref } from "@/lib/vitrine/links";
+import { copyLater, copyNow, openStore } from "./copy";
 import { couponOff } from "@/lib/vitrine/pricing";
 import type { CommentList, Viewer } from "@/lib/vitrine/social";
 import { SOCIAL_LABELS, socialLinks, type SocialNetwork } from "@/lib/vitrine/socials";
-import { postItems, type Post, type PostMedia, type Product, type VitrineContent } from "@/lib/vitrine/types";
+import { postItems, type Coupon, type Post, type PostMedia, type Product, type VitrineContent } from "@/lib/vitrine/types";
 import { parseVideo, VIDEO_LABELS, videoEmbedUrl } from "@/lib/vitrine/video";
 import { Comments } from "./Comments";
 import { CoverLetter } from "@/components/home/CreatorCard";
@@ -38,46 +39,6 @@ const pillDark =
   "flex min-h-12 items-center justify-center border-0 bg-ink px-7 text-[12px] font-medium tracking-[0.18em] text-white uppercase no-underline hover:bg-[#2b2925]";
 const pillLight =
   "flex min-h-12 items-center justify-center border border-ink bg-transparent px-7 text-[12px] font-medium tracking-[0.18em] text-ink uppercase no-underline hover:bg-ink hover:text-white";
-
-/**
- * Copia na hora, ainda dentro do clique, e diz se deu certo. Usa o caminho antigo (textarea + execCommand) porque
- * ele responde sem esperar: assim a loja pode abrir no mesmo clique, e o Safari não a trata como pop-up.
- * É também o que costuma funcionar nos navegadores internos do Instagram e do TikTok.
- */
-function copyNow(text: string): boolean {
-  const before = document.activeElement as HTMLElement | null;
-  const area = document.createElement("textarea");
-  try {
-    area.value = text;
-    area.readOnly = true; // não abre o teclado no celular
-    area.style.cssText = "position:fixed;top:0;left:0;opacity:0;font-size:16px";
-    document.body.append(area);
-    area.select();
-    area.setSelectionRange(0, text.length); // iOS ignora o select() sozinho
-    return document.execCommand("copy");
-  } catch {
-    return false;
-  } finally {
-    area.remove();
-    before?.focus({ preventScroll: true });
-  }
-}
-
-/** Segunda tentativa, pela API moderna. Só responde depois do clique, então quem chama não abre a loja. */
-async function copyLater(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** O React bloqueia `javascript:` no href, mas não no window.open: só abre http(s). */
-function openStore(url: string) {
-  const safe = safeUrl(url);
-  if (safe) window.open(safe, "_blank", "noopener,noreferrer");
-}
 
 /** Métrica anônima da vitrine pública; nunca bloqueia nem falha visivelmente. */
 function track(handle: string, kind: "view" | "buy" | "copy" | "video" | "post", item?: string) {
@@ -114,6 +75,12 @@ function useViewer(handle: string, off: boolean) {
 
 /** Sem acento e minúsculo, para a busca achar "tenis" em "Tênis". */
 const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** Os cupons que valem para o produto: os da marca dele (cupom é da marca), mais o cupom ligado a ele em produto antigo. */
+const productCoupons = (p: Product, coupons: Coupon[]) => {
+  const brand = fold(p.brand.trim());
+  return coupons.filter((c) => c.id === p.couponId || (brand !== "" && fold(c.brand.trim()) === brand));
+};
 
 /** Estado "copiado" que volta ao normal sozinho. */
 function useFlash(ms = 2500) {
@@ -1408,11 +1375,17 @@ export function Storefront({
         <ProductModal
           key={viewing.product.id}
           product={viewing.product}
-          owner={Boolean(viewer?.user && viewer.owner)}
+          coupons={productCoupons(viewing.product, coupons)}
+          owner={owner}
           onBuy={() => {
+            // a dona indo à página do próprio produto não conta como compra
+            if (owner) return;
             send("buy", viewing.product.id);
             // o clique também conta para o post de onde veio
             if (viewing.postId) send("post", viewing.postId);
+          }}
+          onCopy={(id) => {
+            if (!owner) send("copy", id);
           }}
           onClose={() => setViewing(null)}
         />
