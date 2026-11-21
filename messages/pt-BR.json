@@ -1036,7 +1036,7 @@
     "persona": {
       "question": "O que você veio fazer aqui?",
       "creator": "Montar minha vitrine de cupons",
-      "creatorHint": "Sou creator e divulgo marcas",
+      "creatorHint": "Sou criador de conteúdo e divulgo marcas",
       "shopper": "Encontrar cupons para comprar",
       "shopperHint": "Quero achar descontos de marcas"
     },
@@ -1058,10 +1058,6 @@
     "optIn": {
       "title": "Quero receber propostas de marcas",
       "hint": "Podemos te avisar quando marcas quiserem divulgar com você. Você pode mudar isso depois."
-    },
-    "recording": {
-      "title": "Quero participar do programa de testes, com a minha navegação gravada",
-      "hint": "Gravamos como você navega pelo MyVitri, para encontrar o que atrapalha. Campos de digitação não aparecem na gravação. Você pode retirar isso depois, pedindo por e-mail."
     },
     "interests": {
       "title": "O que você costuma comprar?",
@@ -1107,7 +1103,7 @@
         "outro": "Outro"
       },
       "heardFrom": {
-        "outra-creator": "Vitrine de outra creator",
+        "outra-creator": "Vitrine de outro criador de conteúdo",
         "indicacao": "Indicação de alguém",
         "google": "Busca no Google",
         "anuncio": "Anúncio",
@@ -1139,7 +1135,7 @@
         "title": "Boas-vindas, {name}!",
         "titleNoName": "Boas-vindas ao MyVitri!",
         "creator": "Esta é a sua página inicial. Em menos de um minuto mostramos onde fica cada coisa: seu link, seus números, o editor da vitrine e o que dá para explorar.",
-        "shopper": "Esta é a sua página inicial. Em menos de um minuto mostramos como achar vitrines, cupons e produtos indicados por creators."
+        "shopper": "Esta é a sua página inicial. Em menos de um minuto mostramos como achar vitrines, cupons e produtos indicados por criadores de conteúdo."
       },
       "link": {
         "title": "O link da sua vitrine",

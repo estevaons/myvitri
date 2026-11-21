@@ -86,7 +86,6 @@ export function OnboardingFlow({ next }: { next: string }) {
   const [heardFrom, setHeardFrom] = useState<string | null>(null);
   const [interests, setInterests] = useState<string[]>([]);
   const [optIn, setOptIn] = useState(false);
-  const [recording, setRecording] = useState(false);
   // texto de cada "Outro" (só vai para o banco se a opção estiver marcada)
   const [otherNetworks, setOtherNetworks] = useState("");
   const [otherAudience, setOtherAudience] = useState("");
@@ -101,17 +100,6 @@ export function OnboardingFlow({ next }: { next: string }) {
   const isLast = persona !== null && step === last;
 
   // "Como você conheceu" aparece nos dois caminhos (na última tela de cada um)
-  // aceite de gravação de sessão: última tela das duas trilhas, sempre opcional
-  const recordingCheckbox = (
-    <label className="flex cursor-pointer items-start gap-3 border border-sand bg-white p-4">
-      <input type="checkbox" checked={recording} onChange={(e) => setRecording(e.target.checked)} className="mt-1 size-4 accent-ink" />
-      <span className="flex flex-col gap-1">
-        <span className="text-[15px] font-medium">{t("recording.title")}</span>
-        <span className="text-[14px] text-mute">{t("recording.hint")}</span>
-      </span>
-    </label>
-  );
-
   const heardFromQuestion = (
     <Question title={t("heardFrom.title")}>
       <div className="flex flex-wrap gap-2">
@@ -156,7 +144,6 @@ export function OnboardingFlow({ next }: { next: string }) {
           {persona && <input type="hidden" name="heardFrom" value={heardFrom ?? ""} />}
           {persona && heardFrom === "outro" && <input type="hidden" name="otherHeardFrom" value={otherHeardFrom} />}
           {persona === "creator" && optIn && <input type="hidden" name="marketingOptIn" value="on" />}
-          {persona && recording && <input type="hidden" name="recording" value="on" />}
           {persona === "shopper" && interests.map((v) => <input key={`i-${v}`} type="hidden" name="interests" value={v} />)}
           {persona === "shopper" && interests.includes("outro") && <input type="hidden" name="otherInterests" value={otherInterests} />}
 
@@ -230,7 +217,6 @@ export function OnboardingFlow({ next }: { next: string }) {
                   <span className="text-[14px] text-mute">{t("optIn.hint")}</span>
                 </span>
               </label>
-              {recordingCheckbox}
             </div>
           )}
 
@@ -247,7 +233,7 @@ export function OnboardingFlow({ next }: { next: string }) {
             </Question>
           )}
 
-          {persona === "shopper" && step === 2 && <div className="flex flex-col gap-8">{heardFromQuestion}{recordingCheckbox}</div>}
+          {persona === "shopper" && step === 2 && heardFromQuestion}
 
           {state.error && (
             <p role="alert" className="m-0 text-sm font-semibold text-[#A3361B]">

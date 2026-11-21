@@ -1059,10 +1059,6 @@
       "title": "I want to receive brand proposals",
       "hint": "We can let you know when brands want to work with you. You can change this later."
     },
-    "recording": {
-      "title": "I want to join the testing program, with my browsing recorded",
-      "hint": "We record how you move around MyVitri, to find what gets in the way. Typing fields do not appear in the recording. You can withdraw later by email."
-    },
     "interests": {
       "title": "What do you usually buy?",
       "hint": "Pick as many as you like. Your home page shows coupons for these topics."
