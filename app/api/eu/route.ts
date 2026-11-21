@@ -1,6 +1,7 @@
 import { getUser } from "@/lib/supabase/server";
+import { safeUrl } from "@/lib/vitrine/links";
 import type { Viewer } from "@/lib/vitrine/social";
-import { loadViewerState } from "@/lib/vitrine/store";
+import { findMineSummary, loadViewerState } from "@/lib/vitrine/store";
 
 const reply = (viewer: Viewer) => Response.json(viewer, { headers: { "Cache-Control": "private, no-store" } });
 
@@ -17,7 +18,10 @@ export async function GET(request: Request) {
   const meta = user.user_metadata as { name?: string; full_name?: string; avatar_url?: string };
   const profile = { id: user.id, name: meta.name || meta.full_name || "", avatarUrl: meta.avatar_url ?? "" };
   try {
-    return reply({ user: profile, ...(await loadViewerState(supabase, user.id, handle)) });
+    const [state, mine] = await Promise.all([loadViewerState(supabase, user.id, handle), findMineSummary(supabase, user.id)]);
+    // quem tem vitrine comenta com o nome e a foto dela, como a lista de comentários mostra
+    if (mine) Object.assign(profile, { name: mine.name || profile.name, avatarUrl: safeUrl(mine.avatarUrl || profile.avatarUrl) });
+    return reply({ user: profile, ...state });
   } catch (e) {
     // a pessoa continua identificada: só o coração começa apagado e o excluir fica restrito aos próprios comentários
     console.error("viewer", e);

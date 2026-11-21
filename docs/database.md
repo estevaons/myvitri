@@ -414,8 +414,8 @@ Comentários na vitrine pública. `20261105010100_comments.sql`. Sem edição: p
 | `id` | `uuid` | não | `gen_random_uuid()` | PK |
 | `vitrine_id` | `uuid` | não | — | FK → `vitrines(id)` **on delete cascade** |
 | `author_id` | `uuid` | não | `auth.uid()` | FK → `auth.users(id)` **on delete cascade**. Sobrescrito pelo trigger |
-| `author_name` | `text` | não | `''` | `CHECK char_length between 1 and 80`. Cópia do nome da conta (Google ou cadastro) na hora de comentar (`auth.users` não é legível pelo público). Sobrescrito pelo trigger |
-| `author_avatar_url` | `text` | não | `''` | Cópia da foto do Google (vazia em conta de e-mail e senha); só `https://`, senão `''`. Sobrescrito pelo trigger |
+| `author_name` | `text` | não | `''` | `CHECK char_length between 1 and 80`. Cópia do nome da conta (Google ou cadastro) na hora de comentar (`auth.users` não é legível pelo público). Sobrescrito pelo trigger. Na exibição, o app prefere o nome da vitrine atual do autor e usa esta cópia só se ele não tem vitrine |
+| `author_avatar_url` | `text` | não | `''` | Cópia da foto do Google (vazia em conta de e-mail e senha); só `https://`, senão `''`. Sobrescrito pelo trigger. Na exibição, o app prefere a foto da vitrine atual do autor (a cópia fica obsoleta quando a foto é trocada e apagada do Storage) |
 | `body` | `text` | não | — | `CHECK char_length(btrim(body)) between 1 and 500`. O trigger faz o `trim` |
 | `created_at` | `timestamptz` | não | `now()` | Sobrescrito pelo trigger |
 | `parent_id` | `uuid` | sim | `null` | FK → `comments(id)` **on delete cascade** (`20261109000000_comment_replies.sql`). `null`: comentário original. Preenchido: resposta. É um nível só: o trigger troca o `parent_id` pelo do original quando se responde a uma resposta |
