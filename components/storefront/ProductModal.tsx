@@ -7,6 +7,7 @@ import { couponOff } from "@/lib/vitrine/pricing";
 import type { Coupon, Post, Product } from "@/lib/vitrine/types";
 import { copyLater, copyNow, openStore } from "./copy";
 import { ProductArt } from "./ProductIcon";
+import { usePhotoScene } from "./ProductPhoto";
 
 // os mesmos botões retos em caixa alta da vitrine
 const pillDark =
@@ -319,6 +320,7 @@ export function ProductModal({
   const tCat = useTranslations("productCategories");
   const [sharing, setSharing] = useState(false);
   const href = p.soldOut ? "" : productHref(p);
+  const scene = usePhotoScene(p.imageUrl);
 
   return (
     <Sheet label={p.name} onClose={onClose}>
@@ -335,14 +337,23 @@ export function ProductModal({
         />
       ) : (
         <div className="grid md:grid-cols-2">
-          <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
-            <ProductArt
-              product={p}
-              // margem em volta da foto: a peça respira dentro do quadrado creme em vez de encostar nas bordas
-              className={`box-border size-full object-contain p-4 mix-blend-multiply md:p-12 ${p.soldOut ? "opacity-50 grayscale" : ""}`}
-              iconClassName={`w-[46%] ${p.soldOut ? "opacity-40" : ""}`}
-            />
-          </div>
+          {scene ? (
+            // Foto de cenário (um look): de ponta a ponta, na proporção dela, sem a moldura creme. A altura tem teto (no
+            // celular, para o nome e o botão de compra aparecerem sem rolar); passando dele, as pontas da foto ficam de fora.
+            // Fundo branco: se a foto couber inteira, o multiply sobre branco não muda as cores.
+            <div className="relative w-full self-start overflow-hidden bg-white max-md:max-h-[60dvh] md:max-h-[84dvh]" style={{ aspectRatio: scene.ratio }}>
+              <ProductArt product={p} photoClassName={p.soldOut ? "opacity-50 grayscale" : undefined} />
+            </div>
+          ) : (
+            <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-cream">
+              <ProductArt
+                product={p}
+                // foto de loja: a peça respira dentro do quadrado creme em vez de encostar nas bordas
+                className={`box-border size-full object-contain p-4 mix-blend-multiply md:p-12 ${p.soldOut ? "opacity-50 grayscale" : ""}`}
+                iconClassName={`w-[46%] ${p.soldOut ? "opacity-40" : ""}`}
+              />
+            </div>
+          )}
           <div className="flex min-w-0 flex-col gap-5 p-6 md:justify-center md:p-10">
             <div className="flex flex-col gap-2">
               {p.brand && <span className="text-[12px] font-medium tracking-[0.22em] text-mute uppercase">{p.brand}</span>}

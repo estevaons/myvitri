@@ -10,14 +10,14 @@ export type CropKind = "avatar" | "cover" | "product" | "post" | "postVideo";
 
 /**
  * O formato de cada lugar. Perfil: quadrado, mostrado redondo. Capa: 4:3, como no celular e na janela da capa (no computador
- * a vitrine mostra só a faixa 21:9 do meio, marcada no recorte). Produto: quadrado e pode afastar até caber inteiro, com
- * fundo branco, porque a vitrine mostra a foto da loja inteira. Outfit: 4:5, o card da vitrine.
+ * a vitrine mostra só a faixa 21:9 do meio, marcada no recorte). Produto: quadrado e pode afastar até caber inteiro; a
+ * sobra vira fundo branco só em foto de fundo branco (`trim`). Outfit: 4:5, o card da vitrine.
  */
-/** `fill`: a cor da sobra quando a foto é afastada (padrão: branco). */
-const SHAPE: Record<CropKind, { aspect: number; round?: boolean; fit?: boolean; fill?: string }> = {
+/** `fill`: a cor da sobra quando a foto é afastada (padrão: branco). `trim`: ver `render`. */
+const SHAPE: Record<CropKind, { aspect: number; round?: boolean; fit?: boolean; fill?: string; trim?: boolean }> = {
   avatar: { aspect: 1, round: true },
   cover: { aspect: 4 / 3 },
-  product: { aspect: 1, fit: true },
+  product: { aspect: 1, fit: true, trim: true },
   post: { aspect: 4 / 5 },
   // capa de vídeo: vídeo deitado (YouTube) começa inteiro, com faixas pretas como no player, sem jogar fora a largura;
   // vídeo em pé (Reels, TikTok) começa preenchendo o quadro
@@ -55,16 +55,65 @@ function geometry(p: Photo, aspect: number, fit: boolean) {
   return { base, zMax, clamp };
 }
 
-/** Desenha o recorte no tamanho em que a foto vai subir (sem ampliar) e devolve um PNG, que o envio converte para webp. */
+/**
+ * Se a foto tem fundo branco: quase toda a borda dela (lida numa cópia de até 64 px) é branca ou quase. Foto de loja, com a
+ * peça sobre fundo branco, dá ~100%; foto com cenário (um look, uma mesa) fica perto de 0%.
+ */
+function whiteBackground(p: Photo): boolean {
+  const scale = 64 / Math.max(p.w, p.h);
+  const w = Math.max(1, Math.round(p.w * scale));
+  const h = Math.max(1, Math.round(p.h * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+  // PNG transparente vira fundo branco no envio: conta como branco aqui também
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(p.el, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  let edge = 0;
+  let white = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      // as duas linhas e colunas de fora de cada lado
+      if (y > 1 && y < h - 2 && x > 1 && x < w - 2) continue;
+      const i = (y * w + x) * 4;
+      edge++;
+      if (Math.min(data[i], data[i + 1], data[i + 2]) >= 235) white++;
+    }
+  }
+  return white / edge >= 0.8;
+}
+
+/**
+ * Desenha o recorte no tamanho em que a foto vai subir (sem ampliar) e devolve um PNG, que o envio converte para webp.
+ * `trim` (o produto): com a foto afastada, a sobra só é preenchida se a foto tiver fundo branco (o branco se funde ao
+ * card). Foto com cenário sobe sem a sobra, na proporção do que ficou no quadro, e a vitrine a encaixa preenchendo o card
+ * (`ProductPhoto`) em vez de mostrar faixas dos lados.
+ */
 async function render(p: Photo, v: View, aspect: number, base: number, kind: CropKind, fill: string): Promise<File> {
   const s = base * v.z;
   const aw = 1 / s;
   const ah = 1 / aspect / s;
-  const x0 = v.cx - aw / 2;
-  const y0 = v.cy - ah / 2;
-  const long = Math.max(1, Math.min(maxSide(kind), Math.round(Math.max(aw, ah))));
-  const outW = aspect >= 1 ? long : Math.max(1, Math.round(long * aspect));
-  const outH = aspect >= 1 ? Math.max(1, Math.round(long / aspect)) : long;
+  let x0 = v.cx - aw / 2;
+  let y0 = v.cy - ah / 2;
+  let ww = aw;
+  let wh = ah;
+  const gap = x0 < -0.5 || y0 < -0.5 || x0 + aw > p.w + 0.5 || y0 + ah > p.h + 0.5;
+  if (SHAPE[kind].trim && gap && !whiteBackground(p)) {
+    // só a parte do quadro que tem foto
+    const x1 = Math.min(x0 + aw, p.w);
+    const y1 = Math.min(y0 + ah, p.h);
+    x0 = Math.max(x0, 0);
+    y0 = Math.max(y0, 0);
+    ww = x1 - x0;
+    wh = y1 - y0;
+  }
+  const ratio = ww / wh;
+  const long = Math.max(1, Math.min(maxSide(kind), Math.round(Math.max(ww, wh))));
+  const outW = ratio >= 1 ? long : Math.max(1, Math.round(long * ratio));
+  const outH = ratio >= 1 ? Math.max(1, Math.round(long / ratio)) : long;
   const canvas = document.createElement("canvas");
   canvas.width = outW;
   canvas.height = outH;
@@ -74,7 +123,7 @@ async function render(p: Photo, v: View, aspect: number, base: number, kind: Cro
   ctx.fillRect(0, 0, outW, outH);
   ctx.imageSmoothingQuality = "high";
   // a foto inteira com a transformação do recorte (recortar pela origem com coordenadas negativas falha em alguns navegadores)
-  ctx.setTransform(outW / aw, 0, 0, outH / ah, (-x0 * outW) / aw, (-y0 * outH) / ah);
+  ctx.setTransform(outW / ww, 0, 0, outH / wh, (-x0 * outW) / ww, (-y0 * outH) / wh);
   ctx.drawImage(p.el, 0, 0, p.w, p.h);
   const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/png"));
   if (!blob) throw new Error("recorte inválido");
