@@ -1,8 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { ddmm, isDay, isExpired, todayBR } from "@/lib/vitrine/pricing";
 import { COUPON_EXTRA, type Coupon } from "@/lib/vitrine/types";
-import { LogoPicker } from "./LogoPicker";
 import { Field, Group, MoneyInput, PercentInput, Segmented, TextInput, UrlInput, inputCls, labelCls, newId } from "./ui";
 
 export const newCoupon = (): Coupon => ({
@@ -23,6 +23,7 @@ export const isBlankCoupon = (c: Coupon) => !c.brand.trim() && !c.code.trim();
 /** Os campos de um cupom, dentro da janela de edição. Cada mudança vai direto para o rascunho. */
 export function CouponForm({ coupon: c, onChange }: { coupon: Coupon; onChange: (patch: Partial<Coupon>) => void }) {
   const t = useTranslations("editor.coupons");
+  const locale = useLocale();
   return (
     <>
       <Group title={t("groupCoupon")}>
@@ -69,12 +70,25 @@ export function CouponForm({ coupon: c, onChange }: { coupon: Coupon; onChange: 
         <Field label={t("condition")}>
           <TextInput value={c.condition} onChange={(condition) => onChange({ condition })} maxLength={120} placeholder={t("conditionPlaceholder")} />
         </Field>
+        <Field label={t("expiresAt")} hint={c.expiresAt && isExpired(c, todayBR()) ? t("expiredHint", { date: ddmm(c.expiresAt, locale) }) : t("expiresHint")}>
+          {/* vazio = sem validade; o início agendado (`startsAt`) saiu do produto e é zerado junto para não travar a publicação */}
+          <input
+            type="date"
+            value={c.expiresAt ?? ""}
+            // `max` faz o Chrome parar o ano em 4 dígitos; o resto que não for data de verdade é ignorado
+            max="9999-12-31"
+            onChange={(e) => {
+              const v = e.target.value;
+              if (!v || isDay(v)) onChange({ expiresAt: v || null, startsAt: null });
+            }}
+            className={`${inputCls} [&::-webkit-date-and-time-value]:text-left`}
+          />
+        </Field>
       </Group>
       <Group title={t("groupStore")}>
         <Field label={t("storeUrl")}>
           <UrlInput value={c.storeUrl} onChange={(storeUrl) => onChange({ storeUrl })} />
         </Field>
-        <LogoPicker storeUrl={c.storeUrl} logoUrl={c.logoUrl} onChange={(logoUrl) => onChange({ logoUrl })} />
         {/* "Como usar" fica recolhido; já abre se o cupom tiver os passos preenchidos. */}
         <details open={!!c.howTo} className="group flex flex-col">
           <summary className="-mx-1 flex min-h-11 cursor-pointer list-none items-center gap-1.5 px-1 text-[13px] font-medium text-[#5E5A52] hover:text-ink [&::-webkit-details-marker]:hidden">

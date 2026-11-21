@@ -51,6 +51,7 @@ async function VitrinePage({ params }: Pick<PageProps<"/[locale]/[handle]">, "pa
       <JsonLd data={await vitrineJsonLd(vitrine.content)} />
       <Storefront
         content={vitrine.content}
+        today={vitrine.today}
         comments={comments}
         favorites={favorites}
         // em Suspense próprio: a vitrine aparece sem esperar as recomendações, que chegam depois

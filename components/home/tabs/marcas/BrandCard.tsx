@@ -5,13 +5,6 @@ import type { BrandCreator, CatalogBrand } from "@/lib/vitrine/catalog/brands";
 import { couponOff } from "@/lib/vitrine/pricing";
 import { kicker } from "../../chrome";
 
-/** Logo da marca num círculo; sem logo, nada (o nome logo abaixo já identifica a marca). */
-export function BrandLogo({ url, className }: { url: string; className: string }) {
-  if (!url) return null;
-  // eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária
-  return <img src={url} alt="" loading="lazy" className={`${className} flex-none rounded-full bg-white object-contain`} />;
-}
-
 /** Rostos sobrepostos de quem indica a marca (até 3). */
 export function CreatorFaces({ creators }: { creators: BrandCreator[] }) {
   return (
@@ -43,7 +36,6 @@ export function BrandCard({ b, href, selected }: { b: CatalogBrand; href: Href; 
       aria-controls={selected ? "marca-detalhe" : undefined}
       className={`group flex min-w-0 flex-col gap-4 p-4 text-ink no-underline md:gap-5 md:p-6 ${selected ? "bg-sand shadow-[inset_0_0_0_1px_var(--color-ink)]" : "bg-cream hover:bg-sand"}`}
     >
-      <BrandLogo url={b.logoUrl} className="size-10 md:size-12" />
       <span className="flex min-w-0 flex-col gap-2">
         <span className="font-display text-[24px] leading-[1.05] font-normal break-words md:text-[clamp(26px,2.4vw,34px)]">{b.brand}</span>
         <span className={`${kicker} text-[11px] ${best ? "text-gold" : "text-mute"}`}>

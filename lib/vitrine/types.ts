@@ -47,6 +47,7 @@ export const couponSchema = z
     /** AAAA-MM-DD ou null quando não expira */
     expiresAt: date.nullable(),
     storeUrl: httpUrl,
+    /** logo da marca: fora do editor e de todas as telas por enquanto; segue no tipo só para não perder o que já foi salvo */
     logoUrl: httpUrl,
     /** passo a passo, um por linha */
     howTo: text(400),

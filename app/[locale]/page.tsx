@@ -120,13 +120,7 @@ export default async function Home() {
                 href={vitrineHref(c.handle, "cupons")}
                 className="box-border flex w-[68%] flex-none snap-start flex-col gap-4 border border-sand bg-cream p-5 text-ink no-underline hover:border-gold md:min-h-[260px] md:w-auto md:p-6"
               >
-                <span className="flex max-w-full min-w-0 items-center gap-2">
-                  {c.logoUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária
-                    <img src={c.logoUrl} alt="" loading="lazy" className="size-8 flex-none rounded-full bg-white object-contain" />
-                  )}
-                  <span className="truncate text-[15px] font-medium">{c.brand}</span>
-                </span>
+                <span className="max-w-full truncate text-[15px] font-medium">{c.brand}</span>
                 <div className="flex flex-col gap-1.5">
                   <span className="font-display text-[46px] leading-[0.95] font-normal lining-nums md:text-[58px]">{couponOff(c)}</span>
                   {c.condition && <span className="text-[15px] leading-snug text-mute">{c.condition}</span>}
@@ -160,13 +154,7 @@ export default async function Home() {
                 <span className="text-[13px] text-mute">
                   {b.creators > 1 ? t("brands.inVitrines", { count: b.creators }) : b.creator}
                 </span>
-                <span className="flex min-w-0 items-center gap-3">
-                  {b.logoUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element -- logo vem de URL arbitrária
-                    <img src={b.logoUrl} alt="" loading="lazy" className="size-10 flex-none rounded-full bg-white object-contain" />
-                  )}
-                  <span className="font-display text-[clamp(26px,2.6vw,38px)] leading-[1] font-normal">{b.brand}</span>
-                </span>
+                <span className="min-w-0 font-display text-[clamp(26px,2.6vw,38px)] leading-[1] font-normal">{b.brand}</span>
                 <span className={`${kicker} text-[11px] ${b.best ? "text-gold" : "text-mute"}`}>
                   {b.best ? t("brands.upTo", { off: couponOff(b.best) }) : tCount("products", { count: b.products })}
                 </span>

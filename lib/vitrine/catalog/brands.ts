@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { createPublicSupabase } from "@/lib/supabase/server";
 import { toCategory, type CategoryId } from "../categories";
 import { HOME_TAG, rank } from "../data";
+import { todayBR } from "../pricing";
 import { toCoupon } from "../store";
 import type { Coupon } from "../types";
 import { slug } from "./products";
@@ -20,7 +21,6 @@ export type CatalogBrand = {
   /** nome sem espaços nas pontas, em minúsculas (como `groupBrands`); vai na URL (`?brand=`) */
   key: string;
   brand: string;
-  logoUrl: string;
   /** todos os cupons ativos da marca, do melhor para o pior (`rank`); vazio quando a marca só tem produtos */
   coupons: BrandCoupon[];
   /** produtos à venda da marca, somando as vitrines (o mesmo produto em duas vitrines conta uma vez, como na aba Produtos) */
@@ -55,10 +55,13 @@ export async function getCatalogBrands(): Promise<CatalogBrands> {
   cacheLife("hours");
 
   const db = createPublicSupabase();
+  // horas: cupom vencido sai do diretório mesmo sem nova publicação
+  const today = todayBR();
   const [coupons, products] = await Promise.all([
     db
       .from("coupons")
       .select("*, vitrines!inner(handle, name, avatar_url)")
+      .or(`expires_at.is.null,expires_at.gte.${today}`)
       .order("position")
       .limit(MAX_COUPONS),
     db
@@ -71,7 +74,7 @@ export async function getCatalogBrands(): Promise<CatalogBrands> {
   if (error) throw error;
 
   const brands = new Map<string, CatalogBrand>();
-  const blank = (key: string): CatalogBrand => ({ key, brand: "", logoUrl: "", coupons: [], products: 0, productsKey: "", creators: [], categories: [] });
+  const blank = (key: string): CatalogBrand => ({ key, brand: "", coupons: [], products: 0, productsKey: "", creators: [], categories: [] });
   const couponBrand = new Map<string, string>();
   for (const { vitrines: v, ...row } of coupons.data ?? []) {
     const c: BrandCoupon = { ...toCoupon(row), code: "", howTo: "", storeUrl: "", handle: v.handle, name: v.name, avatarUrl: v.avatar_url };
@@ -109,9 +112,8 @@ export async function getCatalogBrands(): Promise<CatalogBrands> {
   for (const b of brands.values()) {
     b.coupons.sort((x, y) => rank(y) - rank(x));
     const productBrand = mostUsed(spellings.get(b.key) ?? new Map());
-    // nome e logo do melhor cupom (sem logo nele, o primeiro que houver); só com produtos, a grafia mais usada neles
+    // nome do melhor cupom; só com produtos, a grafia mais usada neles
     b.brand = b.coupons[0]?.brand.trim() || productBrand;
-    b.logoUrl = b.coupons.find((c) => c.logoUrl)?.logoUrl ?? "";
     b.products = brandProducts.get(b.key)?.size ?? 0;
     b.productsKey = productBrand ? slug(productBrand) : "";
     const byHandle = new Map<string, BrandCreator>();

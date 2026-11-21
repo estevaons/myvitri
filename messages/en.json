@@ -21,6 +21,7 @@
     "couponsTitle": "Coupons",
     "couponsLabel": "Active coupons",
     "howTo": "How to use",
+    "expiry": "{kind, select, expired {Expired: not shown on your storefront} today {Expires today} tomorrow {Expires tomorrow} days {Expires in {days} days} other {Valid until {date}}}",
     "copyAndOpenLabel": "Copy coupon {code} and open the {brand} store",
     "copyLabel": "Copy coupon {code}",
     "copied": "Copied!",
@@ -93,7 +94,6 @@
       "text": "Gather your coupons and favorite products in a single link for your bio. It's free and ready in 2 minutes.",
       "button": "Create my storefront"
     },
-    "footer": "Coupons may change at the brand's store.",
     "seeOutfits": "See outfits"
   },
   "auth": {
@@ -396,7 +396,6 @@
     "publishItem": "{item, select, coupons {Coupon} products {Product} other {Outfit}} {n}: {message}",
     "publishFailed": "Error while saving. Try again.",
     "importFailed": "We couldn't read that link. Fill in the details by hand.",
-    "logoFailed": "We couldn't open the store's website. Check the link.",
     "rateLimited": "Too many lookups in a short time. Wait a few minutes and try again, or fill in the details by hand.",
     "videoLink": "That link isn't an Instagram, TikTok or YouTube video. Copy it from the video's Share button.",
     "imageType": "Use a PNG, JPG, SVG or WebP image.",
@@ -829,6 +828,9 @@
       "kind": "Discount type",
       "condition": "Condition (optional)",
       "conditionPlaceholder": "E.g. On your first purchase",
+      "expiresAt": "Expiry date (optional)",
+      "expiresHint": "Last day the coupon is valid. After that, it leaves your storefront on its own.",
+      "expiredHint": "Expired on {date} and already left your storefront. Change the date to bring it back.",
       "storeUrl": "Store link (optional)",
       "howTo": "How to use (optional)",
       "steps": "Steps",
@@ -839,27 +841,6 @@
       "groupStore": "Store",
       "removeTitle": "Delete this coupon?",
       "removeText": "It is also removed from the products linked to it."
-    },
-    "logo": {
-      "status": {
-        "start": "Tap + to upload an image, or fill in the store link and we'll look for the logo.",
-        "notFound": "We didn't find a logo on the site. Tap + to upload an image.",
-        "found": "{count, plural, one {We found this one} other {We found these}} on the store's site. Tap to use."
-      },
-      "label": "Brand logo (optional)",
-      "group": "Brand logo",
-      "inUse": "Logo in use",
-      "use": "Use logo {n} from the store's site",
-      "remove": "Remove logo",
-      "other": "Upload or paste another logo",
-      "uploading": "Uploading image…",
-      "searching": "Searching the store's site…",
-      "sending": "Uploading…",
-      "send": "Upload image",
-      "urlPlaceholder": "Paste the image link (https://…)",
-      "urlLabel": "Logo image link",
-      "broken": "That image didn't load. Check that the link ends in .png, .jpg, .svg or .webp.",
-      "tip": "A square image works best. It appears in a circle next to the brand name."
     },
     "image": {
       "sending": "Uploading…",

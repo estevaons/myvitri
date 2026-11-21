@@ -17,7 +17,7 @@ import { isTourId } from "@/lib/onboarding/tours";
 import { createPublicSupabase, getUser } from "@/lib/supabase/server";
 import { commentsTag, favoritesTag, HOME_TAG, vitrineTag } from "@/lib/vitrine/data";
 import { googlePhoto, saveClaim, starterContent } from "@/lib/vitrine/claim";
-import { findStoreLogos, importProductFromUrl, type ImportedProduct } from "@/lib/vitrine/import-link";
+import { importProductFromUrl, type ImportedProduct } from "@/lib/vitrine/import-link";
 import { listNotifications, markAllRead, type Notification } from "@/lib/vitrine/notifications";
 import { importVideoFromUrl, NotAVideoError, type ImportedVideo } from "@/lib/vitrine/video-import";
 import { COMMENT_MAX, type SocialResult } from "@/lib/vitrine/social";
@@ -616,7 +616,7 @@ export type ImportResult = { ok: true; product: ImportedProduct } | { ok: false;
  * Ritmo por conta das ações que acessam sites de fora a pedido de quem está logado (limites em take_rate_limit,
  * no banco: em serverless não há memória compartilhada). Sem a migração aplicada, deixa passar.
  */
-async function withinRate(supabase: Awaited<ReturnType<typeof getUser>>["supabase"], bucket: "import" | "logo") {
+async function withinRate(supabase: Awaited<ReturnType<typeof getUser>>["supabase"], bucket: "import") {
   const { data, error } = await supabase.rpc("take_rate_limit", { p_bucket: bucket });
   if (error) {
     console.error("take_rate_limit", bucket, error);
@@ -656,22 +656,8 @@ export async function importVideoAction(url: string): Promise<{ ok: true; video:
   }
 }
 
-/** Logos encontrados no site da loja do cupom, para a pessoa escolher. */
-export async function findLogoAction(url: string): Promise<{ ok: true; logos: string[] } | { ok: false; error: string }> {
-  const t = await errors();
-  const { supabase, user } = await getUser();
-  if (!user) return { ok: false, error: t("sessionExpired") };
-  if (!(await withinRate(supabase, "logo"))) return { ok: false, error: t("rateLimited") };
-  try {
-    return { ok: true, logos: await findStoreLogos(url) };
-  } catch {
-    return { ok: false, error: t("logoFailed") };
-  }
-}
-
 /** Para onde vai cada tipo de imagem enviada pelo editor, e o que cada bucket aceita. */
 const UPLOADS = {
-  logo: { bucket: "brand-logos", types: { "image/webp": "webp", "image/png": "png" }, maxBytes: 1_048_576 },
   cover: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
   avatar: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },
   product: { bucket: "vitrine-photos", types: { "image/webp": "webp", "image/jpeg": "jpg" }, maxBytes: 2_097_152 },

@@ -14,7 +14,7 @@ Pense no banco como um **arquivo de pastas de uma loja de departamento**:
 - Existe ainda um **caderno de visitas** (`events`): toda vez que alguém abre a vitrine ou clica no produto ou em "copiar cupom", uma linha anônima é anotada ali. É daí que saem os gráficos de métricas.
 - Cada conta tem ainda uma **ficha de boas-vindas** (`profiles`): as poucas perguntas que a pessoa responde logo depois de criar a conta (se divulga ou só procura cupons, em quais redes, o tamanho do público, como conheceu o MyVitri) e de onde ela veio (um "primeiro toque" de atribuição, sem IP). Quem pulou também ganha uma ficha, só marcada como pulada, para não ser perguntada de novo. A mesma ficha guarda quais **passeios guiados** da plataforma a pessoa já fez (`profiles.tours`, migração `20261117000000`, já aplicada em produção), para o tour da home e do editor não abrir de novo.
 - Fora do app, num **escritório separado** (o schema `analytics`), ficam duas planilhas prontas que cruzam contas, fichas, vitrines e visitas para mostrar o funil de ativação. O app nunca lê esse escritório e a chave pública não abre a porta dele.
-- As **fotos** enviadas (capa, perfil, fotos de post, logos de marca) não ficam no banco: ficam em "baldes" de arquivos (Supabase Storage), cada usuário na sua própria pasta.
+- As **fotos** enviadas (capa, perfil e fotos de post e de produto) não ficam no banco: ficam em "baldes" de arquivos (Supabase Storage), cada usuário na sua própria pasta.
 
 Quem cuida da segurança é o próprio banco: regras chamadas **RLS** (Row Level Security) dizem "qualquer pessoa pode **ler** uma vitrine, mas só a dona pode **alterar**". O app nunca usa uma chave de administrador; ele sempre fala com o banco "como" a pessoa logada (ou como visitante anônimo).
 
@@ -287,11 +287,11 @@ Cupons de desconto de uma vitrine. `20261102000000_vitrines.sql:18-30` + colunas
 | `kind` | `text` | não | — | `CHECK kind in ('percent','fixed')` |
 | `value` | `int` | não | — | `CHECK value > 0 and (kind = 'fixed' or value <= 100)`. `percent`: 1–100; `fixed`: centavos. |
 | `condition` | `text` | não | `''` | Sem limite no banco; o Zod limita a 120 (`lib/vitrine/types.ts:30`). |
-| `expires_at` | `date` | sim | — | Sem uso: a validade saiu do produto, nada lê nem filtra por ela e a interface não a preenche (cupons novos ficam `null`). A coluna segue no banco e no schema Zod (`expiresAt`). |
+| `expires_at` | `date` | sim | — | Último dia de validade do cupom (`expiresAt`, `AAAA-MM-DD`); `null` = sem validade. O campo "Validade (opcional)" do `CouponForm` a preenche. Cupom com `expires_at < hoje` (dia em `America/Sao_Paulo`, `todayBR`) sai de tudo que é público; `getCatalogBrands` já filtra na consulta (`expires_at is null or expires_at >= hoje`), as demais leituras filtram no app (`isExpired`). Sem índice dedicado. |
 | `store_url` | `text` | não | `''` | Link da loja, exatamente como a creator colou (a vitrine abre-o sem acrescentar UTM). |
-| `logo_url` | `text` | não | `''` | Logo da marca (bucket `brand-logos` ou URL externa). |
+| `logo_url` | `text` | não | `''` | Logo da marca (bucket `brand-logos` ou URL externa). O app não envia nem mostra mais o logo (retirado por enquanto, porque cada creator escolhia o seu e a mesma marca aparecia com logos diferentes); a coluna segue, e `Coupon.logoUrl` continua no schema só para não perder o que já foi salvo ao republicar. |
 | `how_to` | `text` | não | `''` | `CHECK char_length <= 400`. Passos, um por linha. |
-| `starts_at` | `date` | sim | — | Sem uso, como `expires_at`: não há mais cupom "agendado"; todo cupom publicado aparece. A coluna segue no banco e no schema Zod (`startsAt`). |
+| `starts_at` | `date` | sim | — | Sem uso: não há cupom "agendado" (o início agendado está fora do produto); todo cupom publicado aparece, e o editor zera `startsAt` ao mudar a validade. A coluna segue no banco e no schema Zod (`startsAt`). |
 | `color` | `jsonb` | não | `'"auto"'` | `CHECK jsonb_typeof(color) in ('string','number') and pg_column_size(color) <= 40`. **Legado:** o schema Zod não tem `color`, então toda publicação grava `"auto"`. |
 
 **Índices:** `coupons_vitrine_idx (vitrine_id, position)`.
@@ -501,12 +501,12 @@ O PostHog (eventos de navegador e de servidor) é a outra camada de análise e n
 
 ### `public.rate_hits`
 
-Contador de uso, por conta, das ações que acessam sites de fora (importar produto, achar logo). Só `take_rate_limit()` lê e grava. `20261113010000_security_hardening.sql`.
+Contador de uso, por conta, das ações que acessam sites de fora (importar produto; a cota `logo`, de achar logo, não é mais usada). Só `take_rate_limit()` lê e grava. `20261113010000_security_hardening.sql`.
 
 | Coluna | Tipo | Nulo? | Default | Restrições / observações |
 |---|---|---|---|---|
 | `user_id` | `uuid` | não | — | FK → `auth.users(id)` **on delete cascade** |
-| `bucket` | `text` | não | — | `import` (importar produto pelo link, vídeo ou foto de peça) ou `logo` (procurar logo no site da loja) |
+| `bucket` | `text` | não | — | `import` (importar produto pelo link, vídeo ou foto de peça) ou `logo` (procurar logo no site da loja; o app não chama mais com este valor, a função ainda o aceita) |
 | `created_at` | `timestamptz` | não | `now()` | Hora do uso |
 
 **Índices:** `rate_hits_idx (user_id, bucket, created_at desc)`. RLS ligado **sem policies** e sem grants para `anon` e `authenticated`: a tabela só é acessível pela função `security definer`.
@@ -522,7 +522,7 @@ Além dos `CHECK`s de cada tabela, a migração `20261113010000_security_hardeni
 | Tamanho de JSON | `vitrines.look` (objeto, até 4000 bytes), `vitrines.show` (objeto, até 1000 bytes) | `vitrines_look_check`, `vitrines_show_check` |
 | Itens por vitrine | até 100 cupons, 200 produtos e 30 posts | triggers `before insert` `coupons_limit`, `products_limit` e `posts_limit` (função `enforce_item_limit()`, `errcode 23514`, execute revogado de todos) |
 | Datas e links reservados | `vitrines` e `posts` | `vitrines_stamp` (`stamp_vitrine()`: `created_at` fixo, `updated_at` nunca no futuro, links reservados recusados) e `posts_stamp` (`stamp_post()`: `published_at` nunca no futuro) |
-| Ritmo por conta | importar produto e achar logo | RPC `take_rate_limit()` + `rate_hits`: 30 usos por 10 minutos em cada `bucket` |
+| Ritmo por conta | importar produto (o `bucket` `logo`, de achar logo, segue no banco sem uso pelo app) | RPC `take_rate_limit()` + `rate_hits`: 30 usos por 10 minutos em cada `bucket` |
 
 No app, `safeUrl` (`lib/vitrine/links.ts`) repete a regra de link na leitura, e o schema da publicação já a aplicava; veja [Cabeçalhos de segurança](architecture.md#cabeçalhos-de-segurança) na arquitetura.
 
@@ -549,10 +549,10 @@ O índice único parcial `events_view_once` (`20261113000100_view_once_per_day.s
 
 | Bucket | Público? | Limite | MIME aceitos | Quem usa | Migração |
 |---|---|---|---|---|---|
-| `brand-logos` | sim | 1 MiB (`1048576`) | `image/webp`, `image/png` | Logo de marca no cupom | `20261103000000_brand_logos.sql` |
+| `brand-logos` | sim | 1 MiB (`1048576`) | `image/webp`, `image/png` | Sem uso pelo app (o logo de marca foi retirado do editor e das telas); segue existindo e ainda é esvaziado na exclusão de conta | `20261103000000_brand_logos.sql` |
 | `vitrine-photos` | sim | 2 MiB (`2097152`) | `image/webp`, `image/jpeg` | Foto de capa, de perfil, do produto e do post | `20261103000100_vitrine_photos.sql` |
 
-Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:667`). As policies de `storage.objects` (insert, select, delete) só deixam o usuário mexer na pasta cujo primeiro segmento é o próprio `uid` (`storage.foldername(name)[1] = auth.uid()::text`). Leitura pública é pela URL do bucket público, sem policy.
+Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:677`). As policies de `storage.objects` (insert, select, delete) só deixam o usuário mexer na pasta cujo primeiro segmento é o próprio `uid` (`storage.foldername(name)[1] = auth.uid()::text`). Leitura pública é pela URL do bucket público, sem policy.
 
 **Cota por pessoa** (`20261110040000_storage_quota.sql`): as policies de insert ("dono envia logos" e "dono envia fotos") exigem também `storage_upload_allowed()`, que soma os dois buckets na pasta da pessoa e só devolve `true` com menos de 500 arquivos, menos de 100 MiB (soma de `metadata.size`) e menos de 40 envios nos últimos 10 minutos. A checagem roda antes do arquivo entrar, então o envio que passa do limite de tamanho é o último aceito. Vale também para quem chama a API do Storage direto, sem passar pelo app. Antes dessa migração não havia limite. Quando a policy recusa, o Storage responde `403` e `uploadImageAction` mostra `errors.uploadLimit`.
 
@@ -569,7 +569,7 @@ Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:667`). As pol
 | `is_http_url(u text) → boolean` | SQL, `immutable`, `parallel safe`, `search_path = ''` | padrão | `true` se `u` não é nulo, tem até 2000 caracteres e é vazio ou começa com `http://` ou `https://` (sem diferenciar maiúsculas). Base dos `CHECK`s de link. | `CHECK`s |
 | `is_post_media(m jsonb) → boolean` | SQL, `immutable`, `parallel safe`, `search_path = ''` | padrão | `true` se `m` é um array de até 10 objetos, até 50000 bytes, com `photoUrl` e `videoUrl` vazios ou `http(s)` (usa `is_http_url()`). Função porque o `CHECK` não aceita subconsulta. `20261116000000_post_media.sql` | `CHECK posts_media_check` |
 | `mark_tour_seen(tour text) → void` | SQL, `security invoker`, `search_path = ''` | `authenticated` (revogada de `public` e `anon`) | Marca um tour como visto: `update profiles set tours = tours \|\| jsonb_build_object(tour, now()), updated_at = now() where user_id = auth.uid() and tour in ('home','editor')`. O merge do jsonb é feito no banco, sem ler a linha antes; a RLS de update de `profiles` confere o dono. Id fora da lista não grava nada (novo tour exige somar o id aqui e em `TOUR_IDS`). Num banco sem a migração `20261117000000_profile_tours.sql` ela não existe. No Supabase de produção foi conferido que `authenticated` executa e `anon` recebe `42501 permission denied`. | `markTourSeen` (`lib/onboarding/store.ts`), chamada por `finishTourAction` (`app/actions.ts`) |
-| `take_rate_limit(p_bucket text) → boolean` | plpgsql, **`security definer`**, `search_path = ''` | `authenticated` (revogada de `public` e `anon`) | Limite por conta (`auth.uid()`): `import` e `logo` valem 30 usos por 10 minutos cada; outro `p_bucket` dá erro `22023`. Apaga os registros vencidos da conta em `rate_hits`, devolve `false` sem conta ou com o limite estourado e, senão, registra o uso e devolve `true`. | `importProductAction`, `importVideoAction`, `findLogoAction` (`withinRate`, `app/actions.ts`) |
+| `take_rate_limit(p_bucket text) → boolean` | plpgsql, **`security definer`**, `search_path = ''` | `authenticated` (revogada de `public` e `anon`) | Limite por conta (`auth.uid()`): `import` e `logo` valem 30 usos por 10 minutos cada (o app só usa `import`); outro `p_bucket` dá erro `22023`. Apaga os registros vencidos da conta em `rate_hits`, devolve `false` sem conta ou com o limite estourado e, senão, registra o uso e devolve `true`. | `importProductAction`, `importVideoAction` (`withinRate`, `app/actions.ts`) |
 | `stamp_vitrine() → trigger`, `stamp_post() → trigger`, `enforce_item_limit() → trigger` | plpgsql, `security invoker`, `search_path = ''` | `execute` revogado de `public`, `anon` e `authenticated` (só os triggers chamam) | Funções dos triggers de [Limites de segurança dos dados](#limites-de-segurança-dos-dados). | Triggers |
 | `track_event(p_vitrine uuid, p_kind text, p_item uuid, p_visitor text, p_sig text) → void` | plpgsql, **`security definer`**, `search_path = ''` | `anon`, `authenticated` (revogada de `public`) | Grava um evento da vitrine pública. Lê o segredo `track_salt` de `vault.decrypted_secrets` (ausente: erro `VT500`); exige `p_visitor ~ '^[0-9a-f]{16}$'` e `p_sig` = hex(HMAC-SHA256(`p_visitor`, segredo)), senão erro `42501`. Ignora sem erro `p_kind` inválido, vitrine inexistente, visitante com 60 eventos ou mais nos últimos 10 minutos e a segunda visita do dia (`unique_violation` de `events_view_once`). Migração `20261114000000_track_event.sql`, aplicada em produção. O segredo do Vault precisa ser igual ao `TRACK_SALT` da Vercel (veja [Como os eventos entram](#como-os-eventos-entram)). | `app/api/t/route.ts` (`rpc("track_event")`) |
 | `notify_follow() → trigger` | plpgsql, **`security definer`**, `search_path = ''` | `execute` revogado de `public`, `anon` e `authenticated` | Função do trigger `favorites_notify`. Descobre o dono da vitrine seguida; sem dono ou se é quem segue, não faz nada. Senão insere o aviso `follow`, com nome (`name`, senão `full_name`, senão `Visitante`, até 80) e foto (`avatar_url` se começar com `https://`) lidos de `auth.jwt() -> 'user_metadata'`, ignorando duplicata. Migração `20261115000000_notifications.sql` (aplicada). | Trigger em `favorites` (`setFavorite`, `lib/vitrine/store.ts`) |
@@ -678,7 +678,7 @@ graph TD
     V -->|cascade| N
     M -->|cascade| N
     C -->|set null em products.coupon_id| P
-    S["storage.objects (fotos e logos)"] -.->|"NÃO cascateia: apagado à mão em deleteAccountAction"| X((app))
+    S["storage.objects (fotos e logos antigos)"] -.->|"NÃO cascateia: apagado à mão em deleteAccountAction"| X((app))
 ```
 
 - `favorites` e `comments` caem por **duas** cascatas: ao apagar a conta de quem favoritou/comentou, e ao apagar a vitrine favoritada/comentada. Por isso `deleteAccountAction` lê antes (`listCommentedHandles`) as vitrines em que a pessoa comentou e invalida o cache `comentarios:{handle}` de cada uma depois da exclusão.
