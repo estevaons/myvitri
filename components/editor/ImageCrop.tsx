@@ -296,7 +296,7 @@ function CropDialog({ file, kind, onDone }: { file: File; kind: CropKind; onDone
         </button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+      <div className="flex min-h-0 flex-auto flex-col overflow-y-auto overscroll-contain">
         {/* o palco: a foto fora do quadro aparece escurecida, para mostrar o que fica de fora */}
         <div
           ref={stage}

@@ -73,7 +73,9 @@ export function Sheet({
           </svg>
         </button>
       </header>
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 pt-5 pb-6">{children}</div>
+      {/* flex-auto, não flex-1: no Safari do iPhone, a base 0% numa coluna só com max-height encolhia o miolo a quase
+          nada e a janela ficava sem os campos; com base auto o miolo tem a altura do conteúdo e só rola ao passar do teto */}
+      <div className="flex min-h-0 flex-auto flex-col gap-5 overflow-y-auto overscroll-contain px-5 pt-5 pb-6">{children}</div>
       {footer && <footer className="flex-none border-t border-[#EEEBE5] bg-white px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">{footer}</footer>}
     </dialog>
   );
