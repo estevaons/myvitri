@@ -129,7 +129,7 @@ export async function vitrineJsonLd(content: VitrineContent) {
     alternateName: `@${content.handle}`,
     url,
     ...(content.avatarUrl && { image: content.avatarUrl }),
-    ...(content.sub && { description: content.sub }),
+    ...(content.sub && !content.heading.subHidden && { description: content.sub }),
   };
   return {
     "@context": "https://schema.org",

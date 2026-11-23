@@ -66,6 +66,7 @@ erDiagram
         text avatar_url
         text headline
         text sub
+        jsonb heading "tamanho e presenca da frase e do texto de apoio"
         jsonb look "so bannerUrl e usado"
         jsonb show "legado"
         jsonb tracking "legado, nao usado pelo app"
@@ -236,6 +237,7 @@ erDiagram
 | 30 | `20261116000000_post_media.sql` | Galeria do outfit. Adiciona `posts.media jsonb not null default '[]'`; cria `is_post_media(jsonb)` (SQL, `immutable`, `search_path = ''`) e o `CHECK posts_media_check`; recria `publish_vitrine()` gravando `media` e derivando `photo_url` da primeira mídia. Aplicada no Supabase do projeto `vitri` em 14/11/2026. |
 | 31 | `20261117000000_profile_tours.sql` | Tour guiado da plataforma. Adiciona `profiles.tours jsonb not null default '{}'` (`CHECK` objeto e até 1000 bytes); preenche as linhas existentes de `profiles` com `{"home": now(), "editor": now()}` (quem já usava a plataforma não recebe o tour sozinho); cria `mark_tour_seen(tour text)` (SQL, `security invoker`, `search_path = ''`, só `authenticated`). **Já aplicada no Supabase de produção em 14/11/2026 (versão `20261115021938`, nome `profile_tours`).** Em outros ambientes a aplicação é manual, sem passo extra. |
 | 32 | `20261118000000_product_category_enum.sql` | Categoria de produto deixa de ser texto livre ("Relogio" e "Relógio" viravam duas categorias nos filtros e na landing). Converte `products.category` e o JSON dos rascunhos (`vitrine_drafts.content->products[].category`) para a chave da lista fixa, por uma função temporária `pg_temp.category_key()` (tira acentos, minúsculas, hífen, e um mapa de grafias antigas: `tenis` → `calcados`, `relogio` → `relogios` etc.; o que não casa vira `''`). Troca `products_category_len` por `products_category_check` (`category in (...)`). Para criar uma categoria: chave em `CATEGORIES`, rótulo nos dois `messages` e nova migração trocando a constraint. |
+| 33 | `20261123000000_vitrine_heading.sql` | Adiciona `vitrines.heading jsonb not null default '{}'` com `CHECK vitrines_heading_check` (objeto, até 1000 bytes) e recria `publish_vitrine()` (versão **atual**) gravando `heading = coalesce(content->'heading', '{}')`; o resto é igual à de `20261116000000_post_media.sql`. **Ainda não aplicada no banco remoto**: sem ela, a leitura cai no padrão (`readHeading`) e a publicação ignora o campo. |
 | — | `supabase/seed.sql` | Vitrine de demonstração `/marinacosta`. Insere em `kits` pelas colunas antigas `tab`/`title`. |
 
 ### Projeto de produção atual (São Paulo)
@@ -262,6 +264,7 @@ Uma linha por creator. É a "capa" pública da vitrine. Criada em `2026110200000
 | `avatar_url` | `text` | não | `''` | `CHECK is_http_url(avatar_url)` (vazio ou `http(s)` até 2000 caracteres, `vitrines_avatar_url_check`). URL da foto de perfil (bucket `vitrine-photos`, Google ou link colado). A vitrine nova de quem entra pelo Google já nasce com a foto da conta (`starterContent`) e `saveProfile` regrava `avatarUrl \|\| googlePhoto(user)` a cada gravação de perfil, de foto ou de capa; vazio para quem usa só e-mail e senha (a vitrine mostra as iniciais). `publish_vitrine()` não preenche a foto |
 | `headline` | `text` | não | `''` | `CHECK char_length <= 90` |
 | `sub` | `text` | não | `''` | `CHECK char_length <= 240` |
+| `heading` | `jsonb` | não | `'{}'` | `CHECK vitrines_heading_check`: objeto de até 1000 bytes (`20261123000000_vitrine_heading.sql`). Guarda `{ headlineSize, subSize, headlineHidden, subHidden }` (tamanhos `s`, `m` ou `l`; os outros dois são booleanos): tamanho e presença da frase de destaque e do texto de apoio. "Remover" só esconde, o texto continua em `headline`/`sub` (frase vazia mostra a frase padrão, por isso precisa de campo à parte). Vazio vale o padrão (os dois médios, nada escondido): `readHeading` (`lib/vitrine/types.ts`) completa o que faltar ou for inválido |
 | `look` | `jsonb` | não | `{"theme":"vibrante","accent":"#FF5A36","font":"moderna","radius":"arredondado","layout":"grade"}` | Hoje o app **só lê/grava `bannerUrl`** (foto de capa, opcional: vazia, a vitrine mostra a primeira letra do nome). As outras chaves são de um visual antigo e são descartadas por `pickLook` (`lib/vitrine/store.ts:27`). `CHECK` `vitrines_look_check`: precisa ser objeto, até 4000 bytes, com `look->>'bannerUrl'` vazio ou `http(s)`. |
 | `show` | `jsonb` | não | `{"ticker":true,"products":true,"coupons":true,"kits":true,"cta":true}` | **Legado.** É gravada na publicação, mas nenhum componente lê (`lib/vitrine/types.ts:91`). `CHECK` `vitrines_show_check`: objeto de até 1000 bytes. |
 | `tracking` | `jsonb` | não | `'{}'` | `CHECK pg_column_size(tracking) <= 2000`. **Legado:** o app não lê nem escreve mais esta coluna (a UTM saiu e o `tracking` saiu do `VitrineContent`). Sem migração, ela continua existindo e `publish_vitrine()` segue gravando `coalesce(content->'tracking', '{}')`, que agora resulta em `'{}'`. Valores antigos ficam como estão. |
@@ -561,7 +564,7 @@ Caminho dos arquivos: `{auth.uid()}/{uuid}.{ext}` (`app/actions.ts:677`). As pol
 | Função | Linguagem / segurança | Quem pode executar | O que faz | Chamada em |
 |---|---|---|---|---|
 | `owns_vitrine(v uuid) → boolean` | SQL, `stable`, `security invoker`, `search_path = ''` | revogada de `public` e `anon` | `true` se a vitrine `v` pertence a `auth.uid()`. Usada nas policies. | Só nas policies |
-| `publish_vitrine(content jsonb) → timestamptz` | plpgsql, `security invoker` | `authenticated` | Atualiza a vitrine do usuário, **apaga** todos os posts/produtos/cupons dela e **reinsere** a partir do JSON, numa transação (não toca em `kits`). Retorna `updated_at`. Versão atual: `20261116000000_post_media.sql` (grava `posts.media` e deriva `posts.photo_url` da primeira mídia; a anterior, `20261113000000_product_favorite.sql`, gravava também `products.favorite`; a anterior, `20261110020000_vitrine_socials.sql`, gravava `socials`; vem de `20261110000000_posts.sql` a preservação de `posts.published_at` por `id`; `content` sem `posts` não insere nenhum). | `lib/vitrine/store.ts:284` |
+| `publish_vitrine(content jsonb) → timestamptz` | plpgsql, `security invoker` | `authenticated` | Atualiza a vitrine do usuário, **apaga** todos os posts/produtos/cupons dela e **reinsere** a partir do JSON, numa transação (não toca em `kits`). Retorna `updated_at`. Versão atual: `20261123000000_vitrine_heading.sql` (grava também `vitrines.heading`); a anterior, `20261116000000_post_media.sql` (gravava `posts.media` e deriva `posts.photo_url` da primeira mídia; a anterior, `20261113000000_product_favorite.sql`, gravava também `products.favorite`; a anterior, `20261110020000_vitrine_socials.sql`, gravava `socials`; vem de `20261110000000_posts.sql` a preservação de `posts.published_at` por `id`; `content` sem `posts` não insere nenhum). | `lib/vitrine/store.ts:284` |
 | `vitrine_stats(days int default 30) → jsonb` | SQL, `stable`, `security invoker` | `authenticated` | Agrega `events` da vitrine de quem chama nos últimos `days` (limitado a 1–90), por dia no fuso `America/Sao_Paulo` e por item. Também devolve `previous`: os totais da janela anterior de mesma duração. Versão atual: `20261105000000_metrics_previous.sql` (lê as duas janelas de uma vez, `now() - 2 * days`). | `loadStats` em `app/[locale]/metricas/page.tsx` e `loadWeek` (`vitrine_stats(7)`, os números do `ProfileHeader`) em `app/[locale]/inicio/page.tsx` |
 | `stamp_comment() → trigger` | plpgsql, `security invoker`, `search_path = ''` | `execute` revogado de `public`, `anon` e `authenticated` (só o trigger a chama) | Função do trigger `comments_stamp`. Lê `auth.jwt() -> 'user_metadata'`: `author_id = auth.uid()`; `author_name` = `name`, senão `full_name`, senão `Visitante` (até 80 caracteres); `author_avatar_url` = `avatar_url` se começar com `https://`, senão vazio; `body` com `btrim`; `created_at = now()`. Se a pessoa já tem 5 ou mais comentários no último minuto, levanta `VT429` ("muitos comentários em pouco tempo"), que `addComment` transforma em `CommentRateLimitError`. Em resposta (`parent_id` não nulo), sobe para o comentário original (`coalesce(parent_id, id)`) e copia a `vitrine_id` dele e, quando o `parent_id` enviado era uma resposta, guarda esse id em `reply_to_id` (o valor vindo do cliente é zerado antes); se o comentário respondido não existe, levanta `VT404`, que `addComment` transforma em `CommentGoneError` (a FK `23503` também). | Trigger em `comments` (insert por `addComment`, `lib/vitrine/store.ts`) |
 | `favorite_count(target_handle text) → integer` | SQL, `stable`, **`security definer`**, `search_path = ''` | `execute` revogado de `public`; liberado para `anon` e `authenticated` | Conta as linhas de `favorites` da vitrine com esse `handle` (join com `vitrines`). Como `favorites` é privada por RLS, a função só devolve o número, nunca quem favoritou. | `favoriteCount` em `lib/vitrine/store.ts`, via `getFavoriteCount` |
@@ -588,7 +591,7 @@ sequenceDiagram
     participant SA as Server Action publishVitrine
     participant DB as Postgres (RLS ativo)
     SA->>DB: rpc publish_vitrine(content)
-    DB->>DB: UPDATE vitrines SET handle, name, ..., socials, updated_at=now() WHERE owner_id = auth.uid()
+    DB->>DB: UPDATE vitrines SET handle, name, ..., heading, socials, updated_at=now() WHERE owner_id = auth.uid()
     alt nenhuma linha
         DB-->>SA: erro P0002 "vitrine não encontrada"
     end
@@ -610,6 +613,7 @@ Formato do JSON esperado (`camelCase`, igual a `VitrineContent` em `lib/vitrine/
   "avatarUrl": "",
   "headline": "...",
   "sub": "...",
+  "heading": { "headlineSize": "m", "subSize": "m", "headlineHidden": false, "subHidden": false },
   "look": { "bannerUrl": "" },
   "show": { "ticker": true, "products": true, "coupons": true, "kits": true, "cta": true },
   "socials": { "instagram": "", "tiktok": "", "youtube": "" },
