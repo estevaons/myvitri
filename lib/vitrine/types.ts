@@ -113,6 +113,35 @@ export const postSchema = z.object({
     .refine((ids) => new Set(ids).size === ids.length, "postItems"),
 });
 
+/** Tamanhos da frase de destaque e do texto de apoio: pequeno, médio (o de sempre) e grande. */
+export const TEXT_SIZES = ["s", "m", "l"] as const;
+export type TextSize = (typeof TEXT_SIZES)[number];
+
+/**
+ * Como aparecem a frase de destaque e o texto de apoio no topo da vitrine. `…Hidden` tira o texto da vitrine sem apagá-lo
+ * (a frase vazia mostra a frase padrão, então tirar precisa de um campo à parte); voltar a mostrar traz o texto de antes.
+ */
+export const headingSchema = z.object({
+  headlineSize: z.enum(TEXT_SIZES),
+  subSize: z.enum(TEXT_SIZES),
+  headlineHidden: z.boolean(),
+  subHidden: z.boolean(),
+});
+export type Heading = z.infer<typeof headingSchema>;
+export const HEADING_DEFAULT: Heading = { headlineSize: "m", subSize: "m", headlineHidden: false, subHidden: false };
+
+/** O `heading` vindo do banco ou de um rascunho: o que faltar ou não valer fica no padrão. */
+export function readHeading(raw: unknown): Heading {
+  const h = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const size = (v: unknown): TextSize => (TEXT_SIZES.includes(v as TextSize) ? (v as TextSize) : "m");
+  return {
+    headlineSize: size(h.headlineSize),
+    subSize: size(h.subSize),
+    headlineHidden: h.headlineHidden === true,
+    subHidden: h.subHidden === true,
+  };
+}
+
 export const vitrineContentSchema = z.object({
   handle: z
     .string()
@@ -124,6 +153,8 @@ export const vitrineContentSchema = z.object({
   avatarUrl: httpUrl,
   headline: text(90),
   sub: text(240),
+  /** Tamanho e presença da frase de destaque e do texto de apoio (`HEADING_DEFAULT`: os dois no tamanho médio). */
+  heading: headingSchema,
   /**
    * O visual da vitrine é fixo; a creator só escolhe a capa. Campos antigos (tema, cor, fonte…)
    * que ainda estejam no banco são descartados na leitura e na publicação.
@@ -194,6 +225,7 @@ export function emptyContent(handle: string, name: string, intro: Pick<VitrineCo
     name,
     avatarUrl: "",
     ...intro,
+    heading: HEADING_DEFAULT,
     look: { bannerUrl: "" },
     show: { ticker: true, products: true, coupons: true, kits: true, cta: true },
     socials: SOCIALS,

@@ -20,7 +20,8 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/[handle]
   const brands = activeBrands(content);
   // a busca chega por "cupom <marca> <pessoa>": as marcas entram no título e na descrição
   const title = brands.length ? t("titleWithBrands", { name, brands: await listNames(brands, 3) }) : t("title", { name });
-  const base = content.sub || t("fallbackSub", { name });
+  // texto de apoio removido da vitrine não vira a descrição da página
+  const base = (!content.heading.subHidden && content.sub) || t("fallbackSub", { name });
   const description = brands.length ? t("withBrands", { base, brands: await listNames(brands) }) : base;
   // canônico sempre minúsculo: /@Fulana e /@fulana são a mesma vitrine
   return pageMeta({ title, description, path: vitrinePath(content.handle), ogType: "profile" });

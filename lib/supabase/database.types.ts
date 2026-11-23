@@ -499,6 +499,7 @@ export type Database = {
           avatar_url: string
           created_at: string
           handle: string
+          heading: Json
           headline: string
           id: string
           look: Json
@@ -514,6 +515,7 @@ export type Database = {
           avatar_url?: string
           created_at?: string
           handle: string
+          heading?: Json
           headline?: string
           id?: string
           look?: Json
@@ -529,6 +531,7 @@ export type Database = {
           avatar_url?: string
           created_at?: string
           handle?: string
+          heading?: Json
           headline?: string
           id?: string
           look?: Json

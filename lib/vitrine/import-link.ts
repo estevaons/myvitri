@@ -231,16 +231,34 @@ export function decode(s: string) {
   return (first.includes("&") ? once(first) : first).replace(/\s+/g, " ").trim();
 }
 
-/** Valor de um `<meta>` (property/name/itemprop). O valor pode ter o outro tipo de aspa dentro (`content="Men's"`). */
+/**
+ * Uma tag `<meta …>` inteira, com as aspas respeitadas (um `>` dentro de `content` não corta a tag). As alternativas
+ * começam cada uma por um caractere diferente, então não há retrocesso: a leitura é linear no tamanho da página.
+ */
+const META_TAG = /<meta\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi;
+/** Atributo de tag: `nome="valor"`, `nome='valor'` ou `nome=valor`. */
+const TAG_ATTR = /([^\s=/>"']+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+))/g;
+
+/**
+ * Valor de um `<meta>` (property/name/itemprop), lido tag por tag. O valor pode ter o outro tipo de aspa dentro
+ * (`content="Men's"`). Não use uma regex única sobre a página com `[\s\S]*?` entre as aspas: quando a chave não está
+ * na tag, ela atravessa o documento inteiro a cada `<meta>`, e numa página de loja (centenas de KB) cada chamada
+ * levava de 1 a 30 segundos.
+ */
 function meta(html: string, key: string) {
-  const k = key.replace(/[.:]/g, "\\$&");
-  const re = new RegExp(
-    `<meta\\b[^>]*?\\b(?:property|name|itemprop)\\s*=\\s*["']${k}["'][^>]*?\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\1` +
-      `|<meta\\b[^>]*?\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\3[^>]*?\\b(?:property|name|itemprop)\\s*=\\s*["']${k}["']`,
-    "i",
-  );
-  const m = html.match(re);
-  return m ? decode(m[2] ?? m[4] ?? "") : "";
+  const want = key.toLowerCase();
+  for (const [tag] of html.matchAll(META_TAG)) {
+    let matches = false;
+    let content: string | undefined;
+    for (const m of tag.matchAll(TAG_ATTR)) {
+      const name = m[1].toLowerCase();
+      const value = m[2] ?? m[3] ?? m[4] ?? "";
+      if (name === "content") content = value;
+      else if ((name === "property" || name === "name" || name === "itemprop") && value.toLowerCase() === want) matches = true;
+    }
+    if (matches && content !== undefined) return decode(content);
+  }
+  return "";
 }
 
 type Json = Record<string, unknown>;

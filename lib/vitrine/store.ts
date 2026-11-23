@@ -5,7 +5,7 @@ import { getUser } from "@/lib/supabase/server";
 import { safeUrl } from "./links";
 import { toCategory } from "./categories";
 import { pickSocials } from "./socials";
-import { COUPON_EXTRA, emptyContent, pickProfile, postCover, PRODUCT_EXTRA, readPostMedia, type Coupon, type IconId, type Post, type Product, type VitrineContent, type VitrineProfile } from "./types";
+import { COUPON_EXTRA, emptyContent, pickProfile, postCover, PRODUCT_EXTRA, readHeading, readPostMedia, type Coupon, type IconId, type Post, type Product, type VitrineContent, type VitrineProfile } from "./types";
 
 /**
  * Persistência das vitrines no Supabase. Toda leitura/escrita passa por aqui;
@@ -93,6 +93,8 @@ async function loadContent(db: Db, v: VitrineRow): Promise<VitrineContent> {
     avatarUrl: v.avatar_url,
     headline: v.headline,
     sub: v.sub,
+    // sem a migração 20261123000000_vitrine_heading a coluna não vem: tamanhos médios, nada escondido
+    heading: readHeading(v.heading),
     look: pickLook(v.look as Partial<VitrineContent["look"]>, base.look),
     show: { ...base.show, ...(v.show as object) },
     // sem a migração das redes a coluna não vem: fica tudo vazio
@@ -251,6 +253,8 @@ export async function findDraft(db: Db, ownerId: string, published: VitrineConte
     // rascunho salvo antes de existirem os posts; e posts de antes da galeria (só `photoUrl`) viram uma mídia
     posts: Array.isArray(d.posts) ? d.posts.map(draftPost) : published.posts,
     show: { ...published.show, ...d.show },
+    // rascunho salvo antes de existirem o tamanho e o "remover" dos textos
+    heading: d.heading ? readHeading(d.heading) : published.heading,
     // rascunho salvo antes de existirem as redes
     socials: d.socials ? pickSocials(d.socials) : published.socials,
   };

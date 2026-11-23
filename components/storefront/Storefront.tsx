@@ -11,7 +11,7 @@ import { copyLater, copyNow, openStore } from "./copy";
 import { couponOff, expiryValues, isDay, isExpired, todayBR } from "@/lib/vitrine/pricing";
 import type { CommentList, Viewer } from "@/lib/vitrine/social";
 import { SOCIAL_LABELS, socialLinks, type SocialNetwork } from "@/lib/vitrine/socials";
-import { postItems, type Coupon, type Post, type PostMedia, type Product, type VitrineContent } from "@/lib/vitrine/types";
+import { postItems, TEXT_SIZES, type Coupon, type Heading, type Post, type PostMedia, type Product, type TextSize, type VitrineContent } from "@/lib/vitrine/types";
 import { parseVideo, VIDEO_LABELS, videoEmbedUrl } from "@/lib/vitrine/video";
 import { Comments } from "./Comments";
 import { CoverLetter } from "@/components/home/CreatorCard";
@@ -325,8 +325,8 @@ export type StorefrontEdit = {
   coverBusy?: boolean;
   avatar: () => void;
   avatarBusy?: boolean;
-  /** a frase de destaque e o texto de apoio, editados ali mesmo na vitrine */
-  text: (patch: Partial<Pick<VitrineContent, "headline" | "sub">>) => void;
+  /** a frase de destaque e o texto de apoio (e o tamanho e a presença de cada um), editados ali mesmo na vitrine */
+  text: (patch: TextPatch) => void;
   socials: () => void;
   /** null: adicionar um novo */
   coupon: (id: string | null) => void;
@@ -446,6 +446,16 @@ const PlusIcon = ({ size = 22 }: { size?: number }) => (
   </svg>
 );
 
+type TextPatch = Partial<Pick<VitrineContent, "headline" | "sub" | "heading">>;
+
+/** O tamanho da frase de destaque e do texto de apoio, na vitrine e no modo de edição (`m` é o de sempre). */
+const HEADLINE_SIZE: Record<TextSize, string> = {
+  s: "text-[clamp(32px,5.5cqw,64px)]",
+  m: "text-[clamp(44px,8cqw,96px)]",
+  l: "text-[clamp(54px,10.5cqw,124px)]",
+};
+const SUB_SIZE: Record<TextSize, string> = { s: "text-[15px]", m: "text-[17px]", l: "text-[20px] @3xl:text-[22px]" };
+
 /**
  * Texto editado no próprio lugar, no modo de edição: um textarea com a mesma letra do texto da vitrine, que cresce com o
  * texto. Tocar já põe o cursor ali; Enter e Esc encerram (os dois textos são de uma linha só, quebrada pela largura).
@@ -473,7 +483,8 @@ export function InlineText({
 }) {
   const own = useRef<HTMLTextAreaElement>(null);
   const ref = inputRef ?? own;
-  // a altura acompanha o texto e a largura (o field-sizing do CSS ainda não chega a todo navegador)
+  // a altura acompanha o texto, a largura e o tamanho da letra (`className`); o field-sizing do CSS ainda não chega a
+  // todo navegador
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -490,7 +501,7 @@ export function InlineText({
       ro.disconnect();
       document.fonts?.removeEventListener("loadingdone", fit);
     };
-  }, [ref, value]);
+  }, [ref, value, className]);
   return (
     <textarea
       ref={ref}
@@ -516,35 +527,128 @@ export function InlineText({
   );
 }
 
+const SIZE_LABEL = { s: "sizeS", m: "sizeM", l: "sizeL" } as const;
+/** O "A" de cada tamanho na barra, do menor ao maior. */
+const SIZE_GLYPH: Record<TextSize, string> = { s: "text-[12px]", m: "text-[15px]", l: "text-[19px]" };
+
+/**
+ * A barra do texto com o cursor: o tamanho (pequeno, médio, grande) e "Remover", que tira o texto da vitrine sem
+ * apagá-lo. Os botões não tiram o cursor do texto (`preventDefault` no mousedown): assim a barra não some no meio do
+ * clique e dá para continuar escrevendo depois de trocar o tamanho.
+ */
+function TextToolbar({
+  size,
+  onSize,
+  onRemove,
+  removeLabel,
+  className,
+}: {
+  size: TextSize;
+  onSize: (s: TextSize) => void;
+  onRemove: () => void;
+  removeLabel: string;
+  className: string;
+}) {
+  const te = useTranslations("editor.edit");
+  const keep = (e: MouseEvent) => e.preventDefault();
+  return (
+    <div
+      role="toolbar"
+      aria-label={te("textSize")}
+      className={`absolute left-1/2 z-30 flex -translate-x-1/2 items-center gap-0.5 bg-ink p-1 text-white shadow-[0_6px_20px_rgba(17,17,17,0.22)] ${className}`}
+    >
+      {TEXT_SIZES.map((s) => (
+        <button
+          key={s}
+          type="button"
+          onMouseDown={keep}
+          onClick={() => onSize(s)}
+          aria-pressed={size === s}
+          aria-label={te(SIZE_LABEL[s])}
+          title={te(SIZE_LABEL[s])}
+          className="flex size-9 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-white hover:bg-white/15 aria-pressed:bg-white aria-pressed:text-ink"
+        >
+          <span aria-hidden="true" className={`font-display leading-none ${SIZE_GLYPH[s]}`}>
+            A
+          </span>
+        </button>
+      ))}
+      <span aria-hidden="true" className="mx-1 h-5 w-px bg-white/25" />
+      <button
+        type="button"
+        onMouseDown={keep}
+        onClick={onRemove}
+        aria-label={removeLabel}
+        title={removeLabel}
+        className="flex h-9 cursor-pointer items-center gap-1.5 border-0 bg-transparent px-3 text-[13px] font-semibold whitespace-nowrap text-white hover:bg-white/15"
+      >
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+        {te("remove")}
+      </button>
+    </div>
+  );
+}
+
+/** No lugar de um texto removido: o botão tracejado que o traz de volta, com o texto de antes. */
+function ShowText({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-10 cursor-pointer items-center gap-2 border border-dashed border-ink/30 bg-transparent px-4 text-[13px] font-semibold text-mute hover:border-ink hover:text-ink"
+    >
+      <PlusIcon size={16} />
+      {label}
+    </button>
+  );
+}
+
 /**
  * A frase de destaque e o texto de apoio no modo de edição: os dois já são campos, no mesmo lugar e com a mesma letra
  * da vitrine. O lápis fica no canto enquanto nenhum dos dois está com o cursor; no mouse, um fundo leve e o cursor de
  * texto aparecem no hover; no toque (sem hover), um tracejado bem claro fica em volta. Com o cursor dentro, a borda fica
- * cheia, o lápis some e o contador aparece.
+ * cheia, o lápis some, o contador aparece e a barra do texto (`TextToolbar`: tamanho e "Remover") surge acima da frase
+ * ou abaixo do texto de apoio. Texto removido vira um botão tracejado (`ShowText`) que o traz de volta.
  */
-function InlineTexts({
-  content,
-  placeholder,
-  onChange,
-}: {
-  content: VitrineContent;
-  placeholder: string;
-  onChange: (patch: Partial<Pick<VitrineContent, "headline" | "sub">>) => void;
-}) {
+function InlineTexts({ content, placeholder, onChange }: { content: VitrineContent; placeholder: string; onChange: (patch: TextPatch) => void }) {
   const te = useTranslations("editor.edit");
   const tp = useTranslations("editor.profile");
+  const { heading } = content;
   const [focused, setFocused] = useState<"headline" | "sub" | null>(null);
   const headlineRef = useRef<HTMLTextAreaElement>(null);
+  const subRef = useRef<HTMLTextAreaElement>(null);
   const count = focused === "headline" ? [content.headline.length, 90] : focused === "sub" ? [content.sub.length, 240] : null;
+  const setHeading = (patch: Partial<Heading>) => onChange({ heading: { ...heading, ...patch } });
+  /** Põe o cursor no fim do texto. */
+  const focusEnd = (el: HTMLTextAreaElement | null) => {
+    el?.focus();
+    el?.setSelectionRange(el.value.length, el.value.length);
+  };
+  /** Traz de volta o texto removido e já põe o cursor nele (depois de o campo voltar à tela). */
+  const show = (key: "headline" | "sub") => {
+    setHeading(key === "headline" ? { headlineHidden: false } : { subHidden: false });
+    requestAnimationFrame(() => focusEnd((key === "headline" ? headlineRef : subRef).current));
+  };
+  /** Tira o texto da vitrine; o campo sai da tela, então o foco sai junto. */
+  const hide = (key: "headline" | "sub") => {
+    setFocused(null);
+    setHeading(key === "headline" ? { headlineHidden: true } : { subHidden: true });
+  };
   return (
     <div
-      // tocar no respiro em volta dos textos (ou no lápis) também começa a editar, com o cursor no fim da frase
+      // tocar no respiro em volta dos textos (ou no lápis) também começa a editar, com o cursor no fim do primeiro texto visível
       onMouseDown={(e) => {
         if (e.target !== e.currentTarget && !(e.target as Element).closest("[data-pencil]")) return;
+        const el = !heading.headlineHidden ? headlineRef.current : !heading.subHidden ? subRef.current : null;
+        if (!el) return;
         e.preventDefault();
-        const el = headlineRef.current;
-        el?.focus();
-        el?.setSelectionRange(el.value.length, el.value.length);
+        focusEnd(el);
+      }}
+      // a barra fica enquanto o foco estiver aqui dentro (no texto ou, pelo Tab, num botão dela)
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(null);
       }}
       className="relative flex w-full cursor-text flex-col items-center gap-4 px-4 py-5 outline-2 outline-transparent outline-solid transition-[background-color,outline-color] hover:bg-ink/[0.035] has-focus:bg-transparent has-focus:outline-ink"
     >
@@ -555,28 +659,53 @@ function InlineTexts({
           <PencilBadge />
         </span>
       )}
-      <InlineText
-        inputRef={headlineRef}
-        value={content.headline}
-        onChange={(headline) => onChange({ headline })}
-        maxLength={90}
-        placeholder={placeholder}
-        label={tp("headline")}
-        onFocus={() => setFocused("headline")}
-        onBlur={() => setFocused(null)}
-        // font-display! porque o globals.css faz os campos herdarem a fonte, fora das camadas do Tailwind
-        className="p-0 text-center font-display! text-[clamp(44px,8cqw,96px)] leading-[1] font-normal text-balance"
-      />
-      <InlineText
-        value={content.sub}
-        onChange={(sub) => onChange({ sub })}
-        maxLength={240}
-        placeholder={te("addSub")}
-        label={tp("sub")}
-        onFocus={() => setFocused("sub")}
-        onBlur={() => setFocused(null)}
-        className="max-w-[36rem] p-0 text-center text-[17px] leading-relaxed text-mute"
-      />
+      {focused === "headline" && (
+        <TextToolbar
+          size={heading.headlineSize}
+          onSize={(headlineSize) => setHeading({ headlineSize })}
+          onRemove={() => hide("headline")}
+          removeLabel={te("removeHeadline")}
+          className="bottom-full mb-2"
+        />
+      )}
+      {focused === "sub" && (
+        <TextToolbar
+          size={heading.subSize}
+          onSize={(subSize) => setHeading({ subSize })}
+          onRemove={() => hide("sub")}
+          removeLabel={te("removeSub")}
+          className="top-full mt-2"
+        />
+      )}
+      {heading.headlineHidden ? (
+        <ShowText label={te("showHeadline")} onClick={() => show("headline")} />
+      ) : (
+        <InlineText
+          inputRef={headlineRef}
+          value={content.headline}
+          onChange={(headline) => onChange({ headline })}
+          maxLength={90}
+          placeholder={placeholder}
+          label={tp("headline")}
+          onFocus={() => setFocused("headline")}
+          // font-display! porque o globals.css faz os campos herdarem a fonte, fora das camadas do Tailwind
+          className={`p-0 text-center font-display! ${HEADLINE_SIZE[heading.headlineSize]} leading-[1] font-normal text-balance`}
+        />
+      )}
+      {heading.subHidden ? (
+        <ShowText label={te("showSub")} onClick={() => show("sub")} />
+      ) : (
+        <InlineText
+          inputRef={subRef}
+          value={content.sub}
+          onChange={(sub) => onChange({ sub })}
+          maxLength={240}
+          placeholder={te("addSub")}
+          label={tp("sub")}
+          onFocus={() => setFocused("sub")}
+          className={`max-w-[36rem] p-0 text-center ${SUB_SIZE[heading.subSize]} leading-relaxed text-mute`}
+        />
+      )}
       {count && (
         <span aria-live="polite" className="absolute right-3 bottom-1.5 text-[12px] text-mute tabular-nums">
           {count[0]}/{count[1]}
@@ -1021,8 +1150,15 @@ export function Storefront({
               <InlineTexts content={content} placeholder={t("defaultHeadline", { name: firstName })} onChange={edit.text} />
             ) : (
               <div className="flex flex-col items-center gap-4">
-                <h1 className="m-0 font-display text-[clamp(44px,8cqw,96px)] leading-[1] font-normal text-balance">{headline}</h1>
-                {content.sub && <p className="m-0 max-w-[36rem] text-[17px] leading-relaxed text-mute">{content.sub}</p>}
+                {/* frase removida: o título da página continua para leitores de tela e buscadores */}
+                {content.heading.headlineHidden ? (
+                  <h1 className="sr-only">{headline}</h1>
+                ) : (
+                  <h1 className={`m-0 font-display ${HEADLINE_SIZE[content.heading.headlineSize]} leading-[1] font-normal text-balance`}>{headline}</h1>
+                )}
+                {content.sub && !content.heading.subHidden && (
+                  <p className={`m-0 max-w-[36rem] ${SUB_SIZE[content.heading.subSize]} leading-relaxed text-mute`}>{content.sub}</p>
+                )}
               </div>
             )}
             {ctas.length > 0 && (
